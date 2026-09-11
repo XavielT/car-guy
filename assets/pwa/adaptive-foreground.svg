@@ -5,12 +5,12 @@
       <stop offset="0.6" stop-color="#F0B429"/>
       <stop offset="1" stop-color="#D79A1C"/>
     </linearGradient></defs>
-  <rect width="64" height="64" rx="14" fill="#0B1F1C"/>
   
+  <g transform="translate(32,32) scale(0.78) translate(-32,-32)">
   <g transform="translate(0,2.5)">
     <path d="M15.6 44.5A19 19 0 1 1 48.4 44.5" fill="none" stroke="#F3EFE4"
           stroke-width="4" stroke-linecap="round" opacity="0.92"/>
     <path d="M32 21c0 0 8.6 9.9 8.6 15.5a8.6 8.6 0 0 1-17.2 0C23.4 30.9 32 21 32 21z" fill="url(#gd)"/>
     <ellipse cx="28.7" cy="35.8" rx="2.1" ry="3.1" fill="#FFFFFF" opacity="0.30"/>
-  </g>
+  </g></g>
 </svg>
