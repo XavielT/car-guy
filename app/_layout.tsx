@@ -53,6 +53,7 @@ export default function RootLayout() {
           name="vehiculo"
           options={{ presentation: 'modal', headerShown: true, title: 'Nuevo vehículo' }}
         />
+        <Stack.Screen name="gastos" options={{ headerShown: true, title: 'Gastos y mantenimiento' }} />
         <Stack.Screen name="precios" options={{ headerShown: true, title: 'Precios MICM' }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: 'Editar carga' }} />
       </Stack>

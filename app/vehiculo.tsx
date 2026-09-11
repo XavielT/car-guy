@@ -9,7 +9,7 @@ export default function VehiculoScreen() {
   const { upsertVehicle } = useStore();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.receipt }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.receipt }} edges={['top', 'bottom']}>
       <VehicleForm
         submitLabel="Guardar vehículo"
         onSubmit={(v) => {

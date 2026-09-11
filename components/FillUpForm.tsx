@@ -8,7 +8,8 @@ import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtV
 import { completeAmounts, parseDecimal } from '@/lib/math';
 import type { FillUp, FuelType } from '@/lib/types';
 import { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 
 export type FillDraft = Omit<FillUp, 'id' | 'createdAt'>;
 

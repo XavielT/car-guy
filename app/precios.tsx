@@ -33,7 +33,7 @@ export default function PreciosScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.receipt }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.receipt }} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={styles.h}>
           Precios MICM

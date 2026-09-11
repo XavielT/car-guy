@@ -121,6 +121,43 @@ export type EconomyInsight = {
   differencePercent: number;
 };
 
+export type FillUpReview = {
+  pricePerUnit: number;
+  distanceKm: number | null;
+  kmPerUnit: number | null;
+  costPerKm: number | null;
+  status: 'low' | 'great' | 'normal' | 'first';
+  baseline: number | null;
+};
+
+/** Review the newly registered fill-up against the previous odometer reading. */
+export function reviewFillUp(current: FillUp, previousFillups: FillUp[]): FillUpReview {
+  const previous = sortFillUps(previousFillups).filter((fillup) => fillup.odometerKm <= current.odometerKm).at(-1);
+  const distanceKm = previous ? current.odometerKm - previous.odometerKm : null;
+  const kmPerUnit = distanceKm != null && distanceKm > 0 && current.volume > 0
+    ? roundVolume(distanceKm / current.volume)
+    : null;
+  const costPerKm = distanceKm != null && distanceKm > 0
+    ? roundMoney(current.totalDop / distanceKm)
+    : null;
+  const priorEconomy = computeEconomy(previousFillups);
+  const baseline = priorEconomy.length
+    ? priorEconomy.reduce((total, point) => total + point.kmPerUnit, 0) / priorEconomy.length
+    : null;
+  const differencePercent = baseline && kmPerUnit != null ? ((kmPerUnit - baseline) / baseline) * 100 : null;
+  const status = kmPerUnit == null
+    ? 'first'
+    : differencePercent == null
+      ? 'normal'
+      : differencePercent <= -15
+        ? 'low'
+        : differencePercent >= 15
+          ? 'great'
+          : 'normal';
+
+  return { pricePerUnit: current.pricePerUnit, distanceKm, kmPerUnit, costPerKm, status, baseline };
+}
+
 /** Compare the latest measured tank with this vehicle's previous measured tanks. */
 export function latestEconomyInsight(fillups: FillUp[]): EconomyInsight | null {
   const points = computeEconomy(fillups);

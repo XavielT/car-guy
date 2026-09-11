@@ -8,6 +8,8 @@ const KEY = 'tu-combustible-rd/v1';
 export const EMPTY_DATA: AppData = {
   vehicles: [],
   fillups: [],
+  expenses: [],
+  reminders: [],
   settings: {
     activeVehicleId: null,
     referencePrices: { ...DEFAULT_REFERENCE_PRICES },
@@ -15,23 +17,28 @@ export const EMPTY_DATA: AppData = {
   },
 };
 
+export function normalizeData(parsed: Partial<AppData>): AppData {
+  return {
+    vehicles: parsed.vehicles ?? [],
+    fillups: parsed.fillups ?? [],
+    expenses: parsed.expenses ?? [],
+    reminders: parsed.reminders ?? [],
+    settings: {
+      ...EMPTY_DATA.settings,
+      ...parsed.settings,
+      referencePrices: {
+        ...DEFAULT_REFERENCE_PRICES,
+        ...parsed.settings?.referencePrices,
+      },
+    },
+  };
+}
+
 export async function loadData(): Promise<AppData> {
   const raw = await AsyncStorage.getItem(KEY);
   if (!raw) return structuredClone(EMPTY_DATA);
   try {
-    const parsed = JSON.parse(raw) as AppData;
-    return {
-      vehicles: parsed.vehicles ?? [],
-      fillups: parsed.fillups ?? [],
-      settings: {
-        ...EMPTY_DATA.settings,
-        ...parsed.settings,
-        referencePrices: {
-          ...DEFAULT_REFERENCE_PRICES,
-          ...parsed.settings?.referencePrices,
-        },
-      },
-    };
+    return normalizeData(JSON.parse(raw) as Partial<AppData>);
   } catch {
     return structuredClone(EMPTY_DATA);
   }

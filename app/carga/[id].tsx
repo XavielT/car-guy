@@ -3,7 +3,8 @@ import { colors } from '@/constants/theme';
 import { lastOdometer } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function EditCargaScreen() {
@@ -18,7 +19,7 @@ export default function EditCargaScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.receipt }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.receipt }} edges={['top', 'bottom']}>
       <FillUpForm
         vehicleId={fill.vehicleId}
         defaultFuel={fill.fuelType}

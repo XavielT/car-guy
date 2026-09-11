@@ -26,7 +26,7 @@ function monthBuckets(fillups: { occurredAt: string; totalDop: number }[]) {
 }
 
 export default function CifrasScreen() {
-  const { vehicleFillups, activeVehicle } = useStore();
+  const { vehicleFillups, vehicleExpenses, activeVehicle } = useStore();
   if (!activeVehicle) return null;
 
   const now = new Date();
@@ -40,10 +40,16 @@ export default function CifrasScreen() {
   const maxMonth = Math.max(...months.map((m) => m.total), 1);
   const dist = distanceInLogs(vehicleFillups);
   const allSpend = sumSpend(vehicleFillups);
-  const costKm = dist > 0 ? roundMoney(allSpend / dist) : null;
+  const expenseSpend = roundMoney(vehicleExpenses.reduce((total, expense) => total + expense.amountDop, 0));
+  const combinedSpend = roundMoney(allSpend + expenseSpend);
+  const costKm = dist > 0 ? roundMoney(combinedSpend / dist) : null;
   const eco = computeEconomy(vehicleFillups);
   const insight = latestEconomyInsight(vehicleFillups);
   const avg = eco.length ? eco.reduce((a, p) => a + p.kmPerUnit, 0) / eco.length : null;
+  const odometerRows = [...vehicleFillups].sort(
+    (a, b) => a.odometerKm - b.odometerKm || new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
+  );
+  const totalKm = odometerRows.length > 1 ? odometerRows[odometerRows.length - 1].odometerKm - odometerRows[0].odometerKm : 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -67,6 +73,13 @@ export default function CifrasScreen() {
         </View>
         <View style={[styles.row, { marginTop: 12 }]}>
           <Card>
+            <T face="medium" style={styles.lbl}>Costo total del vehículo</T>
+            <T face="monoBold" style={styles.val}>{money(combinedSpend)}</T>
+            <T face="body" style={styles.hint}>{money(allSpend)} combustible · {money(expenseSpend)} otros gastos</T>
+          </Card>
+        </View>
+        <View style={[styles.row, { marginTop: 12 }]}>
+          <Card>
             <T face="medium" style={styles.lbl}>
               RD$ / km
             </T>
@@ -78,6 +91,18 @@ export default function CifrasScreen() {
             </T>
           </Card>
         </View>
+
+        <Card style={{ marginTop: 12 }}>
+          <T face="medium" style={styles.lbl}>
+            Kilómetros registrados
+          </T>
+          <T face="monoBold" style={styles.val}>
+            {totalKm ? km(totalKm) : '—'}
+          </T>
+          <T face="body" style={styles.hint}>
+            {odometerRows.length ? `${odometerRows.length} lecturas del odómetro` : 'Aparecerá con tu primera carga'}
+          </T>
+        </Card>
         <View style={[styles.row, { marginTop: 12 }]}>
           <Card>
             <T face="medium" style={styles.lbl}>
@@ -102,6 +127,34 @@ export default function CifrasScreen() {
             </T>
           </Card>
         ) : null}
+
+        <T face="title" style={styles.sec}>
+          Línea de vida del vehículo
+        </T>
+        {odometerRows.length === 0 ? (
+          <T face="body" style={styles.hint}>
+            Cada carga irá dejando aquí la historia de los kilómetros de tu vehículo.
+          </T>
+        ) : (
+          odometerRows.map((fillup, index) => {
+            const previous = odometerRows[index - 1];
+            const distance = previous ? fillup.odometerKm - previous.odometerKm : null;
+            return (
+              <View key={fillup.id} style={styles.timelineRow}>
+                <View style={styles.timelineDot} />
+                <View style={{ flex: 1 }}>
+                  <View style={styles.barHead}>
+                    <T face="semibold">{km(fillup.odometerKm)}</T>
+                    <T face="body" style={styles.metaDate}>{monthTitle(new Date(fillup.occurredAt).getFullYear(), new Date(fillup.occurredAt).getMonth())}</T>
+                  </View>
+                  <T face="body" style={styles.hint}>
+                    {distance != null ? `+${km(distance)} desde la lectura anterior` : 'Punto de partida'}
+                  </T>
+                </View>
+              </View>
+            );
+          })
+        )}
 
         <T face="title" style={styles.sec}>
           Por tipo
@@ -162,6 +215,21 @@ const styles = StyleSheet.create({
   sec: { fontSize: 22, color: colors.ink, marginTop: 28, marginBottom: 12 },
   barBlock: { marginBottom: 12 },
   barHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  metaDate: { color: colors.muted, fontSize: 12 },
+  timelineRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  timelineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.nozzle,
+    marginTop: 5,
+  },
   track: {
     height: 10,
     backgroundColor: colors.receiptDeep,

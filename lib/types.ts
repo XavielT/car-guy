@@ -35,6 +35,41 @@ export type FillUp = {
   createdAt: string;
 };
 
+export const EXPENSE_CATEGORIES = [
+  'maintenance',
+  'repair',
+  'insurance',
+  'tax',
+  'toll',
+  'parking',
+  'wash',
+  'other',
+] as const;
+
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+export type Expense = {
+  id: string;
+  vehicleId: string;
+  occurredAt: string;
+  odometerKm: number | null;
+  amountDop: number;
+  category: ExpenseCategory;
+  description: string;
+  createdAt: string;
+};
+
+export type MaintenanceReminder = {
+  id: string;
+  vehicleId: string;
+  title: string;
+  dueDate: string | null;
+  dueOdometerKm: number | null;
+  completedAt: string | null;
+  notes: string;
+  createdAt: string;
+};
+
 export type ReferencePrices = Record<FuelType, number>;
 
 export type Settings = {
@@ -46,6 +81,8 @@ export type Settings = {
 export type AppData = {
   vehicles: Vehicle[];
   fillups: FillUp[];
+  expenses: Expense[];
+  reminders: MaintenanceReminder[];
   settings: Settings;
 };
 

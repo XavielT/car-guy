@@ -2,14 +2,38 @@ import { T } from '@/components/T';
 import { Card, GhostButton, PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { FUEL_CATALOG } from '@/lib/fuel';
+import { exportBackup, importBackup } from '@/lib/backup';
 import { useStore } from '@/lib/store';
 import { useRouter } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MasScreen() {
   const router = useRouter();
-  const { data, activeVehicle, setActiveVehicle, deleteVehicle, resetAll } = useStore();
+  const { data, activeVehicle, setActiveVehicle, deleteVehicle, resetAll, restoreData } = useStore();
+
+  async function handleExport() {
+    try {
+      const shared = await exportBackup(data);
+      if (!shared) Alert.alert('Respaldo', 'Este dispositivo no permite compartir archivos.');
+    } catch {
+      Alert.alert('Respaldo', 'No se pudo crear el archivo de respaldo.');
+    }
+  }
+
+  async function handleImport() {
+    try {
+      const incoming = await importBackup();
+      if (!incoming) return;
+      Alert.alert('Restaurar datos', 'Esto reemplazará los datos actuales en este teléfono.', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Restaurar', style: 'destructive', onPress: () => restoreData(incoming) },
+      ]);
+    } catch {
+      Alert.alert('Restaurar datos', 'El archivo no es un respaldo válido de Tu Combustible RD.');
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -67,12 +91,18 @@ export default function MasScreen() {
             </T>
           </Pressable>
         </Card>
+        <PrimaryButton label="Gastos y mantenimiento" onPress={() => router.push('../gastos')} />
 
         <T face="title" style={styles.sec}>
           Datos
         </T>
         <T face="body" style={styles.meta}>
           Todo vive en este dispositivo. No hay cuenta ni nube.
+        </T>
+        <PrimaryButton label="Crear respaldo JSON" onPress={handleExport} />
+        <GhostButton label="Restaurar desde archivo" onPress={handleImport} />
+        <T face="body" style={styles.meta}>
+          Guarda el archivo en Drive, correo o tu computadora antes de desinstalar la app.
         </T>
         <GhostButton
           danger
