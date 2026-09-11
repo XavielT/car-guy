@@ -47,8 +47,11 @@ export default function RootLayout() {
           headerShadowVisible: false,
           headerTitleStyle: { fontFamily: 'Syne_700Bold', fontSize: 18 },
         }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="onboarding" />
+        {/* These titles are what the browser tab shows on web: expo-router feeds
+            the screen title to react-helmet, and a screen without one renders an
+            empty <title> that wins over anything static in +html.tsx. */}
+        <Stack.Screen name="(tabs)" options={{ title: 'Tu Combustible RD' }} />
+        <Stack.Screen name="onboarding" options={{ title: 'Tu Combustible RD' }} />
         <Stack.Screen
           name="vehiculo"
           options={{ presentation: 'modal', headerShown: true, title: 'Nuevo vehículo' }}

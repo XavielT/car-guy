@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Tu Combustible RD">
+  <defs>
+    <linearGradient id="drop" x1="32" y1="12" x2="32" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7CC5E"/>
+      <stop offset="0.55" stop-color="#F0B429"/>
+      <stop offset="1" stop-color="#C48A16"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Canopy: the colour the app declares for its Android adaptive icon and splash. -->
+  <rect width="64" height="64" fill="#0B1F1C"/>
+  <g transform="translate(32,32) scale(0.82) translate(-32,-32)">
+  <path d="M32 12.5c0 0 12 13.6 12 21.5a12 12 0 0 1-24 0c0-7.9 12-21.5 12-21.5z" fill="url(#drop)"/>
+  <ellipse cx="27.5" cy="33.5" rx="3.1" ry="4.6" fill="#FFFFFF" opacity="0.28"/>
+  <!-- Gauge, cradling the drop from below: the app measures consumption,
+       it is not only about fuel. -->
+  <path d="M19 45a14 14 0 0 0 26 0" fill="none" stroke="#3C9A8A"
+        stroke-width="2.6" stroke-linecap="round" opacity="0.9"/>
+
+</g>
+</svg>
