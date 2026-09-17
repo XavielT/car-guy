@@ -3,9 +3,12 @@
 Claude Code will point at these when it reaches them. Do them when the prompt says "manual".
 
 ## Before Phase 2
-- [ ] On the phone with **Tu Combustible RD** installed: *Más → Crear respaldo JSON* → save the file
-      to the laptop as `docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json` (gitignored).
-      This is the real import test and the way your data enters Car Guy (new package = new app).
+- [x] **Done 2026-09-17, by Claude Code.** The export was broken on Android (see the Phase 0
+      addendum in `04-tracking/PROGRESS.md`); it was fixed, released as v1.1.1, and the real backup
+      recovered off the device to `docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json`
+      (gitignored). 1 vehicle, 4 fill-ups, 0 expenses, 0 reminders.
+- [ ] Optional: delete the copy left on the phone's SD card at
+      `/storage/3931-3532/Download/tu-combustible-rd-2026-09-17.json` — it holds real vehicle data.
 
 ## Phase 1 (EAS)
 - [ ] `npx eas login` (Expo account). Then Claude Code (or you) runs `npx eas init` in the repo to

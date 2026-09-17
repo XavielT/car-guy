@@ -3,55 +3,34 @@
 Written 2026-09-11. Everything below is the only outstanding work; the rest of
 the session shipped and is verified live.
 
-## 1. Build a new APK with the new icon  ← the actual pending task
+## 1. ~~Build a new APK with the new icon~~ — DONE (2026-09-17)
 
-**Update 2026-09-17:** a fixed **v1.1.1 / versionCode 3** APK was built locally and installed on
-Xaviel's phone to rescue his data (see `docs/imp-17092026/04-tracking/PROGRESS.md` → "Phase 0
-addendum"). It carries the new icon *and* the Android backup fix. It has **not** been published —
-the GitHub release is still v1.1.0 with the old icon. Publishing it is a one-command step:
+Released as **v1.1.1 / versionCode 3**:
+<https://github.com/XavielT/tu-combustible-rd/releases/tag/v1.1.1> (`releases/latest` points at it,
+so the portfolio card picked it up with no site change). It carries the new icon **and** the Android
+backup fix (`lib/backup.ts` was passing a `content://` URI to `expo-sharing`, which only accepts
+`file://`). Installed on Xaviel's phone over v1.1.0 — same signing key, data intact.
 
-```bash
-gh release create v1.1.1 --title "Tu Combustible RD v1.1.1" --notes "..." \
-  android/app/build/outputs/apk/release/app-release.apk#tu-combustible-rd-v1.1.1.apk
-```
+Two things this file used to get wrong:
 
-Two corrections to what this file used to say:
-
-- The APK attached to v1.1.0 was assumed to predate the backup feature. It does **not** — unpacking
-  its Hermes bundle finds `Crear respaldo JSON` and `exportBackup`. It does still carry the old
-  default icon, so the rebuild was needed regardless.
-- The build recipe below works as written. `expo prebuild --platform android --clean` regenerates
-  `android/app/debug.keystore` **identically**, so a rebuild installs over an existing install with
-  `adb install -r` and keeps its data. Verified with `apksigner verify --print-certs`: both the
-  shipped APK and the rebuild are cert `fac61745…`. Export `ANDROID_HOME=$HOME/Android/Sdk` first;
-  the build takes about 10 minutes.
-
-The native `android/` folder is gitignored and holds a stale prebuild, so regenerate it rather than
-reusing it:
+- The v1.1.0 APK was assumed to predate the backup feature. It did **not** — its Hermes bundle
+  contains `Crear respaldo JSON` and `exportBackup`. It did still carry Expo's default icon.
+- The build recipe works as written, with two additions: export `ANDROID_HOME=$HOME/Android/Sdk`
+  first, and pass `-PreactNativeArchitectures=arm64-v8a` — without it the APK ships all four ABIs
+  and weighs 105 MB instead of 44 MB. `expo prebuild --clean` regenerates
+  `android/app/debug.keystore` **identically** (cert `fac61745…` both before and after), which is
+  why `adb install -r` upgrades in place without wiping data.
 
 ```bash
 cd /home/xaviel/dev2/tu-gasolina-rd
 export ANDROID_HOME=$HOME/Android/Sdk
-npx expo prebuild --platform android --clean   # picks up the new adaptive icons
-cd android && ./gradlew assembleRelease
-# -> android/app/build/outputs/apk/release/app-release.apk
+npx expo prebuild --platform android --clean
+cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+# -> android/app/build/outputs/apk/release/app-release.apk  (~44 MB)
 ```
 
-`app.json` is now at `version: 1.1.1`, `versionCode: 3`.
-
-The portfolio card points at `releases/latest`, so **no site change is needed** — the new release is
-picked up automatically.
-
-Sanity check after installing: launcher icon, the themed (monochrome) icon on Android 13+, and the
-splash.
-
-### Watch out
-
-- **Verify the adaptive icon on a real launcher.** Android shows only a 66dp circle of the 108dp
-  foreground. `tools/make-icons.mjs` scales the mark to 0.78 for exactly this reason — at full size
-  the ends of the gauge sweep get sliced off. If a rebuild ever looks cropped, that constant is why.
-- `expo-sqlite` is still a dependency and an `app.json` plugin but is **never imported** anywhere.
-  Dead weight today; Car Guy starts using it in PROMPT-02, so leave it.
+`app.json` is at `version: 1.1.1`, `versionCode: 3`. Car Guy (PROMPT-01) moves to `2.0.0` /
+`versionCode 1` under the new package `com.xaviel.carguy`, so this counter stops here.
 
 ## 2. Optional, not blocking
 
