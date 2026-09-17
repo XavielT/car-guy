@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 1 done
+**Started:** 2026-09-17 · **Status:** Phase 2 done
 
 ## Phase status
 
@@ -11,7 +11,7 @@ The "Notes for the next phase" sections carry context between sessions.
 |---|---|---|---|---|
 | 0 | Kickoff | ✅ | `imp-17092026/phase-0-kickoff` | Package in repo, audit checked, baseline green, fixture written |
 | 1 | Rebrand + foundation | ✅ | `imp-17092026/phase-1-rebrand` | Car Guy identity, tokens, base components, domain tests, lint |
-| 2 | SQLite + importer | ⬜ | | |
+| 2 | SQLite + importer | ✅ | `imp-17092026/phase-2-sqlite` | Schema v1, repos, store rewire, catalog seed, legacy importer, backup v2 |
 | 3 | Garage + navigation | ⬜ | | |
 | 4 | Maintenance + Historial | ⬜ | | |
 | 5 | Inspections + reminders | ⬜ | | |
@@ -395,3 +395,116 @@ the "counts match" proof for the definition of done.
   first run, which is the point.
 - `react-native-svg` is already installed, so PROMPT-07's charts need no new native dependency.
 - `npm test` and `npx expo lint` are now part of the required green set for every later phase.
+
+## Phase 2 — SQLite data layer, schema v1, legacy import, backup v2   (branch `imp-17092026/phase-2-sqlite`)
+
+**Status:** complete
+**Commits:** `923dc29` (the migration, as one change — the schema, repos and store rewire only make
+sense together; splitting them would have left `main` with a store that could not read its own data)
+
+### Changed
+- **Engine.** `metro.config.js` (new), `lib/db/client.ts`, `lib/db/migrations.ts`, `lib/db/reset.ts`.
+- **Data.** `lib/db/types.ts`, `lib/db/repos/{base,index}.ts`, `lib/db/seed.ts`,
+  `lib/domain/catalog.ts`, `lib/domain/dates.ts`.
+- **Import/backup.** `lib/import/tucombustible.ts` (new), `lib/backup.ts` (rewritten for v2).
+- **Wiring.** `app/_layout.tsx` (SQLiteProvider + client-only boot), `lib/store.tsx` (rewritten onto
+  repos, surface unchanged), `app/onboarding.tsx` and `app/(tabs)/mas.tsx` (import entry points),
+  `public/sw.js` (worker/wasm rule, cache → `carguy-v2`), `lib/types.ts` (`Legacy*` aliases),
+  `README.md`.
+- **Tests.** `__tests__/domain/catalog.test.ts`, `__tests__/import/tucombustible.test.ts` — 53 tests
+  total with the existing economy suite.
+
+### Dependencies added / removed
+None. `expo-sqlite ~57.0.1` was already a dependency and an `app.json` plugin — dead weight since
+the beginning, per `docs/NEXT.md`. It is the engine now.
+
+### Acceptance criteria
+- [x] `carguy.db` with schema v1 exactly as the spec, `PRAGMA user_version = 1` — 17 tables, the
+      four indexes and the `history_feed` view, transcribed statement for statement.
+- [x] Async API only — a grep for `Sync(` and `withExclusiveTransactionAsync` across `lib/`, `app/`
+      and `components/` finds only the comment in `client.ts` explaining why the latter is unusable.
+- [x] Works on web in dev **and** from the static export served locally with **no COOP/COEP
+      headers** — the serving script deliberately sets none, and the page reports
+      `crossOriginIsolated === false` while the database works. SW rule documented in `public/sw.js`.
+- [x] Repos for every table; no SQL in screens or components; every read excludes tombstones;
+      `updated_at` written on every mutation.
+- [x] `useStore()` surface unchanged — not one screen needed editing, which is the proof. Economy
+      numbers identical: 500 km on 12.883 gal = **38.811 km/gal**, the partial counted into the
+      following full tank exactly as before.
+- [x] Catalog and templates seeded idempotently; a new vehicle gets its catalog reminders plus
+      marbete/seguro/licencia, and `revisión técnica` disabled.
+- [x] Legacy importer: both envelope shapes, idempotent, counts reported, odometer readings created,
+      categories split between `service_record` and `expense`; entry points on onboarding and Más.
+- [x] Backup v2 exports on web (real download, verified by intercepting it: `app: 'car-guy'`,
+      `version: 2`, 17 tables, `mediaBytesIncluded: false`) and on Android through the share sheet;
+      import merges v2 by `updated_at` or delegates v1 to the importer.
+- [x] Tests for catalog, dates and import mapping; `tsc`, `expo lint`, `npm test`, `npm run build`
+      all green.
+- [x] **Real backup import — counts match.** Driven through the actual UI: the file holds 1 vehicle
+      and 4 fill-ups, the app reported *"1 vehículo, 4 cargas"*, Historial showed 4 rows, and
+      **re-importing the same file left it at 4**. Survived a reload.
+- [ ] Android (Expo Go) — **not verified.** See "Observed, deferred".
+
+### Three bugs found by verifying rather than assuming
+1. **Writes vanished on reload.** The vehicle was written, read back within the session, and the
+   OPFS file even grew — but after a reload the app went back to onboarding. The cause was two
+   levels down: `base.upsert` omitted `created_at` on the UPDATE branch, and an `INSERT … ON
+   CONFLICT DO UPDATE` still has to produce a row that satisfies every `NOT NULL` column before
+   SQLite reaches the conflict clause. The web build reports that as **"Error finalizing
+   statement"**, naming neither column nor table, and it only ever fired on the *second* launch
+   (the first had nothing to conflict with). `created_at` is now always bound and still excluded
+   from `DO UPDATE SET`, so an existing row keeps its original value.
+2. **A redirect loop that pegged the renderer.** With writes now asynchronous, onboarding navigated
+   to `(tabs)` before the vehicle existed, `(tabs)/_layout` redirected back to onboarding, and the
+   two bounced. Fixed by applying the vehicle and fill-up to local state before the write lands;
+   the reload reconciles.
+3. **Silent failures.** All three of the above were invisible because the store's fire-and-forget
+   writes and its startup `catch` swallowed errors. Both now report, which is what finally made the
+   first bug findable.
+
+### Decisions made (defaults applied)
+- **`journal_mode` is WAL on native, MEMORY on web.** OPFS's `AccessHandlePoolVFS` offers no shared
+  memory, which WAL needs. Also: `PRAGMA journal_mode` returns a row, so it goes through
+  `getFirstAsync`, not `execAsync`.
+- **The root layout renders a boot screen until the client owns the tree** (`useSyncExternalStore`,
+  not a `setState` effect, which the lint rightly rejects). Car Guy's content comes from a database
+  that exists only in the browser: static rendering in Node otherwise abandons the Suspense boundary
+  (React #419) or mismatches on hydration (#418). Both are gone.
+- **Odometer readings derive their id from their source** (`odo_<recordId>`), which makes the mirror
+  idempotent without a lookup.
+- **Seeded catalog reminders are hidden from the legacy Gastos screen.** It can only show a title, a
+  date and a km, so the ~24 catalog and legal reminders would misrepresent themselves there. They
+  are in the database and belong to the PROMPT-05 engine.
+- **The store's mutations still return synchronously.** Keeping the exact surface is what let the
+  persistence layer change without touching a screen; nothing reads the returned id.
+
+### Deviations from the package
+- The prompt splits repos across `lib/db/repos/*.ts` per table. They are a typed factory in
+  `base.ts` plus one `index.ts` holding the per-table configuration and the three repos with real
+  behaviour (vehicles, fuel, serviceRecords). Fifteen near-identical files would have been fifteen
+  places for the tombstone filter to drift out of step.
+- `vehicles.upsertRaw` exists alongside `upsert`: the importer needs to write vehicles without
+  triggering the seeding side effect mid-transaction, because seeding reads the odometer readings
+  the same transaction is still writing.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 2 · Android | The whole phase was verified on web only | medium | Nothing here is web-only in a way that would hide an Android failure — if anything the native path is the easier one (real WAL, no OPFS, no worker). But it is unverified, and `adb` plus the phone are available, so a Phase 3 pass should run it |
+| Phase 2 · web | Saving a fill-up still fires `window.alert` | medium | Carried over from Phase 1. It froze the browser automation repeatedly during this phase; PROMPT-06 owns the fix |
+| Phase 2 · `lib/store.tsx` | The legacy `AppData` shape is still rebuilt in full on every change | low | Fine at this size and it goes away with the screens in PROMPT-04/06. A per-vehicle query would be the fix if it ever bites |
+| Phase 2 · seeding | `seedCatalog()` runs on every launch (~73 upserts) | low | Idempotent and fast, but it could check a version marker once the catalog stops changing |
+
+### Notes for the next phase
+- **Repo API:** `list(vehicleId?, {orderBy, direction, limit, includeDeleted})`, `listWhere(filter)`,
+  `getById`, `count`, `upsert(input, db?)`, `softDelete(id, db?)`, `restore`, `listAllForBackup`.
+  Passing `db` runs inline inside a caller's transaction; omitting it goes through the write queue.
+- **The write queue is `enqueue()` in `lib/db/client.ts`.** Never call it from inside a function that
+  is already running in it — pass the handle down instead.
+- **Adding migration v2:** append `{ version: 2, up: [...] }` to `MIGRATIONS`. Never edit v1.
+- **Mappers:** `mapLegacy` / `countsOf` / `describeCounts` in `lib/import/tucombustible.ts` are pure
+  and tested; `importTuCombustible` is the transactional wrapper.
+- **The SW rule** lives in `public/sw.js` as `isSqliteEngine` — network-first, never the HTML shell.
+- `currentOdometer(vehicleId)` and `history.feed(vehicleId, filters)` are ready for PROMPT-03/04.
+- `lib/domain/dates.ts` has `addMonths` (day-clamping), `addDays`, `daysBetween` and `nextJanuary31`,
+  which PROMPT-05's reminder engine needs.
