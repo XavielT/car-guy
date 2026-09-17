@@ -120,7 +120,6 @@ function Shell() {
             empty <title> that wins over anything static in +html.tsx. */}
         <Stack.Screen name="(tabs)" options={{ title: 'Car Guy' }} />
         <Stack.Screen name="onboarding" options={{ title: 'Car Guy' }} />
-        <Stack.Screen name="gastos" options={{ headerShown: true, title: 'Gastos y mantenimiento' }} />
         <Stack.Screen
           name="vehiculo/nuevo"
           options={{ presentation: 'modal', headerShown: true, title: 'Nuevo vehículo' }}
@@ -134,12 +133,22 @@ function Shell() {
         <Stack.Screen name="carga/nueva" options={{ headerShown: true, title: 'Nueva carga' }} />
         <Stack.Screen
           name="servicio/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: 'Mantenimiento' }}
+          options={{ presentation: 'modal', headerShown: true, title: 'Nuevo registro' }}
         />
+        <Stack.Screen name="servicio/[id]" options={{ headerShown: true, title: 'Registro' }} />
         <Stack.Screen
           name="gasto/nuevo"
           options={{ presentation: 'modal', headerShown: true, title: 'Gasto' }}
         />
+        <Stack.Screen name="tareas/index" options={{ headerShown: true, title: 'Tareas' }} />
+        <Stack.Screen name="tarea/nueva" options={{ presentation: 'modal', headerShown: true, title: 'Nueva tarea' }} />
+        <Stack.Screen name="tarea/[id]" options={{ headerShown: true, title: 'Tarea' }} />
+        <Stack.Screen name="documentos/index" options={{ headerShown: true, title: 'Documentos' }} />
+        <Stack.Screen
+          name="documento/nuevo"
+          options={{ presentation: 'modal', headerShown: true, title: 'Nuevo documento' }}
+        />
+        <Stack.Screen name="documento/[id]" options={{ headerShown: true, title: 'Documento' }} />
         <Stack.Screen name="precios" options={{ headerShown: true, title: 'Precios MICM' }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: 'Editar carga' }} />
       </Stack>

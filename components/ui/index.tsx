@@ -8,6 +8,7 @@ export { EmptyState } from './EmptyState';
 export { GaugeRing } from './GaugeRing';
 export { OdometerHero, type Telltale } from './OdometerHero';
 export { QuickActions, type QuickAction } from './QuickActions';
+export { RecordRow, type RecordKind } from './RecordRow';
 export { Sheet } from './Sheet';
 export { StatusPill, type Status } from './StatusPill';
 export { Surface } from './Surface';
