@@ -109,7 +109,7 @@ _(where the code forced a different path than a spec/prompt — what and why)_
 
 | Phase | Blocker | Needs | Status |
 |---|---|---|---|
-| 2 | The real Tu Combustible RD data is not in the repo | Xaviel exports it from the installed app (**Más → Crear respaldo JSON**) and drops it at `docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json` (gitignored) | ⏳ waiting on Xaviel — not blocking Phase 1 |
+| 2 | The real Tu Combustible RD data is not in the repo | ~~Xaviel exports it from the installed app~~ — the export was broken; fixed and the file recovered off the device on 2026-09-17 (see the Phase 0 addendum). It is at `docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json`, gitignored | ✅ resolved |
 | 10 | `eas whoami` → not logged in, and no EAS project is linked | `npx eas-cli login`, then `eas init` to write `extra.eas.projectId` | ⏳ waiting on Xaviel — not blocking Phases 1–9 |
 
 ## Hand-off to xaviel-web (written in Phase 10)
