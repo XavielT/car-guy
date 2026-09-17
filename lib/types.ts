@@ -11,6 +11,16 @@ export type FuelType = (typeof FUEL_TYPES)[number];
 
 export type FuelGroup = 'gasolina' | 'gasoil' | 'glp' | 'gnv';
 
+/**
+ * ---------------------------------------------------------------------------
+ * Legacy shapes — Tu Combustible RD's AsyncStorage blob and backup v1.
+ *
+ * From Phase 2 on, the app's real types live in lib/db/types.ts. These stay
+ * because the importer must read that format forever (decision D1), and because
+ * the screens PROMPT-04/06 replace still speak them through the store.
+ * ---------------------------------------------------------------------------
+ */
+
 export type Vehicle = {
   id: string;
   name: string;
@@ -94,3 +104,12 @@ export type EconomyPoint = {
   kmPerUnit: number;
   costPerKm: number | null;
 };
+
+/** Aliases that say plainly which side of the migration a type belongs to. */
+export type LegacyVehicle = Vehicle;
+export type LegacyFillUp = FillUp;
+export type LegacyExpense = Expense;
+export type LegacyExpenseCategory = ExpenseCategory;
+export type LegacyMaintenanceReminder = MaintenanceReminder;
+export type LegacySettings = Settings;
+export type LegacyAppData = AppData;

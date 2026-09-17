@@ -11,10 +11,14 @@ import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { Suspense, useEffect, useSyncExternalStore } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
-import { fonts } from '@/constants/theme';
+import { fonts, palette } from '@/constants/theme';
+import { DATABASE_NAME } from '@/lib/db/client';
+import { migrate } from '@/lib/db/migrations';
 import { StoreProvider } from '@/lib/store';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
@@ -22,7 +26,18 @@ export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
+/** False while server-rendering, true once the client owns the tree. */
+function useIsClient(): boolean {
+  return useSyncExternalStore(
+    // Never changes after hydration, so there is nothing to subscribe to.
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 export default function RootLayout() {
+  const mounted = useIsClient();
   // Every family named in constants/theme.ts `fonts` must appear here. A weight
   // that is referenced but not loaded falls back to the system font on web
   // without warning.
@@ -44,14 +59,44 @@ export default function RootLayout() {
     if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
 
+
   if (!loaded) return null;
+
+  // Car Guy's content comes from a local database, which exists only in the
+  // browser: static rendering runs this file in Node, where there is no SQLite
+  // and no OPFS. Rendering the app there makes React abandon the Suspense
+  // boundary (#419), and rendering something different on each side is a
+  // hydration mismatch (#418).
+  //
+  // So both sides paint the same thing first — the boot screen — and the app
+  // mounts only once the client has taken over. One extra frame, no errors.
+  if (!mounted) return <Booting />;
 
   return (
     <ThemeProvider>
-      <StoreProvider>
-        <Shell />
-      </StoreProvider>
+      {/* The database opens and migrates before anything renders. useSuspense
+          turns that wait into one fallback instead of every screen having to
+          cope with a half-open database. */}
+      <Suspense fallback={<Booting />}>
+        <SQLiteProvider
+          databaseName={DATABASE_NAME}
+          onInit={migrate}
+          options={{ enableChangeListener: true }}
+          useSuspense>
+          <StoreProvider>
+            <Shell />
+          </StoreProvider>
+        </SQLiteProvider>
+      </Suspense>
     </ThemeProvider>
+  );
+}
+
+function Booting() {
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.dark.bg.base, alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator color={palette.dark.accent} />
+    </View>
   );
 }
 

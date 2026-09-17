@@ -3,6 +3,7 @@ import { Card, GhostButton, PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { FUEL_CATALOG } from '@/lib/fuel';
 import { exportBackup, importBackup } from '@/lib/backup';
+import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -11,11 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MasScreen() {
   const router = useRouter();
-  const { data, activeVehicle, setActiveVehicle, deleteVehicle, resetAll, restoreData } = useStore();
+  const { data, activeVehicle, setActiveVehicle, deleteVehicle, resetAll, refresh } = useStore();
 
   async function handleExport() {
     try {
-      const shared = await exportBackup(data);
+      const shared = await exportBackup();
       if (!shared) Alert.alert('Respaldo', 'Este dispositivo no permite compartir archivos.');
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
@@ -25,14 +26,20 @@ export default function MasScreen() {
 
   async function handleImport() {
     try {
-      const incoming = await importBackup();
-      if (!incoming) return;
-      Alert.alert('Restaurar datos', 'Esto reemplazará los datos actuales en este teléfono.', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Restaurar', style: 'destructive', onPress: () => restoreData(incoming) },
-      ]);
-    } catch {
-      Alert.alert('Restaurar datos', 'El archivo no es un respaldo válido de Car Guy ni de Tu Combustible RD.');
+      const result = await importBackup();
+      if (!result) return;
+      await refresh();
+      // A merge, never a wipe: rows are matched by id and the newer
+      // updated_at wins, so restoring an old file cannot undo recent work.
+      Alert.alert(
+        'Datos restaurados',
+        result.kind === 'legacy'
+          ? `Importamos tus datos de Tu Combustible RD: ${describeCounts(result.counts)}.`
+          : `Combinamos el respaldo: ${result.counts.merged} registros en ${result.counts.tables} tablas.`,
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      Alert.alert('Restaurar datos', reason);
     }
   }
 
@@ -101,9 +108,10 @@ export default function MasScreen() {
           Todo vive en este dispositivo. No hay cuenta ni nube.
         </T>
         <PrimaryButton label="Crear respaldo JSON" onPress={handleExport} />
-        <GhostButton label="Restaurar desde archivo" onPress={handleImport} />
+        <GhostButton label="Restaurar o importar respaldo" onPress={handleImport} />
         <T face="body" style={styles.meta}>
-          Guarda el archivo en Drive, correo o tu computadora antes de desinstalar la app.
+          Acepta respaldos de Car Guy y de Tu Combustible RD. Guarda el archivo en Drive, correo o
+          tu computadora antes de desinstalar la app.
         </T>
         <GhostButton
           danger
