@@ -92,7 +92,8 @@ export default function MasScreen() {
             </T>
           </Pressable>
         </Card>
-        <PrimaryButton label="Gastos y mantenimiento" onPress={() => router.push('../gastos')} />
+        <PrimaryButton label="Registrar mantenimiento" onPress={() => router.push('/servicio/nuevo')} />
+        <GhostButton label="Registrar gasto" onPress={() => router.push('/gasto/nuevo')} />
 
         <T face="title" style={styles.sec}>
           Datos

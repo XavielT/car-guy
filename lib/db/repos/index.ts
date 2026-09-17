@@ -258,7 +258,10 @@ export const history = {
       params.push(opts.to);
     }
     if (opts.q) {
-      clauses.push('(title LIKE ? OR subtitle LIKE ?)');
+      // COLLATE NOCASE so "texaco" finds "Texaco". It only folds ASCII, so
+      // "optimo" will not find "Óptimo" — accent-insensitive search needs an
+      // ICU build of SQLite and is out of scope.
+      clauses.push('(title LIKE ? COLLATE NOCASE OR subtitle LIKE ? COLLATE NOCASE)');
       params.push(`%${opts.q}%`, `%${opts.q}%`);
     }
 
