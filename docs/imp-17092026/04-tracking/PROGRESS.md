@@ -79,7 +79,7 @@ Run on 2026-09-17 from a clean `imp-17092026/phase-0-kickoff` off `main` @ `076c
 | `java` | ✅ available | OpenJDK 17.0.20 (Ubuntu 24.04) — fine for the PROMPT-10 gradle `assembleRelease` |
 | `eas-cli` | ⚠️ available, **not logged in** | 24.7.0 via `npx`. `eas whoami` → "Not logged in". Also no `extra.eas.projectId` in `app.json` (audit correction #2). **Xaviel must run `npx eas-cli login` before PROMPT-10** |
 | `sqlite3` (CLI) | ❌ missing | `command not found`. Not needed by the app — `expo-sqlite` ships its own engine — but it is the convenient way to inspect the device/browser DB by hand in PROMPT-02. `sudo apt install sqlite3` if wanted |
-| `adb` | ❌ missing | `command not found`. Android verification therefore goes through **Expo Go over the LAN**, not an emulator or USB device, unless platform-tools get installed |
+| `adb` | ✅ available (**corrected**) | Not on `PATH`, but the full Android SDK is at `~/Android/Sdk` — `platform-tools/adb` 1.0.41, `build-tools/37.0.0` (`apksigner`, `aapt2`), NDK and CMake. Xaviel's phone (`M2101K6G`, Android 13) authorises USB debugging. Local gradle release builds work: one took 9m31s. Export `ANDROID_HOME=$HOME/Android/Sdk` |
 
 Nothing was installed — per the prompt, this phase only records the inventory.
 
@@ -102,7 +102,7 @@ _(where the code forced a different path than a spec/prompt — what and why)_
 | Phase 0 · `package.json` | 22 npm audit vulnerabilities (15 moderate, 7 high), all transitive | low | Untouched: fixing them means bumping outside the phase. Worth one pass before the PROMPT-10 release |
 | Phase 0 · `app.json` | No `extra.eas.projectId`; `eas.json` already expects `appVersionSource: "remote"` | medium | Blocks an EAS build until `eas init` runs. Natural home is PROMPT-01 (the package changes there anyway) or PROMPT-10 |
 | Phase 0 · `lib/math.ts:64` | `sortFillUps` is private although four exported functions depend on it | low | Export it when the economy math moves to `lib/domain/economy` in PROMPT-01 |
-| Phase 0 · environment | `sqlite3` CLI and `adb` are not installed | low | Neither blocks anything: `expo-sqlite` embeds its own engine, and Android QA can run through Expo Go. Both are conveniences for PROMPT-02 / PROMPT-10 |
+| Phase 0 · environment | `sqlite3` CLI is not installed | low | Does not block anything: `expo-sqlite` embeds its own engine. A convenience for inspecting the DB by hand in PROMPT-02 |
 | Phase 0 · repo root | Untracked stray directory `Claude outputs/` (one copy of the package README) | low | Left alone — not mine to delete. Xaviel can remove it |
 
 ## Blockers
@@ -195,3 +195,80 @@ Logged in the table above — npm audit debt, no EAS project id, private `sortFi
   `docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json`. The sample fixture is enough to
   build and test the importer in the meantime; the real file is the "counts match" proof from the
   definition of done.
+
+## Phase 0 addendum — Android backup rescue (2026-09-17, branch `fix/android-backup-share-uri`)
+
+Xaviel reported that **Crear respaldo JSON** failed on the installed Android app, which blocked the
+"export your real backup before Phase 2" item. Diagnosed, fixed and the real data recovered the
+same day.
+
+### The bug
+
+`lib/backup.ts` passed `file.contentUri ?? file.uri` to `Sharing.shareAsync`. On Android
+`contentUri` is always defined, so the `??` never fell through — and `expo-sharing` rejects it:
+
+```kotlin
+// expo-sharing/android/.../SharingModule.kt  getLocalFileFoUrl()
+if ("file" != uri.scheme) throw InvalidArgumentException(
+  "Only local file URLs are supported (expected scheme to be 'file', got '" + uri.scheme + "'.")
+```
+
+`shareAsync` builds its own content URI through `SharingFileProvider`; it wants the plain `file://`
+URI. So the export threw on **every** Android attempt. The file itself was always written correctly
+— only the share failed — and `handleExport`'s bare `catch` reported it as
+"No se pudo crear el archivo de respaldo", which pointed the blame at the wrong step.
+
+Fixed by passing `file.uri`, and the alert now appends the real error message.
+
+### Audit correction #4
+
+`00-context/02-repo-audit.md` §5 says "Backup/restore via share sheet and document picker **works on
+Android**". It never worked. The web half of that sentence ("silently does nothing on web") is also
+understated — `expo-file-system` has no web implementation at all in SDK 57; its web module is a
+stub whose `File` constructor only calls `console.warn`, so the export **throws** on web rather than
+doing nothing. PROMPT-02 still owns the web path (Blob download); it is untouched here.
+
+### How the data was recovered
+
+The installed app is not debuggable and the phone is not rooted, so `run-as` and `adb backup` cannot
+reach `/data/user/0/com.xavieltucombustiblerd.app`. The app's own export was the only way out.
+
+1. Confirmed the shipped v1.1.0 APK is signed with cert `fac61745…`, byte-identical to the repo's
+   `android/app/debug.keystore` (`apksigner verify --print-certs`), and that
+   `expo prebuild --platform android --clean` regenerates that same keystore — so a rebuild could be
+   installed **over** the existing app without an uninstall and without losing data.
+2. Built `v1.1.1` / `versionCode 3` with the fix (`./gradlew assembleRelease`, 9m31s).
+3. `adb install -r` — upgrade succeeded, data intact (home screen still showed the Citroen and
+   37.446 km/gal).
+4. Drove the UI over `adb shell input`: Más → Crear respaldo JSON → share sheet → "Copy to…" →
+   SD card/Download, then `adb pull`. The share sheet opening at all is the proof the fix works.
+
+### The real backup
+
+Saved to `docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json` (gitignored, verified with
+`git check-ignore`). Verified by running the app's own `normalizeData` and `computeEconomy` over it:
+
+| | |
+|---|---|
+| Envelope | `app: 'tu-combustible-rd'`, `version: 1`, `exportedAt: 2026-09-17T20:05:22.323Z` |
+| Contents | **1 vehicle** (Citroen DS3 2015, A709426, regular, 13.2 gal tank), **4 fill-ups** (2 partials), **0 expenses**, **0 reminders** |
+| Range | 2026-08-27 → 2026-09-15, odometer 51 676 km, RD$10 000.00 total, 1 brim-to-brim point at 37.45 km/gal |
+| Integrity | no orphan `vehicleId`s, every `fuelType` valid |
+
+**All 5 ids are the `id_<ts>_<hex>` fallback — not one UUID.** ADR-03's `text` primary keys are not a
+precaution, they are a requirement: a Postgres `uuid` column would reject every row of Xaviel's real
+data. PROMPT-08 must not be tempted back to `uuid`.
+
+The dataset is small, so the generated `…backup.sample.json` fixture stays the primary test input for
+the PROMPT-02 importer (it is the one with expenses, reminders and two vehicles). The real file is
+the "counts match" proof for the definition of done.
+
+### Still open
+
+- The phone now runs **v1.1.1**, which is ahead of the `v1.1.0` GitHub release. Publishing a v1.1.1
+  release with this APK is Xaviel's call — nothing was pushed or published.
+- A copy of the backup is sitting at `/storage/3931-3532/Download/tu-combustible-rd-2026-09-17.json`
+  on the phone's SD card. It holds real vehicle data; delete it when convenient.
+- `importBackup` (**Restaurar desde archivo**) was **not** exercised. It reads the picked file with
+  `new File(result.assets[0].uri)`, and `DocumentPicker` hands back a `content://` URI on Android —
+  the same class of mismatch that broke the export. Worth testing before PROMPT-02 relies on it.
