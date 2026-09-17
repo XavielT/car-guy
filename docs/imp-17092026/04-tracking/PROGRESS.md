@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 2 done
+**Started:** 2026-09-17 · **Status:** Phase 3 done
 
 ## Phase status
 
@@ -12,7 +12,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 0 | Kickoff | ✅ | `imp-17092026/phase-0-kickoff` | Package in repo, audit checked, baseline green, fixture written |
 | 1 | Rebrand + foundation | ✅ | `imp-17092026/phase-1-rebrand` | Car Guy identity, tokens, base components, domain tests, lint |
 | 2 | SQLite + importer | ✅ | `imp-17092026/phase-2-sqlite` | Schema v1, repos, store rewire, catalog seed, legacy importer, backup v2 |
-| 3 | Garage + navigation | ⬜ | | |
+| 3 | Garage + navigation | ✅ | `imp-17092026/phase-3-garage` | Five tabs, OdometerHero, rich vehicle profile, media, DateField, odometer domain |
 | 4 | Maintenance + Historial | ⬜ | | |
 | 5 | Inspections + reminders | ⬜ | | |
 | 6 | Identity pass | ⬜ | | |
@@ -535,3 +535,144 @@ Screenshots: `docs/qa/phase-2-android-{import,inicio,historial}.png`.
 
 No SQLite or JS errors in `logcat` throughout. The APK is **not published** — it is a verification
 build, and Phase 10 owns releasing Car Guy.
+
+## Phase 3 — Garage and navigation   (branch `imp-17092026/phase-3-garage`)
+
+**Status:** complete
+**Commits:** `48873b4`
+
+### Changed
+- **Navigation.** `(tabs)/_layout.tsx` → Inicio · Chequeo · Historial · Cifras · Más.
+  `(tabs)/cargar.tsx` → `carga/nueva.tsx`. New: `(tabs)/chequeo.tsx` (placeholder),
+  `vehiculo/nuevo.tsx`, `vehiculo/[id].tsx`, `vehiculo/[id]/editar.tsx`, `odometro.tsx`,
+  `servicio/nuevo.tsx`, `gasto/nuevo.tsx`. `_layout.tsx` registers them with Spanish titles.
+- **Home.** `(tabs)/index.tsx` rebuilt around `OdometerHero` + `QuickActions` + "Este mes"; the
+  MICM board moved to `precios.tsx`.
+- **Garage.** `components/VehicleForm.tsx` rewritten rich; `lib/db/vehicleOps.ts` saves it in
+  dependency order; Más → Garaje opens the profile.
+- **Media.** `lib/media/index.ts`, `lib/media/useMediaUri.ts`, `components/PhotoPicker.tsx`;
+  `vercel.json` `Permissions-Policy` → `camera=(self)`.
+- **Dates.** `components/DateField.tsx` + `.web.tsx`, used in the vehicle, fuel and expense forms.
+- **Domain.** `lib/domain/odometer.ts` + 14 tests. `lib/i18n/es.ts` started.
+- **UI.** `components/ui/OdometerHero.tsx`, `components/ui/Surface.tsx`.
+
+### Dependencies added / removed
+- **+** `expo-image-picker@~57.0.18`, `expo-image-manipulator@~57.0.18` — photos (ADR-10).
+- **+** `@react-native-community/datetimepicker@9.1.0` — the native date picker (ADR-12); it adds
+  its own config plugin, so `app.json` gained nothing by hand.
+
+### Acceptance criteria
+- [x] Five tabs; Cargar reachable from QuickActions; Chequeo placeholder present.
+- [x] Home shows OdometerHero with the current odometer, a telltale row, QuickActions and
+      "Este mes" — verified end to end in the browser (`docs/qa/phase-3-inicio-{dark,light}.png`).
+- [x] Vehicle form with every field in the spec; profile with specs CRUD, readings, tiles, archive
+      — the run created a *jeepeta* Honda CR-V 2018, plate lower-cased on input and stored
+      uppercase, 88 000 km, added a "Presión de gomas · 32 psi" spec and archived it.
+- [x] `DateField` native + web — the web build renders a real `<input type="date">`, confirmed by
+      querying for it in the running page.
+- [x] `lib/domain/odometer.ts` with tests; forms default to the current odometer and warn (never
+      block) on a lower value.
+- [x] `lib/i18n/es.ts` started; every new string goes through it.
+- [x] PriceBoard lives in Más → Precios.
+- [x] `tsc`, `expo lint`, `npm test` (67), `npm run build` (4.8 MB, 24 routes) all green.
+- [x] Android verified on the device — see below.
+- [x] Photos exercised end to end — **on the device.** The Android system picker opened with no
+      permission prompt and scoped access ("Car Guy will only have access to the photos you
+      select"); the chosen image was resized, compressed, written under `Paths.document/media/` and
+      rendered. It survived an `install -r`.
+
+### Two bugs this phase forced out
+1. **Partial upserts were impossible.** Creating a vehicle hung for 30 s and never navigated.
+   `applySyntheticOil` does `upsert({ id, intervalKm, … })`, and `INSERT … ON CONFLICT DO UPDATE`
+   must still build a row satisfying every `NOT NULL` column *before* SQLite looks at the conflict
+   clause — so the statement failed on `vehicle_id`, `title` and `metric` not being supplied. The
+   web driver reports this only as **"Error finalizing statement"**. This is the same root cause as
+   the Phase 2 `created_at` bug, and the fix generalises it: `base.upsert` now reads the existing
+   row and merges the patch onto it, which is what every caller already assumed. Vehicle creation
+   went from a 30 s timeout to **150 ms**.
+2. **Light mode looked broken on the new home screen.** The new screens are theme-aware while the
+   legacy `Card` reads the static dark alias, so a light-mode user got dark cards on a light page.
+   Added `Surface` — the theme-aware card — and used it in the new screens. The legacy `Card` stays
+   as it is, because the screens that still use it paint themselves from the same alias and would
+   otherwise get light cards on a dark page. PROMPT-06 collapses the two.
+
+### Decisions made (defaults applied)
+- **The current odometer is the highest reading, not the newest.** A mistyped entry would otherwise
+  silently lower the vehicle's odometer and reset every km-based prediction.
+- **`kmPerDay` uses the median**, ignores same-day pairs and negative deltas, and caps at 400 km/day.
+  One trip to Puerto Plata should not convince the app the car does 600 km every day.
+- **A lower odometer warns, never blocks** — and says nothing at all when the entry is dated before
+  the highest reading, where a lower number is simply correct.
+- `saveVehicleDraft` writes the vehicle with `upsertRaw`, then the initial reading, then seeds.
+  Seeding reads the current odometer to compute every `due_km`, so the reading has to exist first.
+- The synthetic-oil toggle edits the vehicle's own `aceite_motor` reminder rather than the shared
+  catalog row.
+- Tapping a vehicle in Más opens its profile; "Activar" moved to its own button, so the row has one
+  obvious primary target.
+
+### Deviations from the package
+- The prompt has the odometer sheet as a `Sheet` component; it is a full route (`odometro.tsx`)
+  instead. It carries a date field whose native picker is itself a modal, and a modal inside a
+  modal is where Android's back button becomes ambiguous.
+- `servicio/nuevo` and `gasto/nuevo` are honest placeholders that say "próxima fase" and offer a way
+  back, rather than empty files.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| ~~Phase 3 · photos~~ | ~~Not driven automatically~~ | — | **Closed** — the library flow was driven on the device; the camera button is the same call with `camera: true` |
+| Phase 3 · legacy screens | `gastos`, `historial`, `cifras`, `precios`, `carga/*` still paint from the dark alias | expected | PROMPT-06's list, now one item shorter: Inicio is done |
+| Phase 3 · web | The fill-up review is still a blocking `window.alert` | medium | Third phase running. PROMPT-06 owns it |
+
+### Notes for the next phase
+- **`Surface` vs `Card`:** new screens use `Surface`. Do not reach for `Card` in anything new.
+- **Strings go in `lib/i18n/es.ts`.** It is organised by screen; add a section rather than inlining.
+- `saveVehicleDraft` is the only correct way to write a vehicle from a form — it owns the ordering.
+- `useMediaUri(mediaId)` is the only correct way to render stored media; it revokes object URLs.
+- `odometerWarning(value, date, readings)` is ready for the service and inspection forms.
+- The history feed (`history.feed`) and `currentOdometer` from Phase 2 are still unused by the UI —
+  PROMPT-04 wires them into the unified Historial.
+
+### Phase 3 addendum — Android verified, and the palette moved to the house line (2026-09-17)
+
+**Android.** Built and installed Car Guy `2.0.0` on the device and drove it over `adb`:
+
+| | |
+|---|---|
+| Inicio | OdometerHero at 51 900 km, "actualizado hoy", RD$ 12,499.96 this month, 964 km, five tabs |
+| Vehicle profile | Photo, plate pill, odometer, spend/km/fill-up/service tiles, spec suggestions |
+| **Photos** | System picker (Android 13, no permission prompt, access scoped to the chosen image) → resize → compress → file under `Paths.document/media/` → rendered. Survived an `install -r` |
+| **Native date picker** | `DateField` opens the Material date dialog on the odometer screen — ADR-12 confirmed on native |
+
+One bug found by doing it rather than assuming: **the vehicle profile did not refresh after
+editing.** Its effect only depended on `id` and its own mutation counter, so returning from the edit
+screen showed the copy loaded on mount — the photo had saved, the screen just never re-read it. It
+now also watches the store's `data`, which changes whenever anything writes.
+
+**Palette.** Xaviel asked for Car Guy to follow the same aesthetic line as Music Hub, X AutoHub and
+xaviel-web. Those three share a palette almost token for token, so Car Guy now uses it:
+
+| | Was (Phase 1 proposal) | Now (house line) |
+|---|---|---|
+| Page | `#0E1116` | **`#121212`** — X AutoHub's `--main` |
+| Surface / raised | `#161B22` / `#1E252E` | **`#1B1B1B` / `#212121`** |
+| Accent | `#22D3EE` cyan | **`#FFB300`** — `--Hub`, identical in X AutoHub and the portfolio |
+| Accent pressed | `#0FB5CF` | **`#FF8F00`** — `--HubDark` |
+| Text | `#F3F5F7` / `#9AA4B2` | **`#FFFFFF` / `#B8B8B8`** — `--text-strong` / `--text-soft` |
+| Body font | Inter | **Manrope** — the pairing X AutoHub uses with Space Grotesk |
+
+Two decisions this forced:
+
+- **"Próximo" is no longer amber.** The brand accent *is* amber now, so a warning in the same colour
+  as every button stops reading as a warning. The ladder is green → pale yellow `#FFD166` → the
+  house orange `#FF5F00` → red `#F0483E`, and every status carries a dot **and** a label.
+- **Light mode's accent is `#CF4C00`** (the house `--primary-dark`). `#FFB300` on white is about
+  1.9:1 — unreadable as a label or a button.
+
+JetBrains Mono stays for numbers. X AutoHub uses Manrope even for prices, but the odometer and the
+money columns need tabular figures or they shift as the digits change; it is the one face Car Guy
+needs that the other projects do not.
+
+The mark was regenerated in amber on `#121212`, and `app.json`, `+html.tsx`, the manifest and the
+service-worker cache name all moved with it. `05-design-identity.md` now documents the real palette
+with a note explaining the change. Inter was removed.

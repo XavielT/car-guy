@@ -2,11 +2,11 @@
   
   <g transform="translate(32,32) scale(0.78) translate(-32,-32)">
   <g transform="translate(0,2.5)">
-    <path d="M17.86 46.14 A20 20 0 1 1 46.14 46.14" fill="none" stroke="#22D3EE"
+    <path d="M17.86 46.14 A20 20 0 1 1 46.14 46.14" fill="none" stroke="#FFB300"
           stroke-width="4" stroke-linecap="round"/>
-    <path d="M32 32 L44.12 25" fill="none" stroke="#22D3EE"
+    <path d="M32 32 L44.12 25" fill="none" stroke="#FFB300"
           stroke-width="2.8" stroke-linecap="round"/>
-    <circle cx="32" cy="32" r="1.9" fill="#22D3EE"/>
+    <circle cx="32" cy="32" r="1.9" fill="#FFB300"/>
     <circle cx="44.12" cy="25" r="3" fill="#34D399"/>
   </g></g>
 </svg>

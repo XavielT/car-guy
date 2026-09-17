@@ -36,7 +36,7 @@ export default function VehicleProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { theme } = useTheme();
-  const { refresh, setActiveVehicle, activeVehicle } = useStore();
+  const { refresh, setActiveVehicle, activeVehicle, data } = useStore();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [specs, setSpecs] = useState<VehicleSpec[]>([]);
@@ -47,9 +47,10 @@ export default function VehicleProfileScreen() {
 
   const photoUri = useMediaUri(vehicle?.photoMediaId);
 
-  // Every mutation bumps `version`, which is the effect's only trigger. Keeping
-  // the loading in one place means the state is set once per pass, after the
-  // awaits, and a screen that unmounts mid-query sets nothing at all.
+  // Reloads on two triggers: `version`, bumped by this screen's own mutations,
+  // and the store's `data`, which changes whenever anything else writes — which
+  // is how coming back from the edit screen shows the new photo instead of the
+  // copy this screen loaded when it first mounted.
   const [version, setVersion] = useState(0);
   const reload = () => setVersion((v) => v + 1);
 
@@ -84,7 +85,7 @@ export default function VehicleProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, version]);
+  }, [id, version, data]);
 
   if (!vehicle) return null;
 

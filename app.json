@@ -15,7 +15,7 @@
       "package": "com.xaviel.carguy",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#0E1116",
+        "backgroundColor": "#121212",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -28,8 +28,8 @@
       "favicon": "./assets/images/favicon.png",
       "name": "Car Guy",
       "shortName": "Car Guy",
-      "themeColor": "#0E1116",
-      "backgroundColor": "#0E1116",
+      "themeColor": "#121212",
+      "backgroundColor": "#121212",
       "lang": "es-DO",
       "description": "Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos."
     },
@@ -40,7 +40,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0E1116"
+          "backgroundColor": "#121212"
         }
       ],
       "expo-sqlite",

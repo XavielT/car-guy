@@ -23,7 +23,7 @@ export default function Root({ children }: { children: ReactNode }) {
           name="description"
           content="Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos."
         />
-        <meta name="theme-color" content="#0E1116" />
+        <meta name="theme-color" content="#121212" />
         <link rel="icon" type="image/png" href="/favicon.png" />
 
         {/* PWA: installable on desktop and, via Add to Home Screen, on iPhone. */}
@@ -57,7 +57,7 @@ export default function Root({ children }: { children: ReactNode }) {
 // is the cheaper of the two.
 const responsiveBackground = `
 body {
-  background-color: #0E1116;
+  background-color: #121212;
 }`;
 
 // Registered from the shell rather than from a component: it should run on
