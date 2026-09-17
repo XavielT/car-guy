@@ -10,10 +10,18 @@ Claude Code will point at these when it reaches them. Do them when the prompt sa
 - [ ] Optional: delete the copy left on the phone's SD card at
       `/storage/3931-3532/Download/tu-combustible-rd-2026-09-17.json` — it holds real vehicle data.
 
-## Phase 1 (EAS)
-- [ ] `npx eas login` (Expo account). Then Claude Code (or you) runs `npx eas init` in the repo to
-      create/link the project for slug `car-guy`. If you skip it now, do it before Phase 5's preview
-      build or Phase 10.
+## Phase 1 (EAS) — still pending, skipped in Phase 1 because `eas whoami` said "Not logged in"
+- [ ] Run exactly this in the repo root:
+
+      ```bash
+      npx eas-cli login     # your Expo account
+      npx eas-cli init      # creates/links the project for slug "car-guy" and writes
+                            # extra.eas.projectId into app.json
+      ```
+
+      `app.json` currently has **no** `extra` block, so there is no stale project id to remove
+      first — the old app was never linked to EAS. Not blocking Phases 2–9; needed before Phase 5's
+      preview build and before Phase 10.
 
 ## Phase 5 (notifications on a real device)
 - [ ] Install the `preview` APK from the EAS build URL in PROGRESS.md and check that the weekly
