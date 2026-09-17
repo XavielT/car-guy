@@ -30,7 +30,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="medium" style={styles.kicker}>
-          TU COMBUSTIBLE RD
+          CAR GUY
         </T>
         <T face="display" style={styles.brand}>
           Tablero

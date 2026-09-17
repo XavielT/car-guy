@@ -1,20 +1,21 @@
 {
   "expo": {
-    "name": "Tu Combustible RD",
-    "slug": "tu-combustible-rd",
-    "version": "1.1.1",
+    "name": "Car Guy",
+    "slug": "car-guy",
+    "version": "2.0.0",
+    "description": "Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tucombustiblerd",
-    "userInterfaceStyle": "light",
+    "scheme": "carguy",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.xavieltucombustiblerd.app",
-      "versionCode": 3,
+      "package": "com.xaviel.carguy",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#0B1F1C",
+        "backgroundColor": "#0E1116",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -24,7 +25,13 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Car Guy",
+      "shortName": "Car Guy",
+      "themeColor": "#0E1116",
+      "backgroundColor": "#0E1116",
+      "lang": "es-DO",
+      "description": "Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos."
     },
     "plugins": [
       "expo-router",
@@ -33,7 +40,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0B1F1C"
+          "backgroundColor": "#0E1116"
         }
       ],
       "expo-sqlite",

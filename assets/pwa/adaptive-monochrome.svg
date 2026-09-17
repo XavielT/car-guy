@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Tu Combustible RD">
-  <defs></defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Car Guy">
   
   <g transform="translate(32,32) scale(0.78) translate(-32,-32)">
   <g transform="translate(0,2.5)">
-    <path d="M15.6 44.5A19 19 0 1 1 48.4 44.5" fill="none" stroke="#FFFFFF"
+    <path d="M17.86 46.14 A20 20 0 1 1 46.14 46.14" fill="none" stroke="#FFFFFF"
           stroke-width="4" stroke-linecap="round"/>
-    <path d="M32 21c0 0 8.6 9.9 8.6 15.5a8.6 8.6 0 0 1-17.2 0C23.4 30.9 32 21 32 21z" fill="#FFFFFF"/>
-    
+    <path d="M32 32 L44.12 25" fill="none" stroke="#FFFFFF"
+          stroke-width="2.8" stroke-linecap="round"/>
+    <circle cx="32" cy="32" r="1.9" fill="#FFFFFF"/>
+    <circle cx="44.12" cy="25" r="3" fill="#FFFFFF"/>
   </g></g>
 </svg>

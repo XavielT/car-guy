@@ -32,7 +32,7 @@ export default function MasScreen() {
         { text: 'Restaurar', style: 'destructive', onPress: () => restoreData(incoming) },
       ]);
     } catch {
-      Alert.alert('Restaurar datos', 'El archivo no es un respaldo válido de Tu Combustible RD.');
+      Alert.alert('Restaurar datos', 'El archivo no es un respaldo válido de Car Guy ni de Tu Combustible RD.');
     }
   }
 
