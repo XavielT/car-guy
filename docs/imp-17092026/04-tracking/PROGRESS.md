@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 3 done
+**Started:** 2026-09-17 · **Status:** Phase 4 done
 
 ## Phase status
 
@@ -13,7 +13,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 1 | Rebrand + foundation | ✅ | `imp-17092026/phase-1-rebrand` | Car Guy identity, tokens, base components, domain tests, lint |
 | 2 | SQLite + importer | ✅ | `imp-17092026/phase-2-sqlite` | Schema v1, repos, store rewire, catalog seed, legacy importer, backup v2 |
 | 3 | Garage + navigation | ✅ | `imp-17092026/phase-3-garage` | Five tabs, OdometerHero, rich vehicle profile, media, DateField, odometer domain |
-| 4 | Maintenance + Historial | ⬜ | | |
+| 4 | Maintenance + Historial | ✅ | `imp-17092026/phase-4-maintenance` | Service records, expenses, tasks, documents, unified Historial, reminder resets |
 | 5 | Inspections + reminders | ⬜ | | |
 | 6 | Identity pass | ⬜ | | |
 | 7 | Statistics + reports | ⬜ | | |
@@ -676,3 +676,94 @@ needs that the other projects do not.
 The mark was regenerated in amber on `#121212`, and `app.json`, `+html.tsx`, the manifest and the
 service-worker cache name all moved with it. `05-design-identity.md` now documents the real palette
 with a note explaining the change. Inter was removed.
+
+## Phase 4 — Maintenance, expenses, tasks, documents and the unified Historial   (branch `imp-17092026/phase-4-maintenance`)
+
+**Status:** complete
+**Commits:** `5849de6` (part A — records, expenses, Historial) · `156f7c7` (part B — tasks, documents)
+
+Split into two parts on the same branch, per the conventions: part A is the core of notes 3/6/7/8
+and stands on its own; part B adds the two supporting surfaces.
+
+### Changed
+- **Domain.** `lib/domain/reminders.ts` — `completeReminder`, `remindersForServiceItems`,
+  `resetForServiceItems`, `completeLegal`, `describeReset`. 18 tests.
+- **Operations.** `lib/db/serviceOps.ts` (`saveServiceRecord`, `saveExpense`, `shopSuggestions`),
+  `lib/db/documentOps.ts` (`saveDocument`).
+- **Screens.** `servicio/nuevo.tsx` rewritten, `servicio/[id].tsx` (new), `gasto/nuevo.tsx`
+  rewritten, `tareas/index.tsx`, `tarea/nueva.tsx`, `tarea/[id].tsx`, `documentos/index.tsx`,
+  `documento/nuevo.tsx`, `documento/[id].tsx` (all new), `(tabs)/historial.tsx` rebuilt.
+- **Removed.** `app/gastos.tsx` — its two jobs are now two entries in Más.
+- **UI.** `components/ui/RecordRow.tsx`.
+- **Strings.** `lib/i18n/es.ts` gained the `service`, `expense`, `history`, `tasks` and `documents`
+  sections.
+
+### Dependencies added / removed
+None.
+
+### Acceptance criteria
+- [x] Service record create / detail / reclassify / soft-delete for the three kinds, with items,
+      parts, photos, warranty and shop suggestions.
+- [x] Saving items resets the matching reminders and the summary lists them — verified in the
+      browser: a 52 000 km vehicle, an oil change with two items, and the dialog said
+      **"Aceite de motor y filtro → 57,000 km · 17 mar 2027"** and
+      **"Filtro de aire → 72,000 km · 17 sept 2027"**. Both numbers are the interval added to the
+      odometer at completion, which is the rule.
+- [x] Expenses with the new category set; a **Marbete** expense re-armed the legal reminder to
+      **31 ene 2028** — anchored to the deadline, not to the payment date; `gastos.tsx` removed.
+- [x] Tasks board with the done → record flow; the service form arrives prefilled with the task's
+      title and kind and carries `source_task_id`.
+- [x] Documents with expiry → legal reminder link ("Ajustamos el recordatorio a esa fecha"), photos
+      viewable inline.
+- [x] Historial on `history_feed`: month groups with totals, filters, search, FAB kind picker,
+      pagination at 50.
+- [x] Legacy imported maintenance/repair expenses appear as service records — they were written to
+      `service_record` by the Phase 2 importer, so the feed picks them up with no extra work.
+- [x] `tsc`, `expo lint`, `npm test` (85), `npm run build` (4.4 MB, 30 routes) green.
+- [ ] Home "Pendientes" does not yet include open tasks — see "Observed, deferred".
+- [ ] PDF documents — only photos are wired. See "Deviations".
+
+### Decisions made (defaults applied)
+- **A disabled reminder is never silently re-armed.** Turning one off is a decision; changing the
+  oil should not undo it.
+- **`completeLegal` forces `fixed_interval`** whatever the row says. The marbete deadline is set by
+  the calendar, not by when the payment happened, so trusting a row that might have been edited
+  would let one early renewal drift every future one.
+- **The service title writes itself** from the selected catalog items until the user edits it. A
+  record called "Aceite de motor y filtro + Filtro de aire" beats an empty one and beats making
+  someone type it.
+- **Reclassifying keeps the id**, so the record holds its place in the history and any reminder it
+  completed still points at it.
+- **Only *mantenimiento* shows the catalog.** A repair or an upgrade has no interval to re-arm, and
+  offering the list there would invite meaningless resets.
+- Items and parts are replaced wholesale on save rather than diffed — there are only ever a handful,
+  and an edit that removed one has to remove it here too.
+
+### Deviations from the package
+- **PDF documents are not wired.** `expo-document-picker` is installed and the `media` table already
+  has `kind: 'pdf'`, but the viewer needs a platform split (share/openURL on Android, a new tab on
+  web) that is a small feature of its own. Photos cover the common case — a picture of the seguro is
+  what people actually take — and the gap is recorded here rather than half-built.
+- `servicio/[id]` has no edit form yet; it offers detail, reclassify and delete. Editing a record
+  means re-running the reminder resets against the *previous* values to avoid double-counting, which
+  is a real piece of design and belongs with PROMPT-05's engine rather than being rushed here.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 4 · home | "Pendientes" still shows only legacy reminders, not tasks or catalog reminders | medium | The store filters catalog/legal reminders out of `vehicleReminders` (Phase 2), because the legacy Gastos screen could not represent them. PROMPT-05 replaces that whole path with the real engine and should fold tasks in |
+| Phase 4 · search | `LIKE … COLLATE NOCASE` folds ASCII only, so "optimo" will not find "Óptimo" | low | Accent-insensitive search needs an ICU build of SQLite. Noted in the code |
+| Phase 4 · web | The fill-up review is still a blocking `window.alert`, and the save dialogs now use it too | medium | Fourth phase running. PROMPT-06 owns it; a non-blocking toast would fix all of them at once |
+| Phase 4 · service edit | Editing a saved record cannot re-run reminder resets safely yet | medium | See "Deviations" |
+
+### Notes for the next phase
+- **`lib/domain/reminders.ts` is where PROMPT-05 builds.** `completeReminder` is the completion half;
+  the status half (`ok`/`próximo`/`urgente`/`vencido`/`sin_datos`, thresholds, predicted dates) goes
+  beside it and reuses `kmPerDay` from `lib/domain/odometer.ts`.
+- **`saveServiceRecord` is the only correct way to write a record** — it owns the item/part
+  replacement and the reminder resets, so an inspection that creates a repair should call it too.
+- Tasks already carry `source_inspection_result_id`; PROMPT-05 fills it when an item fails.
+- `history_feed` needs a new `UNION ALL` arm for inspections' own detail route, and the view can only
+  be changed in a **migration v2** — never by editing v1.
+- The four status colours and `StatusPill` are already used by documents and tasks, so the engine's
+  output has somewhere to render with no new component.
