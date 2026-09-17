@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tu Combustible RD",
     "slug": "tu-combustible-rd",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tucombustiblerd",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.xavieltucombustiblerd.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#0B1F1C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
