@@ -40,3 +40,6 @@ yarn-error.*
 /ios
 /android
 .vercel
+
+# Xaviel's real Tu Combustible RD export (test input for the Phase 2 importer)
+docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json

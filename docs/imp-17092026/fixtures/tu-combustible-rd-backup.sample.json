@@ -1,0 +1,281 @@
+{
+  "app": "tu-combustible-rd",
+  "version": 1,
+  "exportedAt": "2026-09-17T18:30:00.000Z",
+  "data": {
+    "vehicles": [
+      {
+        "id": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "name": "Corolla 2016",
+        "plate": "A123456",
+        "defaultFuelType": "regular",
+        "tankVolume": 13,
+        "createdAt": "2026-06-28T13:12:00.000Z"
+      },
+      {
+        "id": "id_1751500800000_b3c9d1a",
+        "name": "Hilux (camioneta)",
+        "plate": "G654321",
+        "defaultFuelType": "gasoil_regular",
+        "tankVolume": 20,
+        "createdAt": "2026-07-02T11:41:00.000Z"
+      }
+    ],
+    "fillups": [
+      {
+        "id": "3c1d7b90-52af-4e18-8d2c-7b91e0f4a662",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-06-28T16:00:00.000Z",
+        "odometerKm": 84200,
+        "volume": 11.4,
+        "pricePerUnit": 305.9,
+        "totalDop": 3487.26,
+        "fuelType": "regular",
+        "isFullTank": true,
+        "station": "Texaco",
+        "notes": "Tanque lleno de referencia",
+        "createdAt": "2026-06-28T16:06:00.000Z"
+      },
+      {
+        "id": "d41f6a27-98c3-4b0e-a7d5-1e83c92b5407",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-07-05T16:00:00.000Z",
+        "odometerKm": 84630,
+        "volume": 11.2,
+        "pricePerUnit": 307.5,
+        "totalDop": 3444,
+        "fuelType": "regular",
+        "isFullTank": true,
+        "station": "Shell",
+        "notes": "",
+        "createdAt": "2026-07-05T16:06:00.000Z"
+      },
+      {
+        "id": "id_1752494400000_7ae21f4",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-07-14T16:00:00.000Z",
+        "odometerKm": 85020,
+        "volume": 6.5,
+        "pricePerUnit": 308.4,
+        "totalDop": 2004.6,
+        "fuelType": "regular",
+        "isFullTank": false,
+        "station": "Next",
+        "notes": "Media tanda, iba de prisa",
+        "createdAt": "2026-07-14T16:06:00.000Z"
+      },
+      {
+        "id": "8b5e0c13-61d7-4a29-b8f0-3d6a7c1e9482",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-07-18T16:00:00.000Z",
+        "odometerKm": 85080,
+        "volume": 5.3,
+        "pricePerUnit": 308.4,
+        "totalDop": 1634.52,
+        "fuelType": "regular",
+        "isFullTank": true,
+        "station": "Next",
+        "notes": "",
+        "createdAt": "2026-07-18T16:06:00.000Z"
+      },
+      {
+        "id": "a7c92e64-0f38-4d71-9b46-5e2a8d3f0c17",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-07-29T16:00:00.000Z",
+        "odometerKm": 85495,
+        "volume": 10.9,
+        "pricePerUnit": 309.8,
+        "totalDop": 3376.82,
+        "fuelType": "regular",
+        "isFullTank": true,
+        "station": "TotalEnergies",
+        "notes": "",
+        "createdAt": "2026-07-29T16:06:00.000Z"
+      },
+      {
+        "id": "2e8a4f71-c956-4b03-8d17-9f62b5a0e348",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-08-11T16:00:00.000Z",
+        "odometerKm": 85960,
+        "volume": 12.1,
+        "pricePerUnit": 307.5,
+        "totalDop": 3720.75,
+        "fuelType": "regular",
+        "isFullTank": true,
+        "station": "Texaco",
+        "notes": "Viaje a Santiago",
+        "createdAt": "2026-08-11T16:06:00.000Z"
+      },
+      {
+        "id": "id_1756080000000_c94e30b",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-08-25T16:00:00.000Z",
+        "odometerKm": 86370,
+        "volume": 10.7,
+        "pricePerUnit": 310.2,
+        "totalDop": 3319.14,
+        "fuelType": "regular",
+        "isFullTank": true,
+        "station": "Isla",
+        "notes": "",
+        "createdAt": "2026-08-25T16:06:00.000Z"
+      },
+      {
+        "id": "f6031b8d-7e24-4c95-a0b3-8d1e7f4c25a9",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-09-08T16:00:00.000Z",
+        "odometerKm": 86845,
+        "volume": 12.4,
+        "pricePerUnit": 311.4,
+        "totalDop": 3861.36,
+        "fuelType": "regular",
+        "isFullTank": true,
+        "station": "Shell",
+        "notes": "",
+        "createdAt": "2026-09-08T16:06:00.000Z"
+      },
+      {
+        "id": "c5924e08-3a6b-41df-97c2-0e5b8a3d716f",
+        "vehicleId": "id_1751500800000_b3c9d1a",
+        "occurredAt": "2026-07-02T16:00:00.000Z",
+        "odometerKm": 152400,
+        "volume": 17.5,
+        "pricePerUnit": 258.6,
+        "totalDop": 4525.5,
+        "fuelType": "gasoil_regular",
+        "isFullTank": true,
+        "station": "Esso",
+        "notes": "Tanque lleno de referencia",
+        "createdAt": "2026-07-02T16:06:00.000Z"
+      },
+      {
+        "id": "71b8d3a6-4f09-4e52-bc38-6a920d5e1c74",
+        "vehicleId": "id_1751500800000_b3c9d1a",
+        "occurredAt": "2026-07-21T16:00:00.000Z",
+        "odometerKm": 152790,
+        "volume": 17.8,
+        "pricePerUnit": 259.8,
+        "totalDop": 4624.44,
+        "fuelType": "gasoil_regular",
+        "isFullTank": true,
+        "station": "Pueblo",
+        "notes": "",
+        "createdAt": "2026-07-21T16:06:00.000Z"
+      },
+      {
+        "id": "id_1755129600000_4d7f2ae",
+        "vehicleId": "id_1751500800000_b3c9d1a",
+        "occurredAt": "2026-08-14T16:00:00.000Z",
+        "odometerKm": 153120,
+        "volume": 12,
+        "pricePerUnit": 261.1,
+        "totalDop": 3133.2,
+        "fuelType": "gasoil_regular",
+        "isFullTank": false,
+        "station": "Esso",
+        "notes": "Parcial antes del viaje a Bonao",
+        "createdAt": "2026-08-14T16:06:00.000Z"
+      },
+      {
+        "id": "0d47a95c-8b21-463e-9f5a-2c8e31b7d904",
+        "vehicleId": "id_1751500800000_b3c9d1a",
+        "occurredAt": "2026-09-03T16:00:00.000Z",
+        "odometerKm": 153230,
+        "volume": 8,
+        "pricePerUnit": 260.4,
+        "totalDop": 2083.2,
+        "fuelType": "gasoil_regular",
+        "isFullTank": true,
+        "station": "TotalEnergies",
+        "notes": "",
+        "createdAt": "2026-09-03T16:06:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "5a3e8c09-2d61-4f78-b4a9-7e0c6b1d3f25",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-07-10T16:00:00.000Z",
+        "odometerKm": 84900,
+        "amountDop": 4500,
+        "category": "maintenance",
+        "description": "Cambio de aceite y filtro — taller de Ramón",
+        "createdAt": "2026-07-10T21:22:00.000Z"
+      },
+      {
+        "id": "id_1754136000000_e21b6f4",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-08-02T16:00:00.000Z",
+        "odometerKm": null,
+        "amountDop": 18500,
+        "category": "insurance",
+        "description": "Póliza anual del seguro",
+        "createdAt": "2026-08-02T14:05:00.000Z"
+      },
+      {
+        "id": "b9f27d41-6c08-4a35-8e12-3b7d9a0e5c68",
+        "vehicleId": "id_1751500800000_b3c9d1a",
+        "occurredAt": "2026-08-19T16:00:00.000Z",
+        "odometerKm": 153150,
+        "amountDop": 7800,
+        "category": "repair",
+        "description": "Dos gomas delanteras nuevas",
+        "createdAt": "2026-08-19T19:48:00.000Z"
+      },
+      {
+        "id": "4e10c6b3-9a52-47d8-b03f-8c6a2e1d97b4",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "occurredAt": "2026-09-05T16:00:00.000Z",
+        "odometerKm": null,
+        "amountDop": 1500,
+        "category": "tax",
+        "description": "Marbete 2026",
+        "createdAt": "2026-09-05T15:03:00.000Z"
+      }
+    ],
+    "reminders": [
+      {
+        "id": "6c1b9e35-7a40-4d82-9f16-5e3c8b2a0d79",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "title": "Cambio de aceite",
+        "dueDate": null,
+        "dueOdometerKm": 89000,
+        "completedAt": null,
+        "notes": "Cada 5,000 km — 5W-30 sintético",
+        "createdAt": "2026-07-10T21:25:00.000Z"
+      },
+      {
+        "id": "id_1757548800000_a08f5c2",
+        "vehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+        "title": "Marbete 2027",
+        "dueDate": "2027-01-31T16:00:00.000Z",
+        "dueOdometerKm": null,
+        "completedAt": null,
+        "notes": "La ventana abre en octubre",
+        "createdAt": "2026-09-05T15:06:00.000Z"
+      },
+      {
+        "id": "e83d5721-0b96-4c4a-8a7e-1d92f60b3e58",
+        "vehicleId": "id_1751500800000_b3c9d1a",
+        "title": "Rotación de gomas",
+        "dueDate": "2026-08-20T16:00:00.000Z",
+        "dueOdometerKm": 153500,
+        "completedAt": "2026-08-19T20:02:00.000Z",
+        "notes": "Hecha junto con las gomas nuevas",
+        "createdAt": "2026-07-21T13:30:00.000Z"
+      }
+    ],
+    "settings": {
+      "activeVehicleId": "9f2a1c84-3b7e-4d55-9a10-6c4f2e8b7d31",
+      "referencePrices": {
+        "premium": 344.2,
+        "regular": 311.4,
+        "gasoil_regular": 260.4,
+        "gasoil_optimo": 294.8,
+        "glp": 136.7,
+        "gnv": 43.97
+      },
+      "priceWeekLabel": "12–18 sep 2026 (MICM)"
+    }
+  }
+}
