@@ -1,9 +1,9 @@
-// Per-weight subpaths, never the package root: importing '@expo-google-fonts/inter'
+// Per-weight subpaths, never the package root: importing '@expo-google-fonts/manrope'
 // pulls every weight *and* every italic into the bundle — that alone put 8 MB of
 // unused .ttf into dist/.
-import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
-import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
-import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { Manrope_400Regular } from '@expo-google-fonts/manrope/400Regular';
+import { Manrope_500Medium } from '@expo-google-fonts/manrope/500Medium';
+import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
 import { JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono/500Medium';
 import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono/700Bold';
 import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medium';
@@ -44,9 +44,9 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceGrotesk_500Medium,
     SpaceGrotesk_700Bold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
     JetBrainsMono_500Medium,
     JetBrainsMono_700Bold,
   });
@@ -120,11 +120,26 @@ function Shell() {
             empty <title> that wins over anything static in +html.tsx. */}
         <Stack.Screen name="(tabs)" options={{ title: 'Car Guy' }} />
         <Stack.Screen name="onboarding" options={{ title: 'Car Guy' }} />
+        <Stack.Screen name="gastos" options={{ headerShown: true, title: 'Gastos y mantenimiento' }} />
         <Stack.Screen
-          name="vehiculo"
+          name="vehiculo/nuevo"
           options={{ presentation: 'modal', headerShown: true, title: 'Nuevo vehículo' }}
         />
-        <Stack.Screen name="gastos" options={{ headerShown: true, title: 'Gastos y mantenimiento' }} />
+        <Stack.Screen name="vehiculo/[id]" options={{ headerShown: true, title: 'Vehículo' }} />
+        <Stack.Screen name="vehiculo/[id]/editar" options={{ headerShown: true, title: 'Editar vehículo' }} />
+        <Stack.Screen
+          name="odometro"
+          options={{ presentation: 'modal', headerShown: true, title: 'Odómetro' }}
+        />
+        <Stack.Screen name="carga/nueva" options={{ headerShown: true, title: 'Nueva carga' }} />
+        <Stack.Screen
+          name="servicio/nuevo"
+          options={{ presentation: 'modal', headerShown: true, title: 'Mantenimiento' }}
+        />
+        <Stack.Screen
+          name="gasto/nuevo"
+          options={{ presentation: 'modal', headerShown: true, title: 'Gasto' }}
+        />
         <Stack.Screen name="precios" options={{ headerShown: true, title: 'Precios MICM' }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: 'Editar carga' }} />
       </Stack>

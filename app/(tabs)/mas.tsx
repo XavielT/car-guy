@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MasScreen() {
   const router = useRouter();
-  const { data, activeVehicle, setActiveVehicle, deleteVehicle, resetAll, refresh } = useStore();
+  const { data, activeVehicle, setActiveVehicle, resetAll, refresh } = useStore();
 
   async function handleExport() {
     try {
@@ -54,12 +54,12 @@ export default function MasScreen() {
         </T>
 
         <T face="title" style={styles.sec}>
-          Vehículos
+          Garaje
         </T>
         {data.vehicles.map((v) => (
           <Pressable
             key={v.id}
-            onPress={() => setActiveVehicle(v.id)}
+            onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
             style={[styles.vcard, v.id === activeVehicle?.id && styles.vOn]}>
             <View style={{ flex: 1 }}>
               <T face="semibold" style={{ color: colors.ink, fontSize: 16 }}>
@@ -71,19 +71,12 @@ export default function MasScreen() {
                 {v.id === activeVehicle?.id ? ' · activo' : ''}
               </T>
             </View>
-            <GhostButton
-              danger
-              label="Quitar"
-              onPress={() =>
-                Alert.alert('Quitar vehículo', `Se borran también las cargas de ${v.name}.`, [
-                  { text: 'Cancelar', style: 'cancel' },
-                  { text: 'Quitar', style: 'destructive', onPress: () => deleteVehicle(v.id) },
-                ])
-              }
-            />
+            {v.id === activeVehicle?.id ? null : (
+              <GhostButton label="Activar" onPress={() => setActiveVehicle(v.id)} />
+            )}
           </Pressable>
         ))}
-        <PrimaryButton label="Agregar vehículo" onPress={() => router.push('/vehiculo')} />
+        <PrimaryButton label="Agregar vehículo" onPress={() => router.push('/vehiculo/nuevo')} />
 
         <T face="title" style={styles.sec}>
           Referencia

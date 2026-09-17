@@ -6,9 +6,11 @@ import { T } from '../T';
 
 export { EmptyState } from './EmptyState';
 export { GaugeRing } from './GaugeRing';
+export { OdometerHero, type Telltale } from './OdometerHero';
 export { QuickActions, type QuickAction } from './QuickActions';
 export { Sheet } from './Sheet';
 export { StatusPill, type Status } from './StatusPill';
+export { Surface } from './Surface';
 
 /**
  * The buttons, chips and cards the Tu Combustible RD screens were written

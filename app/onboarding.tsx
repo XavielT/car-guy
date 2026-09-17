@@ -5,6 +5,7 @@ import { colors } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { importBackup } from '@/lib/backup';
 import { describeCounts } from '@/lib/import/tucombustible';
+import { saveVehicleDraft } from '@/lib/db/vehicleOps';
 import { useStore } from '@/lib/store';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -12,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { upsertVehicle, refresh } = useStore();
+  const { refresh, setActiveVehicle } = useStore();
 
   /**
    * The second way in. Car Guy ships as a new Android app, so someone coming
@@ -41,9 +42,13 @@ export default function OnboardingScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <VehicleForm
           submitLabel="Empezar a registrar"
-          onSubmit={(v) => {
-            upsertVehicle(v);
-            router.replace('/(tabs)');
+          onSubmit={(draft) => {
+            void (async () => {
+              const id = await saveVehicleDraft(draft);
+              await refresh();
+              setActiveVehicle(id);
+              router.replace('/(tabs)');
+            })();
           }}
         />
         <View style={styles.alt}>

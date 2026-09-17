@@ -1,4 +1,5 @@
 import { Field } from '@/components/Field';
+import { PriceBoard } from '@/components/PriceBoard';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/theme';
@@ -8,7 +9,7 @@ import { useStore } from '@/lib/store';
 import type { FuelType, ReferencePrices } from '@/lib/types';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PreciosScreen() {
@@ -41,6 +42,18 @@ export default function PreciosScreen() {
         <T face="body" style={styles.p}>
           Semilla: semana del 15–21 ago 2026. Actualízalos cuando salga el aviso nuevo. No se descargan solos.
         </T>
+
+        {/* The board used to be the home screen's hero. It belongs here: it is
+            reference information about fuel prices, not a fact about your car. */}
+        <View style={{ marginBottom: 16 }}>
+          <PriceBoard
+            eyebrow="Precios de referencia"
+            amount={data.settings.priceWeekLabel}
+            caption="Lo que pagaste en cada carga manda sobre esta tabla."
+            prices={data.settings.referencePrices}
+          />
+        </View>
+
         <Field label="Semana / fuente" value={week} onChangeText={setWeek} />
         {FUEL_ORDER.map((t) => (
           <Field

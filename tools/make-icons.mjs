@@ -16,8 +16,8 @@
 import sharp from 'sharp';
 import { writeFile } from 'node:fs/promises';
 
-const PANEL = '#0E1116';
-const ACCENT = '#22D3EE';
+const PANEL = '#121212';
+const ACCENT = '#FFB300';
 const OK = '#34D399';
 
 /**

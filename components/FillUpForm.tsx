@@ -1,3 +1,4 @@
+import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { FuelPicker } from '@/components/FuelPicker';
 import { T } from '@/components/T';
@@ -92,7 +93,7 @@ export function FillUpForm({
         Anota dos de tres (galones, precio, total) y el tercero se calcula solo. El consumo sale cuando marcas tanque lleno.
       </T>
 
-      <Field label="Fecha" value={date} onChangeText={setDate} placeholder="AAAA-MM-DD" />
+      <DateField label="Fecha" value={date} onChange={setDate} />
       <Field
         label="Odómetro (km)"
         keyboardType="decimal-pad"

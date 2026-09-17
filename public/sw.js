@@ -10,7 +10,7 @@
  * bump: everything under /_expo/static/ is content-hashed, so a new build asks
  * for new filenames and the stale entries are only ever dead weight.
  */
-const CACHE = 'carguy-v2';
+const CACHE = 'carguy-v3';
 
 self.addEventListener('install', () => {
   // Nothing to precache: the export is hashed and the shell is picked up on
