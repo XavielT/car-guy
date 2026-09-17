@@ -1,77 +1,270 @@
-import { Field } from '@/components/Field';
-import { T } from '@/components/T';
-import { FuelPicker } from '@/components/FuelPicker';
-import { PrimaryButton } from '@/components/ui';
-import { colors } from '@/constants/theme';
-import { FUEL_CATALOG } from '@/lib/fuel';
-import { parseDecimal } from '@/lib/math';
-import type { FuelType, Vehicle } from '@/lib/types';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
+import { colors, radius, space } from '@/constants/theme';
+import { FuelPicker } from '@/components/FuelPicker';
+import { DateField } from '@/components/DateField';
+import { Field } from '@/components/Field';
+import { PhotoPicker } from '@/components/PhotoPicker';
+import { T } from '@/components/T';
+import { Chip, PrimaryButton } from '@/components/ui';
+import { parseDecimal } from '@/lib/math';
+import { es } from '@/lib/i18n/es';
+import type { FuelType } from '@/lib/types';
+import type { VehicleType } from '@/lib/db/types';
+
+export type VehicleDraft = {
+  id?: string;
+  name: string;
+  type: VehicleType;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  color: string | null;
+  plate: string | null;
+  vin: string | null;
+  defaultFuelType: FuelType;
+  tankVolume: number | null;
+  /** Written as an `odometer_reading` with source 'manual', not a vehicle column. */
+  odometerKm: number | null;
+  /** Stretches the seeded aceite_motor reminder to 10,000 km / 12 months. */
+  synthetic: boolean;
+  purchaseDate: string | null;
+  purchasePrice: number | null;
+  photoMediaId: string | null;
+  notes: string;
+};
+
+const TYPES: VehicleType[] = ['carro', 'jeepeta', 'camioneta', 'motor', 'camion', 'guagua', 'otro'];
+
+const CURRENT_YEAR = new Date().getFullYear();
+const MIN_YEAR = 1950;
 
 export function VehicleForm({
   initial,
   submitLabel,
   onSubmit,
 }: {
-  initial?: Partial<Vehicle>;
+  initial?: Partial<VehicleDraft>;
   submitLabel: string;
-  onSubmit: (v: Omit<Vehicle, 'id' | 'createdAt'>) => void;
+  onSubmit: (draft: VehicleDraft) => void;
 }) {
   const [name, setName] = useState(initial?.name ?? '');
+  const [type, setType] = useState<VehicleType>(initial?.type ?? 'carro');
+  const [make, setMake] = useState(initial?.make ?? '');
+  const [model, setModel] = useState(initial?.model ?? '');
+  const [year, setYear] = useState(initial?.year ? String(initial.year) : '');
+  const [color, setColor] = useState(initial?.color ?? '');
   const [plate, setPlate] = useState(initial?.plate ?? '');
+  const [vin, setVin] = useState(initial?.vin ?? '');
   const [fuel, setFuel] = useState<FuelType>(initial?.defaultFuelType ?? 'regular');
   const [tank, setTank] = useState(initial?.tankVolume ? String(initial.tankVolume) : '');
+  const [odometer, setOdometer] = useState(initial?.odometerKm ? String(initial.odometerKm) : '');
+  const [synthetic, setSynthetic] = useState(initial?.synthetic ?? false);
+  const [showPurchase, setShowPurchase] = useState(Boolean(initial?.purchaseDate || initial?.purchasePrice));
+  const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? '');
+  const [purchasePrice, setPurchasePrice] = useState(
+    initial?.purchasePrice ? String(initial.purchasePrice) : '',
+  );
+  const [photoMediaId, setPhotoMediaId] = useState<string | null>(initial?.photoMediaId ?? null);
+  const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [error, setError] = useState<string | null>(null);
 
-  const unit = FUEL_CATALOG[fuel].unitLabel;
+  // A stable owner id so a photo picked before the vehicle is saved still has
+  // somewhere to belong.
+  const [draftId] = useState(() => initial?.id ?? `veh_${Date.now()}`);
+
+  function save() {
+    const trimmed = name.trim();
+    if (!trimmed) return setError(es.vehicle.nameRequired);
+
+    const parsedYear = year.trim() ? Number(year.trim()) : null;
+    if (parsedYear != null && (!Number.isInteger(parsedYear) || parsedYear < MIN_YEAR || parsedYear > CURRENT_YEAR + 1)) {
+      return setError(es.vehicle.yearRange(MIN_YEAR, CURRENT_YEAR + 1));
+    }
+
+    const parsedOdometer = odometer.trim() ? parseDecimal(odometer) : null;
+    if (odometer.trim() && parsedOdometer == null) return setError(es.vehicle.odometerNegative);
+
+    setError(null);
+    onSubmit({
+      id: initial?.id ?? draftId,
+      name: trimmed,
+      type,
+      make: make.trim() || null,
+      model: model.trim() || null,
+      year: parsedYear,
+      color: color.trim() || null,
+      plate: plate.trim().toUpperCase() || null,
+      vin: vin.trim().toUpperCase() || null,
+      defaultFuelType: fuel,
+      tankVolume: tank.trim() ? parseDecimal(tank) : null,
+      odometerKm: parsedOdometer,
+      synthetic,
+      purchaseDate: purchaseDate || null,
+      purchasePrice: purchasePrice.trim() ? parseDecimal(purchasePrice) : null,
+      photoMediaId,
+      notes: notes.trim(),
+    });
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-      <T face="title" style={styles.h}>
-        El carro que vas a cargar
+      <T face="display" style={styles.h}>
+        {initial?.id ? es.vehicle.editTitle : es.vehicle.newTitle}
       </T>
-      <T face="body" style={styles.p}>
-        El tipo de combustible queda como predeterminado. Lo puedes cambiar en cada carga.
-      </T>
-      <Field label="Nombre" placeholder="Corolla, motor, jeva…" value={name} onChangeText={setName} />
+
       <Field
-        label="Placa (opcional)"
-        placeholder="A123456"
-        autoCapitalize="characters"
-        value={plate}
-        onChangeText={setPlate}
+        label={es.vehicle.name}
+        placeholder={es.vehicle.namePlaceholder}
+        value={name}
+        onChangeText={setName}
       />
+
       <T face="semibold" style={styles.label}>
-        Combustible de fábrica
+        {es.vehicle.type}
+      </T>
+      <View style={styles.row}>
+        {TYPES.map((t) => (
+          <Chip key={t} label={es.vehicleTypes[t]} selected={type === t} onPress={() => setType(t)} />
+        ))}
+      </View>
+
+      <View style={styles.pair}>
+        <View style={styles.half}>
+          <Field label={es.vehicle.make} placeholder={es.vehicle.makePlaceholder} value={make} onChangeText={setMake} />
+        </View>
+        <View style={styles.half}>
+          <Field label={es.vehicle.model} placeholder={es.vehicle.modelPlaceholder} value={model} onChangeText={setModel} />
+        </View>
+      </View>
+
+      <View style={styles.pair}>
+        <View style={styles.half}>
+          <Field label={es.vehicle.year} placeholder="2015" keyboardType="number-pad" value={year} onChangeText={setYear} />
+        </View>
+        <View style={styles.half}>
+          <Field label={es.vehicle.color} placeholder="Negro" value={color} onChangeText={setColor} />
+        </View>
+      </View>
+
+      <View style={styles.pair}>
+        <View style={styles.half}>
+          <Field
+            label={es.vehicle.plate}
+            placeholder="A123456"
+            autoCapitalize="characters"
+            value={plate}
+            onChangeText={setPlate}
+          />
+        </View>
+        <View style={styles.half}>
+          <Field label={es.vehicle.vin} autoCapitalize="characters" value={vin} onChangeText={setVin} />
+        </View>
+      </View>
+
+      <T face="semibold" style={styles.label}>
+        {es.vehicle.fuel}
       </T>
       <FuelPicker value={fuel} onChange={setFuel} />
-      <Field
-        label={`Tanque (${unit}, opcional)`}
-        placeholder="12.5"
-        keyboardType="decimal-pad"
-        value={tank}
-        onChangeText={setTank}
+
+      <View style={styles.pair}>
+        <View style={styles.half}>
+          <Field label={es.vehicle.tank} placeholder="12.5" keyboardType="decimal-pad" value={tank} onChangeText={setTank} />
+        </View>
+        <View style={styles.half}>
+          <Field
+            label={es.vehicle.odometer}
+            placeholder="51676"
+            keyboardType="number-pad"
+            value={odometer}
+            onChangeText={setOdometer}
+            hint={es.vehicle.odometerHint}
+          />
+        </View>
+      </View>
+
+      <Pressable onPress={() => setSynthetic((v) => !v)} style={styles.toggle}>
+        <View style={[styles.checkbox, synthetic && styles.checkboxOn]} />
+        <View style={{ flex: 1 }}>
+          <T face="semibold" style={styles.toggleLabel}>
+            {es.vehicle.synthetic}
+          </T>
+          <T face="body" style={styles.hint}>
+            {es.vehicle.syntheticHint}
+          </T>
+        </View>
+      </Pressable>
+
+      <T face="semibold" style={styles.label}>
+        {es.vehicle.photo}
+      </T>
+      <PhotoPicker
+        mediaId={photoMediaId}
+        ownerTable="vehicle"
+        ownerId={draftId}
+        vehicleId={draftId}
+        onChange={setPhotoMediaId}
       />
-      <View style={{ height: 12 }} />
-      <PrimaryButton
-        label={submitLabel}
-        disabled={!name.trim()}
-        onPress={() =>
-          onSubmit({
-            name: name.trim(),
-            plate: plate.trim().toUpperCase(),
-            defaultFuelType: fuel,
-            tankVolume: parseDecimal(tank),
-          })
-        }
-      />
+
+      <Pressable onPress={() => setShowPurchase((v) => !v)} style={styles.sectionToggle}>
+        <T face="semibold" style={styles.sectionToggleLabel}>
+          {showPurchase ? '−' : '+'}  {es.vehicle.purchaseSection}
+        </T>
+      </Pressable>
+      {showPurchase ? (
+        <>
+          <DateField label={es.vehicle.purchaseDate} value={purchaseDate} onChange={setPurchaseDate} />
+          <Field
+            label={es.vehicle.purchasePrice}
+            keyboardType="decimal-pad"
+            value={purchasePrice}
+            onChangeText={setPurchasePrice}
+          />
+        </>
+      ) : null}
+
+      <Field label={es.vehicle.notes} value={notes} onChangeText={setNotes} multiline />
+
+      {error ? (
+        <T face="body" style={styles.error}>
+          {error}
+        </T>
+      ) : null}
+
+      <PrimaryButton label={submitLabel} onPress={save} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  pad: { padding: 20, paddingBottom: 48 },
-  h: { fontSize: 26, color: colors.ink, marginBottom: 8 },
-  p: { color: colors.muted, marginBottom: 20, fontSize: 15, lineHeight: 22 },
-  label: { color: colors.ink, fontSize: 13, marginBottom: 8 },
+  pad: { padding: space.gutter, paddingBottom: 40 },
+  h: { fontSize: 28, color: colors.ink, marginBottom: space.lg },
+  label: { color: colors.ink, fontSize: 13, marginBottom: 6 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
+  pair: { flexDirection: 'row', gap: space.md },
+  half: { flex: 1 },
+  toggle: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start', marginBottom: space.lg },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.white,
+    marginTop: 2,
+  },
+  checkboxOn: { backgroundColor: colors.led, borderColor: colors.led },
+  toggleLabel: { color: colors.ink, fontSize: 15 },
+  hint: { color: colors.muted, fontSize: 12, marginTop: 2, lineHeight: 17 },
+  sectionToggle: { paddingVertical: space.md },
+  sectionToggleLabel: { color: colors.muted, fontSize: 14 },
+  error: {
+    color: colors.danger,
+    fontSize: 13,
+    marginBottom: space.md,
+    backgroundColor: colors.white,
+    padding: space.md,
+    borderRadius: radius.input,
+  },
 });

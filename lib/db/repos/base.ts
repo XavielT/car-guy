@@ -119,24 +119,29 @@ export function makeRepo<T extends { id: string }>(config: RepoConfig) {
     async upsert(input: Partial<T> & Record<string, unknown>, db?: SQLiteDatabase): Promise<T> {
       const rowId = (input.id as string | undefined) ?? newId();
       const timestamp = now();
-      const data = toRow({ ...input, id: rowId }, config);
-      data.updated_at = timestamp;
-      data.synced_at = null;
+      const patch = toRow({ ...input, id: rowId }, config);
 
       const run = async (handle: SQLiteDatabase) => {
-        const existing = await handle.getFirstAsync<{ id: string; created_at: string }>(
-          `SELECT id, created_at FROM ${table} WHERE id = ?`,
+        const existing = await handle.getFirstAsync<Row>(
+          `SELECT * FROM ${table} WHERE id = ?`,
           [rowId],
         );
 
-        // created_at is always bound, even when updating. An upsert still has to
-        // produce a row that satisfies every NOT NULL column before SQLite gets
-        // to the ON CONFLICT clause, and omitting it made the statement fail —
-        // reported on the web build only as "Error finalizing statement", with
-        // no hint of which column or table. It is excluded from DO UPDATE SET
-        // below, so an existing row keeps its original value regardless.
+        // A partial update is merged onto the row that is already there.
+        //
+        // This is not an optimisation. `INSERT … ON CONFLICT DO UPDATE` still has
+        // to build a row that satisfies every NOT NULL column *before* SQLite
+        // looks at the conflict clause, so `upsert({ id, oneField })` on a table
+        // with required columns fails outright — and the web driver reports it
+        // only as "Error finalizing statement", naming neither column nor table.
+        const data: Row = existing ? { ...existing, ...patch } : patch;
+
+        data.updated_at = timestamp;
+        data.synced_at = null;
         data.created_at =
-          existing?.created_at ?? (input.createdAt as string | undefined) ?? timestamp;
+          (existing?.created_at as string | undefined) ??
+          (input.createdAt as string | undefined) ??
+          timestamp;
 
         const columns = Object.keys(data);
         const placeholders = columns.map(() => '?').join(', ');

@@ -1,3 +1,4 @@
+import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
 import { Card, Chip, GhostButton, PrimaryButton } from '@/components/ui';
@@ -108,7 +109,7 @@ export default function GastosScreen() {
             <T face="title" style={styles.formTitle}>Nuevo gasto</T>
             <Field label="Descripción" placeholder="Cambio de aceite, seguro…" value={description} onChangeText={setDescription} />
             <Field label="Monto (RD$)" keyboardType="decimal-pad" placeholder="3500" value={amount} onChangeText={setAmount} />
-            <Field label="Fecha" placeholder="AAAA-MM-DD" value={expenseDate} onChangeText={setExpenseDate} />
+            <DateField label="Fecha" value={expenseDate} onChange={setExpenseDate} />
             <Field label="Odómetro (km, opcional)" keyboardType="decimal-pad" placeholder={odoHint ? String(odoHint) : '45210'} value={expenseOdo} onChangeText={setExpenseOdo} />
             <T face="semibold" style={styles.label}>Categoría</T>
             <View style={styles.chips}>{EXPENSE_CATEGORIES.map((item) => <Chip key={item} label={CATEGORY_LABELS[item]} selected={category === item} onPress={() => setCategory(item)} />)}</View>
