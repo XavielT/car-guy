@@ -3,14 +3,14 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 0 done
+**Started:** 2026-09-17 · **Status:** Phase 1 done
 
 ## Phase status
 
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
 | 0 | Kickoff | ✅ | `imp-17092026/phase-0-kickoff` | Package in repo, audit checked, baseline green, fixture written |
-| 1 | Rebrand + foundation | ⬜ | | |
+| 1 | Rebrand + foundation | ✅ | `imp-17092026/phase-1-rebrand` | Car Guy identity, tokens, base components, domain tests, lint |
 | 2 | SQLite + importer | ⬜ | | |
 | 3 | Garage + navigation | ⬜ | | |
 | 4 | Maintenance + Historial | ⬜ | | |
@@ -272,3 +272,126 @@ the "counts match" proof for the definition of done.
 - `importBackup` (**Restaurar desde archivo**) was **not** exercised. It reads the picked file with
   `new File(result.assets[0].uri)`, and `DocumentPicker` hands back a `content://` URI on Android —
   the same class of mismatch that broke the export. Worth testing before PROMPT-02 relies on it.
+
+## Phase 1 — Rebrand + foundation   (branch `imp-17092026/phase-1-rebrand`)
+
+**Status:** complete
+**Commits:** `f712011` rebrand · `f35b6ac` tokens, components, domain tests, lint
+
+### Changed
+- **Identity.** `app.json` (name/slug/scheme/description, `version 2.0.0`,
+  `android.package com.xaviel.carguy` + `versionCode 1`, `userInterfaceStyle automatic`,
+  web name/theme), `package.json` name, `app/_layout.tsx` titles, `app/+html.tsx`
+  (description, `theme-color`, body background, apple title, `black-translucent`),
+  `public/manifest.webmanifest`, `public/sw.js` cache → `carguy-v1`,
+  `tools/finalize-web.mjs` `TITLE`, `README.md` rewritten around vehicle care with an
+  "Origen" section.
+- **Mark.** `tools/make-icons.mjs` redrawn: a 270° gauge sweep with the gap at the bottom, a
+  needle at 2 o'clock and a green dot at its tip, on `#0E1116`. All 12 PNGs and 6 SVG sources
+  regenerated.
+- **Tokens.** `constants/theme.ts` — `palette.dark` / `palette.light`, `categoryColors`,
+  `fonts`, `radius`, `space`, plus the legacy `colors` alias.
+- **Theme.** `lib/theme/useTheme.ts` (`ThemeProvider`, `useTheme`, `ThemeScope`), wired in
+  `app/_layout.tsx`; StatusBar and the Stack/tab-bar chrome follow the scheme.
+- **Components.** `components/ui/` — `StatusPill`, `GaugeRing`, `EmptyState`, `QuickActions`,
+  `Sheet`; `ui.tsx` moved to `ui/index.tsx` (import paths unchanged) with the four legacy
+  controls restyled onto the tokens; `Field` de-hardcoded.
+- **Domain.** `lib/domain/economy.ts` (moved from `lib/math.ts`, which is now a barrel),
+  `__tests__/domain/economy.test.ts`.
+- **Tooling.** `eslint.config.js`, jest preset, `tsconfig` types.
+- **Deleted** after grepping: `components/{Themed,StyledText,ExternalLink,useColorScheme*,useClientOnlyValue*}`,
+  `constants/Colors.ts`, `assets/fonts/SpaceMono-Regular.ttf`.
+- `docs/qa/phase-1-inicio-dark.png`, `docs/qa/phase-1-tokens-dark.png`.
+
+### Dependencies added / removed
+- **+** `@expo-google-fonts/space-grotesk`, `@expo-google-fonts/inter`,
+  `@expo-google-fonts/jetbrains-mono` — the new type system.
+- **+** `react-native-svg@15.15.4` — `GaugeRing`; also what PROMPT-07's charts will sit on.
+- **+** `jest-expo@~57.0.5`, `jest@~29.7.0`, `@types/jest`, `eslint`, `eslint-config-expo` (dev).
+- **−** `@expo-google-fonts/{syne,figtree,ibm-plex-mono}` — nothing referenced them once the tab
+  bar's hardcoded `Figtree_600SemiBold` moved to `fonts.semibold`.
+- **npm `overrides`: `@react-native/jest-preset` pinned to `0.86.3`.** Needed, not cosmetic:
+  `jest-expo@57.0.5` requires `^0.86.3` while `react-native@0.86.2` — the version SDK 57's
+  `bundledNativeModules.json` pins — peer-depends on exactly `0.86.2`. Without the override
+  `npm install` fails with ERESOLVE. `--legacy-peer-deps` would have hidden it across the whole
+  tree; this states the one package involved.
+
+### Acceptance criteria
+- [x] Identity everywhere, `android.package` = `com.xaviel.carguy`, no user-facing "Tu Combustible"
+      string left — verified by grep. The three surviving mentions are deliberate: `lib/storage.ts`
+      `KEY` (Phase 2 imports from it), `lib/backup.ts` `KNOWN_APPS` (the import contract, D1), and
+      the "no es un respaldo válido de Car Guy ni de Tu Combustible RD" error, which has to name
+      the old app to be useful. `docs/PLAN.md` and `docs/NEXT.md` keep the old name as historical
+      records of the v1 app.
+- [x] Icon set regenerated from SVG; every manifest size exists; splash background `#0E1116`.
+- [x] Palettes, category colours, fonts, radius, spacing exported; legacy alias keeps old screens
+      compiling — `npx tsc --noEmit` clean with zero screen edits for that reason.
+- [x] `useTheme()` + provider; preference persisted; StatusBar, Stack and tab bar follow.
+- [x] All five new components exist; `app/dev/tokens.tsx` previews them in both schemes —
+      see `docs/qa/phase-1-tokens-dark.png`.
+- [x] `lib/domain/economy.ts` + 24 tests, `npm test` green, `lib/math.ts` re-exports.
+- [x] `npx expo lint` clean · `npx tsc --noEmit` clean · `npm run build` green.
+- [x] Fuel flow verified **on web**, end to end, against Xaviel's real data: `/cargar` →
+      odometer 51 900 + RD$310.50/gal + RD$3 500 → the two-of-three line resolved to
+      `11.272 gal · RD$ 310.50/gal · RD$ 3,500.00` → saved → Historial shows the entry at
+      **19.872 km/gal** (224 km ÷ 11.272 gal, brim-to-brim against the 51 676 km full tank) →
+      Cifras recomputed to RD$ 12,500.00 for the month, 964 km, 28.66 km/gal average, and flagged
+      the tank "Bajo" against the 37.45 baseline.
+- [ ] Fuel flow on **Android** — not verified. Expo Go was not exercised this phase; the identity
+      changes that only a native build can show (launcher name, icon, splash) need PROMPT-10's
+      build anyway. Nothing in this phase is native-only: the tokens, fonts and components are all
+      JS, and the web run covers them.
+- [ ] EAS linked to slug `car-guy` — **skipped, not logged in** (`eas whoami` → "Not logged in").
+      Recorded in the manual checklist. The exact commands:
+      `npx eas-cli login` then `npx eas-cli init` in the repo root, which writes
+      `extra.eas.projectId`. `app.json` has no `extra` block at all right now, so there is no stale
+      id to remove first.
+
+### Decisions made (defaults applied)
+- **The legacy controls read the static `colors` alias, not `useTheme()`.** The prompt asked for
+  them to be restyled with the tokens, which they are — but making them scheme-aware while the
+  screens around them still paint from the alias would put light buttons on a dark screen in light
+  mode. They go theme-aware in PROMPT-06, in the same change that migrates those screens.
+- **`fonts.bold` resolves to Inter 600**, same as `semibold`. The identity specifies Inter at
+  400/500/600 only; `bold` is a legacy face the old screens still ask for, so it maps to the
+  heaviest weight that exists rather than pulling a 700 the design does not use.
+- `fonts.title` is Space Grotesk **500**, `display` is **700** — the two weights the identity lists.
+- The tokens preview lives at `app/dev/tokens.tsx` and renders a one-line notice when `!__DEV__`
+  rather than being excluded from the export; expo-router has no per-route export exclusion, and a
+  stub route costs 24 KB.
+
+### Deviations from the package
+- **The prescribed alias mapping produced invisible text.** `receipt → bg.surface` is right where
+  the legacy screens used `receipt` as a background, but three call sites used it as *light ink on
+  a dark panel* — `PriceBoard.grade` and the home screen's selected-vehicle chip. Mapped that way
+  they rendered dark-on-dark. Rather than bend the mapping (which would break the background uses),
+  those three call sites now read `colors.ink`, and the selected chip uses the accent with dark ink
+  to match the restyled `Chip`. Four hardcoded amber `rgba()` values in `PriceBoard` were tokenised
+  in the same pass; they were invisible-adjacent too and the last amber on the home screen.
+- **Per-weight font imports, not package-root imports.** The prompt's font step says to install the
+  three families; importing them the obvious way took `dist/` from 5.2 MB to **15 MB** — the
+  packages ship every weight *and* every italic, and Metro bundles the lot. Deep subpath imports
+  (`@expo-google-fonts/inter/400Regular`) plus `@expo/vector-icons/Ionicons` instead of the barrel
+  brought it to **3.9 MB**, below the 5.2 MB baseline, with exactly 8 `.ttf` in the output.
+- The npm `overrides` entry above is a dependency change the prompt did not anticipate.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 1 · web | Saving a fill-up fires `window.alert` through `lib/alert.ts`, which freezes the tab for any automation and is a poor web experience | medium | PROMPT-06 owns the Más/alert pass; a non-blocking toast would fix both. It also cost a browser tab during this phase's QA |
+| Phase 1 · `app/(tabs)/*` | Every legacy screen still paints from the static alias, so light mode does nothing for them | expected | This is the documented Phase 6 list: `index`, `cargar`, `historial`, `cifras`, `mas`, `gastos`, `precios`, `onboarding`, `vehiculo`, `carga/[id]`, plus `FillUpForm`, `VehicleForm`, `FuelPicker`, `PriceBoard`, `Field` and the four controls in `ui/index.tsx` |
+| Phase 1 · `npx expo install --check` | Reports 12 packages that "may need updating" | low | Not touched — out of phase, and the repo is on the versions SDK 57 pins |
+
+### Notes for the next phase
+- **Token file shape** is `palette.{dark,light}` with nested `bg`/`text`/`status`/`statusBg`, plus
+  flat `accent`, `accentPressed`, `accentInk`, `line`, `danger`, `cardShadow`. Read it through
+  `useTheme()`, never by importing `palette` directly, except where a static value is unavoidable.
+- **`colors` alias removal is the Phase 6 gate.** The screen list is in "Observed, deferred".
+- `lib/storage.ts` `KEY` and `lib/types.ts` are untouched, as PROMPT-02 requires. `lib/backup.ts`
+  now writes `{app:'car-guy', version:2}` and reads both envelopes — Phase 2 rewrites the payload
+  but must keep reading `tu-combustible-rd` v1 forever.
+- **The real backup fixture is in place** (`docs/imp-17092026/fixtures/…real.json`, gitignored) and
+  its 5 ids are all the `id_<ts>_<hex>` fallback. Phase 2's importer will meet non-UUID keys on its
+  first run, which is the point.
+- `react-native-svg` is already installed, so PROMPT-07's charts need no new native dependency.
+- `npm test` and `npx expo lint` are now part of the required green set for every later phase.
