@@ -10,7 +10,7 @@
  * bump: everything under /_expo/static/ is content-hashed, so a new build asks
  * for new filenames and the stale entries are only ever dead weight.
  */
-const CACHE = 'carguy-v1';
+const CACHE = 'carguy-v2';
 
 self.addEventListener('install', () => {
   // Nothing to precache: the export is hashed and the shell is picked up on
@@ -33,6 +33,35 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // The SQLite engine: never cache-first.
+  //
+  // expo-sqlite on web runs a Metro-bundled worker plus a .wasm binary, and the
+  // two must match the app bundle that opens the database. Serving a stale
+  // worker from an old cache against a new schema is a corruption bug that only
+  // shows up on returning visitors, so these go network-first and fall back to
+  // the cache only when offline. They must also never fall through to the
+  // navigation handler below, which would answer a worker request with the HTML
+  // shell — the worker would then fail to parse and the app would come up with
+  // no database at all.
+  const isSqliteEngine =
+    url.pathname.endsWith('.wasm') ||
+    (url.pathname.startsWith('/_expo/') && /worker|sqlite/i.test(url.pathname));
+
+  if (isSqliteEngine) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((hit) => hit ?? Response.error())),
+    );
+    return;
+  }
 
   // Hashed build output and bundled assets: the filename already identifies the
   // contents, so cache-first is safe and makes repeat launches instant.

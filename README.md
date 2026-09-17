@@ -73,17 +73,35 @@ aplicación.
 
 Para compilar localmente sin EAS, ver [docs/NEXT.md](docs/NEXT.md).
 
-## Datos al actualizar
+## Dónde viven los datos
 
-Los datos se guardan localmente en el teléfono. Instalar una nueva versión encima de la anterior los
-conserva, siempre que se mantengan el mismo `android.package`, la misma firma/keystore y no se
-borren los datos de la aplicación. No uses `adb install -r` con un paquete firmado con otra
-keystore.
+Todo se guarda en **SQLite** (`carguy.db`) dentro del teléfono — en la web, en OPFS del navegador.
+El esquema se versiona con `PRAGMA user_version` y las migraciones están en `lib/db/migrations.ts`;
+nunca se edita una versión ya publicada, se agrega la siguiente.
 
-Antes de cambiar el formato de los datos, agrega una migración y conserva la lectura de las
-versiones anteriores — el detalle del almacenamiento y su migración está en
-[docs/imp-17092026/](docs/imp-17092026/). Desinstalar la app o usar "Borrar todos los datos" sí
-elimina la información local. Exporta un respaldo JSON antes de cualquiera de las dos cosas.
+Ninguna pantalla escribe SQL: todo pasa por los repositorios de `lib/db/repos/`. Borrar algo deja
+una marca (`deleted_at`) en vez de eliminar la fila, para que más adelante la sincronización pueda
+propagar el borrado. La única excepción es **Borrar todos los datos**, que sí elimina de verdad.
+
+### Respaldos
+
+*Más → Crear respaldo JSON* exporta un respaldo **v2**: todas las tablas, incluidas las marcas de
+borrado. Funciona en Android (hoja de compartir) y en la web (descarga directa). Las fotos no van
+dentro del archivo, solo sus referencias.
+
+*Más → Restaurar o importar respaldo* acepta dos formatos y elige solo:
+
+- **v2 (Car Guy)** — combina por id y gana el `updated_at` más reciente. Nunca borra: restaurar un
+  respaldo viejo no deshace lo que hiciste después.
+- **v1 (Tu Combustible RD)** — importa tu historial completo. Es idempotente: importar el mismo
+  archivo dos veces no duplica nada. Este formato se seguirá leyendo siempre.
+
+### Al actualizar la app
+
+Instalar una versión nueva encima conserva los datos, siempre que se mantengan el mismo
+`android.package`, la misma firma/keystore y no se borren los datos de la aplicación. No uses
+`adb install -r` con un paquete firmado con otra keystore. Desinstalar la app o usar "Borrar todos
+los datos" sí elimina la información local — exporta un respaldo antes.
 
 ## Unidades
 
