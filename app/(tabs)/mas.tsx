@@ -17,8 +17,9 @@ export default function MasScreen() {
     try {
       const shared = await exportBackup(data);
       if (!shared) Alert.alert('Respaldo', 'Este dispositivo no permite compartir archivos.');
-    } catch {
-      Alert.alert('Respaldo', 'No se pudo crear el archivo de respaldo.');
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      Alert.alert('Respaldo', `No se pudo crear el archivo de respaldo.\n\n${reason}`);
     }
   }
 

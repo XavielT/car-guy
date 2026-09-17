@@ -30,7 +30,9 @@ export async function exportBackup(data: AppData): Promise<boolean> {
   );
 
   if (!(await Sharing.isAvailableAsync())) return false;
-  await Sharing.shareAsync(file.contentUri ?? file.uri, {
+  // expo-sharing only accepts a file:// URL — it builds its own content:// URI through
+  // SharingFileProvider. Passing file.contentUri makes it throw InvalidArgumentException.
+  await Sharing.shareAsync(file.uri, {
     dialogTitle: 'Guardar respaldo de Tu Combustible RD',
     mimeType: 'application/json',
   });
