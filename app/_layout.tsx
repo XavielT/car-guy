@@ -1,28 +1,39 @@
-import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from '@expo-google-fonts/figtree';
-import { IBMPlexMono_400Regular, IBMPlexMono_700Bold } from '@expo-google-fonts/ibm-plex-mono';
-import { Syne_700Bold, Syne_800ExtraBold } from '@expo-google-fonts/syne';
+// Per-weight subpaths, never the package root: importing '@expo-google-fonts/inter'
+// pulls every weight *and* every italic into the bundle — that alone put 8 MB of
+// unused .ttf into dist/.
+import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
+import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
+import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono/500Medium';
+import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono/700Bold';
+import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medium';
+import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { fonts } from '@/constants/theme';
 import { StoreProvider } from '@/lib/store';
+import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // Every family named in constants/theme.ts `fonts` must appear here. A weight
+  // that is referenced but not loaded falls back to the system font on web
+  // without warning.
   const [loaded, error] = useFonts({
-    Figtree_400Regular,
-    Figtree_500Medium,
-    Figtree_600SemiBold,
-    Figtree_700Bold,
-    IBMPlexMono_400Regular,
-    IBMPlexMono_700Bold,
-    Syne_700Bold,
-    Syne_800ExtraBold,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
   });
 
   useEffect(() => {
@@ -36,22 +47,34 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <StoreProvider>
-      <StatusBar style="light" />
+    <ThemeProvider>
+      <StoreProvider>
+        <Shell />
+      </StoreProvider>
+    </ThemeProvider>
+  );
+}
+
+function Shell() {
+  const { theme, scheme } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#F3EFE4' },
-          headerTintColor: '#1C241F',
-          headerStyle: { backgroundColor: '#F3EFE4' },
+          contentStyle: { backgroundColor: theme.bg.base },
+          headerTintColor: theme.text.primary,
+          headerStyle: { backgroundColor: theme.bg.surface },
           headerShadowVisible: false,
-          headerTitleStyle: { fontFamily: 'Syne_700Bold', fontSize: 18 },
+          headerTitleStyle: { fontFamily: fonts.title, fontSize: 18 },
         }}>
         {/* These titles are what the browser tab shows on web: expo-router feeds
             the screen title to react-helmet, and a screen without one renders an
             empty <title> that wins over anything static in +html.tsx. */}
-        <Stack.Screen name="(tabs)" options={{ title: 'Tu Combustible RD' }} />
-        <Stack.Screen name="onboarding" options={{ title: 'Tu Combustible RD' }} />
+        <Stack.Screen name="(tabs)" options={{ title: 'Car Guy' }} />
+        <Stack.Screen name="onboarding" options={{ title: 'Car Guy' }} />
         <Stack.Screen
           name="vehiculo"
           options={{ presentation: 'modal', headerShown: true, title: 'Nuevo vehículo' }}
@@ -60,6 +83,6 @@ export default function RootLayout() {
         <Stack.Screen name="precios" options={{ headerShown: true, title: 'Precios MICM' }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: 'Editar carga' }} />
       </Stack>
-    </StoreProvider>
+    </>
   );
 }

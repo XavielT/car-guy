@@ -15,7 +15,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const DIST = 'dist';
-const TITLE = 'Tu Combustible RD';
+const TITLE = 'Car Guy';
 const EMPTY_HELMET_TITLE = '<title data-rh="true"></title>';
 
 async function htmlFiles(dir) {

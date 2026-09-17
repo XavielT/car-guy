@@ -30,7 +30,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="medium" style={styles.kicker}>
-          TU COMBUSTIBLE RD
+          CAR GUY
         </T>
         <T face="display" style={styles.brand}>
           Tablero
@@ -127,9 +127,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-  vhOn: { backgroundColor: colors.canopy, borderColor: colors.canopy },
+  vhOn: { backgroundColor: colors.led, borderColor: colors.led },
   vhTxt: { color: colors.ink },
-  vhTxtOn: { color: colors.receipt },
+  vhTxtOn: { color: colors.canopy },
   micm: { color: colors.muted, fontSize: 12, marginTop: 10, marginBottom: 16, lineHeight: 18 },
   alertLabel: { color: colors.nozzle, fontSize: 15 },
   alertText: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 5 },

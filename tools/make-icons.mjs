@@ -16,38 +16,49 @@
 import sharp from 'sharp';
 import { writeFile } from 'node:fs/promises';
 
-const CANOPY = '#0B1F1C';
-const CREAM = '#F3EFE4';
+const PANEL = '#0E1116';
+const ACCENT = '#22D3EE';
+const OK = '#34D399';
 
-// The mark, drawn in a 64 unit box: a gauge sweep with the fuel drop it
-// measures nested inside it. Colours are the app's own theme tokens.
-const GRADIENT = `
-    <linearGradient id="gd" x1="32" y1="23.5" x2="32" y2="49.5" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#F7CC5E"/>
-      <stop offset="0.6" stop-color="#F0B429"/>
-      <stop offset="1" stop-color="#D79A1C"/>
-    </linearGradient>`;
+/**
+ * The mark, drawn in a 64 unit box: an instrument-cluster gauge. A 270° sweep
+ * with a gap at the bottom, a needle resting at about 2 o'clock, and a green dot
+ * at its tip — a cluster that reads "everything is fine". No letters.
+ *
+ * Geometry, all from the centre (32, 32) with the arc at radius 20:
+ *   the sweep runs from 135° to 405° measured clockwise from the +x axis with y
+ *   pointing down, i.e. bottom-left → left → top → right → bottom-right.
+ *   The needle points at 330° (2 o'clock) and stops at radius 14, so its dot
+ *   (r 3) ends at 17 and never touches the arc's inner edge at 18.
+ */
+const ARC_START = '17.86 46.14';
+const ARC_END = '46.14 46.14';
+const NEEDLE_TIP = { x: 44.12, y: 25.0 };
 
 /** @param {{mono?: boolean}} [opts] */
 function mark({ mono = false } = {}) {
-  const arc = mono ? '#FFFFFF' : CREAM;
-  const drop = mono ? '#FFFFFF' : 'url(#gd)';
-  // Nudged down 2.5 so the mark sits optically centred in the 64 box: the arc
-  // is wide at the top and the drop hangs below it.
+  const stroke = mono ? '#FFFFFF' : ACCENT;
+  const tip = mono ? '#FFFFFF' : OK;
+  // Nudged down 2.5 so the mark sits optically centred: the sweep's gap is at
+  // the bottom, which makes a geometrically centred gauge read high.
   return `
   <g transform="translate(0,2.5)">
-    <path d="M15.6 44.5A19 19 0 1 1 48.4 44.5" fill="none" stroke="${arc}"
-          stroke-width="4" stroke-linecap="round"${mono ? '' : ' opacity="0.92"'}/>
-    <path d="M32 21c0 0 8.6 9.9 8.6 15.5a8.6 8.6 0 0 1-17.2 0C23.4 30.9 32 21 32 21z" fill="${drop}"/>
-    ${mono ? '' : '<ellipse cx="28.7" cy="35.8" rx="2.1" ry="3.1" fill="#FFFFFF" opacity="0.30"/>'}
+    <path d="M${ARC_START} A20 20 0 1 1 ${ARC_END}" fill="none" stroke="${stroke}"
+          stroke-width="4" stroke-linecap="round"/>
+    <path d="M32 32 L${NEEDLE_TIP.x} ${NEEDLE_TIP.y}" fill="none" stroke="${stroke}"
+          stroke-width="2.8" stroke-linecap="round"/>
+    <circle cx="32" cy="32" r="1.9" fill="${stroke}"/>
+    <circle cx="${NEEDLE_TIP.x}" cy="${NEEDLE_TIP.y}" r="3" fill="${tip}"/>
   </g>`;
 }
 
 /** @param {{bg?: string|null, rx?: number, scale?: number, mono?: boolean}} opts */
-function icon({ bg = CANOPY, rx = 0, scale = 1, mono = false }) {
-  const body = scale === 1 ? mark({ mono }) : `<g transform="translate(32,32) scale(${scale}) translate(-32,-32)">${mark({ mono })}</g>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Tu Combustible RD">
-  <defs>${mono ? '' : GRADIENT}</defs>
+function icon({ bg = PANEL, rx = 0, scale = 1, mono = false }) {
+  const body =
+    scale === 1
+      ? mark({ mono })
+      : `<g transform="translate(32,32) scale(${scale}) translate(-32,-32)">${mark({ mono })}</g>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Car Guy">
   ${bg ? `<rect width="64" height="64"${rx ? ` rx="${rx}"` : ''} fill="${bg}"/>` : ''}
   ${body}
 </svg>
@@ -61,15 +72,16 @@ const sources = {
   'icon.svg': icon({ rx: 14 }),
   // Square: iOS and the apple-touch icon, where the system rounds the corners.
   'icon-fullbleed.svg': icon({ rx: 0 }),
-  // Maskable: Android may crop to a circle, so pull the mark in a little.
+  // Maskable: the 80% safe zone is radius 25.6 from the centre; the mark reaches
+  // 23.84 at full size, so 0.92 leaves room without shrinking it needlessly.
   'icon-maskable.svg': icon({ rx: 0, scale: 0.92 }),
-  // Bare mark on transparency, for the splash, which sits on its own canopy
+  // Bare mark on transparency, for the splash, which sits on its own panel
   // background and is not cropped.
   'mark.svg': icon({ bg: null }),
-  // Adaptive foreground. Android lays this on a 108dp canvas but only ever
-  // shows a 66dp circle of it, so the mark has to come in to 0.78: at full size
-  // the ends of the gauge sweep are the furthest thing from the centre (25.05
-  // units against a safe radius of 19.56) and get sliced off by the mask.
+  // Adaptive foreground. Android lays this on a 108dp canvas but only ever shows
+  // a 66dp circle of it — safe radius 19.56 in this box. The sweep's endpoints
+  // are the furthest thing from the centre at 23.84, so the mark has to come in
+  // to 0.78 or their round caps get sliced off by the mask.
   'adaptive-foreground.svg': icon({ bg: null, scale: 0.78 }),
   // Same crop applies to the themed-icon silhouette.
   'adaptive-monochrome.svg': icon({ bg: null, scale: 0.78, mono: true }),
@@ -99,7 +111,7 @@ await Promise.all([
   render('icon.svg', 196, 'assets/images/favicon.png'),
 
   // Adaptive background layer: flat colour, matching app.json's backgroundColor.
-  sharp({ create: { width: 1024, height: 1024, channels: 4, background: CANOPY } })
+  sharp({ create: { width: 1024, height: 1024, channels: 4, background: PANEL } })
     .png()
     .toFile('assets/images/android-icon-background.png'),
 ]);

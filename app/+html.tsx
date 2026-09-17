@@ -21,19 +21,19 @@ export default function Root({ children }: { children: ReactNode }) {
             document is the one that counts. Titles live on the Stack screens. */}
         <meta
           name="description"
-          content="Controla el consumo y los gastos de tu vehículo: cada carga, tu rendimiento real en km/gal y el costo por kilómetro."
+          content="Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos."
         />
-        <meta name="theme-color" content="#0B1F1C" />
+        <meta name="theme-color" content="#0E1116" />
         <link rel="icon" type="image/png" href="/favicon.png" />
 
         {/* PWA: installable on desktop and, via Add to Home Screen, on iPhone. */}
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-title" content="Tu Combustible RD" />
-        {/* Every screen sits on the cream "receipt" background, so a translucent
-            or black status bar would clash the way it does not in Music Hub. */}
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Car Guy" />
+        {/* Car Guy is dark by default, so the status bar blends into the panel
+            instead of sitting on it as a light strip. */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
 
         {/*
@@ -51,12 +51,13 @@ export default function Root({ children }: { children: ReactNode }) {
   );
 }
 
-// The app renders on the same cream background in either colour scheme
-// (userInterfaceStyle is "light"), so matching it here removes the white — or,
-// in dark mode, black — flash before the bundle paints.
+// Must equal the default scheme's bg.base. The app is dark unless the device
+// asks for light, so painting the shell dark removes the white flash before the
+// bundle mounts; light-preference devices get one frame of dark instead, which
+// is the cheaper of the two.
 const responsiveBackground = `
 body {
-  background-color: #F3EFE4;
+  background-color: #0E1116;
 }`;
 
 // Registered from the shell rather than from a component: it should run on
