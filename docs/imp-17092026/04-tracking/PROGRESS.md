@@ -443,7 +443,7 @@ the beginning, per `docs/NEXT.md`. It is the engine now.
 - [x] **Real backup import — counts match.** Driven through the actual UI: the file holds 1 vehicle
       and 4 fill-ups, the app reported *"1 vehículo, 4 cargas"*, Historial showed 4 rows, and
       **re-importing the same file left it at 4**. Survived a reload.
-- [ ] Android (Expo Go) — **not verified.** See "Observed, deferred".
+- [x] **Android — verified on the real device** (see the addendum below).
 
 ### Three bugs found by verifying rather than assuming
 1. **Writes vanished on reload.** The vehicle was written, read back within the session, and the
@@ -490,7 +490,7 @@ the beginning, per `docs/NEXT.md`. It is the engine now.
 ### Observed, deferred
 | Found in | Issue | Severity | Notes |
 |---|---|---|---|
-| Phase 2 · Android | The whole phase was verified on web only | medium | Nothing here is web-only in a way that would hide an Android failure — if anything the native path is the easier one (real WAL, no OPFS, no worker). But it is unverified, and `adb` plus the phone are available, so a Phase 3 pass should run it |
+| ~~Phase 2 · Android~~ | ~~Verified on web only~~ | — | **Closed 2026-09-17** — see the Android addendum below |
 | Phase 2 · web | Saving a fill-up still fires `window.alert` | medium | Carried over from Phase 1. It froze the browser automation repeatedly during this phase; PROMPT-06 owns the fix |
 | Phase 2 · `lib/store.tsx` | The legacy `AppData` shape is still rebuilt in full on every change | low | Fine at this size and it goes away with the screens in PROMPT-04/06. A per-vehicle query would be the fix if it ever bites |
 | Phase 2 · seeding | `seedCatalog()` runs on every launch (~73 upserts) | low | Idempotent and fast, but it could check a version marker once the catalog stops changing |
@@ -508,3 +508,30 @@ the beginning, per `docs/NEXT.md`. It is the engine now.
 - `currentOdometer(vehicleId)` and `history.feed(vehicleId, filters)` are ready for PROMPT-03/04.
 - `lib/domain/dates.ts` has `addMonths` (day-clamping), `addDays`, `daysBetween` and `nextJanuary31`,
   which PROMPT-05's reminder engine needs.
+
+### Phase 2 addendum — Android verified on the device (2026-09-17)
+
+Expo Go is not installed on the phone, so rather than add it the **real Car Guy APK** was built and
+installed: `com.xaviel.carguy`, `versionName 2.0.0`, `versionCode 1`, arm64-v8a, 45 MB. It sits
+beside Tu Combustible RD instead of replacing it — both packages are installed at once, which is
+decision D1 working exactly as intended.
+
+One thing the prebuild caught: `userInterfaceStyle: "automatic"` does nothing on Android without
+**`expo-system-ui`**, which Phase 1 never installed. Added (`~57.0.4`) and the warning is gone.
+
+What was exercised, all on the device over `adb`:
+
+| | |
+|---|---|
+| Install | Coexists with `com.xavieltucombustiblerd.app`; dark identity and the new mark |
+| Legacy import | Picked the real backup off the SD card through the system document picker → *"Datos importados · Listo: 1 vehículo, 4 cargas"* |
+| Imported data | Home shows Citroen DS3 2015, RD$ 9,000.00, 3 cargas, **37.446 km/gal** — identical to web and to the old app |
+| Odometer readings | The fuel form prefilled "Última carga: 51 676 km", so the derived `odometer_reading` rows came across |
+| **Persistence** | `am force-stop` then relaunch → everything still there. Native WAL path confirmed |
+| Fuel flow | Two-of-three resolved to `11.272 gal · RD$ 310.50/gal · RD$ 3,499.96`; saved; review said **19.872 km/gal over 224 km**, the same number the web run produced |
+| Historial | All five entries, imported ones keeping their dates, odometers, stations and partial flags |
+
+Screenshots: `docs/qa/phase-2-android-{import,inicio,historial}.png`.
+
+No SQLite or JS errors in `logcat` throughout. The APK is **not published** — it is a verification
+build, and Phase 10 owns releasing Car Guy.
