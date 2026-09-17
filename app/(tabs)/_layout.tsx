@@ -3,7 +3,7 @@ import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '@/constants/theme';
+import { colors, fonts } from '@/constants/theme';
 import { useStore } from '@/lib/store';
 
 export default function TabLayout() {
@@ -27,16 +27,16 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.led,
-        tabBarInactiveTintColor: 'rgba(243,239,228,0.45)',
+        tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          backgroundColor: colors.canopy,
-          borderTopColor: 'rgba(240,180,41,0.18)',
+          backgroundColor: colors.receipt,
+          borderTopColor: colors.line,
           height: 64 + insets.bottom,
           paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
         },
         tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: { fontFamily: 'Figtree_600SemiBold', fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: fonts.semibold, fontSize: 11 },
       }}>
       <Tabs.Screen
         name="index"

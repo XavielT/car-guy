@@ -1,4 +1,4 @@
-import { colors } from '@/constants/theme';
+import { colors, fonts, radius, space } from '@/constants/theme';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { T } from './T';
@@ -28,18 +28,18 @@ export function Field({
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: 14 },
+  wrap: { marginBottom: space.md + 2 },
   label: { color: colors.ink, fontSize: 13, marginBottom: 6 },
   input: {
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: radius.input,
+    paddingHorizontal: space.md + 2,
+    paddingVertical: space.md,
     fontSize: 16,
     color: colors.ink,
-    fontFamily: 'Figtree_400Regular',
+    fontFamily: fonts.body,
   },
   hint: { color: colors.muted, fontSize: 12, marginTop: 6 },
 });

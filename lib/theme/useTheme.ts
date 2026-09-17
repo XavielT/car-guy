@@ -63,6 +63,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 /**
+ * Forces a scheme for one subtree, leaving the rest of the app alone. Exists for
+ * the token preview at app/dev/tokens.tsx, which has to show dark and light side
+ * by side; nothing in the product should need it.
+ */
+export function ThemeScope({ scheme, children }: { scheme: Scheme; children: ReactNode }) {
+  const outer = useTheme();
+  const value = useMemo<ThemeValue>(
+    () => ({ ...outer, theme: palette[scheme], scheme }),
+    [outer, scheme],
+  );
+  return createElement(ThemeContext.Provider, { value }, children);
+}
+
+/**
  * The active palette. Safe to call outside the provider — it falls back to dark,
  * which is what the app looks like anyway.
  */
