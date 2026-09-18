@@ -37,6 +37,13 @@ export default function MasScreen() {
   const { session } = useSession();
 
   const version = Constants.expoConfig?.version ?? '—';
+  // Two sources because neither covers both platforms. `app.config.js` puts the
+  // SHA in `extra`, which is what a native/EAS build reads — but `expo export`
+  // inlines only `extra.router` into the web manifest and drops everything else,
+  // so web reads the EXPO_PUBLIC_ var that `npm run build` sets instead.
+  const gitSha =
+    (Constants.expoConfig?.extra as { gitSha?: string } | undefined)?.gitSha ??
+    process.env.EXPO_PUBLIC_GIT_SHA;
 
   async function handleExport() {
     try {
@@ -218,6 +225,11 @@ export default function MasScreen() {
           <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
             {es.more.version(version)}
           </T>
+          {gitSha ? (
+            <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
+              {es.more.build(gitSha)}
+            </T>
+          ) : null}
           <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
             {es.more.aboutBody}
           </T>

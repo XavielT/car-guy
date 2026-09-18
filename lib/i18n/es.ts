@@ -539,6 +539,21 @@ export const es = {
       'Cuando el manual diga otra cosa, manda el manual.',
   },
 
+  /**
+   * The screens that only appear when the app could not start. Short, and they
+   * say where the data is first — that is the only question the user has.
+   */
+  boot: {
+    brand: 'CAR GUY',
+    lockedTitle: 'Tus datos están ocupados',
+    lockedBody:
+      'Otra pestaña o la app anterior todavía tiene la base de datos abierta. Cierra las demás pestañas de Car Guy y vuelve a intentar. Nada se perdió.',
+    crashTitle: 'Algo se rompió al abrir',
+    crashBody:
+      'Tus datos siguen guardados en este dispositivo. Intenta de nuevo; si sigue pasando, cierra la app y ábrela otra vez.',
+    retry: 'Intentar de nuevo',
+  },
+
   more: {
     title: 'Más',
     subtitle: 'Tu garaje, tus papeles y los datos que viven en este teléfono.',
@@ -606,6 +621,9 @@ export const es = {
 
     about: 'Acerca de',
     version: (version: string) => `Versión ${version}`,
+    // The build, for telling two installs of the same version apart when
+    // someone reports something that only happens on theirs.
+    build: (sha: string) => `Build ${sha}`,
     aboutBody: 'Car Guy · Tu carro, al día. Hecho en República Dominicana.',
   },
 

@@ -1,3 +1,7 @@
+> **Historia.** Plan original de Tu Combustible RD (2026-08). Se conserva porque las reglas de
+> dominio y los precios MICM semilla siguen vigentes en Car Guy. Para Car Guy, ver
+> [docs/imp-17092026/](imp-17092026/) y el [CHANGELOG](../CHANGELOG.md).
+
 # Tu Combustible RD — Plan & rules
 
 ## Research summary

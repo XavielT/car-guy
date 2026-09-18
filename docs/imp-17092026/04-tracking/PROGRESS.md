@@ -18,8 +18,8 @@ The "Notes for the next phase" sections carry context between sessions.
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
 | 8 | x-core + account | ✅ | `imp-17092026/phase-8-cuenta` | carguy schema + RLS + Storage + LWW live on x-core; 7/7 verification; account works end to end |
-| 9 | Sync | 🟡 | `imp-17092026/phase-9-sync` | Protocol core, engine and cloud contract verified 9/9. UI and multi-device run outstanding |
-| 10 | Release | ⬜ | | |
+| 9 | Sync | 🟡 | `imp-17092026/phase-9-sync` | Protocol, engine, triggers, UI and media all built and on; contract verified 13/13. The two-device run (a–e) needs a sign-in only Xaviel can do |
+| 10 | Release | 🟡 | `imp-17092026/phase-10-release` | Repo renamed to `car-guy`, web live at car-guy.vercel.app, PWA reload bug found and fixed, CHANGELOG and docs done. Android build, phone walk and tag need Xaviel |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -1500,3 +1500,106 @@ everything after it can be driven and observed.
   that parses `sql/002` and asserts exact equality, and that test has been mutation-checked.
 - `lib/sync/mediaBytes.ts` has a native branch (`expo-file-system`) that no web run can exercise.
   It is the least-tested code in the phase.
+
+## Phase 10 — Release   (branch `imp-17092026/phase-10-release`)
+
+**Status:** partial — the repo is renamed, the web app is live, and the release prep is done; the
+Android build, the phone walk and the sync acceptance run need Xaviel at the keyboard
+**Commits:** `7a41d37` boot fix + release prep
+
+### Shipped
+
+| | |
+|---|---|
+| Repo | <https://github.com/XavielT/car-guy> — renamed from `tu-combustible-rd`, remote updated, description and homepage set. GitHub redirects the old name; v1.1.0 and v1.1.1 untouched |
+| Web | <https://car-guy.vercel.app> — live, manifest `name: Car Guy`, all 14 routes 200, SW served |
+| Vercel | New project `car-guy` (`prj_bYWqNI2VJLSkeVYAGxeYjx2wSGLi`), git-connected to the renamed repo. `tu-combustible-rd` left alone |
+| Version | `2.0.0`, `versionCode 1`, `eas.json` already `appVersionSource: remote` |
+| CHANGELOG | `CHANGELOG.md`, 2.0.0 by area, with v1.1.x kept below |
+| Docs | `docs/NEXT.md` rewritten as the Car Guy backlog; `docs/PLAN.md` gets a history header |
+| gitignore | `releases/`, `*.keystore`, `*.jks` |
+
+### The one blocker found, and fixed
+
+**The live PWA could not be reloaded.** The first reload of car-guy.vercel.app produced
+expo-router's default boundary: black-on-white English "Something went wrong" over a raw stack
+trace. Cause is an OPFS race — SQLite holds the database through a `SyncAccessHandle`, only one may
+exist per file, and on reload the new document's worker asks for it while the old document's worker
+still holds it. Intermittent by nature: a fast local reload wins, a slower one over HTTPS behind a
+service worker loses.
+
+**The obvious fix cannot work, and establishing that was the work.** Catching the error and
+remounting `SQLiteProvider` looks correct. `expo-sqlite`'s `getDatabaseAsync` keeps the open promise
+in a module-level `databaseInstance` and, on a cache miss, builds the next attempt on top of the
+previous one:
+
+```js
+promise = databaseInstance.promise.then((db) => db.closeAsync()).then(open)
+```
+
+No `.catch`. Once the first open rejects, `.then` forwards the rejection, so every later attempt in
+that document inherits the original failure however many times the tree is remounted. Measured
+rather than argued: pressing retry after the other tab had released the handle still failed, while a
+fresh page load succeeded immediately.
+
+So on web the recovery is a document reload — the only way to a fresh module scope. The attempt
+count lives in `sessionStorage`, which is per-tab and survives a reload, exactly the scope the
+problem has, so a handle held by a *second* tab cannot become a reload loop. Three tries at
+300/700/1500 ms behind the splash background, then `components/BootError.tsx` says so in Spanish.
+
+Verified in the browser, all three paths:
+
+- reload race → recovers invisibly
+- second tab holding the handle → exactly four errors, then the message, **no loop**
+- "Intentar de nuevo" once the other tab is gone → app back, data intact
+
+Two Car Guy tabs still cannot share the database. That is OPFS, not something this repo can fix;
+what changed is that the app says so, and says nothing was lost.
+
+### Regression walk — web (production build, served on two ports)
+
+| Area | Result |
+|---|---|
+| Boot, OPFS, onboarding | ✅ vehicle created from empty |
+| Fill-up | ✅ two-of-three arithmetic (9.5 gal × RD$ 290.10 = RD$ 2,755.95), station, review sheet |
+| Service record | ✅ parts + labour → total RD$ 3,000, saved via the themed in-app modal, no `window.alert` |
+| Chequeo runner | ✅ 4/4, one falla with a note → inspection saved → **task "Revisar testigos del tablero" created**, odometer 52,000 |
+| Unified Historial | ✅ fill-up, service and `Chequeo · con fallas` in one timeline, RD$ 5,755.95 for the month |
+| Tareas | ✅ task listed, labelled "Viene de un chequeo" |
+| Cifras | ✅ RD$/km 17.77, 324 km, stacked bars and donut with real values; honest empty states for rendimiento (needs two full tanks) |
+| Routes | ✅ all 14 return 200 on Vercel |
+| Light / dark | ✅ Claro applies across Inicio, Historial, Más; accent darkens for contrast on white |
+| Acerca de | ✅ `Versión 2.0.0` / `Build 7a41d37` |
+| Signed-out sync UI | ✅ none anywhere — Cuenta, Más, no pill, no promise |
+| PDF report | ⚠️ screen renders; **print not triggered on purpose** — `window.print()` froze the renderer earlier in this package. `reportHtml` is a tested pure function |
+| CSV export | ⚠️ screen renders; download not triggered. Bytes were verified in Phase 7 |
+
+### Deviations
+
+- **`app.config.js` instead of the SHA in `app.json`.** PROMPT-10 said to convert "only if it stays
+  simple". It did not stay simple: `expo config` resolves `extra.gitSha` correctly, but
+  `expo export` inlines only `extra.router` into the web manifest and drops everything else, so the
+  Build line was blank on web. The SHA now travels twice — `extra` for native/EAS, and
+  `EXPO_PUBLIC_GIT_SHA` set by `npm run build` for web, which Metro does inline. Both read in Más.
+- **Production deploy was not the intent.** `vercel --prod` is blocked in this environment; a
+  preview deploy was requested instead, and Vercel assigned it to Production because the project was
+  new and had none. The site is therefore live. Reported rather than hidden.
+- **The regression walk is web only.** No device, no emulator, and `adb` sees nothing — carried from
+  Phase 5.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 10 · Android | **Nothing built for 2.0.0.** `eas` is not logged in and `app.json` has no `extra.eas.projectId` | high | `npx eas-cli login && npx eas-cli init` then the two builds. Needs Xaviel |
+| Phase 10 · device | The app has never run on a phone — notifications outside Expo Go, camera, PDF share, native date picker, haptics, and `mediaBytes`'s `expo-file-system` branch | high | Carried since Phase 5. The single largest untested surface in the repo |
+| Phase 10 · release | No `v2.0.0` GitHub release and no tag | high | Waiting on the APK, which the release attaches |
+| Phase 10 · old Vercel project | `tu-combustible-rd` is still git-connected to this repo, so it has been auto-deploying Car Guy to the old URL all cycle | low | Pre-existing, not caused by the rename. Delete the project when ready |
+| Phase 10 · local folder | The working directory is still `~/dev2/tu-gasolina-rd` | low | Cannot be renamed from inside a running session — it is the session's cwd |
+| Phase 10 · deps | 22 npm audit findings, 9 packages behind their SDK 57 targets | low | Carried from Phase 0. Still worth one pass |
+
+### Notes for whoever picks this up
+- `docs/NEXT.md` is now the single backlog. It has the EAS commands, the proven local gradle recipe,
+  and the two-port staging for the sync acceptance run.
+- The keystore is the one irreversible thing in this phase. EAS holds it remotely if you build
+  there; a local build generates a new one for `com.xaviel.carguy` and losing it means no update is
+  ever accepted as the same app again.
