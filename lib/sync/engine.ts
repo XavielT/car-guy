@@ -11,8 +11,16 @@ import {
   toCloudShape,
 } from '../db/syncOps';
 import { es } from '../i18n/es';
+import { downloadMediaBytes, uploadMediaBytes } from './mediaBytes';
 import { batch, decide, hasMore, nextCursor, normaliseTimestamp } from './merge';
-import { cursorKey, PULL_PAGE, PUSH_BATCH, SYNCED_SETTING_KEYS, SYNC_TABLES } from './tables';
+import {
+  BOOLEAN_COLUMNS,
+  cursorKey,
+  PULL_PAGE,
+  PUSH_BATCH,
+  SYNCED_SETTING_KEYS,
+  SYNC_TABLES,
+} from './tables';
 
 /**
  * Push, then pull, one table at a time in dependency order.
@@ -46,16 +54,6 @@ export type SyncResult = {
 };
 
 const LAST_SYNC_KEY = 'last_sync_at';
-
-/** Boolean columns, per table, that SQLite stores as 0/1 and Postgres as bool. */
-const BOOLEAN_COLUMNS: Record<string, string[]> = {
-  vehicle: ['is_archived'],
-  fuel_log: ['is_full_tank', 'missed_previous'],
-  service_type: ['is_seeded'],
-  reminder: ['is_recurring', 'fixed_interval', 'is_enabled'],
-  inspection_template: ['is_seeded', 'is_enabled'],
-  inspection_item: ['requires_cold_engine'],
-};
 
 /**
  * One sync at a time.
@@ -111,6 +109,10 @@ async function run(reason: SyncReason): Promise<SyncResult> {
   let pulled = 0;
 
   try {
+    // Before the media rows, so the `remote_path` they carry already points at
+    // bytes the other device can actually fetch.
+    await uploadMediaBytes(supabase, userId);
+
     for (const table of SYNC_TABLES) {
       if (table.name === 'setting') {
         pushed += await pushSettings(supabase, userId);
@@ -123,6 +125,10 @@ async function run(reason: SyncReason): Promise<SyncResult> {
       if (table.name === 'setting') continue;
       pulled += await pullTable(supabase, table.name);
     }
+
+    // After the pull, because the rows whose bytes are missing are the rows the
+    // pull just wrote.
+    await downloadMediaBytes(supabase);
 
     const finishedAt = now();
     await settingsRepo.set(LAST_SYNC_KEY, finishedAt);

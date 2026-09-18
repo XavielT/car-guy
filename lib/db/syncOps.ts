@@ -179,3 +179,70 @@ export async function syncableSettings(keys: string[]): Promise<{ key: string; v
 
 /** Timestamp helper re-exported so the engine has one source for "now". */
 export { now, camel };
+
+/**
+ * Media rows whose bytes have never been uploaded.
+ *
+ * `remote_path` is the record of that: null means Storage has nothing for this
+ * photo, whatever the row's sync state says. Tombstones are skipped — uploading
+ * the bytes of a deleted photo is work nobody asked for.
+ */
+export async function mediaNeedingUpload(): Promise<LocalRow[]> {
+  const db = await getDb();
+  return db.getAllAsync<LocalRow>(
+    `SELECT * FROM media WHERE remote_path IS NULL AND deleted_at IS NULL`,
+  );
+}
+
+/**
+ * Media rows that came down from another device: the metadata arrived through
+ * PostgREST, the bytes did not. On web that shows up as a null `blob`; on
+ * native the file is simply absent, which only the filesystem can answer, so
+ * the caller filters again after this.
+ */
+export async function mediaNeedingDownload(webBlobs: boolean): Promise<LocalRow[]> {
+  const db = await getDb();
+  return db.getAllAsync<LocalRow>(
+    `SELECT * FROM media
+      WHERE remote_path IS NOT NULL AND deleted_at IS NULL
+        ${webBlobs ? 'AND blob IS NULL' : ''}`,
+  );
+}
+
+/**
+ * Records where the bytes landed in Storage.
+ *
+ * Deliberately leaves `synced_at` alone rather than clearing it: the row is
+ * *about* to be pushed in the same run, and `updated_at` has not moved, so the
+ * dirty test in `dirtyRows` already picks it up when it should.
+ */
+export async function setMediaRemotePath(id: string, remotePath: string): Promise<void> {
+  await enqueue(async (handle) => {
+    await handle.runAsync(`UPDATE media SET remote_path = ?, synced_at = NULL WHERE id = ?`, [
+      remotePath,
+      id,
+    ] as never);
+  });
+}
+
+/**
+ * Stores downloaded bytes without dirtying the row.
+ *
+ * `blob` and `rel_path` are local-only columns (see SYNC_TABLES): filling them
+ * in changes nothing the cloud can see, so touching `updated_at` here would
+ * push a row whose cloud shape is byte-for-byte identical, and every other
+ * device would pull it back for nothing.
+ */
+export async function saveMediaBytes(
+  id: string,
+  bytes: Uint8Array | null,
+  relPath: string | null,
+): Promise<void> {
+  await enqueue(async (handle) => {
+    await handle.runAsync(`UPDATE media SET blob = ?, rel_path = ? WHERE id = ?`, [
+      bytes,
+      relPath,
+      id,
+    ] as never);
+  });
+}

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { MIGRATIONS } from '@/lib/db/migrations';
-import { SYNC_TABLES } from '@/lib/sync/tables';
+import { BOOLEAN_COLUMNS, SYNC_TABLES } from '@/lib/sync/tables';
 
 /**
  * The local schema and the cloud schema have to agree, column for column, or
@@ -125,6 +125,50 @@ describe('the cloud adds exactly what the spec says it adds', () => {
       expect(cloudColumns.has('blob')).toBe(false);
     });
   }
+});
+
+describe('the boolean map matches the cloud schema exactly', () => {
+  /**
+   * The one hand-written table in the sync layer, and therefore the one most
+   * likely to rot. SQLite has no boolean; PostgREST sends real true/false. A
+   * column missing from the map syncs as the *string* "true" into an INTEGER
+   * column, where `is_full_tank = 1` then matches nothing — silent, total, and
+   * invisible until someone notices their fuel history is empty.
+   */
+  const sql = readFileSync(SQL_PATH, 'utf8');
+
+  /** Every `<name> boolean` column, grouped by the table it appears in. */
+  function booleansFromSql(): Record<string, string[]> {
+    const out: Record<string, string[]> = {};
+    let table: string | null = null;
+    for (const line of sql.split('\n')) {
+      const open = line.match(/create table if not exists carguy\.(\w+)/i);
+      if (open) {
+        table = open[1];
+        continue;
+      }
+      if (/^\);/.test(line.trim())) table = null;
+      const column = line.trim().match(/^(\w+)\s+boolean\b/i);
+      if (table && column) (out[table] ??= []).push(column[1]);
+    }
+    return out;
+  }
+
+  const fromSql = booleansFromSql();
+
+  it('found the boolean columns — an empty parse would pass vacuously', () => {
+    expect(Object.keys(fromSql).length).toBeGreaterThan(3);
+  });
+
+  it('declares every boolean column the cloud has, and no others', () => {
+    const sortedMap = Object.fromEntries(
+      Object.entries(BOOLEAN_COLUMNS).map(([t, c]) => [t, [...c].sort()]),
+    );
+    const sortedSql = Object.fromEntries(
+      Object.entries(fromSql).map(([t, c]) => [t, [...c].sort()]),
+    );
+    expect(sortedMap).toEqual(sortedSql);
+  });
 });
 
 describe("a deleted user's rows go with them", () => {

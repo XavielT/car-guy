@@ -82,6 +82,28 @@ export const SYNC_TABLE_NAMES = SYNC_TABLES.map((table) => table.name);
  */
 export const SYNCED_SETTING_KEYS = ['reference_prices', 'price_week_label', 'theme'];
 
+/**
+ * Columns that are `boolean` in the cloud and `INTEGER` locally.
+ *
+ * SQLite has no boolean type. PostgREST sends real `true`/`false`, and storing
+ * those verbatim would put the string "true" into a numeric column, where
+ * `is_full_tank = 1` then matches nothing — a silent, total failure of the one
+ * query the fuel screen depends on.
+ *
+ * Hand-written, because a type cannot be read at runtime. That makes it the
+ * most likely thing to rot, so `__tests__/sync/schema-parity.test.ts` parses
+ * every `boolean` column out of sql/002 and fails if this map disagrees by even
+ * one entry.
+ */
+export const BOOLEAN_COLUMNS: Record<string, string[]> = {
+  vehicle: ['is_archived'],
+  fuel_log: ['is_full_tank', 'missed_previous'],
+  service_type: ['is_seeded'],
+  reminder: ['is_recurring', 'fixed_interval', 'is_enabled'],
+  inspection_template: ['is_seeded', 'is_enabled'],
+  inspection_item: ['requires_cold_engine'],
+};
+
 /** Push batch size, per 02-supabase-carguy.md §5. */
 export const PUSH_BATCH = 200;
 

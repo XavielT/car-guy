@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import {
   GhostButton,
@@ -18,6 +19,7 @@ import { Alert } from '@/lib/alert';
 import { useSession } from '@/lib/cloud/auth';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { FUEL_CATALOG } from '@/lib/fuel';
+import { FEATURE_SYNC } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
@@ -160,7 +162,15 @@ export default function MasScreen() {
           label={session ? es.account.signedInAs : es.account.signIn}
           caption={session?.user.email ?? es.more.accountBody}
           onPress={() => router.push('/cuenta')}
-          trailing={session ? <StatusPill status="ok" label={es.more.active} /> : undefined}
+          trailing={
+            session ? (
+              FEATURE_SYNC ? (
+                <SyncPill />
+              ) : (
+                <StatusPill status="ok" label={es.more.active} />
+              )
+            ) : undefined
+          }
         />
 
         <SectionHeader title={es.more.data} caption={es.more.dataCaption} />

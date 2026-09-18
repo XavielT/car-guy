@@ -21,6 +21,13 @@ where email like 'carguy-test-%@example.com'
 
 delete from carguy.vehicle where id like 'veh_test_%' or id like 'sync_probe_%';
 
+-- The probe photos from verify-sync check 8 are NOT deleted here. Supabase
+-- installs `storage.protect_delete()` on storage.objects, which rejects any
+-- direct delete with 42501 — the bytes would be orphaned in the bucket even if
+-- the row went. They go through the Storage API instead:
+--   · verify-sync removes its own object at the end of each run
+--   · tools/cleanup-probe-media.mjs sweeps anything left behind
+
 -- Cascades to public.profiles and carguy.profiles, both of which reference
 -- auth.users(id) on delete cascade.
 delete from auth.users

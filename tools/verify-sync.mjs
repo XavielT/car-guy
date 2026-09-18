@@ -36,6 +36,22 @@ const email = `carguy-sync-${stamp}@example.com`;
 let token = null;
 let userId = null;
 
+/** Storage speaks bytes, not JSON, so it gets its own caller. */
+async function storage(path, { method = 'GET', body, contentType } = {}) {
+  const response = await fetch(`${URL_BASE}/storage/v1${path}`, {
+    method,
+    headers: {
+      apikey: ANON,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(contentType ? { 'Content-Type': contentType } : {}),
+      ...(method === 'POST' ? { 'x-upsert': 'true' } : {}),
+    },
+    ...(body ? { body } : {}),
+  });
+  const buffer = await response.arrayBuffer();
+  return { status: response.status, bytes: new Uint8Array(buffer) };
+}
+
 async function call(path, { method = 'GET', body, headers = {} } = {}) {
   const write = method !== 'GET';
   const response = await fetch(`${URL_BASE}${path}`, {
@@ -247,6 +263,50 @@ async function main() {
     wrote(setting.status),
     `status ${setting.status}${setting.status !== 201 ? ` · ${JSON.stringify(setting.body)}` : ''}`,
   );
+
+  // 8 — the media bytes path: `<user_id>/<media_id>.jpg` in a private bucket.
+  //     `lib/sync/mediaBytes.ts` builds exactly this key, and sql/004's four
+  //     policies allow exactly this shape and nothing else.
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x01, 0xff, 0xd9]);
+  const objectPath = `${userId}/sync_probe_${stamp}.jpg`;
+  const upload = await storage(`/object/carguy-media/${objectPath}`, {
+    method: 'POST',
+    body: jpeg,
+    contentType: 'image/jpeg',
+  });
+  check(
+    '8. media bytes upload to <user_id>/<id>.jpg',
+    wrote(upload.status),
+    `status ${upload.status}`,
+  );
+
+  // 9 — and come back byte-for-byte, which is what the other device downloads.
+  const download = await storage(`/object/carguy-media/${objectPath}`);
+  const sameBytes =
+    download.bytes.length === jpeg.length && download.bytes.every((b, i) => b === jpeg[i]);
+  check(
+    '9. and download unchanged',
+    download.status === 200 && sameBytes,
+    `${download.bytes.length} byte(s), status ${download.status}`,
+  );
+
+  // 10 — THE ONE THAT MATTERS for Storage: another user's folder is refused.
+  //      A photo of a marbete carries a plate number, so this is the whole
+  //      reason the bucket is private and keyed by the first path segment.
+  const foreign = await storage(
+    `/object/carguy-media/00000000-0000-0000-0000-000000000000/stolen.jpg`,
+    { method: 'POST', body: jpeg, contentType: 'image/jpeg' },
+  );
+  check(
+    "10. writing into another user's folder is refused",
+    foreign.status === 403 || foreign.status === 400,
+    `status ${foreign.status} — ${wrote(foreign.status) ? 'ACCEPTED, sql/004 is not in force' : 'refused'}`,
+  );
+
+  // Its own litter, through the Storage API: `storage.protect_delete()` rejects
+  // deleting the row directly, so SQL cleanup cannot do this one.
+  const removed = await storage(`/object/carguy-media/${objectPath}`, { method: 'DELETE' });
+  check('11. and the probe object deletes cleanly', removed.status === 200, `status ${removed.status}`);
 
   const failed = results.filter((r) => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} passed.`);
