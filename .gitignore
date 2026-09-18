@@ -64,3 +64,10 @@ Claude outputs/
 # Raw output of sql/000_inspect.sql — contains x-core's function bodies and
 # schema details. Kept out of the repo; sql/001 carries only what it needs.
 docs/imp-17092026/04-tracking/x-core-inspect.txt
+
+# Release artefacts and signing material. The keystore especially: losing it
+# means no Android update is ever accepted as the same app again, and putting it
+# in a public repo is worse than losing it.
+releases/
+*.keystore
+*.jks

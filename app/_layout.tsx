@@ -17,6 +17,7 @@ import { Suspense, useEffect, useSyncExternalStore } from 'react';
 import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 
 import { AlertHost } from '@/components/AlertHost';
+import { clearBootAttempts, DatabaseBoundary } from '@/components/BootError';
 import { FirstSyncBanner } from '@/components/FirstSyncBanner';
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
@@ -27,7 +28,11 @@ import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
-export { ErrorBoundary } from 'expo-router';
+/**
+ * Car Guy's own boot-failure screen, in Spanish, and the automatic retry for the
+ * OPFS handle race on reload. See components/BootError.tsx.
+ */
+export { BootError as ErrorBoundary } from '@/components/BootError';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -82,17 +87,19 @@ export default function RootLayout() {
       {/* The database opens and migrates before anything renders. useSuspense
           turns that wait into one fallback instead of every screen having to
           cope with a half-open database. */}
-      <Suspense fallback={<Booting />}>
-        <SQLiteProvider
-          databaseName={DATABASE_NAME}
-          onInit={migrate}
-          options={{ enableChangeListener: true }}
-          useSuspense>
-          <StoreProvider>
-            <Shell />
-          </StoreProvider>
-        </SQLiteProvider>
-      </Suspense>
+      <DatabaseBoundary>
+        <Suspense fallback={<Booting />}>
+          <SQLiteProvider
+            databaseName={DATABASE_NAME}
+            onInit={migrate}
+            options={{ enableChangeListener: true }}
+            useSuspense>
+            <StoreProvider>
+              <Shell />
+            </StoreProvider>
+          </SQLiteProvider>
+        </Suspense>
+      </DatabaseBoundary>
     </ThemeProvider>
   );
 }
@@ -145,6 +152,13 @@ function Shell() {
   const { theme, scheme } = useTheme();
   useNotifications();
   useSyncTriggers();
+
+  // The shell only renders once the database opened, so reaching here is the
+  // proof that the boot succeeded — and the only place that can honestly give
+  // this tab its reload budget back.
+  useEffect(() => {
+    clearBootAttempts();
+  }, []);
 
   return (
     <>

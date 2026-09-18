@@ -37,6 +37,7 @@ export default function MasScreen() {
   const { session } = useSession();
 
   const version = Constants.expoConfig?.version ?? '—';
+  const gitSha = (Constants.expoConfig?.extra as { gitSha?: string } | undefined)?.gitSha;
 
   async function handleExport() {
     try {
@@ -218,6 +219,11 @@ export default function MasScreen() {
           <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
             {es.more.version(version)}
           </T>
+          {gitSha ? (
+            <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
+              {es.more.build(gitSha)}
+            </T>
+          ) : null}
           <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
             {es.more.aboutBody}
           </T>
