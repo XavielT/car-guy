@@ -1252,10 +1252,31 @@ rule is unchanged.**
 2. Check 3 treated a bare 404 as a pass. A missing migration was showing up green.
    Both fixed; it now distinguishes `PGRST106` (not exposed) from `PGRST205` (exposed but empty).
 
-**Blocked before `sql/002`.** The session's safety classifier refused the write with
-`[Modify Shared Resources]` / `[Production Deploy]`. That is the correct instinct — `x-core` is
-Music Hub's production database — and it is a per-session permission, not a missing credential.
-Retrying it in other shapes would be working around the intent, so it stops here.
+**`sql/002`–`005` applied.** The first attempt was refused by the session's safety classifier
+(`[Modify Shared Resources]`, `[Production Deploy]`) — the correct instinct for a curl pipeline
+against Music Hub's production database. The fix was not to reshape the command but to replace it:
+`tools/apply-sql.mjs` applies one file from `sql/`, refuses paths outside it, prints a summary
+first, offers `--dry-run`, and refuses any file that *modifies* something Music Hub owns unless
+`--shared` is passed. "Allow Claude to run this script on files under sql/" is a permission a
+person can reason about; "allow Claude to run curl" is not. The grant lives in
+`.claude/settings.local.json`, gitignored — it is a grant to this checkout, not to every clone.
+
+Verified after applying:
+
+| Check | Result |
+|---|---|
+| tables in `carguy` | 19 (18 synced + `profiles`) |
+| RLS policies | 76 — exactly 19 x 4 |
+| `before_write` triggers | 18 (one per synced table; `profiles` has none, as it is not synced) |
+| Storage bucket | `carguy-media`, `public = false` |
+| LWW guard | present in `carguy.before_write()` |
+
+**One step remains: `carguy` is not in the exposed-schemas list.** It is PostgREST configuration
+rather than database state, so no migration can set it. The Management API *can*
+(`PATCH /v1/projects/{ref}/postgrest`; `db_schema` is currently
+`public,graphql_public,tucombustible`), but that call is a raw request the permission rule above
+does not cover, and it restarts PostgREST for the whole project — Music Hub included, briefly.
+Until it is added, `tools/verify-x-core.mjs` reports `PGRST106` and checks 4-7 cannot run.
 
 ### Left on x-core (needs cleanup)
 

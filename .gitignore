@@ -37,6 +37,11 @@ yarn-error.*
 .env.supabase
 .supabase-token
 
+# Personal permission grants for this machine — notably permission to apply
+# migrations to x-core, which is Music Hub's production database. That is a
+# grant to this checkout, not something that should travel to a clone.
+.claude/settings.local.json
+
 # typescript
 *.tsbuildinfo
 
