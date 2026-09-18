@@ -1,9 +1,23 @@
-import { T } from '@/components/T';
-import { colors } from '@/constants/theme';
-import { FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
-import { money } from '@/lib/format';
-import type { ReferencePrices } from '@/lib/types';
 import { StyleSheet, View } from 'react-native';
+
+import { T } from '@/components/T';
+import { palette, radius, space } from '@/constants/theme';
+import { money } from '@/lib/format';
+import { FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
+import type { ReferencePrices } from '@/lib/types';
+
+/**
+ * The MICM reference board. Dark in both schemes, on purpose: this is a *panel*
+ * — the thing bolted to the canopy at the bomba — not a card in the page's
+ * surface. The identity spec allows exactly this exception, so it reads from
+ * `palette.dark` directly rather than from useTheme(), and every colour inside
+ * it is checked against that near-black instead of against the active scheme.
+ *
+ * Tu Combustible RD's amber LED digits survive here and nowhere else, which is
+ * the point: the old identity was about buying fuel, and this is the one surface
+ * still about buying fuel.
+ */
+const board = palette.dark;
 
 export function PriceBoard({
   eyebrow,
@@ -23,7 +37,7 @@ export function PriceBoard({
         <View style={styles.screw} />
       </View>
       <T face="medium" style={styles.eyebrow}>
-        {eyebrow}
+        {eyebrow.toUpperCase()}
       </T>
       <T face="monoBold" style={styles.led}>
         {amount}
@@ -49,9 +63,11 @@ export function PriceBoard({
 
 const styles = StyleSheet.create({
   board: {
-    backgroundColor: colors.canopy,
-    borderRadius: 24,
-    padding: 20,
+    backgroundColor: board.bg.base,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: radius.sheet,
+    padding: space.xl,
     paddingTop: 18,
   },
   screws: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
@@ -59,35 +75,38 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(34, 211, 238, 0.35)',
+    // The house amber at low alpha, so the two bolts read as metal catching the
+    // accent rather than as two lit dots competing with the digits.
+    backgroundColor: 'rgba(255, 179, 0, 0.35)',
   },
   eyebrow: {
-    color: colors.led,
+    color: board.accent,
     fontSize: 12,
     letterSpacing: 1.6,
-    textTransform: 'uppercase',
   },
   led: {
-    color: colors.led,
-    fontSize: 34,
-    marginTop: 8,
+    // The week label, not a price: white so the amber is reserved for the
+    // numbers people came to read.
+    color: board.text.primary,
+    fontSize: 30,
+    marginTop: space.sm,
     letterSpacing: -0.5,
   },
-  caption: { color: colors.muted, marginTop: 6, fontSize: 13 },
+  caption: { color: board.text.secondary, marginTop: 6, fontSize: 13, lineHeight: 19 },
   rule: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.09)',
     marginVertical: 14,
   },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  grade: { color: colors.ink, fontSize: 13, width: 88 },
+  row: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
+  grade: { color: board.text.secondary, fontSize: 13, width: 88 },
   dots: {
     flex: 1,
     borderBottomWidth: 1,
     borderStyle: 'dotted',
-    borderColor: colors.line,
-    marginHorizontal: 8,
-    marginTop: 8,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    marginHorizontal: space.sm,
+    marginTop: space.sm,
   },
-  price: { color: colors.led, fontSize: 13 },
+  price: { color: board.text.primary, fontSize: 14 },
 });

@@ -2,7 +2,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, fonts, radius, space } from '@/constants/theme';
+import { fonts, radius, space } from '@/constants/theme';
+import { es } from '@/lib/i18n/es';
+import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
 /**
@@ -23,6 +25,7 @@ export function DateField({
   onChange: (next: string) => void;
   hint?: string;
 }) {
+  const { theme } = useTheme();
   const [open, setOpen] = useState(false);
 
   // Parsed as local time, not UTC: `new Date('2026-09-17')` is midnight UTC,
@@ -32,16 +35,22 @@ export function DateField({
 
   return (
     <View style={styles.wrap}>
-      <T face="semibold" style={styles.label}>
+      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
         {label}
       </T>
-      <Pressable onPress={() => setOpen(true)} style={styles.input}>
-        <T face="body" style={styles.value}>
-          {value || 'Elegir fecha'}
+      <Pressable
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${value || es.common.pickDate}`}
+        style={[styles.input, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
+        <T
+          face="body"
+          style={[styles.value, { color: value ? theme.text.primary : theme.text.muted }]}>
+          {value || es.common.pickDate}
         </T>
       </Pressable>
       {hint ? (
-        <T face="body" style={styles.hint}>
+        <T face="body" style={[styles.hint, { color: theme.text.secondary }]}>
           {hint}
         </T>
       ) : null}
@@ -63,17 +72,15 @@ export function DateField({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md + 2 },
-  label: { color: colors.ink, fontSize: 13, marginBottom: 6 },
+  label: { fontSize: 13, marginBottom: 6 },
   input: {
-    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.line,
     borderRadius: radius.input,
     paddingHorizontal: space.md + 2,
     paddingVertical: space.md + 2,
     justifyContent: 'center',
     minHeight: 48,
   },
-  value: { color: colors.ink, fontSize: 16, fontFamily: fonts.body },
-  hint: { color: colors.muted, fontSize: 12, marginTop: 6 },
+  value: { fontSize: 16, fontFamily: fonts.body },
+  hint: { fontSize: 12, marginTop: 6, lineHeight: 17 },
 });

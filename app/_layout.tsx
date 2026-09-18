@@ -16,6 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Suspense, useEffect, useSyncExternalStore } from 'react';
 import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 
+import { AlertHost } from '@/components/AlertHost';
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
@@ -196,6 +197,8 @@ function Shell() {
         <Stack.Screen name="precios" options={{ headerShown: true, title: 'Precios MICM' }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: 'Editar carga' }} />
       </Stack>
+      {/* Last child, so the dialog sits over every screen the Stack renders. */}
+      <AlertHost />
     </>
   );
 }

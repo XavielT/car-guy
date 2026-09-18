@@ -270,3 +270,117 @@ describe('latestEconomyInsight', () => {
     expect(insight!.status).toBe('low');
   });
 });
+
+/**
+ * PROMPT-06 added `missedPrevious` — the driver saying "I forgot to log a
+ * fill-up before this one". The odometer climbed on fuel that never reached the
+ * log, so anything measured across that gap is flattering and wrong. The chain
+ * restarts instead.
+ *
+ * The first test here is the important one: nothing above this block sets the
+ * flag, and every one of those tests still passes, which is what "changes the
+ * output only when set" has to mean.
+ */
+describe('computeEconomy — missedPrevious breaks the chain', () => {
+  it('leaves fill-ups without the flag exactly as they were', () => {
+    const logs = [
+      fill({ id: 'base', odometerKm: 1000, isFullTank: true, volume: 11 }),
+      fill({ id: 'next', odometerKm: 1400, isFullTank: true, volume: 10 }),
+    ];
+    const withUndefined = computeEconomy(logs);
+    const withExplicitFalse = computeEconomy(logs.map((f) => ({ ...f, missedPrevious: false })));
+    expect(withUndefined).toEqual(withExplicitFalse);
+    expect(withUndefined).toHaveLength(1);
+  });
+
+  it('yields no point for the flagged tank and makes it the new baseline', () => {
+    const points = computeEconomy([
+      fill({ id: 'base', odometerKm: 1000, isFullTank: true, volume: 11 }),
+      // 900 km on 10 gal would be 90 km/gal — the giveaway that a fill-up is
+      // missing. Flagged, it publishes nothing at all.
+      fill({ id: 'gap', odometerKm: 1900, isFullTank: true, volume: 10, missedPrevious: true }),
+      fill({ id: 'after', odometerKm: 2300, isFullTank: true, volume: 10 }),
+    ]);
+    expect(points.map((p) => p.fillUpId)).toEqual(['after']);
+    // Measured from 'gap', not from 'base': 2300 − 1900 on the 10 gal it took.
+    expect(points[0]).toMatchObject({ distanceKm: 400, volume: 10, kmPerUnit: 40 });
+  });
+
+  it('would have produced a wrong point without the flag', () => {
+    const points = computeEconomy([
+      fill({ id: 'base', odometerKm: 1000, isFullTank: true, volume: 11 }),
+      fill({ id: 'gap', odometerKm: 1900, isFullTank: true, volume: 10 }),
+      fill({ id: 'after', odometerKm: 2300, isFullTank: true, volume: 10 }),
+    ]);
+    expect(points.map((p) => p.fillUpId)).toEqual(['gap', 'after']);
+    expect(points[0].kmPerUnit).toBe(90);
+  });
+
+  it('drops the baseline entirely when the flagged fill-up is a partial', () => {
+    const points = computeEconomy([
+      fill({ id: 'base', odometerKm: 1000, isFullTank: true, volume: 11 }),
+      // A partial we cannot place: its volume must not be credited to the next
+      // full tank's distance, so that tank becomes a baseline of its own.
+      fill({ id: 'partial', odometerKm: 1600, isFullTank: false, volume: 5, missedPrevious: true }),
+      fill({ id: 'full', odometerKm: 1900, isFullTank: true, volume: 8 }),
+      fill({ id: 'after', odometerKm: 2300, isFullTank: true, volume: 10 }),
+    ]);
+    expect(points.map((p) => p.fillUpId)).toEqual(['after']);
+    expect(points[0]).toMatchObject({ distanceKm: 400, volume: 10, kmPerUnit: 40 });
+  });
+
+  it('keeps an unflagged partial folded into the next full tank', () => {
+    const points = computeEconomy([
+      fill({ id: 'base', odometerKm: 1000, isFullTank: true, volume: 11 }),
+      fill({ id: 'partial', odometerKm: 1600, isFullTank: false, volume: 5 }),
+      fill({ id: 'full', odometerKm: 1900, isFullTank: true, volume: 5 }),
+    ]);
+    expect(points.map((p) => p.fillUpId)).toEqual(['full']);
+    expect(points[0]).toMatchObject({ distanceKm: 900, volume: 10, kmPerUnit: 90 });
+  });
+
+  it('a flag on the very first fill-up changes nothing — it was already a baseline', () => {
+    const flagged = computeEconomy([
+      fill({ id: 'base', odometerKm: 1000, isFullTank: true, volume: 11, missedPrevious: true }),
+      fill({ id: 'next', odometerKm: 1400, isFullTank: true, volume: 10 }),
+    ]);
+    expect(flagged).toHaveLength(1);
+    expect(flagged[0]).toMatchObject({ fillUpId: 'next', distanceKm: 400, kmPerUnit: 40 });
+  });
+});
+
+describe('reviewFillUp — missedPrevious', () => {
+  it('refuses to compare across the gap', () => {
+    const previous = [
+      fill({ id: 'a', odometerKm: 1000, isFullTank: true, volume: 10 }),
+      fill({ id: 'b', odometerKm: 1400, isFullTank: true, volume: 10 }),
+    ];
+    const current = fill({
+      id: 'c',
+      odometerKm: 2300,
+      isFullTank: true,
+      volume: 10,
+      missedPrevious: true,
+    });
+
+    const review = reviewFillUp(current, previous);
+    expect(review.distanceKm).toBeNull();
+    expect(review.kmPerUnit).toBeNull();
+    expect(review.costPerKm).toBeNull();
+    expect(review.status).toBe('first');
+    // The price paid is a fact about this fill-up alone, so it survives.
+    expect(review.pricePerUnit).toBe(300);
+  });
+
+  it('still compares normally without the flag', () => {
+    const previous = [
+      fill({ id: 'a', odometerKm: 1000, isFullTank: true, volume: 10 }),
+      fill({ id: 'b', odometerKm: 1400, isFullTank: true, volume: 10 }),
+    ];
+    const current = fill({ id: 'c', odometerKm: 1800, isFullTank: true, volume: 10 });
+
+    const review = reviewFillUp(current, previous);
+    expect(review.distanceKm).toBe(400);
+    expect(review.kmPerUnit).toBe(40);
+  });
+});

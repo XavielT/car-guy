@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, radius, space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
+import { Alert } from '@/lib/alert';
 import { es } from '@/lib/i18n/es';
 import { pickPhoto } from '@/lib/media';
 import { useMediaUri } from '@/lib/media/useMediaUri';
-import { Alert } from '@/lib/alert';
+import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
 /**
@@ -31,6 +32,7 @@ export function PhotoPicker({
   onChange: (mediaId: string | null) => void;
   height?: number;
 }) {
+  const { theme } = useTheme();
   const uri = useMediaUri(mediaId);
 
   async function add(camera: boolean) {
@@ -50,10 +52,19 @@ export function PhotoPicker({
   if (uri) {
     return (
       <View style={styles.wrap}>
-        <Image source={{ uri }} style={[styles.photo, { height }]} resizeMode="cover" />
-        <Pressable onPress={() => onChange(null)} style={styles.removeButton}>
-          <Ionicons name="close" size={16} color={colors.ink} />
-          <T face="semibold" style={styles.removeLabel}>
+        <Image
+          source={{ uri }}
+          style={[styles.photo, { height, backgroundColor: theme.bg.raised }]}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+        />
+        <Pressable
+          onPress={() => onChange(null)}
+          accessibilityRole="button"
+          accessibilityLabel={es.common.removePhoto}
+          style={styles.removeButton}>
+          <Ionicons name="close" size={16} color={theme.text.secondary} />
+          <T face="semibold" style={[styles.removeLabel, { color: theme.text.secondary }]}>
             {es.common.removePhoto}
           </T>
         </Pressable>
@@ -62,18 +73,24 @@ export function PhotoPicker({
   }
 
   return (
-    <View style={[styles.empty, { height }]}>
-      <Ionicons name="camera-outline" size={26} color={colors.muted} />
+    <View style={[styles.empty, { height, borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
+      <Ionicons name="camera-outline" size={26} color={theme.text.muted} />
       <View style={styles.actions}>
         {Platform.OS !== 'web' ? (
-          <Pressable onPress={() => add(true)} style={styles.action}>
-            <T face="semibold" style={styles.actionLabel}>
+          <Pressable
+            onPress={() => add(true)}
+            accessibilityRole="button"
+            style={[styles.action, { borderColor: theme.line }]}>
+            <T face="semibold" style={[styles.actionLabel, { color: theme.text.primary }]}>
               {es.common.takePhoto}
             </T>
           </Pressable>
         ) : null}
-        <Pressable onPress={() => add(false)} style={styles.action}>
-          <T face="semibold" style={styles.actionLabel}>
+        <Pressable
+          onPress={() => add(false)}
+          accessibilityRole="button"
+          style={[styles.action, { borderColor: theme.line }]}>
+          <T face="semibold" style={[styles.actionLabel, { color: theme.text.primary }]}>
             {es.common.choosePhoto}
           </T>
         </Pressable>
@@ -84,23 +101,22 @@ export function PhotoPicker({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md },
-  photo: { width: '100%', borderRadius: radius.card, backgroundColor: colors.white },
+  photo: { width: '100%', borderRadius: radius.card },
   removeButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     alignSelf: 'center',
     marginTop: space.sm,
-    paddingVertical: 6,
+    minHeight: 44,
     paddingHorizontal: space.md,
   },
-  removeLabel: { color: colors.muted, fontSize: 13 },
+  removeLabel: { fontSize: 13 },
   empty: {
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: colors.line,
     borderRadius: radius.card,
-    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.md,
@@ -109,10 +125,10 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap', justifyContent: 'center' },
   action: {
     borderWidth: 1,
-    borderColor: colors.line,
     borderRadius: radius.chip,
     paddingHorizontal: space.md,
-    paddingVertical: space.sm,
+    minHeight: 40,
+    justifyContent: 'center',
   },
-  actionLabel: { color: colors.ink, fontSize: 13 },
+  actionLabel: { fontSize: 13 },
 });

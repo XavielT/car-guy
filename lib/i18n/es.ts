@@ -9,8 +9,9 @@
  * *taller*, *marbete*. Say what the number means. No exclamation marks except
  * the one celebratory line after a completed check.
  *
- * New code uses this. The legacy fuel screens keep their inline strings until
- * PROMPT-06 restyles them.
+ * Every screen reads from here. PROMPT-06 moved the last inline strings — the
+ * fuel screens, Más, onboarding, Cifras — in, so a grep for accented text in
+ * JSX outside this file should come back empty.
  */
 export const es = {
   app: {
@@ -350,12 +351,90 @@ export const es = {
     back: 'Volver',
   },
 
+  fuel: {
+    newTitle: 'En la bomba',
+    editTitle: 'Editar carga',
+    intro:
+      'Anota dos de tres (galones, precio, total) y el tercero se calcula solo. El consumo sale cuando marcas tanque lleno.',
+    date: 'Fecha',
+    odometer: 'Odómetro (km)',
+    odometerHint: (last: string) => `Última carga: ${last}`,
+    type: 'Combustible',
+    volume: (unit: string) => `Volumen (${unit})`,
+    total: 'Total pagado (RD$)',
+    calcPending: 'Falta un dato más para cerrar la cuenta.',
+    loadKind: 'Tipo de carga',
+    fullTank: 'Tanque lleno',
+    partial: 'Carga parcial',
+    partialHint: (unit: string) =>
+      `El km/${unit} solo se calcula entre dos tanques llenos. Las parciales entran en el gasto y se suman al próximo lleno.`,
+    missedPrevious: 'Se me olvidó registrar una carga anterior',
+    missedPreviousHint:
+      'Si falta una carga en el medio, los kilómetros no cuadran con los galones. Marcando esto empezamos la cuenta otra vez desde aquí, como con el primer tanque lleno.',
+    station: 'Estación',
+    stationOther: 'Nombre de la estación',
+    notes: 'Nota (opcional)',
+    notesPlaceholder: 'Viaje a Santiago, tráfico…',
+    save: 'Guardar carga',
+    saveChanges: 'Guardar cambios',
+    delete: 'Borrar esta carga',
+    deleteTitle: 'Borrar carga',
+    deleteBody: 'Se quita del historial y se recalcula el consumo.',
+    odometerRequired: 'Pon el kilometraje que marca el tablero.',
+    odometerTooLow: (last: number) =>
+      `La última carga quedó en ${last.toLocaleString('es-DO')} km. El nuevo valor no puede ser menor.`,
+    amountsRequired: 'Llena dos de estos tres: volumen, precio por unidad, o total.',
+  },
+
+  /** The sheet shown after a fill-up is saved, replacing Phase 5's alert. */
+  fuelReview: {
+    titles: {
+      low: 'Rendimiento bajo',
+      great: 'Buen rendimiento',
+      normal: 'Rendimiento estable',
+      first: 'Primera medición',
+    },
+    statusLabels: {
+      low: 'Por debajo de tu promedio',
+      great: 'Por encima de tu promedio',
+      normal: 'En tu promedio',
+      first: 'Sin comparación todavía',
+    },
+    price: (unit: string) => `Precio por ${unit}`,
+    distance: 'Km recorridos',
+    economy: 'Rendimiento',
+    costPerKm: 'Costo por km',
+    noPrevious: 'falta una carga anterior',
+    pending: 'se calcula con más datos',
+    lowBody: (average: string) =>
+      `Está por debajo de tu promedio de ${average}. Revisa tráfico, presión de gomas o posibles fugas.`,
+    greatBody: (average: string) => `Está por encima de tu promedio de ${average}.`,
+    firstBody: 'Guarda otra carga para empezar a comparar tu rendimiento real.',
+    chainBroken:
+      'Marcaste que faltaba una carga anterior, así que la cuenta del consumo empieza de nuevo desde esta.',
+    seeHistory: 'Ver historial',
+    close: 'Listo',
+  },
+
+  prices: {
+    title: 'Precios MICM',
+    intro:
+      'Semilla: semana del 15–21 ago 2026. Actualízalos cuando salga el aviso nuevo. No se descargan solos.',
+    boardEyebrow: 'Precios de referencia',
+    boardCaption: 'Lo que pagaste en cada carga manda sobre esta tabla.',
+    week: 'Semana / fuente',
+    save: 'Guardar referencia',
+    reset: 'Volver a precios semilla',
+  },
+
   common: {
     cancel: 'Cancelar',
     save: 'Guardar',
     delete: 'Borrar',
+    ok: 'Entendido',
     optional: '(opcional)',
     today: 'Hoy',
+    pickDate: 'Elegir fecha',
     takePhoto: 'Tomar foto',
     choosePhoto: 'Elegir de la galería',
     removePhoto: 'Quitar foto',
