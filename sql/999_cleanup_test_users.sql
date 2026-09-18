@@ -1,0 +1,34 @@
+-- 999_cleanup_test_users.sql — removes the throwaway users the verification made.
+--
+-- `tools/verify-x-core.mjs` signs up `carguy-test-<timestamp>-<a|b>@example.com`
+-- to exercise the invite trigger and the RLS policies. It cannot delete them
+-- itself: that needs a privileged connection, and the script only ever holds the
+-- anon key.
+--
+-- Safe to re-run, and safe to run when there is nothing to delete. The pattern
+-- is anchored to `carguy-test-` and `@example.com`, a domain reserved by RFC
+-- 2606 that no real account can use.
+--
+-- `auth.users` is in the `auth` schema rather than `public`, so this does not
+-- trip the shared-object guard in tools/apply-sql.mjs — but it IS a delete on a
+-- table Music Hub also uses, so read the select below before the delete.
+
+select id, email, created_at
+from auth.users
+where email like 'carguy-test-%@example.com';
+
+delete from carguy.vehicle where id like 'veh_test_%';
+
+-- Cascades to public.profiles and carguy.profiles, both of which reference
+-- auth.users(id) on delete cascade.
+delete from auth.users
+where email like 'carguy-test-%@example.com';
+
+-- Nothing of Music Hub's should remain behind.
+select count(*) as leftover_profiles
+from public.profiles
+where id not in (select id from auth.users);
+
+
+-- rollback:
+-- None. The rows were test data created by this phase and hold nothing.

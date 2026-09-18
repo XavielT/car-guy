@@ -32,6 +32,15 @@ yarn-error.*
 
 # local env files
 .env*.local
+# Supabase keys, including the service-role key, which must never be committed
+# (04-conventions.md). The glob above does not match this name.
+.env.supabase
+.supabase-token
+
+# Personal permission grants for this machine — notably permission to apply
+# migrations to x-core, which is Music Hub's production database. That is a
+# grant to this checkout, not something that should travel to a clone.
+.claude/settings.local.json
 
 # typescript
 *.tsbuildinfo
@@ -47,3 +56,7 @@ docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json
 # Scratch output from Claude Code sessions — notes and generated files that
 # belong to a working session, not to the project.
 Claude outputs/
+
+# Raw output of sql/000_inspect.sql — contains x-core's function bodies and
+# schema details. Kept out of the repo; sql/001 carries only what it needs.
+docs/imp-17092026/04-tracking/x-core-inspect.txt

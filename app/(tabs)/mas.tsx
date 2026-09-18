@@ -15,6 +15,7 @@ import {
 } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { useSession } from '@/lib/cloud/auth';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { FUEL_CATALOG } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
@@ -31,6 +32,7 @@ export default function MasScreen() {
   const router = useRouter();
   const { theme, preference, setPreference } = useTheme();
   const { data, activeVehicle, setActiveVehicle, resetAll, refresh } = useStore();
+  const { session } = useSession();
 
   const version = Constants.expoConfig?.version ?? '—';
 
@@ -153,15 +155,13 @@ export default function MasScreen() {
           onPress={() => router.push('/documentos')}
         />
 
-        {/* Phase 8 turns this into sign-in. Until then it says what the account
-            will and will not change, because "no hay cuenta" is a feature. */}
         <SectionHeader title={es.more.account} />
-        <Surface>
-          <StatusPill status="proximo" label={es.more.accountSoon} />
-          <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-            {es.more.accountBody}
-          </T>
-        </Surface>
+        <NavRow
+          label={session ? es.account.signedInAs : es.account.signIn}
+          caption={session?.user.email ?? es.more.accountBody}
+          onPress={() => router.push('/cuenta')}
+          trailing={session ? <StatusPill status="ok" label={es.more.active} /> : undefined}
+        />
 
         <SectionHeader title={es.more.data} caption={es.more.dataCaption} />
         <PrimaryButton label={es.more.backup} onPress={handleExport} />

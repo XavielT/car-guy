@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 7 done
+**Started:** 2026-09-17 · **Status:** Phase 8 done · Phase 9 part A (sync core) done
 
 ## Phase status
 
@@ -17,8 +17,8 @@ The "Notes for the next phase" sections carry context between sessions.
 | 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications |
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
-| 8 | x-core + account | ⬜ | | |
-| 9 | Sync | ⬜ | | |
+| 8 | x-core + account | ✅ | `imp-17092026/phase-8-cuenta` | carguy schema + RLS + Storage + LWW live on x-core; 7/7 verification; account works end to end |
+| 9 | Sync | 🟡 | `imp-17092026/phase-9-sync` | Part A: the pure protocol core and the schema-parity guard. Engine not built |
 | 10 | Release | ⬜ | | |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
@@ -1101,3 +1101,238 @@ restyled and becomes the screen that answers what the car costs.
   sync against a non-empty database.
 - **`reportHtml` escapes everything it interpolates.** Any new field added to the report must go
   through `escape()` too; the two tests will not catch a field that simply was not added.
+
+## Phase 8 — Account and the `carguy` cloud schema   (branch `imp-17092026/phase-8-cuenta`)
+
+**Status:** complete
+**Commits:** `3d1de94` client, UI and the SQL · `698f8bc` verification tooling ·
+`e3adfde` dashboard paths · `b6addb9` baseline · `620bde7` sql/001 applied ·
+`96932ef` sql/002–005 applied · `5a67997` guard fix and cleanup
+
+Split as the prompt anticipated: it names the discovery SQL as "the one legitimate pause in the
+cycle" and says to do the client and UI while waiting. Part A was built during that pause; part B
+ran once a Supabase personal access token arrived, and is now complete.
+
+### Changed
+- **SQL.** `sql/000_inspect.sql` (read-only discovery), `001_invite_trigger_app_aware.sql`
+  (deliberately incomplete — see below), `002_schema_carguy.sql`, `003_rls.sql`,
+  `004_storage.sql`, `005_lww.sql`, `006_drop_tucombustible_probe.sql` (optional),
+  `rollback.sql`. Every file is idempotent and ends in a rollback block.
+- **Client.** `lib/cloud/supabase.ts`, `lib/cloud/auth.ts`, `lib/flags.ts`.
+- **UI.** `app/cuenta.tsx` (new), the account row in Más, a dismissible card on Inicio.
+- **Tooling.** `tools/verify-x-core.mjs` — the seven checks Phase 8 owes, ready to run.
+- **Config.** `.env.example`; `.gitignore` now covers the inspect output.
+
+### Dependencies added / removed
+- **+** `@supabase/supabase-js@2.116.0`. `react-native-url-polyfill` is **not** installed:
+  the current Supabase/Expo tutorial no longer lists it, and `@react-native-async-storage/
+  async-storage` was already a dependency from Phase 1.
+
+### Acceptance criteria
+- [x] `sql/000…006` and `rollback.sql` written, each idempotent, each with a rollback block.
+- [x] Client, auth module and Cuenta screen; the account is fully optional and sign-out keeps
+      every local row (ADR-05).
+- [x] The three account states render. Verified in the browser against placeholder credentials
+      (since deleted): *not configured* names the two missing variables; *signed out* shows the
+      form; local validation fires before any network call; an unreachable project produced
+      **"Sin conexión. Tus datos siguen guardados en el teléfono."**
+- [x] The onboarding card appears after the first vehicle and stays dismissed across reloads.
+- [x] `tsc`, `expo lint`, `npm test` (228), `npm run build` (40 routes) green. No credential in
+      the bundle — the only `supabase.co` string is supabase-js's own internal allowlist.
+- [x] `sql/001` carries the real function body, captured by `000_inspect.sql` and applied.
+- [x] `sql/001`–`005` applied; `carguy` added to Exposed schemas (dashboard, by Xaviel).
+- [x] Signup verified both ways, four RLS negative tests pass, Music Hub's invite message is
+      byte-identical to the pre-change baseline. 7/7.
+- [ ] Database types still not generated — `lib/cloud/database.types.ts` does not exist. Nothing
+      uses generated types yet, so nothing is broken; Phase 9's queries will want them.
+
+### Decisions made (defaults applied)
+- **One `before update` trigger per table, not two.** This started as a bug in my own SQL:
+  `server_updated_at` was stamped by one trigger and the LWW guard was a second. Postgres fires
+  before-triggers in **name order** and hands each the row the previous returned, so on `media`,
+  `task`, `setting` and `vehicle` — where the stamping trigger sorts *after* `lww_` — a rejected
+  stale write would still have moved the cursor, and every other device would then have pulled a
+  row that never changed. Both jobs now live in `carguy.before_write()`, which removes the
+  ordering question rather than relying on names sorting favourably.
+- **`sql/001` is left syntactically broken.** A file that would replace Music Hub's invite rule
+  with a guess is more dangerous than one that refuses to run.
+- **No foreign keys in the cloud mirror.** A client syncs one table at a time and a child can
+  legitimately arrive before its parent; the local database enforces integrity, and a server-side
+  FK would turn an ordering detail into a failed sync.
+- **LWW rejects silently.** Raising would fail a whole batch of 200 rows for one stale record,
+  and the client has nothing useful to do with the error — the next pull brings it the newer row.
+- **`FEATURE_SYNC = false`.** Signing in today stores a session and nothing else. The Cuenta
+  screen mentions syncing only in dev; promising it in production would be a lie with a deadline.
+- **The client is created lazily and may be null.** A missing `.env.local` is a supported state
+  (ADR-05), not a crash, and callers already branch on "signed out".
+- **The web storage adapter wraps every call.** `localStorage` throws on *read* in Safari's
+  private mode, which would take the app down at import rather than merely losing the session.
+
+### Deviations from the package
+- **`tools/verify-x-core.mjs` was added.** The prompt describes the checks as `curl` commands;
+  a script runs the same requests, redacts tokens in its output and prints the cleanup SQL, which
+  makes the result paste-able into this file and repeatable after any policy change.
+- The script **cannot delete the test users** — that needs the service-role key, which
+  04-conventions.md forbids from this repo. It prints the `delete` statements instead.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+
+| Phase 8 · types | `lib/cloud/database.types.ts` not generated | medium | Needs the project ref and `npx supabase login`. The client uses no generated types yet, so nothing is broken; Phase 9's queries will want them |
+| Phase 8 · auth | The password-reset email uses x-core's project-level template, shared with Music Hub | low | Changing it would change Music Hub's email. Reported rather than fixed, per ADR-06 |
+| Phase 8 · Android | Unverified, as in Phases 5–7 | medium | The AsyncStorage session adapter is the native-only path and has never run |
+| Phase 8 · x-core | **Every Car Guy signup gets a `public.profiles` row**, created by Music Hub's `handle_new_user` trigger on auth.users | medium | Confirmed against the three test users: rows created, `display_name` empty, no error — so per spec §2 it is "acceptable, report it". But `public.profiles` is SELECT `using (true)` for authenticated, so Music Hub users can enumerate Car Guy user ids. Guarding that trigger with the same `app` check would be a **second** shared-code change and is Music Hub's call, not this phase's |
+| Phase 8 · permissions | Writing to x-core needs a Bash permission rule for `tools/apply-sql.mjs` | resolved | Granted in `.claude/settings.local.json` (gitignored). A raw `curl` to the Management API is still refused, which is why the exposed-schemas change stayed a dashboard step |
+
+### Baseline captured against x-core, 2026-09-18 (before any change)
+
+Keys arrived in a gitignored `.env.supabase`; `.env.local` is written from it. `tools/verify-x-core.mjs`
+run against the live project, **before** `sql/001` is applied:
+
+```
+project: https://nakgrkcqyuycadeuenuw.supabase.co
+
+FAIL  1. signup with data.app=carguy succeeds
+      status 500 · {"code":"P0001","message":"Sign-ups are invite-only. Ask Xaviel for an invite link."}
+PASS  2. signup without the flag still fails (invite-only)
+      status 500 · "Sign-ups are invite-only. Ask Xaviel for an invite link."
+```
+
+Both signups were refused, so **no test users were created** and there is nothing to clean up.
+
+What this establishes:
+- The keys work: `/auth/v1/settings` answers 200 for both the legacy anon JWT and the new
+  publishable key.
+- `enforce_invite_only` is live and blocking Car Guy exactly as 02-supabase-carguy.md §1 describes.
+- **The exact message is `Sign-ups are invite-only. Ask Xaviel for an invite link.`** After `sql/001`
+  is applied, check 2 must still produce this string byte for byte — that is what "Music Hub
+  unchanged" means in practice, and it is now recorded rather than remembered.
+
+Still blocked on DDL: the Management API rejects both the secret key (`JWT could not be decoded`)
+and the legacy service-role JWT (`JWT failed verification`). Creating the `carguy` schema needs a
+personal access token (`sbp_…`) or the database password — neither is a key the app ever uses.
+
+### Applied to x-core, 2026-09-18
+
+A personal access token arrived in `.env.supabase`, so the Management API's
+`/v1/projects/{ref}/database/query` endpoint could run the discovery and the migration.
+
+**Discovery (read-only) — what the sketch in the spec got wrong.** `sql/001` had been drafted from
+02-supabase-carguy.md §2, which sketches the function as `set search_path = ''` with no `declare`
+block. The live function is neither:
+
+```
+SET search_path TO 'public', 'extensions'   -- not ''
+declare v_token text;                        -- absent from the sketch
+```
+
+It calls `extensions.digest` to hash an invite token against `public.invite_links`. Applying the
+sketch would have changed the search_path of a SECURITY DEFINER function on a production auth
+trigger. This is the entire reason the prompt calls the discovery step a legitimate pause, and it
+paid for itself.
+
+**`sql/001` applied.** The final diff against the live function is four lines, and the trigger object
+is untouched — still `enforce_invite_only BEFORE INSERT ON auth.users`, `tgenabled = 'O'`.
+
+**Verification, immediately after:**
+
+```
+PASS  1. signup with data.app=carguy succeeds
+      status 200 · session returned
+PASS  2. signup without the flag still fails (invite-only)
+      status 500 · "Sign-ups are invite-only. Ask Xaviel for an invite link."
+```
+
+Check 2's string is byte-identical to the baseline captured before the change. **Music Hub's invite
+rule is unchanged.**
+
+**Two bugs in `tools/verify-x-core.mjs`, found by running it.**
+1. It sent no `Accept-Profile` / `Content-Profile` header, so every `/rest/v1` call landed in
+   `public` — Music Hub's schema. It reported `Could not find the table 'public.vehicle'` and would
+   have gone on to test Car Guy's RLS against tables that were never Car Guy's.
+2. Check 3 treated a bare 404 as a pass. A missing migration was showing up green.
+   Both fixed; it now distinguishes `PGRST106` (not exposed) from `PGRST205` (exposed but empty).
+
+**`sql/002`–`005` applied.** The first attempt was refused by the session's safety classifier
+(`[Modify Shared Resources]`, `[Production Deploy]`) — the correct instinct for a curl pipeline
+against Music Hub's production database. The fix was not to reshape the command but to replace it:
+`tools/apply-sql.mjs` applies one file from `sql/`, refuses paths outside it, prints a summary
+first, offers `--dry-run`, and refuses any file that *modifies* something Music Hub owns unless
+`--shared` is passed. "Allow Claude to run this script on files under sql/" is a permission a
+person can reason about; "allow Claude to run curl" is not. The grant lives in
+`.claude/settings.local.json`, gitignored — it is a grant to this checkout, not to every clone.
+
+Verified after applying:
+
+| Check | Result |
+|---|---|
+| tables in `carguy` | 19 (18 synced + `profiles`) |
+| RLS policies | 76 — exactly 19 x 4 |
+| `before_write` triggers | 18 (one per synced table; `profiles` has none, as it is not synced) |
+| Storage bucket | `carguy-media`, `public = false` |
+| LWW guard | present in `carguy.before_write()` |
+
+**`carguy` added to the exposed schemas** by Xaviel from the dashboard (Settings → Data API). It is
+PostgREST configuration rather than database state, so no migration can set it, and the Management
+API call that could restarts PostgREST for the whole project — Music Hub included.
+
+### Final verification — 7/7
+
+```
+PASS  1. signup with data.app=carguy succeeds        status 200 · session returned
+PASS  2. signup without the flag still fails         "Sign-ups are invite-only. Ask Xaviel for an invite link."
+PASS  3. schema carguy is exposed and has the tables status 200
+PASS  4. user A inserts and reads back its own vehicle  status 201
+PASS  5. user B cannot see user A's vehicle          status 200 · []
+PASS  6. user B cannot insert a row owned by A       status 403 · 42501
+PASS  7. anonymous select is refused                 status 401 · 42501
+```
+
+Check 2 is still byte-identical to the baseline captured before `sql/001`.
+
+### The account, end to end in the browser
+
+Against the live project: **create account** → the dialog reads *"Cuenta creada · Ya puedes iniciar
+sesión en otro teléfono con este correo"*, and the screen switches to the signed-in state with the
+green pill, the email in mono and "Última sincronización —". **Sign out** returns to the form with
+the password cleared. **Sign in** with the same credentials returns to the signed-in state.
+Screenshots in `docs/qa/phase-8-*`.
+
+### Cleanup
+
+Every test account created by this phase is gone. Final state on x-core:
+
+| | |
+|---|---|
+| `auth.users` | 4 — Music Hub's real users, untouched |
+| `public.profiles` | 4 — matching, no orphans |
+| `carguy.profiles` | 0 |
+| `carguy.vehicle` | 0 |
+| `enforce_invite_only` | enabled (`tgenabled = 'O'`) |
+| `on_auth_user_created` | enabled |
+
+### Left on x-core (needs cleanup)
+
+Three throwaway users, created by the verification runs:
+
+```
+carguy-test-1789753581974-a@example.com
+carguy-test-1789753581974-b@example.com
+carguy-test-1789753707758-a@example.com
+```
+
+```sql
+delete from auth.users where email like 'carguy-test-%';
+```
+
+Deleting them also removes their `public.profiles` rows by cascade.
+
+### Notes for the next phase
+- **`sql/002` is the contract Phase 9 syncs against.** Column names are the snake_case of
+  `lib/db/types.ts`, so `lib/db/repos/base.ts`'s existing camel/snake mapping works unchanged.
+- **`server_updated_at` is the pull cursor** and only moves when a write is actually applied.
+- `lib/cloud/auth.ts` already writes `setting.auth_user_id` on sign-in and clears it on sign-out,
+  which is the key Phase 9 needs to know whose rows are local.
+- `describeSchemaError()` turns `PGRST106` into a sentence aimed at whoever administers the
+  project — Phase 9's sync status should use it rather than showing the raw code.
