@@ -1180,6 +1180,8 @@ against `x-core`.
 | Phase 8 · types | `lib/cloud/database.types.ts` not generated | medium | Needs the project ref and `npx supabase login`. The client uses no generated types yet, so nothing is broken; Phase 9's queries will want them |
 | Phase 8 · auth | The password-reset email uses x-core's project-level template, shared with Music Hub | low | Changing it would change Music Hub's email. Reported rather than fixed, per ADR-06 |
 | Phase 8 · Android | Unverified, as in Phases 5–7 | medium | The AsyncStorage session adapter is the native-only path and has never run |
+| Phase 8 · x-core | **Every Car Guy signup gets a `public.profiles` row**, created by Music Hub's `handle_new_user` trigger on auth.users | medium | Confirmed against the three test users: rows created, `display_name` empty, no error — so per spec §2 it is "acceptable, report it". But `public.profiles` is SELECT `using (true)` for authenticated, so Music Hub users can enumerate Car Guy user ids. Guarding that trigger with the same `app` check would be a **second** shared-code change and is Music Hub's call, not this phase's |
+| Phase 8 · permissions | The session cannot write to x-core: the classifier blocks DDL on the shared production project | high | Not a credential problem — the token works and read queries run fine. Needs an explicit Bash permission rule, or the remaining SQL applied from the dashboard |
 
 ### Baseline captured against x-core, 2026-09-18 (before any change)
 
@@ -1208,6 +1210,68 @@ What this establishes:
 Still blocked on DDL: the Management API rejects both the secret key (`JWT could not be decoded`)
 and the legacy service-role JWT (`JWT failed verification`). Creating the `carguy` schema needs a
 personal access token (`sbp_…`) or the database password — neither is a key the app ever uses.
+
+### Applied to x-core, 2026-09-18
+
+A personal access token arrived in `.env.supabase`, so the Management API's
+`/v1/projects/{ref}/database/query` endpoint could run the discovery and the migration.
+
+**Discovery (read-only) — what the sketch in the spec got wrong.** `sql/001` had been drafted from
+02-supabase-carguy.md §2, which sketches the function as `set search_path = ''` with no `declare`
+block. The live function is neither:
+
+```
+SET search_path TO 'public', 'extensions'   -- not ''
+declare v_token text;                        -- absent from the sketch
+```
+
+It calls `extensions.digest` to hash an invite token against `public.invite_links`. Applying the
+sketch would have changed the search_path of a SECURITY DEFINER function on a production auth
+trigger. This is the entire reason the prompt calls the discovery step a legitimate pause, and it
+paid for itself.
+
+**`sql/001` applied.** The final diff against the live function is four lines, and the trigger object
+is untouched — still `enforce_invite_only BEFORE INSERT ON auth.users`, `tgenabled = 'O'`.
+
+**Verification, immediately after:**
+
+```
+PASS  1. signup with data.app=carguy succeeds
+      status 200 · session returned
+PASS  2. signup without the flag still fails (invite-only)
+      status 500 · "Sign-ups are invite-only. Ask Xaviel for an invite link."
+```
+
+Check 2's string is byte-identical to the baseline captured before the change. **Music Hub's invite
+rule is unchanged.**
+
+**Two bugs in `tools/verify-x-core.mjs`, found by running it.**
+1. It sent no `Accept-Profile` / `Content-Profile` header, so every `/rest/v1` call landed in
+   `public` — Music Hub's schema. It reported `Could not find the table 'public.vehicle'` and would
+   have gone on to test Car Guy's RLS against tables that were never Car Guy's.
+2. Check 3 treated a bare 404 as a pass. A missing migration was showing up green.
+   Both fixed; it now distinguishes `PGRST106` (not exposed) from `PGRST205` (exposed but empty).
+
+**Blocked before `sql/002`.** The session's safety classifier refused the write with
+`[Modify Shared Resources]` / `[Production Deploy]`. That is the correct instinct — `x-core` is
+Music Hub's production database — and it is a per-session permission, not a missing credential.
+Retrying it in other shapes would be working around the intent, so it stops here.
+
+### Left on x-core (needs cleanup)
+
+Three throwaway users, created by the verification runs:
+
+```
+carguy-test-1789753581974-a@example.com
+carguy-test-1789753581974-b@example.com
+carguy-test-1789753707758-a@example.com
+```
+
+```sql
+delete from auth.users where email like 'carguy-test-%';
+```
+
+Deleting them also removes their `public.profiles` rows by cascade.
 
 ### Notes for the next phase
 - **`sql/002` is the contract Phase 9 syncs against.** Column names are the snake_case of

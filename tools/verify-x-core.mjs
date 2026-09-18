@@ -61,12 +61,21 @@ function redact(value) {
   return value.replace(/[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, '<token>');
 }
 
+/**
+ * PostgREST serves one schema per request, chosen by a header — `Accept-Profile`
+ * for reads and `Content-Profile` for writes. Without them every /rest/v1 call
+ * lands in `public`, which is Music Hub's schema: the first run of this script
+ * reported "Could not find the table 'public.vehicle'" and would have gone on
+ * to look for Car Guy's RLS on tables that were never Car Guy's.
+ */
 async function call(path, options = {}) {
+  const write = options.method && options.method !== 'GET';
   const response = await fetch(`${URL_BASE}${path}`, {
     ...options,
     headers: {
       apikey: ANON,
       'Content-Type': 'application/json',
+      ...(write ? { 'Content-Profile': 'carguy' } : { 'Accept-Profile': 'carguy' }),
       ...(options.headers ?? {}),
     },
   });
@@ -130,15 +139,23 @@ async function main() {
 
   // 3 — Is the schema exposed at all?
   const probe = await call('/rest/v1/vehicle?select=id&limit=1', { headers: authA });
-  const notExposed = probe.body?.code === 'PGRST106';
+  // PGRST106: the schema is not in the exposed list.
+  // PGRST205: the schema is exposed but the table is not there — i.e. sql/002
+  // has not been applied. The first run treated a bare 404 as a pass, which is
+  // exactly the kind of green tick that hides a missing migration.
+  const code = probe.body?.code;
+  const notExposed = code === 'PGRST106';
+  const noTable = code === 'PGRST205';
   record(
-    '3. schema carguy is exposed through PostgREST',
-    !notExposed && probe.status < 500,
+    '3. schema carguy is exposed and has the tables',
+    !notExposed && !noTable && probe.status < 400,
     notExposed
       ? 'PGRST106 — add `carguy` under Settings → Data API → Exposed schemas'
-      : `status ${probe.status}`,
+      : noTable
+        ? 'PGRST205 — schema reachable but empty; apply sql/002_schema_carguy.sql'
+        : `status ${probe.status}`,
   );
-  if (notExposed) {
+  if (notExposed || noTable) {
     printCleanup();
     return;
   }
