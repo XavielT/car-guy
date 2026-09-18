@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 7 done
+**Started:** 2026-09-17 · **Status:** Phase 7 done · Phase 8 part A done, part B waiting on x-core
 
 ## Phase status
 
@@ -17,7 +17,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications |
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
-| 8 | x-core + account | ⬜ | | |
+| 8 | x-core + account | 🟡 | `imp-17092026/phase-8-cuenta` | Part A: SQL written, client + Cuenta screen. Part B blocked on the manual SQL run |
 | 9 | Sync | ⬜ | | |
 | 10 | Release | ⬜ | | |
 
@@ -1101,3 +1101,91 @@ restyled and becomes the screen that answers what the car costs.
   sync against a non-empty database.
 - **`reportHtml` escapes everything it interpolates.** Any new field added to the report must go
   through `escape()` too; the two tests will not catch a field that simply was not added.
+
+## Phase 8 — Account and the `carguy` cloud schema   (branch `imp-17092026/phase-8-cuenta`)
+
+**Status:** partial — part A complete, part B blocked on a manual step
+**Commits:** `3d1de94` client, UI and the SQL · `698f8bc` verification tooling
+
+Split as the prompt anticipated: it names the discovery SQL as "the one legitimate
+pause in the cycle" and says to do the client and UI while waiting. Everything
+that does not need credentials or a SQL editor is done; nothing has yet run
+against `x-core`.
+
+### Changed
+- **SQL.** `sql/000_inspect.sql` (read-only discovery), `001_invite_trigger_app_aware.sql`
+  (deliberately incomplete — see below), `002_schema_carguy.sql`, `003_rls.sql`,
+  `004_storage.sql`, `005_lww.sql`, `006_drop_tucombustible_probe.sql` (optional),
+  `rollback.sql`. Every file is idempotent and ends in a rollback block.
+- **Client.** `lib/cloud/supabase.ts`, `lib/cloud/auth.ts`, `lib/flags.ts`.
+- **UI.** `app/cuenta.tsx` (new), the account row in Más, a dismissible card on Inicio.
+- **Tooling.** `tools/verify-x-core.mjs` — the seven checks Phase 8 owes, ready to run.
+- **Config.** `.env.example`; `.gitignore` now covers the inspect output.
+
+### Dependencies added / removed
+- **+** `@supabase/supabase-js@2.116.0`. `react-native-url-polyfill` is **not** installed:
+  the current Supabase/Expo tutorial no longer lists it, and `@react-native-async-storage/
+  async-storage` was already a dependency from Phase 1.
+
+### Acceptance criteria
+- [x] `sql/000…006` and `rollback.sql` written, each idempotent, each with a rollback block.
+- [x] Client, auth module and Cuenta screen; the account is fully optional and sign-out keeps
+      every local row (ADR-05).
+- [x] The three account states render. Verified in the browser against placeholder credentials
+      (since deleted): *not configured* names the two missing variables; *signed out* shows the
+      form; local validation fires before any network call; an unreachable project produced
+      **"Sin conexión. Tus datos siguen guardados en el teléfono."**
+- [x] The onboarding card appears after the first vehicle and stays dismissed across reloads.
+- [x] `tsc`, `expo lint`, `npm test` (228), `npm run build` (40 routes) green. No credential in
+      the bundle — the only `supabase.co` string is supabase-js's own internal allowlist.
+- [ ] **`sql/001` is incomplete**, on purpose — it needs the current body of
+      `public.enforce_invite_only()` byte for byte, which only `000_inspect.sql` can supply.
+- [ ] Migrations not applied; `carguy` not added to Exposed schemas.
+- [ ] Signup verified both ways; RLS negative tests; Music Hub unaffected — all need the above.
+- [ ] Database types not generated (needs the project ref and a logged-in CLI).
+
+### Decisions made (defaults applied)
+- **One `before update` trigger per table, not two.** This started as a bug in my own SQL:
+  `server_updated_at` was stamped by one trigger and the LWW guard was a second. Postgres fires
+  before-triggers in **name order** and hands each the row the previous returned, so on `media`,
+  `task`, `setting` and `vehicle` — where the stamping trigger sorts *after* `lww_` — a rejected
+  stale write would still have moved the cursor, and every other device would then have pulled a
+  row that never changed. Both jobs now live in `carguy.before_write()`, which removes the
+  ordering question rather than relying on names sorting favourably.
+- **`sql/001` is left syntactically broken.** A file that would replace Music Hub's invite rule
+  with a guess is more dangerous than one that refuses to run.
+- **No foreign keys in the cloud mirror.** A client syncs one table at a time and a child can
+  legitimately arrive before its parent; the local database enforces integrity, and a server-side
+  FK would turn an ordering detail into a failed sync.
+- **LWW rejects silently.** Raising would fail a whole batch of 200 rows for one stale record,
+  and the client has nothing useful to do with the error — the next pull brings it the newer row.
+- **`FEATURE_SYNC = false`.** Signing in today stores a session and nothing else. The Cuenta
+  screen mentions syncing only in dev; promising it in production would be a lie with a deadline.
+- **The client is created lazily and may be null.** A missing `.env.local` is a supported state
+  (ADR-05), not a crash, and callers already branch on "signed out".
+- **The web storage adapter wraps every call.** `localStorage` throws on *read* in Safari's
+  private mode, which would take the app down at import rather than merely losing the session.
+
+### Deviations from the package
+- **`tools/verify-x-core.mjs` was added.** The prompt describes the checks as `curl` commands;
+  a script runs the same requests, redacts tokens in its output and prints the cleanup SQL, which
+  makes the result paste-able into this file and repeatable after any policy change.
+- The script **cannot delete the test users** — that needs the service-role key, which
+  04-conventions.md forbids from this repo. It prints the `delete` statements instead.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 8 · x-core | Nothing has run against the project; the whole cloud half is unverified | high | This is the phase's stated pause, not a surprise. Blocked on the SQL run and the two env vars |
+| Phase 8 · types | `lib/cloud/database.types.ts` not generated | medium | Needs the project ref and `npx supabase login`. The client uses no generated types yet, so nothing is broken; Phase 9's queries will want them |
+| Phase 8 · auth | The password-reset email uses x-core's project-level template, shared with Music Hub | low | Changing it would change Music Hub's email. Reported rather than fixed, per ADR-06 |
+| Phase 8 · Android | Unverified, as in Phases 5–7 | medium | The AsyncStorage session adapter is the native-only path and has never run |
+
+### Notes for the next phase
+- **`sql/002` is the contract Phase 9 syncs against.** Column names are the snake_case of
+  `lib/db/types.ts`, so `lib/db/repos/base.ts`'s existing camel/snake mapping works unchanged.
+- **`server_updated_at` is the pull cursor** and only moves when a write is actually applied.
+- `lib/cloud/auth.ts` already writes `setting.auth_user_id` on sign-in and clears it on sign-out,
+  which is the key Phase 9 needs to know whose rows are local.
+- `describeSchemaError()` turns `PGRST106` into a sentence aimed at whoever administers the
+  project — Phase 9's sync status should use it rather than showing the raw code.
