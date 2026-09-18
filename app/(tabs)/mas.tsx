@@ -94,6 +94,7 @@ export default function MasScreen() {
         </Card>
         <PrimaryButton label="Registrar mantenimiento" onPress={() => router.push('/servicio/nuevo')} />
         <GhostButton label="Registrar gasto" onPress={() => router.push('/gasto/nuevo')} />
+        <GhostButton label="Recordatorios" onPress={() => router.push('/recordatorios')} />
         <GhostButton label="Tareas pendientes" onPress={() => router.push('/tareas')} />
         <GhostButton label="Documentos" onPress={() => router.push('/documentos')} />
 

@@ -140,6 +140,11 @@ function Shell() {
           name="gasto/nuevo"
           options={{ presentation: 'modal', headerShown: true, title: 'Gasto' }}
         />
+        <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: 'Chequeo' }} />
+        <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: 'Qué revisar y cómo' }} />
+        <Stack.Screen name="inspeccion/[id]" options={{ headerShown: true, title: 'Resultado' }} />
+        <Stack.Screen name="recordatorios/index" options={{ headerShown: true, title: 'Recordatorios' }} />
+        <Stack.Screen name="recordatorio/[id]" options={{ headerShown: true, title: 'Recordatorio' }} />
         <Stack.Screen name="tareas/index" options={{ headerShown: true, title: 'Tareas' }} />
         <Stack.Screen name="tarea/nueva" options={{ presentation: 'modal', headerShown: true, title: 'Nueva tarea' }} />
         <Stack.Screen name="tarea/[id]" options={{ headerShown: true, title: 'Tarea' }} />
