@@ -1181,6 +1181,34 @@ against `x-core`.
 | Phase 8 · auth | The password-reset email uses x-core's project-level template, shared with Music Hub | low | Changing it would change Music Hub's email. Reported rather than fixed, per ADR-06 |
 | Phase 8 · Android | Unverified, as in Phases 5–7 | medium | The AsyncStorage session adapter is the native-only path and has never run |
 
+### Baseline captured against x-core, 2026-09-18 (before any change)
+
+Keys arrived in a gitignored `.env.supabase`; `.env.local` is written from it. `tools/verify-x-core.mjs`
+run against the live project, **before** `sql/001` is applied:
+
+```
+project: https://nakgrkcqyuycadeuenuw.supabase.co
+
+FAIL  1. signup with data.app=carguy succeeds
+      status 500 · {"code":"P0001","message":"Sign-ups are invite-only. Ask Xaviel for an invite link."}
+PASS  2. signup without the flag still fails (invite-only)
+      status 500 · "Sign-ups are invite-only. Ask Xaviel for an invite link."
+```
+
+Both signups were refused, so **no test users were created** and there is nothing to clean up.
+
+What this establishes:
+- The keys work: `/auth/v1/settings` answers 200 for both the legacy anon JWT and the new
+  publishable key.
+- `enforce_invite_only` is live and blocking Car Guy exactly as 02-supabase-carguy.md §1 describes.
+- **The exact message is `Sign-ups are invite-only. Ask Xaviel for an invite link.`** After `sql/001`
+  is applied, check 2 must still produce this string byte for byte — that is what "Music Hub
+  unchanged" means in practice, and it is now recorded rather than remembered.
+
+Still blocked on DDL: the Management API rejects both the secret key (`JWT could not be decoded`)
+and the legacy service-role JWT (`JWT failed verification`). Creating the `carguy` schema needs a
+personal access token (`sbp_…`) or the database password — neither is a key the app ever uses.
+
 ### Notes for the next phase
 - **`sql/002` is the contract Phase 9 syncs against.** Column names are the snake_case of
   `lib/db/types.ts`, so `lib/db/repos/base.ts`'s existing camel/snake mapping works unchanged.

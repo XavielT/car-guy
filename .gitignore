@@ -32,6 +32,10 @@ yarn-error.*
 
 # local env files
 .env*.local
+# Supabase keys, including the service-role key, which must never be committed
+# (04-conventions.md). The glob above does not match this name.
+.env.supabase
+.supabase-token
 
 # typescript
 *.tsbuildinfo
