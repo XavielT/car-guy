@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 6 done
+**Started:** 2026-09-17 · **Status:** Phase 7 done
 
 ## Phase status
 
@@ -16,7 +16,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 4 | Maintenance + Historial | ✅ | `imp-17092026/phase-4-maintenance` | Service records, expenses, tasks, documents, unified Historial, reminder resets |
 | 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications |
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
-| 7 | Statistics + reports | ⬜ | | |
+| 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
 | 8 | x-core + account | ⬜ | | |
 | 9 | Sync | ⬜ | | |
 | 10 | Release | ⬜ | | |
@@ -979,3 +979,125 @@ None. `expo-constants` (already present) supplies the version for "Acerca de"; `
   toast rather than a dialog, it is a second host reading the same queue, not a new mechanism.
 - Every `<Pressable>` carries a role as of this phase. Keeping that true is cheaper than another
   sweep — the audit is one `grep -c` per file.
+
+## Phase 7 — Statistics, charts, the PDF report and CSV export   (branch `imp-17092026/phase-7-cifras`)
+
+**Status:** complete
+**Commits:** `9ed98c8`
+
+Note 9, *"con estadísticas y todo"*. Cifras stops being the placeholder Phase 6
+restyled and becomes the screen that answers what the car costs.
+
+### Changed
+- **Domain.** `lib/domain/stats.ts` (new, pure): `periodRanges`, `inRange`, `totalSpend`,
+  `spendByCategory`, `monthlySpendByCategory`, `distanceInRange`, `distancePerMonth`, `costPerKm`,
+  `delta`, `totalCostOfOwnership`, `upcomingCosts`. `lib/domain/history.ts` (new) holds the feed-row
+  label translation that used to live inside the Historial screen.
+- **Queries.** `lib/db/statsQueries.ts` — one UNION over `fuel_log`, `service_record` and `expense`
+  normalised into `SpendRow[]`, plus the reminder evaluation for "próximos gastos".
+- **Charts.** `components/charts/`: `ChartFrame` (measures its own width), `StackedBars`, `Donut`,
+  `EconomyLine`, `DistanceBars`.
+- **Screens.** `app/(tabs)/cifras.tsx` rebuilt; `app/reporte.tsx` and `app/exportar.tsx` are new;
+  `app/dev/seed.tsx` is a `__DEV__`-only fixture writer.
+- **Report.** `lib/report/html.ts`, `lib/report/print.ts` + `print.web.ts`, `lib/report/photo.ts`.
+- **Export.** `lib/export/csv.ts`, `lib/export/deliver.ts`.
+- **Tests.** 228, up from 172: `stats.test.ts` (33), `export/csv.test.ts` (12),
+  `report/html.test.ts` (10).
+
+### Dependencies added / removed
+- **+** `react-native-gifted-charts@1.4.78`, `expo-linear-gradient@~57.0.2` (ADR-11; the gradient
+  package is gifted-charts' peer). `react-native-svg` was already at the bundled 15.15.4.
+- **+** `expo-print@~57.0.2` for the PDF.
+- No Skia, no victory-native, per ADR-11 and the prompt.
+
+### Acceptance criteria
+- [x] `lib/domain/stats.ts` with tests, including hand-verified values for a fixture month. The
+      September 2026 block in `stats.test.ts` carries the arithmetic in its comment — six records
+      totalling **RD$ 25,975.00** over **1,300 km** = **RD$ 19.98/km** — worked out before the code
+      ran rather than pasted from its output.
+- [x] Four chart components, theme-aware, with empty states. Verified on the dev server against a
+      seeded year of history and **on the static export** (`npm run build`, served from `dist`),
+      where two fill-ups produced the stacked bars, the donut and a 45.00 km/gal KPI.
+- [x] Cifras: period selector, KPIs with deltas, four charts, TCO, upcoming costs, report and CSV
+      buttons, and a KPI tap that scrolls to its chart.
+- [x] PDF report per spec: vehicle header, KPIs, category breakdown, TCO, upcoming, the full history
+      table and an economy summary. Rendered to disk and reviewed in the browser — see
+      `docs/qa/phase-7-reporte-pdf.jpg`.
+- [x] CSV export, both files, BOM and CRLF. The downloaded `car-guy-historial-corolla-2026-09-18.csv`
+      was inspected byte by byte: `EF BB BF` header, `\r\n` terminators, `Ágora` and `Taller de
+      Ramón` as correct UTF-8, blank cells where a record has no odometer or amount.
+- [x] `tsc`, `expo lint`, `npm test` (228), `npm run build` (39 routes, 5.1 MB) green.
+- [x] Fuel flow verified again on both the dev server and the static export.
+- [ ] **PDF not shared from Android**, and the CSV not opened in LibreOffice/Excel — see below.
+- [ ] **Android not verified** — still no device or AVD on this machine.
+
+### Decisions made (defaults applied)
+- **The periods are rolling windows, not calendar months.** "Mes" is the last 30 days. A calendar
+  month would compare a half-finished month against a whole one every time the screen is opened
+  before the 30th, and the arrow beside the total would read "↓ 40 %" all month for no reason. The
+  bar chart still uses calendar months, because there the label *is* the month.
+- **`delta` refuses a percentage when the previous window was empty.** 0 → something is a division
+  by zero, and "+∞ %" helps nobody; the tile says "sin comparación" instead.
+- **Up is not always bad.** Spending more is red, driving more is neutral — `invertDelta` on the
+  distance tile, because a month with more kilometres is not a problem to be flagged.
+- **`distancePerMonth` attributes a gap to the month of the later reading.** A reading in March and
+  the next in June puts all of it on June. Spreading it evenly would invent two data points that
+  were never recorded; the chart shows what was written down.
+- **`upcomingCosts` uses the user's own prices only.** A reminder with no completed record
+  contributes nothing rather than a national average — the card is worth reading precisely because
+  every figure in it came from this car.
+- **The report is dark-on-white.** "Tablero nocturno" printed is a page of toner. The identity
+  survives in the type and the accent rule.
+- **Every value interpolated into the report HTML is escaped.** A shop called `Taller & Hijos` is a
+  Tuesday, not an attack, but it would still break the document — and the same escaping stops a
+  pasted note from rewriting the page in the print WebView. Two tests pin it.
+- **CSV uses commas, not semicolons.** Excel in a comma-decimal locale would prefer semicolons, but
+  that is not CSV; every other reader expects commas, so the file uses commas, quotes what needs
+  quoting and writes numbers with a dot.
+- **The economy columns are blank on tanks that have none** — a partial, a baseline, or one flagged
+  `missedPrevious` — rather than repeating the row above. A blank cell is a fact; a repeated one is
+  a lie a spreadsheet will average.
+- **Two CSVs, not one file or a ZIP.** The two shapes have almost no columns in common, and zipping
+  would add a dependency to produce something most people unzip by hand.
+- **The report screen has no live preview.** It would mean a WebView on native and an HTML injection
+  on web — two implementations of a picture of a document the user is one tap from seeing. The
+  summary card says what the report will contain, which is the part worth checking first.
+- **Charts are capped at 560 px and centred.** On a phone the cap never bites; on a desktop browser
+  it stops six bars huddling against the y-axis with half a card of empty space beside them.
+
+### Deviations from the package
+- **`app/dev/seed.tsx` was added**, which the prompt did not ask for. It asks instead for
+  verification "with a realistic dataset (import the sample fixture + add records)", and the two
+  ways to get one were a file picker no harness can drive or forty records typed by hand. The route
+  is `__DEV__`-gated and reachable only by typing it, exactly like `app/dev/tokens.tsx`, and it only
+  ever inserts.
+- **The stats functions take normalised rows rather than repository objects.** `costPerKm(rows,
+  distanceKm)` instead of `costPerKm(fuel, services, expenses, readings, range)`: the five-argument
+  form would have put the category mapping and the range filtering inside every function instead of
+  once in the query layer, and made each one impossible to test with a literal.
+- **The economy chart's series comes from `computeEconomy`, not from the fill-ups.** It has to: a
+  partial tank and a `missedPrevious` fill-up produce no `EconomyPoint`, so the series is shorter
+  than the history.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 7 · charts | `react-native-gifted-charts` spreads React Native responder props onto a DOM node, so the web dev console logs seven "Unknown event handler property" errors per chart render | low | Third-party and **dev-only** — the production bundle logged none, because react-native-web strips the check. Not fixable from the call site; it would need a patch to the package |
+| Phase 7 · Android | The PDF has not been shared from a device, so `printToFileAsync` → `shareAsync` is unexercised | medium | The one path that cannot be checked on web at all. First thing to do when a device is available |
+| Phase 7 · CSV | The file was verified byte by byte but never opened in Excel or LibreOffice | low | The bytes are the part that goes wrong; neither application is installed here |
+| Phase 7 · static export | `expo-router`'s static export needs host rewrites for deep links — `python3 -m http.server` served `/cifras` as a 404 and `/carga/nueva.html` matched `carga/[id]` | low | An artefact of the plain file server, not the app. `vercel.json` handles it in production; worth confirming when PROMPT-10 checks the deploy |
+| Phase 7 · deps | `npx expo install --check` still reports nine packages behind their SDK 57 targets | low | Pre-existing since Phase 6; a bump is out of this phase's scope |
+| Phase 7 · Cifras | `vehicleStats` reads the whole spend history on every period change | low | Correct and fast at a year of data. If a decade of history ever appears, the month buckets want `strftime('%Y-%m')` in SQL |
+
+### Notes for the next phase
+- **`lib/domain/stats.ts` is pure and takes `today` explicitly**, so PROMPT-08's account screen and
+  any future sync report can reuse it without a clock or a database.
+- **`lib/export/deliver.ts` is the shared file hand-off** — `deliverText` for generated content,
+  `deliverFile` for something already on disk. `lib/backup.ts` still has its own older copy of the
+  same logic; folding it in would be a small, safe cleanup.
+- `components/charts/ChartFrame.tsx` is where any chart-wide change belongs — width, padding, empty
+  state — rather than in the four charts.
+- The seeded dataset is one tap at `/dev/seed`; PROMPT-08 and PROMPT-09 will want it for testing
+  sync against a non-empty database.
+- **`reportHtml` escapes everything it interpolates.** Any new field added to the report must go
+  through `escape()` too; the two tests will not catch a field that simply was not added.
