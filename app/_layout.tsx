@@ -197,6 +197,8 @@ function Shell() {
         <Stack.Screen name="notificaciones" options={{ headerShown: true, title: es.routes.notifications }} />
         <Stack.Screen name="precios" options={{ headerShown: true, title: es.routes.prices }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: es.routes.editFillUp }} />
+        <Stack.Screen name="reporte" options={{ headerShown: true, title: es.routes.report }} />
+        <Stack.Screen name="exportar" options={{ headerShown: true, title: es.routes.export }} />
       </Stack>
       {/* Last child, so the dialog sits over every screen the Stack renders. */}
       <AlertHost />

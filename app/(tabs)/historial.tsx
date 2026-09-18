@@ -10,8 +10,8 @@ import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/co
 import { radius, space } from '@/constants/theme';
 import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
-import { FUEL_CATALOG } from '@/lib/fuel';
 import { dateLabel, km as fmtKm, money, monthTitle } from '@/lib/format';
+import { historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -144,7 +144,7 @@ export default function HistorialScreen() {
                 <RecordRow
                   key={`${entry.kind}-${entry.id}`}
                   kind={entry.kind}
-                  title={titleFor(entry)}
+                  title={historyTitle(entry)}
                   meta={metaFor(entry)}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
                   tag={tagFor(entry, economy)}
@@ -209,16 +209,6 @@ function groupByMonth(entries: HistoryEntry[]) {
     group.items.push(entry);
   }
   return groups;
-}
-
-function titleFor(entry: HistoryEntry): string {
-  // The view stores the fuel type in `title` for fill-ups and the inspection
-  // status for checks; both need translating into something a person reads.
-  if (entry.kind === 'combustible') {
-    return FUEL_CATALOG[entry.title as keyof typeof FUEL_CATALOG]?.label ?? entry.title;
-  }
-  if (entry.kind === 'chequeo') return entry.title === 'ok' ? 'Chequeo · todo bien' : 'Chequeo · con fallas';
-  return entry.title || '—';
 }
 
 function metaFor(entry: HistoryEntry): string {

@@ -1,79 +1,88 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DistanceBars } from '@/components/charts/DistanceBars';
+import { Donut } from '@/components/charts/Donut';
+import { EconomyLine } from '@/components/charts/EconomyLine';
+import { StackedBars } from '@/components/charts/StackedBars';
 import { T } from '@/components/T';
-import { SectionHeader, Surface } from '@/components/ui';
-import { categoryColors, space } from '@/constants/theme';
-import {
-  computeEconomy,
-  distanceInLogs,
-  inMonth,
-  latestEconomyInsight,
-  roundMoney,
-  sumSpend,
-} from '@/lib/domain/economy';
-import { km, money, monthTitle } from '@/lib/format';
-import { FUEL_CATALOG, FUEL_ORDER, economyLabel } from '@/lib/fuel';
+import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
+import { space } from '@/constants/theme';
+import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
+import { computeEconomy, latestEconomyInsight } from '@/lib/domain/economy';
+import type { Delta, PeriodKey } from '@/lib/domain/stats';
+import { km, money } from '@/lib/format';
+import { economyLabel } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
-import type { FuelType } from '@/lib/types';
 
-function monthBuckets(fillups: { occurredAt: string; totalDop: number }[]) {
-  const map = new Map<string, number>();
-  for (const f of fillups) {
-    const d = new Date(f.occurredAt);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    map.set(key, (map.get(key) ?? 0) + f.totalDop);
-  }
-  return [...map.entries()]
-    .map(([key, total]) => {
-      const [y, m] = key.split('-').map(Number);
-      return { year: y, month: m, total: roundMoney(total), label: monthTitle(y, m) };
-    })
-    .sort((a, b) => (a.year === b.year ? b.month - a.month : b.year - a.year))
-    .slice(0, 6);
-}
+const PERIODS: PeriodKey[] = ['mes', 'trimestre', 'ano', 'todo'];
 
 /**
- * Restyled onto the tokens this phase, not rebuilt: PROMPT-07 replaces the tiles
- * and bars with the real statistics screen. Every number here is the one the
- * previous version showed.
+ * The statistics screen: what the car costs, how far it goes and how that is
+ * changing — note 9, *"con estadísticas y todo"*.
+ *
+ * Every number comes from `lib/domain/stats.ts` through `vehicleStats`; this
+ * file does no arithmetic beyond picking a colour for an arrow.
  */
 export default function CifrasScreen() {
+  const router = useRouter();
   const { theme } = useTheme();
-  const { vehicleFillups, vehicleExpenses, activeVehicle } = useStore();
+  const { activeVehicle, vehicleFillups, data } = useStore();
+
+  const [period, setPeriod] = useState<PeriodKey>('trimestre');
+  const [stats, setStats] = useState<VehicleStats | null>(null);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const chartOffsets = useRef<Record<string, number>>({});
+
+  const vehicleId = activeVehicle?.id;
+
+  useEffect(() => {
+    if (!vehicleId) return;
+    let cancelled = false;
+    vehicleStats(vehicleId, period)
+      .then((result) => {
+        if (!cancelled) setStats(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId, period, data]);
+
+  // Economy is a fill-up series, not a spend series, so it comes from the store
+  // rather than from the stats query — and from computeEconomy, which drops the
+  // tanks it cannot measure.
+  const points = computeEconomy(vehicleFillups);
+  const insight = latestEconomyInsight(vehicleFillups);
+
+  const scrollTo = useCallback((key: string) => {
+    const y = chartOffsets.current[key];
+    if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+  }, []);
+
+  // useCallback, not a plain arrow: the lint rule that guards refs treats a
+  // closure built during render as a read of `current`, and it is right to —
+  // the stable identity is also one fewer prop change per chart.
+  const rememberOffset = useCallback(
+    (key: string) => (event: { nativeEvent: { layout: { y: number } } }) => {
+      chartOffsets.current[key] = event.nativeEvent.layout.y;
+    },
+    [],
+  );
+
   if (!activeVehicle) return null;
 
-  const now = new Date();
-  const monthLogs = vehicleFillups.filter((f) => inMonth(f.occurredAt, now.getFullYear(), now.getMonth()));
-  const byType = FUEL_ORDER.map((type) => ({
-    type,
-    total: sumSpend(vehicleFillups.filter((f) => f.fuelType === type)),
-  })).filter((x) => x.total > 0);
-  const maxType = Math.max(...byType.map((x) => x.total), 1);
-  const months = monthBuckets(vehicleFillups);
-  const maxMonth = Math.max(...months.map((m) => m.total), 1);
-  const dist = distanceInLogs(vehicleFillups);
-  const allSpend = sumSpend(vehicleFillups);
-  const expenseSpend = roundMoney(vehicleExpenses.reduce((total, expense) => total + expense.amountDop, 0));
-  const combinedSpend = roundMoney(allSpend + expenseSpend);
-  const costKm = dist > 0 ? roundMoney(combinedSpend / dist) : null;
-  const eco = computeEconomy(vehicleFillups);
-  const insight = latestEconomyInsight(vehicleFillups);
-  const avg = eco.length ? eco.reduce((a, p) => a + p.kmPerUnit, 0) / eco.length : null;
+  const empty = stats != null && stats.kpis.spend === 0 && points.length === 0;
   const unit = economyLabel(activeVehicle.defaultFuelType);
-  const odometerRows = [...vehicleFillups].sort(
-    (a, b) => a.odometerKm - b.odometerKm || new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
-  );
-  const totalKm =
-    odometerRows.length > 1
-      ? odometerRows[odometerRows.length - 1].odometerKm - odometerRows[0].odometerKm
-      : 0;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.pad}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
           {es.stats.title}
         </T>
@@ -81,148 +90,232 @@ export default function CifrasScreen() {
           {es.stats.subtitle(activeVehicle.name)}
         </T>
 
-        <Tile label={es.stats.thisMonth} value={money(sumSpend(monthLogs))} />
-        <Tile
-          label={es.stats.totalCost}
-          value={money(combinedSpend)}
-          hint={es.stats.totalCostSplit(money(allSpend), money(expenseSpend))}
+        <Segmented<PeriodKey>
+          options={PERIODS.map((key) => ({ key, label: es.stats.periods[key] }))}
+          value={period}
+          onChange={setPeriod}
         />
-        <Tile
-          label={es.stats.costPerKm}
-          value={costKm != null ? money(costKm) : '—'}
-          hint={dist ? es.stats.costPerKmHint(km(dist)) : es.stats.costPerKmEmpty}
-        />
-        <Tile
-          label={es.stats.kmLogged}
-          value={totalKm ? km(totalKm) : '—'}
-          hint={odometerRows.length ? es.stats.readings(odometerRows.length) : es.stats.readingsEmpty}
-        />
-        <Tile
-          label={es.stats.average}
-          value={avg != null ? `${avg.toFixed(2)} ${unit}` : '—'}
-        />
+        <T face="body" style={[styles.periodHint, { color: theme.text.muted }]}>
+          {es.stats.periodHint[period]}
+        </T>
 
-        {insight ? (
-          <Tile
-            label={es.stats.lastTank}
-            value={es.stats.lastTankValues[insight.status]}
-            hint={es.stats.lastTankHint(`${insight.baseline.toFixed(2)} ${unit}`)}
+        {empty ? (
+          <EmptyState
+            icon="stats-chart-outline"
+            message={es.stats.empty}
+            actionLabel={es.quickActions.fuel}
+            onAction={() => router.push('/carga/nueva')}
           />
         ) : null}
 
-        <SectionHeader title={es.stats.timeline} />
-        {odometerRows.length === 0 ? (
-          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {es.stats.timelineEmpty}
-          </T>
-        ) : (
-          odometerRows.map((fillup, index) => {
-            const previous = odometerRows[index - 1];
-            const distance = previous ? fillup.odometerKm - previous.odometerKm : null;
-            const at = new Date(fillup.occurredAt);
-            return (
-              <View key={fillup.id} style={[styles.timelineRow, { borderBottomColor: theme.line }]}>
-                <View style={[styles.timelineDot, { backgroundColor: theme.accent }]} />
-                <View style={{ flex: 1 }}>
-                  <View style={styles.barHead}>
-                    <T face="monoBold" style={{ color: theme.text.primary, fontSize: 14 }}>
-                      {km(fillup.odometerKm)}
-                    </T>
-                    <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-                      {monthTitle(at.getFullYear(), at.getMonth())}
-                    </T>
-                  </View>
-                  <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: 4 }]}>
-                    {distance != null ? es.stats.timelineStep(km(distance)) : es.stats.timelineStart}
-                  </T>
-                </View>
-              </View>
-            );
-          })
-        )}
+        {stats && !empty ? (
+          <>
+            <View style={styles.kpis}>
+              <Kpi
+                label={es.stats.spend}
+                value={money(stats.kpis.spend)}
+                delta={stats.kpis.spendDelta}
+                onPress={() => scrollTo('byMonth')}
+              />
+              <Kpi
+                label={es.stats.costPerKm}
+                value={stats.kpis.costPerKm != null ? money(stats.kpis.costPerKm) : '—'}
+                hint={stats.kpis.costPerKm == null ? es.stats.noDistance : undefined}
+                onPress={() => scrollTo('byCategory')}
+              />
+              <Kpi
+                label={es.stats.distance}
+                value={stats.kpis.distanceKm > 0 ? km(stats.kpis.distanceKm) : '—'}
+                delta={stats.kpis.distanceDelta}
+                invertDelta
+                onPress={() => scrollTo('km')}
+              />
+              <Kpi
+                label={es.stats.economy}
+                value={points.length ? `${averageOf(points).toFixed(2)} ${unit}` : '—'}
+                onPress={() => scrollTo('economy')}
+              />
+            </View>
 
-        <SectionHeader title={es.stats.byType} />
-        {byType.length === 0 ? (
-          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {es.stats.byTypeEmpty}
-          </T>
-        ) : (
-          byType.map((x) => (
-            <Bar
-              key={x.type}
-              label={FUEL_CATALOG[x.type as FuelType].label}
-              value={money(x.total)}
-              fraction={x.total / maxType}
-              color={categoryColors.combustible}
-            />
-          ))
-        )}
+            <View onLayout={rememberOffset('byMonth')}>
+              <StackedBars months={stats.monthly} />
+            </View>
 
-        <SectionHeader title={es.stats.byMonth} />
-        {months.length === 0 ? (
-          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {es.stats.byMonthEmpty}
-          </T>
-        ) : (
-          months.map((m) => (
-            <Bar
-              key={`${m.year}-${m.month}`}
-              label={m.label}
-              value={money(m.total)}
-              fraction={m.total / maxMonth}
-              color={categoryColors.mantenimiento}
-            />
-          ))
-        )}
+            <View onLayout={rememberOffset('byCategory')}>
+              <Donut totals={stats.byCategory} total={stats.kpis.spend} />
+            </View>
+
+            <View onLayout={rememberOffset('economy')}>
+              <EconomyLine points={points} fuelType={activeVehicle.defaultFuelType} />
+            </View>
+
+            <View onLayout={rememberOffset('km')}>
+              <DistanceBars months={stats.monthlyDistance} />
+            </View>
+
+            {insight ? (
+              <Surface style={styles.card}>
+                <T face="medium" style={[styles.cardLabel, { color: theme.text.muted }]}>
+                  {es.stats.lastTank.toUpperCase()}
+                </T>
+                <T face="monoBold" style={[styles.cardValue, { color: theme.text.primary }]}>
+                  {es.stats.lastTankValues[insight.status]}
+                </T>
+                <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
+                  {es.stats.lastTankHint(`${insight.baseline.toFixed(2)} ${unit}`)}
+                </T>
+              </Surface>
+            ) : null}
+
+            {stats.ownership ? (
+              <>
+                <SectionHeader title={es.stats.ownership} caption={es.stats.ownershipCaption} />
+                <Surface>
+                  <Row label={es.stats.ownershipPurchase} value={money(stats.ownership.purchasePrice)} />
+                  {stats.ownership.soldPrice != null ? (
+                    <Row label={es.stats.ownershipSold} value={`− ${money(stats.ownership.soldPrice)}`} />
+                  ) : null}
+                  <Row label={es.stats.ownershipSpend} value={money(stats.ownership.spend)} />
+                  <View style={[styles.rule, { backgroundColor: theme.line }]} />
+                  <Row label={es.stats.ownershipTotal} value={money(stats.ownership.total)} strong />
+                  {stats.ownership.costPerMonth != null ? (
+                    <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
+                      {es.stats.ownershipPerMonth}: {money(stats.ownership.costPerMonth)} ·{' '}
+                      {es.stats.ownershipMonths(stats.ownership.monthsOwned)}
+                    </T>
+                  ) : null}
+                </Surface>
+              </>
+            ) : null}
+
+            <SectionHeader title={es.stats.upcoming} caption={es.stats.upcomingCaption} />
+            <Surface>
+              {stats.upcoming.items.length === 0 ? (
+                <T face="body" style={{ color: theme.text.muted, fontSize: 13, lineHeight: 19 }}>
+                  {es.stats.upcomingEmpty}
+                </T>
+              ) : (
+                <>
+                  {stats.upcoming.items.map((item) => (
+                    <View key={item.id} style={styles.upcomingRow}>
+                      <View style={{ flex: 1 }}>
+                        <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
+                          {item.title}
+                        </T>
+                        <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>
+                          {es.stats.upcomingBasis[item.basis]}
+                        </T>
+                      </View>
+                      <T face="mono" style={{ color: theme.text.primary, fontSize: 13 }}>
+                        {money(item.amountDop)}
+                      </T>
+                    </View>
+                  ))}
+                  <View style={[styles.rule, { backgroundColor: theme.line }]} />
+                  <Row label={es.stats.total} value={money(stats.upcoming.total)} strong />
+                </>
+              )}
+            </Surface>
+
+            <View style={styles.actions}>
+              <PrimaryButton
+                label={es.stats.report}
+                onPress={() => router.push({ pathname: '/reporte', params: { period } })}
+              />
+              <GhostButton label={es.stats.csv} onPress={() => router.push('/exportar')} />
+            </View>
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  const { theme } = useTheme();
-  return (
-    <Surface style={styles.tile}>
-      <T face="medium" style={[styles.tileLabel, { color: theme.text.muted }]}>
-        {label.toUpperCase()}
-      </T>
-      <T face="monoBold" style={[styles.tileValue, { color: theme.text.primary }]}>
-        {value}
-      </T>
-      {hint ? (
-        <T face="body" style={[styles.hint, { color: theme.text.secondary, marginTop: space.sm }]}>
-          {hint}
-        </T>
-      ) : null}
-    </Surface>
-  );
+function averageOf(points: { kmPerUnit: number }[]): number {
+  return points.reduce((sum, p) => sum + p.kmPerUnit, 0) / points.length;
 }
 
-function Bar({
+/**
+ * One headline number. Tapping it scrolls to the chart it came from, which is
+ * the whole reason a tile is a button rather than a label.
+ *
+ * `invertDelta` exists because up is not always good: spending more is worse,
+ * driving more is neither, so distance gets a neutral colour rather than the
+ * red that a rise in spend earns.
+ */
+function Kpi({
   label,
   value,
-  fraction,
-  color,
+  hint,
+  delta,
+  invertDelta,
+  onPress,
 }: {
   label: string;
   value: string;
-  fraction: number;
-  color: string;
+  hint?: string;
+  delta?: Delta | null;
+  invertDelta?: boolean;
+  onPress: () => void;
 }) {
   const { theme } = useTheme();
+
+  const deltaColor =
+    !delta || delta.direction === 'flat' || invertDelta
+      ? theme.text.muted
+      : delta.direction === 'up'
+        ? theme.status.urgente
+        : theme.status.ok;
+
+  const deltaText = !delta
+    ? null
+    : delta.percent == null
+      ? delta.direction === 'up'
+        ? es.stats.deltaNew
+        : null
+      : delta.direction === 'flat'
+        ? es.stats.deltaFlat
+        : delta.direction === 'up'
+          ? es.stats.deltaUp(delta.percent)
+          : es.stats.deltaDown(delta.percent);
+
   return (
-    <View style={styles.barBlock}>
-      <View style={styles.barHead}>
-        <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-          {label}
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
+      style={({ pressed }) => [styles.kpi, { opacity: pressed ? 0.85 : 1 }]}>
+      <Surface>
+        <T face="medium" style={[styles.cardLabel, { color: theme.text.muted }]}>
+          {label.toUpperCase()}
         </T>
-        <T face="mono" style={{ color: theme.text.secondary, fontSize: 13 }}>
+        <T face="monoBold" style={[styles.kpiValue, { color: theme.text.primary }]} numberOfLines={1}>
           {value}
         </T>
-      </View>
-      <View style={[styles.track, { backgroundColor: theme.bg.raised }]}>
-        <View style={[styles.fill, { width: `${Math.max(fraction, 0.02) * 100}%`, backgroundColor: color }]} />
-      </View>
+        {deltaText ? (
+          <T face="body" style={{ color: deltaColor, fontSize: 11, marginTop: 4 }}>
+            {deltaText} {es.stats.vsPrevious}
+          </T>
+        ) : hint ? (
+          <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: 4 }}>
+            {hint}
+          </T>
+        ) : null}
+      </Surface>
+    </Pressable>
+  );
+}
+
+function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  const { theme } = useTheme();
+  return (
+    <View style={styles.row}>
+      <T face={strong ? 'semibold' : 'body'} style={{ color: strong ? theme.text.primary : theme.text.secondary, fontSize: 14 }}>
+        {label}
+      </T>
+      <T face="monoBold" style={{ color: theme.text.primary, fontSize: strong ? 16 : 14 }}>
+        {value}
+      </T>
     </View>
   );
 }
@@ -232,19 +325,16 @@ const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 48 },
   h: { fontSize: 34 },
   sub: { marginTop: 6, marginBottom: space.lg, lineHeight: 22 },
-  tile: { marginBottom: space.md },
-  tileLabel: { fontSize: 11, letterSpacing: 0.9 },
-  tileValue: { fontSize: 26, marginTop: space.sm },
-  hint: { fontSize: 12, lineHeight: 18 },
-  barBlock: { marginBottom: space.md },
-  barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  timelineRow: {
-    flexDirection: 'row',
-    gap: space.md,
-    paddingVertical: space.md,
-    borderBottomWidth: 1,
-  },
-  timelineDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5 },
-  track: { height: 10, borderRadius: 999, overflow: 'hidden' },
-  fill: { height: 10, borderRadius: 999 },
+  periodHint: { fontSize: 11, marginTop: space.sm, marginBottom: space.lg },
+  kpis: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginBottom: space.md },
+  kpi: { flexGrow: 1, flexBasis: 150 },
+  kpiValue: { fontSize: 22, marginTop: 6 },
+  cardLabel: { fontSize: 11, letterSpacing: 0.9 },
+  cardValue: { fontSize: 22, marginTop: 6 },
+  cardHint: { fontSize: 12, marginTop: space.sm, lineHeight: 18 },
+  card: { marginBottom: space.md },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  rule: { height: 1, marginVertical: space.sm },
+  upcomingRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 6 },
+  actions: { marginTop: space.xl, gap: space.sm },
 });
