@@ -37,6 +37,10 @@ yarn-error.*
 .env.supabase
 .supabase-token
 
+# Scratch the Supabase CLI writes when it talks to the project (linked-project
+# id, version cache). Not configuration — the project ref lives in tools/.
+supabase/.temp/
+
 # Personal permission grants for this machine — notably permission to apply
 # migrations to x-core, which is Music Hub's production database. That is a
 # grant to this checkout, not something that should travel to a clone.

@@ -76,6 +76,7 @@ export const es = {
     updatedYesterday: 'actualizado ayer',
     updatedDaysAgo: (days: number) => `actualizado hace ${days} días`,
     allGood: 'Todo al día',
+    pendingLabel: 'Sin subir',
     pending: (n: number) => (n === 1 ? '1 recordatorio pendiente' : `${n} recordatorios pendientes`),
     insightLow: 'Rendimiento bajo',
     insightGreat: 'Rendimiento excelente',
@@ -577,6 +578,9 @@ export const es = {
 
     data: 'Datos',
     dataCaption: 'Todo vive en este dispositivo. No hay cuenta ni nube.',
+    // Same section, other truth: with an account the phone is still where the
+    // app reads from, but it is no longer the only copy.
+    dataCaptionSynced: 'Todo vive en este dispositivo y se respalda en tu cuenta.',
     backup: 'Crear respaldo JSON',
     restore: 'Restaurar o importar respaldo',
     restoreCaption:
@@ -696,6 +700,39 @@ export const es = {
     empty: 'Registra una carga o un gasto y aquí aparecen tus cifras.',
   },
 
+  sync: {
+    signedOut: 'Inicia sesión para sincronizar.',
+    never: 'Nunca',
+    syncing: 'Sincronizando…',
+    syncNow: 'Sincronizar ahora',
+    pendingLabel: 'Sin subir',
+    pending: (n: number) => (n === 1 ? '1 cambio sin subir' : `${n} cambios sin subir`),
+    upToDate: 'Todo subido',
+    lastSync: (when: string) => `Última sincronización: ${when}`,
+    wipeCloud: 'Borrar datos en la nube',
+    wipeCloudCaption:
+      'Borra tus datos del servidor y cierra la sesión. Este teléfono no se toca — lo que está aquí se queda aquí.',
+    wipeCloudTitle: 'Borrar datos en la nube',
+    wipeCloudBody:
+      'Se van del servidor tus vehículos, cargas, mantenimientos, chequeos y fotos, y se cierra la sesión en este teléfono para que no vuelvan a subirse. Lo que está guardado aquí no se toca.',
+    wipeCloudConfirm: 'Esto no se puede deshacer. ¿Seguro?',
+    wipeCloudDone: (n: number) =>
+      `Listo. Borramos ${n} registros del servidor y cerramos la sesión.`,
+    wipeCloudFailed: 'No se pudo borrar en el servidor. Intenta de nuevo.',
+    doneTitle: 'Listo',
+    doneBody: (pushed: number, pulled: number) =>
+      `Subimos ${pushed} y bajamos ${pulled}.`,
+    firstLoginTitle: 'Sincronizando tu garaje…',
+    firstLoginBody: 'Esto pasa una sola vez. Puedes seguir usando la app.',
+
+    errors: {
+      network: 'Sin conexión. Lo intentamos de nuevo solo.',
+      expired: 'La sesión venció. Inicia sesión de nuevo — tus datos siguen aquí.',
+      forbidden: 'El servidor rechazó el cambio. Tus datos siguen guardados en el teléfono.',
+      generic: 'No se pudo sincronizar. Lo intentamos de nuevo solo.',
+    },
+  },
+
   account: {
     title: 'Cuenta',
     subtitle: 'Opcional. La app funciona igual sin ella.',
@@ -801,6 +838,16 @@ export const es = {
     download: 'Descargar CSV',
     share: 'Compartir CSV',
     rows: (n: number) => (n === 1 ? '1 fila' : `${n} filas`),
+    wipeCloud: 'Borrar datos en la nube',
+    wipeCloudCaption:
+      'Borra tus datos del servidor y cierra la sesión. Este teléfono no se toca — lo que está aquí se queda aquí.',
+    wipeCloudTitle: 'Borrar datos en la nube',
+    wipeCloudBody:
+      'Se van del servidor tus vehículos, cargas, mantenimientos, chequeos y fotos, y se cierra la sesión en este teléfono para que no vuelvan a subirse. Lo que está guardado aquí no se toca.',
+    wipeCloudConfirm: 'Esto no se puede deshacer. ¿Seguro?',
+    wipeCloudDone: (n: number) =>
+      `Listo. Borramos ${n} registros del servidor y cerramos la sesión.`,
+    wipeCloudFailed: 'No se pudo borrar en el servidor. Intenta de nuevo.',
     doneTitle: 'Listo',
     sharedBody: (file: string) => `Compartimos ${file}.`,
     downloadedBody: (file: string) => `Descargamos ${file}.`,

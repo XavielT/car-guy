@@ -17,12 +17,14 @@ import { Suspense, useEffect, useSyncExternalStore } from 'react';
 import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 
 import { AlertHost } from '@/components/AlertHost';
+import { FirstSyncBanner } from '@/components/FirstSyncBanner';
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
 import { es } from '@/lib/i18n/es';
 import { configure as configureNotifications, resync } from '@/lib/notifications';
 import { StoreProvider, useStore } from '@/lib/store';
+import { useSyncTriggers } from '@/lib/sync/triggers';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
 export { ErrorBoundary } from 'expo-router';
@@ -142,6 +144,7 @@ function Booting() {
 function Shell() {
   const { theme, scheme } = useTheme();
   useNotifications();
+  useSyncTriggers();
 
   return (
     <>
@@ -201,6 +204,7 @@ function Shell() {
         <Stack.Screen name="exportar" options={{ headerShown: true, title: es.routes.export }} />
         <Stack.Screen name="cuenta" options={{ headerShown: true, title: es.routes.account }} />
       </Stack>
+      <FirstSyncBanner />
       {/* Last child, so the dialog sits over every screen the Stack renders. */}
       <AlertHost />
     </>

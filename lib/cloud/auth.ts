@@ -1,7 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
-import { settings as settingsRepo } from '../db/repos';
 import { es } from '../i18n/es';
 import { getSupabase, isCloudConfigured } from './supabase';
 
@@ -17,9 +16,6 @@ import { getSupabase, isCloudConfigured } from './supabase';
 /** The `app` flag the invite trigger on x-core reads to let Car Guy signups through. */
 export const APP_TAG = 'carguy';
 
-/** Where the signed-in user id is kept locally, for Phase 9's sync to key on. */
-const AUTH_USER_KEY = 'auth_user_id';
-const LAST_SYNC_KEY = 'last_sync_at';
 
 export type AuthResult = { ok: true } | { ok: false; message: string };
 
@@ -107,11 +103,18 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 }
 
 /**
- * Signs out and forgets which account this device was using.
+ * Signs out. Nothing else.
  *
  * The vehicles, fill-ups and photos stay. Wiping them here would make signing
  * out a destructive act, and the whole point of ADR-05 is that the account is
  * optional — something optional cannot take your data with it when it leaves.
+ *
+ * It also leaves `auth_user_id` and the pull cursors alone, which is less
+ * obvious. That id is how `resetCursorsIfAccountChanged` tells "the same person
+ * signed back in" from "someone else signed in here": clearing it would make
+ * every sign-in look like a first one, and a *different* account would then
+ * inherit the previous account's cursors and never see its own rows. The
+ * cursors are only wiped when the account actually changes.
  */
 export async function signOut(): Promise<AuthResult> {
   const supabase = getSupabase();
@@ -119,9 +122,6 @@ export async function signOut(): Promise<AuthResult> {
 
   const { error } = await supabase.auth.signOut();
   if (error) return { ok: false, message: translateAuthError(error.message) };
-
-  await settingsRepo.set(AUTH_USER_KEY, null);
-  await settingsRepo.set(LAST_SYNC_KEY, null);
   return { ok: true };
 }
 
@@ -188,9 +188,4 @@ export function useSession(): SessionState {
   }, []);
 
   return { session, ready, configured: isCloudConfigured };
-}
-
-/** Records the signed-in user locally, so Phase 9 knows whose rows these are. */
-export async function rememberUser(userId: string): Promise<void> {
-  await settingsRepo.set(AUTH_USER_KEY, userId);
 }

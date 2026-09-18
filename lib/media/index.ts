@@ -97,20 +97,46 @@ export async function pickPhoto(options: PickOptions): Promise<Media | null> {
 export async function mediaUri(item: Media | null): Promise<string | null> {
   if (!item) return null;
 
+  // A row pulled from another device has metadata and no bytes: PostgREST
+  // carries the former, Storage the latter. This is where the latter arrives —
+  // on first display rather than during the sync, so signing in to a garage
+  // with two hundred photos does not pull two hundred JPEGs first.
+  const resolved = (await ensureBytes(item)) ?? item;
+
   if (Platform.OS === 'web') {
-    if (!item.blob) return null;
+    if (!resolved.blob) return null;
     // Copied into a fresh Uint8Array so its buffer is a plain ArrayBuffer: the
     // driver may hand back a view over a SharedArrayBuffer, which Blob rejects.
-    const source = item.blob instanceof Uint8Array ? item.blob : new Uint8Array(item.blob);
+    const source =
+      resolved.blob instanceof Uint8Array ? resolved.blob : new Uint8Array(resolved.blob);
     const bytes = new Uint8Array(source.length);
     bytes.set(source);
-    return URL.createObjectURL(new Blob([bytes], { type: item.mime || 'image/jpeg' }));
+    return URL.createObjectURL(new Blob([bytes], { type: resolved.mime || 'image/jpeg' }));
   }
 
-  if (!item.relPath) return null;
+  if (!resolved.relPath) return null;
   const { File, Paths } = await import('expo-file-system');
-  const file = new File(Paths.document, item.relPath);
+  const file = new File(Paths.document, resolved.relPath);
   return file.exists ? file.uri : null;
+}
+
+/**
+ * Downloads the bytes if they are missing and the cloud has them, and hands
+ * back the re-read row.
+ *
+ * Returns null when there was nothing to do, so the caller keeps the row it
+ * already had rather than paying for a second query on every render.
+ */
+async function ensureBytes(item: Media): Promise<Media | null> {
+  if (!item.remotePath) return null;
+  // On web the row itself settles it. On native `relPath` may be set and the
+  // file still absent — it is a synced column naming where the *other* device
+  // kept it — so the stat happens inside ensureMediaBytes.
+  if (Platform.OS === 'web' && item.blob) return null;
+
+  const { ensureMediaBytesById } = await import('../sync/mediaBytes');
+  if ((await ensureMediaBytesById(item.id)) !== 'downloaded') return null;
+  return mediaRepo.getById(item.id);
 }
 
 /** Reads one media row by id, or null. */

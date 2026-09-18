@@ -17,8 +17,11 @@ import {
 import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { resetPassword, signIn, signOut, signUp, useSession } from '@/lib/cloud/auth';
-import { FEATURE_SYNC, IS_DEV } from '@/lib/flags';
+import { FEATURE_SYNC } from '@/lib/flags';
+import { dateLabel } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
+import { useSync } from '@/lib/sync/useSync';
+import { wipeCloudData } from '@/lib/sync/wipeCloud';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -37,6 +40,7 @@ export default function CuentaScreen() {
   const { theme } = useTheme();
   const { resetAll } = useStore();
   const { session, ready, configured } = useSession();
+  const { status, pending, lastSyncAt, running, syncNow } = useSync();
 
   const [mode, setMode] = useState<Mode>('signIn');
   const [email, setEmail] = useState('');
@@ -69,6 +73,37 @@ export default function CuentaScreen() {
     setBusy(false);
     if (!result.ok) return setError(result.message);
     Alert.alert(es.account.resetSentTitle, es.account.resetSentBody(email.trim()));
+  }
+
+  /**
+   * Two confirmations, not one. The local wipe can be undone by syncing again;
+   * this one cannot be undone by anything, so it asks twice.
+   */
+  function confirmWipeCloud() {
+    Alert.alert(es.sync.wipeCloudTitle, es.sync.wipeCloudBody, [
+      { text: es.common.cancel, style: 'cancel' },
+      {
+        text: es.common.delete,
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert(es.sync.wipeCloudTitle, es.sync.wipeCloudConfirm, [
+            { text: es.common.cancel, style: 'cancel' },
+            {
+              text: es.common.delete,
+              style: 'destructive',
+              onPress: () => {
+                void (async () => {
+                  const result = await wipeCloudData(es.account.notConfigured);
+                  Alert.alert(
+                    es.sync.doneTitle,
+                    result.ok ? es.sync.wipeCloudDone(result.deleted) : es.sync.wipeCloudFailed,
+                  );
+                })();
+              },
+            },
+          ]),
+      },
+    ]);
   }
 
   async function handleSignOut() {
@@ -107,14 +142,38 @@ export default function CuentaScreen() {
                 {session.user.email}
               </T>
               <View style={[styles.rule, { backgroundColor: theme.line }]} />
-              <KeyValueRow label={es.account.lastSync} value={es.account.lastSyncNever} />
-              {/* Only in dev: promising a sync that has not shipped would be a
-                  lie with a deadline attached. */}
-              {IS_DEV && !FEATURE_SYNC ? (
+
+              <KeyValueRow
+                label={es.account.lastSync}
+                value={lastSyncAt ? dateLabel(lastSyncAt) : es.sync.never}
+              />
+              <KeyValueRow
+                label={es.sync.pendingLabel}
+                value={pending === 0 ? es.sync.upToDate : es.sync.pending(pending)}
+              />
+
+              {status.state === 'error' ? (
+                <T
+                  face="body"
+                  accessibilityRole="alert"
+                  style={[styles.syncError, { color: theme.danger, backgroundColor: theme.statusBg.vencido }]}>
+                  {status.message}
+                </T>
+              ) : null}
+
+              {FEATURE_SYNC ? (
+                <View style={{ marginTop: space.md }}>
+                  <PrimaryButton
+                    label={running ? es.sync.syncing : es.sync.syncNow}
+                    onPress={() => void syncNow('manual')}
+                    disabled={running}
+                  />
+                </View>
+              ) : (
                 <T face="body" style={[styles.cardBody, { color: theme.text.muted }]}>
                   {es.account.syncSoon}
                 </T>
-              ) : null}
+              )}
             </Surface>
 
             <GhostButton label={es.account.signOut} onPress={handleSignOut} />
@@ -140,6 +199,15 @@ export default function CuentaScreen() {
                 ])
               }
             />
+
+            {FEATURE_SYNC ? (
+              <>
+                <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
+                  {es.sync.wipeCloudCaption}
+                </T>
+                <GhostButton danger label={es.sync.wipeCloud} onPress={confirmWipeCloud} />
+              </>
+            ) : null}
           </>
         ) : (
           <>
@@ -242,6 +310,13 @@ const styles = StyleSheet.create({
   error: {
     fontSize: 13,
     marginBottom: space.md,
+    padding: space.md,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  syncError: {
+    fontSize: 13,
+    marginTop: space.md,
     padding: space.md,
     borderRadius: 14,
     overflow: 'hidden',

@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+
+import type { Database } from './database.types';
 import { Platform } from 'react-native';
 
 /**
@@ -63,7 +65,7 @@ const webStorage = {
  * the schema sits in more than once, and `ReturnType` cannot be wrong about it.
  */
 function createCarGuyClient(projectUrl: string, key: string) {
-  return createClient(projectUrl, key, {
+  return createClient<Database, 'carguy'>(projectUrl, key, {
     db: { schema: 'carguy' },
     auth: {
       storage: Platform.OS === 'web' ? webStorage : AsyncStorage,
