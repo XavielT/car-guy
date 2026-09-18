@@ -578,6 +578,9 @@ export const es = {
 
     data: 'Datos',
     dataCaption: 'Todo vive en este dispositivo. No hay cuenta ni nube.',
+    // Same section, other truth: with an account the phone is still where the
+    // app reads from, but it is no longer the only copy.
+    dataCaptionSynced: 'Todo vive en este dispositivo y se respalda en tu cuenta.',
     backup: 'Crear respaldo JSON',
     restore: 'Restaurar o importar respaldo',
     restoreCaption:

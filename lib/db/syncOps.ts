@@ -195,21 +195,6 @@ export async function mediaNeedingUpload(): Promise<LocalRow[]> {
 }
 
 /**
- * Media rows that came down from another device: the metadata arrived through
- * PostgREST, the bytes did not. On web that shows up as a null `blob`; on
- * native the file is simply absent, which only the filesystem can answer, so
- * the caller filters again after this.
- */
-export async function mediaNeedingDownload(webBlobs: boolean): Promise<LocalRow[]> {
-  const db = await getDb();
-  return db.getAllAsync<LocalRow>(
-    `SELECT * FROM media
-      WHERE remote_path IS NOT NULL AND deleted_at IS NULL
-        ${webBlobs ? 'AND blob IS NULL' : ''}`,
-  );
-}
-
-/**
  * Records where the bytes landed in Storage.
  *
  * Deliberately leaves `synced_at` alone rather than clearing it: the row is

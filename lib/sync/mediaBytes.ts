@@ -1,12 +1,9 @@
 import { Platform } from 'react-native';
 
-import {
-  mediaNeedingDownload,
-  mediaNeedingUpload,
-  saveMediaBytes,
-  setMediaRemotePath,
-  type LocalRow,
-} from '../db/syncOps';
+import { getSupabase } from '../cloud/supabase';
+
+import { media as mediaRepo } from '../db/repos';
+import { mediaNeedingUpload, saveMediaBytes, setMediaRemotePath, type LocalRow } from '../db/syncOps';
 
 /**
  * The half of media sync that PostgREST cannot carry.
@@ -15,16 +12,26 @@ import {
  * `carguy-media` bucket under `<user_id>/<media_id>.<ext>`, which is the one
  * path shape the four Storage policies in `sql/004` allow (ADR-10).
  *
- * Both directions are best-effort and per-row. A photo that fails to upload
- * leaves `remote_path` null and is retried on the next sync; a photo that fails
- * to download leaves the row without bytes and the screen shows the placeholder
- * it already shows for a photo whose file went missing. Neither is allowed to
- * fail the sync — losing a whole run of maintenance history because one JPEG
- * timed out is the wrong trade.
+ * The two directions are deliberately asymmetric. Uploads are **eager**, inside
+ * the sync: bytes this device is the only copy of are the ones worth hurrying.
+ * Downloads are **lazy**, on first display: a phone signing in to a garage with
+ * two hundred photos should not pull two hundred JPEGs over cellular before the
+ * user has looked at one.
+ *
+ * Both are best-effort and per-row. A photo that fails to upload leaves
+ * `remote_path` null and is retried on the next sync; a photo that fails to
+ * download shows the same placeholder the screen already shows for a photo
+ * whose file went missing. Neither is allowed to fail the sync — losing a whole
+ * run of maintenance history because one JPEG timed out is the wrong trade.
  */
 
 const BUCKET = 'carguy-media';
 
+/**
+ * Just the upload surface, so the engine's client satisfies it structurally and
+ * a test can pass a two-line fake. The download side reaches for the real
+ * client itself, because it runs from a render rather than from a sync.
+ */
 type StorageClient = {
   storage: {
     from: (bucket: string) => {
@@ -33,7 +40,6 @@ type StorageClient = {
         body: Blob,
         options?: { contentType?: string; upsert?: boolean },
       ) => Promise<{ error: unknown }>;
-      download: (path: string) => Promise<{ data: Blob | null; error: unknown }>;
     };
   };
 };
@@ -107,52 +113,75 @@ export async function uploadMediaBytes(supabase: StorageClient, userId: string):
 }
 
 /**
- * Fetches the bytes for rows that arrived from another device.
+ * Fetches one photo's bytes, on the first attempt to display it.
  *
- * Runs **after** the pull, because the rows it looks for are the ones the pull
- * just wrote.
+ * Called from `mediaUri` when a row has a `remote_path` but no local bytes —
+ * which is exactly the state a pull leaves rows in, since PostgREST carries the
+ * metadata and nothing else. Returns true when bytes are now local.
+ *
+ * Idempotent and safe to call on a row that already has its bytes. It reports
+ * which of the three happened, because the caller only needs to re-read the row
+ * when bytes were actually written — `present` must not cost a second query on
+ * every render.
  */
-export async function downloadMediaBytes(supabase: StorageClient): Promise<number> {
-  const web = Platform.OS === 'web';
-  const rows = await mediaNeedingDownload(web);
-  let downloaded = 0;
+export type BytesState = 'present' | 'downloaded' | 'missing';
 
+export async function ensureMediaBytes(row: LocalRow): Promise<BytesState> {
+  const remotePath = row.remote_path as string | null;
+  if (!remotePath) return 'missing';
+
+  const supabase = getSupabase();
+  if (!supabase) return 'missing';
+
+  const web = Platform.OS === 'web';
+  const relPath = localPathFor(row);
   const fs = web ? null : await import('expo-file-system');
 
-  for (const row of rows) {
-    try {
-      const relPath = localPathFor(row);
-
-      // On native the SQL cannot tell whether the file is there, so this is the
-      // filter: a row whose file already exists needs nothing.
-      if (fs) {
-        const existing = new fs.File(fs.Paths.document, relPath);
-        if (existing.exists) continue;
-      }
-
-      const { data, error } = await supabase.storage
-        .from(BUCKET)
-        .download(row.remote_path as string);
-      if (error || !data) continue;
-
-      const bytes = new Uint8Array(await data.arrayBuffer());
-
-      if (web) {
-        await saveMediaBytes(row.id as string, bytes, null);
-      } else if (fs) {
-        const file = new fs.File(fs.Paths.document, relPath);
-        // `intermediates` covers the per-vehicle folder, which will not exist
-        // on a device that has never held a photo for that vehicle.
-        file.create({ intermediates: true, overwrite: true });
-        file.write(bytes);
-        await saveMediaBytes(row.id as string, null, relPath);
-      }
-
-      downloaded += 1;
-    } catch {
-      // Same bargain as the upload: the metadata is safe, the bytes retry.
+  try {
+    // On web the SQL row already says whether the blob is there; on native only
+    // the filesystem can answer.
+    // On native a pulled row carries `rel_path` — it is a cloud column, so it
+    // names where the *other* device kept the file. Only a stat can say whether
+    // this device has it.
+    if (web) {
+      if (row.blob) return 'present';
+    } else if (fs) {
+      if (new fs.File(fs.Paths.document, relPath).exists) return 'present';
     }
-  }
 
-  return downloaded;
+    const { data, error } = await supabase.storage.from(BUCKET).download(remotePath);
+    if (error || !data) return 'missing';
+
+    const bytes = new Uint8Array(await data.arrayBuffer());
+
+    if (web) {
+      await saveMediaBytes(row.id as string, bytes, null);
+    } else if (fs) {
+      const file = new fs.File(fs.Paths.document, relPath);
+      // `intermediates` covers the per-vehicle folder, which will not exist on
+      // a device that has never held a photo for that vehicle.
+      file.create({ intermediates: true, overwrite: true });
+      file.write(bytes);
+      await saveMediaBytes(row.id as string, null, relPath);
+    }
+
+    return 'downloaded';
+  } catch {
+    return 'missing';
+  }
+}
+
+/** `ensureMediaBytes` by id, for callers holding only the id. */
+export async function ensureMediaBytesById(mediaId: string): Promise<BytesState> {
+  const row = await mediaRepo.getById(mediaId);
+  if (!row) return 'missing';
+  // The repo hands back camelCase; the byte helpers read the column names.
+  return ensureMediaBytes({
+    id: row.id,
+    owner_id: row.ownerId,
+    mime: row.mime,
+    rel_path: row.relPath ?? null,
+    remote_path: row.remotePath ?? null,
+    blob: row.blob ?? null,
+  });
 }

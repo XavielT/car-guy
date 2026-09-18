@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 
-import { rememberUser, useSession } from '../cloud/auth';
+import { useSession } from '../cloud/auth';
 import { FEATURE_SYNC } from '../flags';
 import { useStore } from '../store';
-import { sync } from './engine';
+import { resetCursorsIfAccountChanged, sync } from './engine';
 
 /**
  * When a sync happens.
@@ -41,8 +41,12 @@ export function useSyncTriggers(): void {
 
   useEffect(() => {
     if (!FEATURE_SYNC || !userId) return;
-    void rememberUser(userId).catch(() => {});
-    void sync('first-login');
+    // The reset must land before the pull, not beside it: a pull that started
+    // on the old account's cursor would return nothing and then write a cursor
+    // of its own, hiding the new garage for good.
+    void resetCursorsIfAccountChanged(userId)
+      .then(() => sync('first-login'))
+      .catch(() => {});
   }, [userId]);
 
   useEffect(() => {

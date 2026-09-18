@@ -11,7 +11,7 @@ import {
   toCloudShape,
 } from '../db/syncOps';
 import { es } from '../i18n/es';
-import { downloadMediaBytes, uploadMediaBytes } from './mediaBytes';
+import { uploadMediaBytes } from './mediaBytes';
 import { batch, decide, hasMore, nextCursor, normaliseTimestamp } from './merge';
 import {
   BOOLEAN_COLUMNS,
@@ -54,6 +54,7 @@ export type SyncResult = {
 };
 
 const LAST_SYNC_KEY = 'last_sync_at';
+const AUTH_USER_KEY = 'auth_user_id';
 
 /**
  * One sync at a time.
@@ -85,6 +86,36 @@ export async function pendingCount(): Promise<number> {
     total += await countDirty(table.name);
   }
   return total;
+}
+
+/**
+ * Resets the pull cursors when a *different* account signs in on this device.
+ *
+ * A cursor is a high-water mark in `server_updated_at`, and that clock is
+ * shared by every row in the table regardless of who owns it. Signing in as
+ * someone else with the previous account's cursor still in place would ask the
+ * server for rows newer than a timestamp the new account has nothing past — so
+ * the first pull would return nothing and the new garage would never arrive.
+ *
+ * Only on a *change* of user. Signing out and back in as the same person must
+ * keep its cursors (ADR-05): re-pulling a whole history because someone
+ * re-authenticated is bandwidth spent to reach the state already on disk.
+ *
+ * Returns true when it reset, so the caller can report a full first sync.
+ */
+export async function resetCursorsIfAccountChanged(userId: string): Promise<boolean> {
+  const previous = await settingsRepo.get<string | null>(AUTH_USER_KEY, null);
+  if (previous === userId) return false;
+
+  if (previous) {
+    for (const table of SYNC_TABLES) {
+      await settingsRepo.set(cursorKey(table.name), null);
+    }
+    await settingsRepo.set(LAST_SYNC_KEY, null);
+  }
+
+  await settingsRepo.set(AUTH_USER_KEY, userId);
+  return Boolean(previous);
 }
 
 export async function sync(reason: SyncReason = 'manual'): Promise<SyncResult> {
@@ -126,9 +157,8 @@ async function run(reason: SyncReason): Promise<SyncResult> {
       pulled += await pullTable(supabase, table.name);
     }
 
-    // After the pull, because the rows whose bytes are missing are the rows the
-    // pull just wrote.
-    await downloadMediaBytes(supabase);
+    // No download step: bytes come down lazily, on the first attempt to display
+    // the photo (see lib/sync/mediaBytes.ts).
 
     const finishedAt = now();
     await settingsRepo.set(LAST_SYNC_KEY, finishedAt);

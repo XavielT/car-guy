@@ -173,7 +173,12 @@ export default function MasScreen() {
           }
         />
 
-        <SectionHeader title={es.more.data} caption={es.more.dataCaption} />
+        <SectionHeader
+          title={es.more.data}
+          caption={
+            FEATURE_SYNC && session ? es.more.dataCaptionSynced : es.more.dataCaption
+          }
+        />
         <PrimaryButton label={es.more.backup} onPress={handleExport} />
         <GhostButton label={es.more.restore} onPress={handleImport} />
         <T face="body" style={[styles.meta, { color: theme.text.muted }]}>
