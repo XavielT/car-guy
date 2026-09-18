@@ -184,7 +184,8 @@ export default function VehicleProfileScreen() {
               </T>
               <Pressable
                 onPress={() => void specRepo.softDelete(spec.id).then(reload)}
-                accessibilityLabel={`Quitar ${spec.name}`}
+                accessibilityRole="button"
+                accessibilityLabel={es.common.removeItem(spec.name)}
                 style={styles.specRemove}>
                 <T face="body" style={{ color: theme.text.muted }}>
                   ×
@@ -199,6 +200,7 @@ export default function VehicleProfileScreen() {
             <Pressable
               key={s}
               onPress={() => setSpecName(s)}
+              accessibilityRole="button"
               style={[styles.suggestion, { borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 12 }}>
                 {s}

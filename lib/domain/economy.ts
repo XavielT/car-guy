@@ -82,6 +82,13 @@ export function sortFillUps(fillups: FillUp[]): FillUp[] {
 /**
  * Brim-to-brim: between two full tanks, distance / sum of volumes added after the first full.
  * Partials in between are included in volume, never as their own tank.
+ *
+ * A fill-up flagged `missedPrevious` breaks the chain (PROMPT-06). The driver is
+ * telling us the odometer climbed on fuel that never reached the log, so the
+ * distance is real but the volume is not — any km/gal measured across that gap
+ * would be flattering and wrong. Rather than publish a number we know to be
+ * false, the chain restarts: a flagged full tank becomes a new baseline exactly
+ * as the very first one does, and yields no point of its own.
  */
 export function computeEconomy(fillups: FillUp[]): EconomyPoint[] {
   const sorted = sortFillUps(fillups);
@@ -90,6 +97,15 @@ export function computeEconomy(fillups: FillUp[]): EconomyPoint[] {
 
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i];
+
+    if (current.missedPrevious) {
+      // A flagged full tank is the new baseline; a flagged partial leaves us
+      // with no baseline at all, because its own volume cannot be trusted to
+      // belong to the next full tank's distance either.
+      lastFullIndex = current.isFullTank ? i : -1;
+      continue;
+    }
+
     if (!current.isFullTank) continue;
     if (lastFullIndex === -1) {
       lastFullIndex = i;
@@ -140,7 +156,9 @@ export type FillUpReview = {
 
 /** Review the newly registered fill-up against the previous odometer reading. */
 export function reviewFillUp(current: FillUp, previousFillups: FillUp[]): FillUpReview {
-  const previous = sortFillUps(previousFillups).filter((fillup) => fillup.odometerKm <= current.odometerKm).at(-1);
+  const previous = current.missedPrevious
+    ? undefined
+    : sortFillUps(previousFillups).filter((fillup) => fillup.odometerKm <= current.odometerKm).at(-1);
   const distanceKm = previous ? current.odometerKm - previous.odometerKm : null;
   const kmPerUnit = distanceKm != null && distanceKm > 0 && current.volume > 0
     ? roundVolume(distanceKm / current.volume)

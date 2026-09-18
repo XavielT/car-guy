@@ -56,6 +56,7 @@ export default function DocumentosScreen() {
             return (
               <Pressable
                 key={doc.id}
+                accessibilityRole="button"
                 onPress={() => router.push({ pathname: '/documento/[id]', params: { id: doc.id } })}>
                 <Surface style={{ marginBottom: space.sm }}>
                   <View style={styles.headerRow}>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
+import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
@@ -42,7 +43,12 @@ export function Sheet({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Cerrar" />
+      <Pressable
+        style={styles.scrim}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel={es.common.close}
+      />
       <Animated.View
         style={[
           styles.sheet,

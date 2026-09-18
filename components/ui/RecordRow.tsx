@@ -62,6 +62,7 @@ export function RecordRow({
     <Pressable
       onPress={onPress}
       disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [
         styles.row,
         { backgroundColor: theme.bg.surface, borderColor: theme.line, opacity: pressed ? 0.85 : 1 },

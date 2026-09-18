@@ -1,25 +1,43 @@
-import { colors, fonts, radius, space } from '@/constants/theme';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
+import { fonts, radius, space } from '@/constants/theme';
+import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
 export function Field({
   label,
   hint,
+  error,
+  style,
   ...rest
-}: TextInputProps & { label: string; hint?: string }) {
+}: TextInputProps & { label: string; hint?: string; error?: string }) {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.wrap}>
-      <T face="semibold" style={styles.label}>
+      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
         {label}
       </T>
       <TextInput
-        placeholderTextColor={colors.muted}
-        style={styles.input}
+        placeholderTextColor={theme.text.muted}
+        accessibilityLabel={label}
+        style={[
+          styles.input,
+          {
+            backgroundColor: theme.bg.raised,
+            borderColor: error ? theme.danger : theme.line,
+            color: theme.text.primary,
+          },
+          style,
+        ]}
         {...rest}
       />
-      {hint ? (
-        <T face="body" style={styles.hint}>
+      {error ? (
+        <T face="body" style={[styles.hint, { color: theme.danger }]}>
+          {error}
+        </T>
+      ) : hint ? (
+        <T face="body" style={[styles.hint, { color: theme.text.secondary }]}>
           {hint}
         </T>
       ) : null}
@@ -29,17 +47,15 @@ export function Field({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md + 2 },
-  label: { color: colors.ink, fontSize: 13, marginBottom: 6 },
+  label: { fontSize: 13, marginBottom: 6 },
   input: {
-    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.line,
     borderRadius: radius.input,
     paddingHorizontal: space.md + 2,
     paddingVertical: space.md,
+    minHeight: 48,
     fontSize: 16,
-    color: colors.ink,
     fontFamily: fonts.body,
   },
-  hint: { color: colors.muted, fontSize: 12, marginTop: 6 },
+  hint: { fontSize: 12, marginTop: 6, lineHeight: 17 },
 });

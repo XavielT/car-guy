@@ -9,13 +9,49 @@
  * *taller*, *marbete*. Say what the number means. No exclamation marks except
  * the one celebratory line after a completed check.
  *
- * New code uses this. The legacy fuel screens keep their inline strings until
- * PROMPT-06 restyles them.
+ * Every screen reads from here. PROMPT-06 moved the last inline strings — the
+ * fuel screens, Más, onboarding, Cifras — in, so a grep for accented text in
+ * JSX outside this file should come back empty.
  */
 export const es = {
   app: {
     name: 'Car Guy',
     tagline: 'Tu carro, al día.',
+  },
+
+  /**
+   * Navigation titles. On web expo-router feeds these to the document <title>,
+   * so they are the text in the browser tab as well as in the header bar.
+   */
+  routes: {
+    home: 'Car Guy',
+    newVehicle: 'Nuevo vehículo',
+    vehicle: 'Vehículo',
+    editVehicle: 'Editar vehículo',
+    odometer: 'Odómetro',
+    newFillUp: 'Nueva carga',
+    editFillUp: 'Editar carga',
+    newService: 'Nuevo registro',
+    service: 'Registro',
+    expense: 'Gasto',
+    check: 'Chequeo',
+    guide: 'Qué revisar y cómo',
+    inspection: 'Resultado',
+    reminders: 'Recordatorios',
+    reminder: 'Recordatorio',
+    tasks: 'Tareas',
+    newTask: 'Nueva tarea',
+    task: 'Tarea',
+    documents: 'Documentos',
+    newDocument: 'Nuevo documento',
+    document: 'Documento',
+    notifications: 'Notificaciones',
+    prices: 'Precios MICM',
+  },
+
+  web: {
+    description:
+      'Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos.',
   },
 
   tabs: {
@@ -38,6 +74,18 @@ export const es = {
     updatedDaysAgo: (days: number) => `actualizado hace ${days} días`,
     allGood: 'Todo al día',
     pending: (n: number) => (n === 1 ? '1 recordatorio pendiente' : `${n} recordatorios pendientes`),
+    insightLow: 'Rendimiento bajo',
+    insightGreat: 'Rendimiento excelente',
+    insightNormal: 'Rendimiento estable',
+    insightLowBody: (percent: string) => `Este tanque rindió ${percent}% menos que tu promedio anterior.`,
+    insightGreatBody: (percent: string) => `Este tanque rindió ${percent}% más que tu promedio anterior.`,
+    insightNormalBody: 'Este tanque está dentro de tu rendimiento habitual.',
+    lastTank: 'Último tanque',
+    lastTankHint: (distance: string, volume: string) => `${distance} con ${volume}`,
+    lastTankEmpty: 'Necesitas dos tanques llenos',
+    averageTank: 'Promedio',
+    averageHint: (n: number) => (n === 1 ? '1 tanque medido' : `${n} tanques medidos`),
+    averageEmpty: (unit: string) => `Se mide en ${unit}`,
     monthStrip: 'Este mes',
     monthSpend: 'Gasto',
     monthFillups: 'Cargas',
@@ -172,6 +220,7 @@ export const es = {
     savedTitle: 'Guardado',
     savedWithResets: 'Se actualizaron los recordatorios:',
     titleRequired: 'Ponle un título para reconocerlo después.',
+    deleteConfirm: '¿Borrar este registro?',
     reclassify: 'Reclasificar',
     origin: (what: string) => `Origen: ${what}`,
   },
@@ -236,6 +285,7 @@ export const es = {
     registerNow: 'Sí, registrar',
     justClose: 'Solo marcar hecha',
     empty: 'Nada pendiente. Cuando un chequeo falle, la tarea aparece aquí sola.',
+    deleteConfirm: '¿Borrar esta tarea?',
     nameRequired: 'Escribe qué hay que hacer.',
     fromInspection: 'Viene de un chequeo',
   },
@@ -262,6 +312,7 @@ export const es = {
     notes: 'Notas',
     save: 'Guardar documento',
     empty: 'Guarda aquí una foto del seguro y del marbete. El día que te pidan papeles los tienes.',
+    deleteConfirm: '¿Borrar este documento?',
     nameRequired: 'Ponle un título.',
     expiresOn: (date: string) => `Vence ${date}`,
     noExpiry: 'Sin vencimiento',
@@ -350,14 +401,337 @@ export const es = {
     back: 'Volver',
   },
 
+  /**
+   * The check guide's content (PROMPT-05's screen, moved in by PROMPT-06).
+   *
+   * Prose with emphasis inside it does not survive being flattened to a string,
+   * so a paragraph is a list of segments and `strong` marks the ones the screen
+   * paints in its emphasis colour. That is the whole markup language; anything
+   * richer belongs in a document, not in a phone app's copy file.
+   *
+   * Source: 01-research/02-maintenance-checklists-dr.md §A.2–§A.5.
+   */
+  guide: {
+    title: 'Qué revisar y cómo',
+
+    overheating: {
+      title: 'Sobrecalentamiento',
+      body: [
+        {
+          text:
+            'Revisa el refrigerante una vez por semana, con el motor frío, antes de arrancar por ' +
+            'primera vez en el día. Mira el tanque plástico traslúcido: el nivel va entre Min y Max.\n\n',
+        },
+        { text: 'Nunca abras el tapón del radiador ni el del tanque con el motor caliente.', strong: true },
+        { text: ' El sistema está presurizado y sale hirviendo.' },
+      ],
+    },
+
+    signs: {
+      title: 'Señales de que algo anda mal',
+      bullets: [
+        'El testigo de temperatura o el termómetro de refrigerante encendido.',
+        'La aguja de temperatura subiendo por encima de la mitad.',
+        'Olor dulce, o vapor saliendo del capó.',
+        'Un charco bajo el carro donde pasaste la noche.',
+        'La calefacción sopla frío con el motor caliente.',
+        'Tener que rellenar refrigerante más de una vez al mes.',
+      ],
+    },
+
+    ifItOverheats: {
+      title: 'Si se calienta',
+      bullets: [
+        'Apaga el aire acondicionado y pon la calefacción al máximo: le roba calor al motor.',
+        'Oríllate en cuanto sea seguro y apaga el motor.',
+        'Espera a que enfríe del todo antes de abrir nada.',
+        'No le eches agua fría a un motor caliente ni a un radiador caliente.',
+      ],
+    },
+
+    whyCoolant: {
+      title: 'Por qué refrigerante y no agua',
+      body: [
+        { text: 'Aquí nunca congela, así que parece que el agua bastaría. No basta, por tres razones:\n\n· El refrigerante 50/50 ' },
+        { text: 'hierve más tarde', strong: true },
+        { text: ' (unos 106–108 °C contra 100 °C del agua, y más aún bajo presión).\n· Lleva ' },
+        { text: 'inhibidores de corrosión', strong: true },
+        {
+          text:
+            ' que protegen la culata de aluminio, el radiador y la bomba de agua. El agua de la ' +
+            'llave corroe y deja sarro.\n· ',
+        },
+        { text: 'Lubrica el sello de la bomba de agua.', strong: true },
+        {
+          text:
+            '\n\nSi es concentrado, se mezcla con agua destilada, nunca de la llave. Echarle agua ' +
+            'para llegar a la casa está bien; después corrígelo a 50/50.',
+        },
+      ],
+    },
+
+    whyHere: {
+      title: 'Por qué aquí se calientan más',
+      body: [
+        {
+          text:
+            '30–35 °C de ambiente, tapones, el aire acondicionado encendido todo el tiempo y las ' +
+            'subidas de la Duarte. Un ventilador flojo, un termostato pegado o un nivel bajo ' +
+            'perdonan mucho menos aquí que en un país frío.',
+        },
+      ],
+    },
+
+    fluids: {
+      title: 'Fluidos, cada semana',
+      bullets: [
+        'Aceite de motor: motor frío, piso plano, la varilla entre Min y Max. Lechoso = refrigerante en el aceite.',
+        'Refrigerante: motor frío, entre Min y Max.',
+        'Agua del parabrisas: rellena. Aquí no hace falta anticongelante.',
+        'Líquido de frenos (mensual): claro o ámbar. Marrón oscuro o bajando = pastillas gastadas o fuga.',
+      ],
+    },
+
+    tyres: {
+      title: 'Gomas',
+      bullets: [
+        'Presión en frío, las 4 y la de repuesto, según la placa del marco de la puerta.',
+        'Se pierde ~1 psi al mes. Una goma 2–3 psi por debajo del resto es una fuga lenta.',
+        'Labrado: prueba de la moneda o las barras de desgaste. El mínimo son 1.6 mm.',
+        'Desgaste en los bordes = alineación. En el centro = exceso de aire.',
+      ],
+    },
+
+    lightsBrakes: {
+      title: 'Luces y frenos',
+      bullets: [
+        'Luces: prueba delanteras, freno, retroceso y direccionales contra una pared.',
+        'Frenos: en el primer frenazo del día, pedal firme, sin jalar, sin ruido.',
+        'Pedal esponjoso, chillido o vibración: al taller, no la próxima semana.',
+      ],
+    },
+
+    diesel: {
+      title: 'Si es diésel',
+      bullets: [
+        'Drena el separador de agua cuando encienda el testigo y en cada cambio de aceite.',
+        'Filtro de aire: revísalo más seguido si andas en polvo. El turbo es sensible.',
+        'Cara del intercooler y del radiador sin lodo ni hojas.',
+        'El testigo de bujías incandescentes debe apagarse antes de arrancar.',
+      ],
+    },
+
+    motorcycle: {
+      title: 'Si es motor',
+      bullets: [
+        'T-CLOCS antes de rodar: gomas, controles, luces, aceite y fluidos, chasis, parales.',
+        'El acelerador debe moverse libre y cerrar solo, con el manubrio en cualquier posición.',
+        'Lubrica la cadena cada ~500 km o después de lluvia.',
+      ],
+    },
+
+    source:
+      'Fuente: manual del fabricante de tu vehículo, RAC, NHTSA, Michelin y la MSF (T-CLOCS). ' +
+      'Cuando el manual diga otra cosa, manda el manual.',
+  },
+
+  more: {
+    title: 'Más',
+    subtitle: 'Tu garaje, tus papeles y los datos que viven en este teléfono.',
+
+    garage: 'Garaje',
+    garageCaption: 'Toca un vehículo para ver su perfil completo.',
+    active: 'activo',
+    activate: 'Activar',
+    addVehicle: 'Agregar vehículo',
+
+    maintenance: 'Mantenimiento',
+    service: 'Registrar mantenimiento',
+    serviceCaption: 'Un cambio de aceite, una reparación o una mejora.',
+    history: 'Ver el historial',
+    historyCaption: 'Todo lo que le has hecho al carro, en orden.',
+    reminders: 'Recordatorios',
+    remindersCaption: 'Qué toca y cuándo, según tus kilómetros.',
+    tasks: 'Tareas pendientes',
+    tasksCaption: 'Lo que el carro necesita y todavía no has hecho.',
+
+    fuelSection: 'Combustible',
+    newFillUp: 'Registrar una carga',
+    newFillUpCaption: 'Galones, precio y odómetro en la bomba.',
+    prices: 'Precios MICM de referencia',
+    pricesCaption: (week: string) => `${week}. Sirven para comparar; cada carga guarda lo que pagaste.`,
+
+    expense: 'Registrar gasto',
+    expenseCaption: 'Seguro, marbete, peaje, lavado y lo demás.',
+
+    documents: 'Documentos',
+    documentsCaption: 'Seguro, marbete, matrícula y facturas.',
+
+    account: 'Cuenta',
+    accountSoon: 'Próximamente',
+    accountBody:
+      'Sin cuenta la app funciona igual. Con cuenta, si cambias de teléfono, tus datos te siguen.',
+
+    data: 'Datos',
+    dataCaption: 'Todo vive en este dispositivo. No hay cuenta ni nube.',
+    backup: 'Crear respaldo JSON',
+    restore: 'Restaurar o importar respaldo',
+    restoreCaption:
+      'Acepta respaldos de Car Guy y de Tu Combustible RD. Guarda el archivo en Drive, correo o tu computadora antes de desinstalar la app.',
+    wipe: 'Borrar todos los datos',
+    wipeTitle: 'Borrar todo',
+    wipeBody: 'Se van vehículos, cargas, mantenimientos y chequeos. No hay marcha atrás.',
+    backupTitle: 'Respaldo',
+    backupUnsupported: 'Este dispositivo no permite compartir archivos.',
+    backupFailed: (reason: string) => `No se pudo crear el archivo de respaldo.\n\n${reason}`,
+    restoredTitle: 'Datos restaurados',
+    restoredLegacy: (counts: string) => `Importamos tus datos de Tu Combustible RD: ${counts}.`,
+    restoredMerge: (merged: number, tables: number) =>
+      `Combinamos el respaldo: ${merged} registros en ${tables} tablas.`,
+    restoreTitle: 'Restaurar datos',
+
+    appearance: 'Apariencia',
+    appearanceCaption: 'El oscuro es la identidad de Car Guy; el claro está para el sol del mediodía.',
+    themes: { system: 'Sistema', dark: 'Oscuro', light: 'Claro' },
+
+    notifications: 'Notificaciones',
+    notificationsCaption: 'Cuándo y a qué hora te avisa el carro.',
+
+    about: 'Acerca de',
+    version: (version: string) => `Versión ${version}`,
+    aboutBody: 'Car Guy · Tu carro, al día. Hecho en República Dominicana.',
+  },
+
+  onboarding: {
+    legacyPrompt: '¿Vienes de Tu Combustible RD? Trae tu historial completo desde el respaldo JSON.',
+    legacyAction: 'Importar respaldo de Tu Combustible RD',
+    importedTitle: 'Datos importados',
+    importedLegacy: (counts: string) => `Listo: ${counts}.`,
+    importedMerge: (merged: number) => `Listo: ${merged} registros restaurados.`,
+    importFailedTitle: 'Importar',
+  },
+
+  notFound: {
+    title: 'Esa pantalla no existe.',
+    body: 'El enlace está roto o la pantalla se movió de sitio.',
+    back: 'Volver al tablero',
+  },
+
+  stats: {
+    title: 'Cifras',
+    subtitle: (vehicle: string) => `${vehicle} · gasto y consumo reales, no el de la computadora del carro.`,
+    thisMonth: 'Este mes',
+    totalCost: 'Costo total del vehículo',
+    totalCostSplit: (fuel: string, other: string) => `${fuel} combustible · ${other} otros gastos`,
+    costPerKm: 'RD$ / km',
+    costPerKmHint: (distance: string) => `${distance} entre primera y última carga`,
+    costPerKmEmpty: 'Registra al menos dos cargas',
+    kmLogged: 'Kilómetros registrados',
+    readings: (n: number) => (n === 1 ? '1 lectura del odómetro' : `${n} lecturas del odómetro`),
+    readingsEmpty: 'Aparecerá con tu primera carga',
+    average: 'Consumo medio',
+    lastTank: 'Lectura del último tanque',
+    lastTankValues: { low: 'Bajo', great: 'Excelente', normal: 'Estable' },
+    lastTankHint: (average: string) =>
+      `Comparado con el promedio de tus tanques anteriores (${average}).`,
+    timeline: 'Línea de vida del vehículo',
+    timelineEmpty: 'Cada carga irá dejando aquí la historia de los kilómetros de tu vehículo.',
+    timelineStart: 'Punto de partida',
+    timelineStep: (distance: string) => `+${distance} desde la lectura anterior`,
+    byType: 'Por tipo',
+    byTypeEmpty: 'Cuando haya cargas, aquí se parte Premium, Regular, gasoil y GLP.',
+    byMonth: 'Mes a mes',
+    byMonthEmpty: 'El gasto mensual aparece después de la primera carga.',
+  },
+
+  fuel: {
+    newTitle: 'En la bomba',
+    editTitle: 'Editar carga',
+    intro:
+      'Anota dos de tres (galones, precio, total) y el tercero se calcula solo. El consumo sale cuando marcas tanque lleno.',
+    date: 'Fecha',
+    odometer: 'Odómetro (km)',
+    odometerHint: (last: string) => `Última carga: ${last}`,
+    type: 'Combustible',
+    volume: (unit: string) => `Volumen (${unit})`,
+    total: 'Total pagado (RD$)',
+    calcPending: 'Falta un dato más para cerrar la cuenta.',
+    loadKind: 'Tipo de carga',
+    fullTank: 'Tanque lleno',
+    partial: 'Carga parcial',
+    partialHint: (unit: string) =>
+      `El km/${unit} solo se calcula entre dos tanques llenos. Las parciales entran en el gasto y se suman al próximo lleno.`,
+    missedPrevious: 'Se me olvidó registrar una carga anterior',
+    missedPreviousHint:
+      'Si falta una carga en el medio, los kilómetros no cuadran con los galones. Marcando esto empezamos la cuenta otra vez desde aquí, como con el primer tanque lleno.',
+    station: 'Estación',
+    stationOther: 'Nombre de la estación',
+    notes: 'Nota (opcional)',
+    notesPlaceholder: 'Viaje a Santiago, tráfico…',
+    save: 'Guardar carga',
+    saveChanges: 'Guardar cambios',
+    delete: 'Borrar esta carga',
+    deleteTitle: 'Borrar carga',
+    deleteBody: 'Se quita del historial y se recalcula el consumo.',
+    odometerRequired: 'Pon el kilometraje que marca el tablero.',
+    odometerTooLow: (last: number) =>
+      `La última carga quedó en ${last.toLocaleString('es-DO')} km. El nuevo valor no puede ser menor.`,
+    amountsRequired: 'Llena dos de estos tres: volumen, precio por unidad, o total.',
+  },
+
+  /** The sheet shown after a fill-up is saved, replacing Phase 5's alert. */
+  fuelReview: {
+    titles: {
+      low: 'Rendimiento bajo',
+      great: 'Buen rendimiento',
+      normal: 'Rendimiento estable',
+      first: 'Primera medición',
+    },
+    statusLabels: {
+      low: 'Por debajo de tu promedio',
+      great: 'Por encima de tu promedio',
+      normal: 'En tu promedio',
+      first: 'Sin comparación todavía',
+    },
+    price: (unit: string) => `Precio por ${unit}`,
+    distance: 'Km recorridos',
+    economy: 'Rendimiento',
+    costPerKm: 'Costo por km',
+    noPrevious: 'falta una carga anterior',
+    pending: 'se calcula con más datos',
+    lowBody: (average: string) =>
+      `Está por debajo de tu promedio de ${average}. Revisa tráfico, presión de gomas o posibles fugas.`,
+    greatBody: (average: string) => `Está por encima de tu promedio de ${average}.`,
+    firstBody: 'Guarda otra carga para empezar a comparar tu rendimiento real.',
+    chainBroken:
+      'Marcaste que faltaba una carga anterior, así que la cuenta del consumo empieza de nuevo desde esta.',
+    seeHistory: 'Ver historial',
+    close: 'Listo',
+  },
+
+  prices: {
+    title: 'Precios MICM',
+    intro:
+      'Semilla: semana del 15–21 ago 2026. Actualízalos cuando salga el aviso nuevo. No se descargan solos.',
+    boardEyebrow: 'Precios de referencia',
+    boardCaption: 'Lo que pagaste en cada carga manda sobre esta tabla.',
+    week: 'Semana / fuente',
+    save: 'Guardar referencia',
+    reset: 'Volver a precios semilla',
+  },
+
   common: {
     cancel: 'Cancelar',
     save: 'Guardar',
     delete: 'Borrar',
+    ok: 'Entendido',
     optional: '(opcional)',
     today: 'Hoy',
+    pickDate: 'Elegir fecha',
     takePhoto: 'Tomar foto',
     choosePhoto: 'Elegir de la galería',
+    close: 'Cerrar',
+    removeItem: (what: string) => `Quitar ${what}`,
     removePhoto: 'Quitar foto',
     photoError: 'No se pudo usar esa foto.',
   },

@@ -153,7 +153,10 @@ export default function RunScreen() {
                   </View>
 
                   {item.how ? (
-                    <Pressable onPress={() => setExpanded((p) => ({ ...p, [item.id]: !p[item.id] }))}>
+                    <Pressable
+                      onPress={() => setExpanded((p) => ({ ...p, [item.id]: !p[item.id] }))}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: Boolean(expanded[item.id]) }}>
                       <T face="body" style={{ color: theme.accent, fontSize: 12, marginTop: 4 }}>
                         {es.check.how}
                       </T>
@@ -175,6 +178,8 @@ export default function RunScreen() {
                         <Pressable
                           key={v}
                           onPress={() => setAnswers((p) => ({ ...p, [item.id]: v }))}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: answers[item.id] === v }}
                           style={[
                             styles.verdict,
                             { borderColor: on ? color : theme.line, backgroundColor: on ? `${color}28` : 'transparent' },

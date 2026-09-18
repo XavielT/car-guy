@@ -128,6 +128,7 @@ export default function ChequeoScreen() {
             onPress={() =>
               router.push({ pathname: '/chequeo/[templateId]/run', params: { templateId: template.id } })
             }
+            accessibilityRole="button"
             style={[styles.templateRow, { borderColor: theme.line }]}>
             <View style={{ flex: 1 }}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
@@ -152,6 +153,7 @@ export default function ChequeoScreen() {
               <Pressable
                 key={run.id}
                 onPress={() => router.push({ pathname: '/inspeccion/[id]', params: { id: run.id } })}
+                accessibilityRole="button"
                 style={[styles.runRow, { borderColor: theme.line }]}>
                 <T face="body" style={{ color: theme.text.secondary, flex: 1, fontSize: 13 }}>
                   {dateLabel(run.occurredAt)}

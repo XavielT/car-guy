@@ -121,6 +121,8 @@ export default function HomeScreen() {
               <Pressable
                 key={v.id}
                 onPress={() => setActiveVehicle(v.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: v.id === activeVehicle.id }}
                 style={[
                   styles.chip,
                   { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
@@ -133,6 +135,7 @@ export default function HomeScreen() {
           })}
           <Pressable
             onPress={() => router.push('/vehiculo/nuevo')}
+            accessibilityRole="button"
             style={[styles.chip, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
             <T face="semibold" style={{ color: theme.text.secondary, fontSize: 13 }}>
               {es.home.addVehicle}
@@ -152,9 +155,11 @@ export default function HomeScreen() {
         {marbeteNotice ? (
           <Pressable
             onPress={() => router.push('/recordatorios')}
+            accessibilityRole="button"
+            accessibilityLabel={`${es.documents.kinds.marbete}: ${marbeteNotice.message}`}
             style={[styles.banner, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
             <T face="semibold" style={{ color: theme.status.proximo, fontSize: 13 }}>
-              Marbete
+              {es.documents.kinds.marbete}
             </T>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
               {marbeteNotice.message}
@@ -186,17 +191,17 @@ export default function HomeScreen() {
           <Surface style={{ marginBottom: space.md }}>
             <T face="medium" style={{ color: theme.accent, fontSize: 15 }}>
               {insight.status === 'low'
-                ? 'Rendimiento bajo'
+                ? es.home.insightLow
                 : insight.status === 'great'
-                  ? 'Rendimiento excelente'
-                  : 'Rendimiento estable'}
+                  ? es.home.insightGreat
+                  : es.home.insightNormal}
             </T>
             <T face="body" style={[styles.alertText, { color: theme.text.secondary }]}>
               {insight.status === 'low'
-                ? `Este tanque rindió ${Math.abs(insight.differencePercent).toFixed(0)}% menos que tu promedio anterior.`
+                ? es.home.insightLowBody(Math.abs(insight.differencePercent).toFixed(0))
                 : insight.status === 'great'
-                  ? `Este tanque rindió ${insight.differencePercent.toFixed(0)}% más que tu promedio anterior.`
-                  : 'Este tanque está dentro de tu rendimiento habitual.'}
+                  ? es.home.insightGreatBody(insight.differencePercent.toFixed(0))
+                  : es.home.insightNormalBody}
             </T>
           </Surface>
         ) : null}
@@ -204,28 +209,31 @@ export default function HomeScreen() {
         <View style={styles.grid}>
           <Surface>
             <T face="medium" style={[styles.statLabel, { color: theme.text.muted }]}>
-              Último tanque
+              {es.home.lastTank}
             </T>
             <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
               {last ? kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType) : '—'}
             </T>
             <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
               {last
-                ? `${last.distanceKm} km con ${last.volume} ${FUEL_CATALOG[activeVehicle.defaultFuelType].unitLabel}`
-                : 'Necesitas dos tanques llenos'}
+                ? es.home.lastTankHint(
+                    `${last.distanceKm} km`,
+                    `${last.volume} ${FUEL_CATALOG[activeVehicle.defaultFuelType].unitLabel}`,
+                  )
+                : es.home.lastTankEmpty}
             </T>
           </Surface>
           <Surface>
             <T face="medium" style={[styles.statLabel, { color: theme.text.muted }]}>
-              Promedio
+              {es.home.averageTank}
             </T>
             <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
               {avg != null ? kmPerUnit(avg, activeVehicle.defaultFuelType) : '—'}
             </T>
             <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
               {economy.length
-                ? `${economy.length} tanques medidos`
-                : `Se mide en ${economyLabel(activeVehicle.defaultFuelType)}`}
+                ? es.home.averageHint(economy.length)
+                : es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType))}
             </T>
           </Surface>
         </View>

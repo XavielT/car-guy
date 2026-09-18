@@ -178,6 +178,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         totalDop: f.totalDop,
         fuelType: f.fuelType,
         isFullTank: f.isFullTank,
+        missedPrevious: f.missedPrevious,
         station: f.station,
         notes: f.notes,
         createdAt: f.createdAt,
@@ -342,6 +343,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           totalDop: input.totalDop,
           fuelType: input.fuelType,
           isFullTank: input.isFullTank,
+          missedPrevious: input.missedPrevious ?? false,
           station: input.station,
           notes: input.notes,
         });

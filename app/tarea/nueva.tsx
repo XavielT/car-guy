@@ -109,6 +109,8 @@ function Chips({
             <Pressable
               key={key}
               onPress={() => onChange(key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
               style={[
                 styles.chip,
                 { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },

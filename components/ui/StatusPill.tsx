@@ -12,6 +12,14 @@ import { T } from '../T';
 export type Status = 'ok' | 'proximo' | 'urgente' | 'vencido';
 
 /**
+ * `neutral` is not one of the four states — it is the absence of one, for a
+ * reading that is simply unremarkable ("en tu promedio") or not yet
+ * comparable. It gets the raised surface and secondary text rather than a
+ * colour, so it cannot be mistaken for a verdict.
+ */
+export type Tone = Status | 'neutral';
+
+/**
  * Dot plus label. The **only** way status is shown anywhere in Car Guy.
  *
  * The dot carries the colour and the label carries the meaning, so the pill
@@ -22,16 +30,19 @@ export function StatusPill({
   label,
   style,
 }: {
-  status: Status;
+  status: Tone;
   label: string;
   style?: StyleProp<ViewStyle>;
 }) {
   const { theme } = useTheme();
 
+  const background = status === 'neutral' ? theme.bg.raised : theme.statusBg[status];
+  const foreground = status === 'neutral' ? theme.text.secondary : theme.status[status];
+
   return (
-    <View style={[styles.pill, { backgroundColor: theme.statusBg[status] }, style]}>
-      <View style={[styles.dot, { backgroundColor: theme.status[status] }]} />
-      <T face="semibold" style={[styles.label, { color: theme.status[status] }]}>
+    <View style={[styles.pill, { backgroundColor: background }, style]}>
+      <View style={[styles.dot, { backgroundColor: foreground }]} />
+      <T face="semibold" style={[styles.label, { color: foreground }]}>
         {label}
       </T>
     </View>

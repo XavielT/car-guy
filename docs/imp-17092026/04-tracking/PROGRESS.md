@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 5 done
+**Started:** 2026-09-17 · **Status:** Phase 6 done
 
 ## Phase status
 
@@ -15,7 +15,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 3 | Garage + navigation | ✅ | `imp-17092026/phase-3-garage` | Five tabs, OdometerHero, rich vehicle profile, media, DateField, odometer domain |
 | 4 | Maintenance + Historial | ✅ | `imp-17092026/phase-4-maintenance` | Service records, expenses, tasks, documents, unified Historial, reminder resets |
 | 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications |
-| 6 | Identity pass | ⬜ | | |
+| 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ⬜ | | |
 | 8 | x-core + account | ⬜ | | |
 | 9 | Sync | ⬜ | | |
@@ -858,3 +858,124 @@ tener esa costumbre diaria"*.
 - `evaluate()` is pure and takes its context explicitly, so PROMPT-07's statistics can reuse it for
   "upcoming costs" without touching the database twice.
 - `planNotifications` is where any change to *when* the app speaks belongs — not the adapter.
+
+## Phase 6 — Fuel restyle and the identity pass   (branch `imp-17092026/phase-6-identity-pass`)
+
+**Status:** complete
+**Commits:** `434e8c8` controls, fuel, alert host · `dbbf3dc` legacy screens, alias removal, a11y
+
+The phase that makes the app one product. Five phases had been building Car Guy screens next to Tu
+Combustible RD screens that painted themselves from a static dark alias; this removes the alias and
+the seam with it.
+
+### Changed
+- **Controls.** `components/ui/index.tsx` — PrimaryButton, GhostButton, Chip on `useTheme()`; `Card`
+  is now `Surface` under its old name. New: `SectionHeader`, `KeyValueRow`, `Segmented`, `NavRow`,
+  promoted out of the copies six screens were each keeping. `Field` (plus an `error` state),
+  `DateField` (both platforms), `PhotoPicker` and `StatusPill` (a `neutral` tone) followed.
+- **Fuel.** `components/FillUpForm.tsx` rewritten on tokens with the `missed_previous` toggle;
+  `components/FillUpReviewSheet.tsx` (new) replaces the save alert; `app/carga/nueva.tsx`,
+  `app/carga/[id].tsx`, `components/PriceBoard.tsx`, `app/precios.tsx`.
+- **Domain.** `lib/domain/economy.ts` — `computeEconomy` and `reviewFillUp` honour `missedPrevious`;
+  `lib/types.ts` gained the optional field; `lib/store.tsx` maps it both ways.
+- **Alerts.** `lib/alert.ts` rewritten around a subscriber; `components/AlertHost.tsx` (new), mounted
+  in `app/_layout.tsx`.
+- **Screens.** `app/(tabs)/mas.tsx` rebuilt to the IA spec, `app/(tabs)/cifras.tsx` restyled,
+  `app/onboarding.tsx`, `app/+not-found.tsx`, `components/VehicleForm.tsx`, `app/chequeo/guia.tsx`
+  (now renders from `es.guide`), `app/dev/tokens.tsx`.
+- **Tokens.** `constants/theme.ts` — the `colors` alias and the `bold` font face are gone.
+- **Strings.** `lib/i18n/es.ts` gained `routes`, `web`, `guide`, `more`, `onboarding`, `notFound`,
+  `stats`, `fuel`, `fuelReview` and `prices`, and the home/`common` sections grew.
+- **Tests.** 172, up from 164: eight in `__tests__/domain/economy.test.ts` for the chain break.
+
+### Dependencies added / removed
+None. `expo-constants` (already present) supplies the version for "Acerca de"; `expo-haptics`
+(already present) the light tap on saving a fill-up.
+
+### Acceptance criteria
+- [x] No `colors` alias; no Syne/Figtree/Plex; `useTheme()` everywhere — `grep -rn "colors"` over
+      `app components lib constants` returns only `categoryColors` and `colorScheme`. The fonts had
+      already gone in PROMPT-01; the `bold` alias face went here, since nothing referenced it.
+- [x] Fuel forms/history/prices restyled, behaviour identical, `missed_previous` implemented and
+      tested. Verified in the browser at 1568 px: a first fill-up at 52 000 km read **"Primera
+      medición"**, a second at 52 400 km read **40 km/gal over 400 km**, and a third at 53 300 km
+      **with the flag set** refused to compare — *"Marcaste que faltaba una carga anterior, así que
+      la cuenta del consumo empieza de nuevo desde esta."* Without the flag that tank would have
+      published 90 km/gal. Historial showed the km/gal tag on the second row and none on the third.
+- [x] Más reorganised per spec, including the Apariencia switch — which is new: the theme preference
+      has existed since Phase 1 with no way for anyone to change it.
+- [x] Onboarding and not-found restyled.
+- [x] All strings in `lib/i18n/es.ts`. Swept with a grep for accented literals and for Spanish
+      phrases in JSX; both come back empty outside `es.ts` and `app/dev/tokens.tsx`, which is a
+      developer surface and not shipped copy.
+- [x] Light mode verified on every screen: Inicio, Chequeo, Historial, Cifras, Más, the guide, the
+      fuel form, precios and both dialogs. The one contrast fix needed was the web DateField, whose
+      `colorScheme` was hard-coded to dark and put a black calendar glyph on a white field.
+- [x] a11y pass: every `<Pressable>` in the app now declares a role, and those belonging to a set
+      carry `selected`/`checked`/`expanded`. Confirmed through the browser's accessibility tree — a
+      history row reads as *"Gasolina Regular, 18 sept de 2026 · 53,300 km, RD$ 3,075.00"* and the
+      new toggle as a checkbox labelled *"Se me olvidó registrar una carga anterior"*.
+- [x] `app/dev/tokens.tsx` shows every component, and the "legacy controls" column that used to look
+      identical in both schemes now actually differs — which is the proof the alias is gone.
+- [x] Screenshots in `docs/qa/phase-6-*` (11), both schemes.
+- [x] `tsc`, `expo lint`, `npm test` (172), `npm run build` (36 routes) green.
+- [ ] **Android not verified** — no device attached and no AVD configured on this machine
+      (`adb devices` empty, `emulator -list-avds` empty). Same gap as Phase 5.
+
+### Decisions made (defaults applied)
+- **`missedPrevious` is optional on the legacy `FillUp` type, not required.** Every row written
+  before this phase simply lacks it, and `undefined` reads as false everywhere it is used — which is
+  also what keeps the existing economy fixtures untouched. A test asserts that explicitly.
+- **A flagged *partial* drops the baseline entirely**, where a flagged full tank becomes the new one.
+  Its own volume cannot be credited to the next full tank's distance either, so there is nothing
+  honest to measure from until the tank after it.
+- **The chain break wins over "first measurement" in the review copy.** Both are true when the flag
+  is set on an early fill-up, and the flag is the one that explains the missing numbers.
+- **Native keeps the platform alert; only web moved to `<AlertHost>`.** The complaint was that
+  `window.alert` blocks the page and wears no identity. Android's dialog does neither, and replacing
+  it would be taking a platform convention away for nothing.
+- **Alerts queue rather than overwrite**, and a button's `onPress` runs after the queue advances, so
+  a handler that raises its own alert lines up behind instead of being swallowed.
+- **`normal` and `first` are a neutral pill, not green.** "The same as always" is not an achievement
+  and "nothing to compare yet" is not a verdict; `StatusPill` gained a `neutral` tone rather than
+  letting a second component start showing status.
+- **The PriceBoard stays dark in light mode**, as the identity spec allows, and now reads
+  `palette.dark` explicitly instead of inheriting it from an alias. Its week label moved to white so
+  the amber is reserved for the prices themselves.
+- **Chips are 40 px tall with 4 px of hitSlop** rather than 44 px of real height: 48 px of reachable
+  target around a pill that looks wrong at 44.
+- **The guide's copy moved as segments, not as flattened strings.** Its paragraphs carry emphasis;
+  either it kept its markup or it lost meaning, and a two-field segment is the smallest thing that
+  keeps it.
+
+### Deviations from the package
+- **`app/dev/tokens.tsx` keeps inline Spanish.** It is a developer surface reachable only by typing
+  the route and gated on `__DEV__`; its labels are specimens of the type scale, not product copy.
+- The prompt asks for screenshots "of all tabs in dark and light". There are 11 covering both
+  schemes across Inicio, Chequeo, Historial, Cifras, Más, precios, the fuel review, the alert and the
+  token sheet — not a strict 2 × 5 matrix, but every surface that changed, in the scheme where the
+  change is visible.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 6 · Android | Still nothing verified on a device | medium | Carried from Phase 5. No device and no AVD on this machine. Haptics on save, the native date picker, the native alert and one-thumb reach all need a phone |
+| Phase 6 · home | "Pendientes" still does not include open tasks | low | Carried from Phase 4 and 5 |
+| Phase 6 · service edit | `servicio/[id]` still has no edit form | medium | Carried from Phase 4 |
+| Phase 6 · documents | PDF documents still not wired | low | Carried from Phase 4 |
+| Phase 6 · alerts | `AlertHost` renders nothing on native but still mounts and subscribes | low | One subscription, never fired. Not worth a platform split |
+| Phase 6 · search | `LIKE … COLLATE NOCASE` still folds ASCII only | low | Carried from Phase 4 |
+
+### Notes for the next phase
+- **`Segmented`, `SectionHeader`, `KeyValueRow` and `NavRow` exist now** — PROMPT-07's statistics
+  screen should reach for them before writing its own rows, and `StatusPill`'s `neutral` tone is
+  there for a figure that is merely a figure.
+- **`computeEconomy` can return fewer points than there are full tanks**, and a `missedPrevious` row
+  has no `EconomyPoint` at all. Anything in PROMPT-07 that pairs fill-ups with economy by index
+  rather than by `fillUpId` will be wrong.
+- The theme preference is now reachable in Más → Apariencia, so any new screen can be judged in both
+  schemes without editing storage by hand.
+- `lib/alert.ts` exports `AlertRequest` and `subscribeToAlerts`; if PROMPT-07 or PROMPT-08 wants a
+  toast rather than a dialog, it is a second host reading the same queue, not a new mechanism.
+- Every `<Pressable>` carries a role as of this phase. Keeping that true is cheaper than another
+  sweep — the audit is one `grep -c` per file.

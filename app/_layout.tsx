@@ -16,9 +16,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Suspense, useEffect, useSyncExternalStore } from 'react';
 import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 
+import { AlertHost } from '@/components/AlertHost';
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
+import { es } from '@/lib/i18n/es';
 import { configure as configureNotifications, resync } from '@/lib/notifications';
 import { StoreProvider, useStore } from '@/lib/store';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
@@ -156,46 +158,48 @@ function Shell() {
         {/* These titles are what the browser tab shows on web: expo-router feeds
             the screen title to react-helmet, and a screen without one renders an
             empty <title> that wins over anything static in +html.tsx. */}
-        <Stack.Screen name="(tabs)" options={{ title: 'Car Guy' }} />
-        <Stack.Screen name="onboarding" options={{ title: 'Car Guy' }} />
+        <Stack.Screen name="(tabs)" options={{ title: es.routes.home }} />
+        <Stack.Screen name="onboarding" options={{ title: es.routes.home }} />
         <Stack.Screen
           name="vehiculo/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: 'Nuevo vehículo' }}
+          options={{ presentation: 'modal', headerShown: true, title: es.routes.newVehicle }}
         />
-        <Stack.Screen name="vehiculo/[id]" options={{ headerShown: true, title: 'Vehículo' }} />
-        <Stack.Screen name="vehiculo/[id]/editar" options={{ headerShown: true, title: 'Editar vehículo' }} />
+        <Stack.Screen name="vehiculo/[id]" options={{ headerShown: true, title: es.routes.vehicle }} />
+        <Stack.Screen name="vehiculo/[id]/editar" options={{ headerShown: true, title: es.routes.editVehicle }} />
         <Stack.Screen
           name="odometro"
-          options={{ presentation: 'modal', headerShown: true, title: 'Odómetro' }}
+          options={{ presentation: 'modal', headerShown: true, title: es.routes.odometer }}
         />
-        <Stack.Screen name="carga/nueva" options={{ headerShown: true, title: 'Nueva carga' }} />
+        <Stack.Screen name="carga/nueva" options={{ headerShown: true, title: es.routes.newFillUp }} />
         <Stack.Screen
           name="servicio/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: 'Nuevo registro' }}
+          options={{ presentation: 'modal', headerShown: true, title: es.routes.newService }}
         />
-        <Stack.Screen name="servicio/[id]" options={{ headerShown: true, title: 'Registro' }} />
+        <Stack.Screen name="servicio/[id]" options={{ headerShown: true, title: es.routes.service }} />
         <Stack.Screen
           name="gasto/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: 'Gasto' }}
+          options={{ presentation: 'modal', headerShown: true, title: es.routes.expense }}
         />
-        <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: 'Chequeo' }} />
-        <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: 'Qué revisar y cómo' }} />
-        <Stack.Screen name="inspeccion/[id]" options={{ headerShown: true, title: 'Resultado' }} />
-        <Stack.Screen name="recordatorios/index" options={{ headerShown: true, title: 'Recordatorios' }} />
-        <Stack.Screen name="recordatorio/[id]" options={{ headerShown: true, title: 'Recordatorio' }} />
-        <Stack.Screen name="tareas/index" options={{ headerShown: true, title: 'Tareas' }} />
-        <Stack.Screen name="tarea/nueva" options={{ presentation: 'modal', headerShown: true, title: 'Nueva tarea' }} />
-        <Stack.Screen name="tarea/[id]" options={{ headerShown: true, title: 'Tarea' }} />
-        <Stack.Screen name="documentos/index" options={{ headerShown: true, title: 'Documentos' }} />
+        <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: es.routes.check }} />
+        <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: es.routes.guide }} />
+        <Stack.Screen name="inspeccion/[id]" options={{ headerShown: true, title: es.routes.inspection }} />
+        <Stack.Screen name="recordatorios/index" options={{ headerShown: true, title: es.routes.reminders }} />
+        <Stack.Screen name="recordatorio/[id]" options={{ headerShown: true, title: es.routes.reminder }} />
+        <Stack.Screen name="tareas/index" options={{ headerShown: true, title: es.routes.tasks }} />
+        <Stack.Screen name="tarea/nueva" options={{ presentation: 'modal', headerShown: true, title: es.routes.newTask }} />
+        <Stack.Screen name="tarea/[id]" options={{ headerShown: true, title: es.routes.task }} />
+        <Stack.Screen name="documentos/index" options={{ headerShown: true, title: es.routes.documents }} />
         <Stack.Screen
           name="documento/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: 'Nuevo documento' }}
+          options={{ presentation: 'modal', headerShown: true, title: es.routes.newDocument }}
         />
-        <Stack.Screen name="documento/[id]" options={{ headerShown: true, title: 'Documento' }} />
-        <Stack.Screen name="notificaciones" options={{ headerShown: true, title: 'Notificaciones' }} />
-        <Stack.Screen name="precios" options={{ headerShown: true, title: 'Precios MICM' }} />
-        <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: 'Editar carga' }} />
+        <Stack.Screen name="documento/[id]" options={{ headerShown: true, title: es.routes.document }} />
+        <Stack.Screen name="notificaciones" options={{ headerShown: true, title: es.routes.notifications }} />
+        <Stack.Screen name="precios" options={{ headerShown: true, title: es.routes.prices }} />
+        <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: es.routes.editFillUp }} />
       </Stack>
+      {/* Last child, so the dialog sits over every screen the Stack renders. */}
+      <AlertHost />
     </>
   );
 }

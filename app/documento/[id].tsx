@@ -73,7 +73,7 @@ export default function DocumentoScreen() {
           danger
           label={es.common.delete}
           onPress={() =>
-            Alert.alert(doc.title, '¿Borrar este documento?', [
+            Alert.alert(doc.title, es.documents.deleteConfirm, [
               { text: es.common.cancel, style: 'cancel' },
               {
                 text: es.common.delete,

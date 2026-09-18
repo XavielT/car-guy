@@ -4,16 +4,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
 import {
+  Card,
+  Chip,
   EmptyState,
   GaugeRing,
+  GhostButton,
+  KeyValueRow,
+  NavRow,
+  PrimaryButton,
   QuickActions,
+  RecordRow,
+  SectionHeader,
+  Segmented,
   Sheet,
   StatusPill,
-  type Status,
+  type Tone,
 } from '@/components/ui';
-import { Card, Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
-import { categoryColors, colors, fonts, palette, radius, space, type Scheme } from '@/constants/theme';
+import { categoryColors, fonts, palette, radius, space, type Scheme } from '@/constants/theme';
 import { ThemeScope, useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -56,16 +65,19 @@ export default function TokensScreen() {
   );
 }
 
-const STATUSES: { status: Status; label: string }[] = [
+const STATUSES: { status: Tone; label: string }[] = [
   { status: 'ok', label: 'Al día' },
   { status: 'proximo', label: 'Aceite · faltan 320 km' },
   { status: 'urgente', label: 'Chequeo semanal · hoy' },
   { status: 'vencido', label: 'Marbete · venció 31 ene' },
+  { status: 'neutral', label: 'En tu promedio' },
 ];
 
 function SchemePanel({ scheme }: { scheme: Scheme }) {
   const { theme } = useTheme();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [segment, setSegment] = useState<'full' | 'partial'>('full');
+  const [date, setDate] = useState('2026-09-18');
 
   return (
     <View style={[styles.panel, { backgroundColor: theme.bg.base, borderColor: theme.line }]}>
@@ -108,7 +120,7 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
           Próximos mantenimientos
         </T>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 15 }}>
-          Texto de cuerpo en Inter. Explica lo que significa el número.
+          Texto de cuerpo en Manrope. Explica lo que significa el número.
         </T>
         <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
           Captión y texto deshabilitado
@@ -142,14 +154,14 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
         />
       </Section>
 
-      <Section title="Controles heredados" theme={theme}>
+      <Section title="Controles" theme={theme}>
         <Card>
-          {/* Alias ink, not theme ink: this card paints itself from the static
-              alias, so themed text would be dark-on-dark in the light column. */}
-          <T face="semibold" style={{ color: colors.ink, marginBottom: space.sm }}>
+          <T face="semibold" style={{ color: theme.text.primary, marginBottom: space.sm }}>
             Card, Field, Chip y botones
           </T>
           <Field label="Odómetro" placeholder="51676" hint="En kilómetros" />
+          <Field label="Con error" placeholder="51676" error="El odómetro no puede ser negativo." />
+          <DateField label="Fecha" value={date} onChange={setDate} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
             <Chip label="Premium" selected onPress={() => {}} />
             <Chip label="Regular" onPress={() => {}} />
@@ -159,10 +171,65 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
           <GhostButton label="Cancelar" onPress={() => {}} />
           <GhostButton danger label="Borrar todo" onPress={() => {}} />
         </Card>
-        <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
-          Estos leen el alias estático `colors`, así que se ven oscuros en ambas columnas hasta la
-          Fase 6.
-        </T>
+      </Section>
+
+      <Section title="Segmentado" theme={theme}>
+        <Segmented
+          options={[
+            { key: 'full', label: 'Tanque lleno' },
+            { key: 'partial', label: 'Carga parcial' },
+          ]}
+          value={segment}
+          onChange={setSegment}
+        />
+        <Segmented
+          style={{ marginTop: space.sm }}
+          options={[
+            { key: 'mantenimiento', label: 'Mantenimiento', color: categoryColors.mantenimiento },
+            { key: 'reparacion', label: 'Reparación', color: categoryColors.reparacion },
+            { key: 'mejora', label: 'Mejora', color: categoryColors.mejora },
+          ]}
+          value="mantenimiento"
+          onChange={() => {}}
+        />
+      </Section>
+
+      <Section title="Encabezado y filas" theme={theme}>
+        <SectionHeader title="Mantenimiento" caption="Lo que le has hecho al carro." eyebrow="Sección" />
+        <Card>
+          <KeyValueRow label="Odómetro" value="51 676 km" big />
+          <KeyValueRow label="Taller" value="Ramón" />
+          <KeyValueRow label="Total" value="RD$ 4,000.00" />
+        </Card>
+        <View style={{ marginTop: space.md }}>
+          <NavRow label="Recordatorios" caption="Qué toca y cuándo." onPress={() => {}} />
+          <NavRow label="Borrar todos los datos" danger onPress={() => {}} />
+        </View>
+      </Section>
+
+      <Section title="Filas del historial" theme={theme}>
+        <RecordRow
+          kind="combustible"
+          title="Gasolina Premium"
+          meta="17 sept · 51 676 km · Texaco"
+          amount="RD$ 2,583.00"
+          tag="37.45 km/gal"
+          onPress={() => {}}
+        />
+        <RecordRow
+          kind="mantenimiento"
+          title="Aceite de motor y filtro"
+          meta="12 sept · 51 200 km · Taller de Ramón"
+          amount="RD$ 4,000.00"
+          onPress={() => {}}
+        />
+        <RecordRow
+          kind="reparacion"
+          title="Bomba de agua"
+          meta="2 ago · 49 800 km"
+          amount="RD$ 12,500.00"
+          onPress={() => {}}
+        />
       </Section>
 
       <Section title="Vacío" theme={theme}>

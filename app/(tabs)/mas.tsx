@@ -1,26 +1,46 @@
-import { T } from '@/components/T';
-import { Card, GhostButton, PrimaryButton } from '@/components/ui';
-import { colors } from '@/constants/theme';
-import { FUEL_CATALOG } from '@/lib/fuel';
-import { exportBackup, importBackup } from '@/lib/backup';
-import { describeCounts } from '@/lib/import/tucombustible';
-import { useStore } from '@/lib/store';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Alert } from '@/lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { T } from '@/components/T';
+import {
+  GhostButton,
+  NavRow,
+  PrimaryButton,
+  SectionHeader,
+  Segmented,
+  StatusPill,
+  Surface,
+} from '@/components/ui';
+import { radius, space } from '@/constants/theme';
+import { Alert } from '@/lib/alert';
+import { exportBackup, importBackup } from '@/lib/backup';
+import { FUEL_CATALOG } from '@/lib/fuel';
+import { es } from '@/lib/i18n/es';
+import { describeCounts } from '@/lib/import/tucombustible';
+import { useStore } from '@/lib/store';
+import { useTheme, type ThemePreference } from '@/lib/theme/useTheme';
+
+/**
+ * Everything that is not a tab, in the order 03-screens-ia.md lays out: what you
+ * own, what you do to it, what you paid, the papers, the account, the data, and
+ * then the app's own settings.
+ */
 export default function MasScreen() {
   const router = useRouter();
+  const { theme, preference, setPreference } = useTheme();
   const { data, activeVehicle, setActiveVehicle, resetAll, refresh } = useStore();
+
+  const version = Constants.expoConfig?.version ?? '—';
 
   async function handleExport() {
     try {
       const shared = await exportBackup();
-      if (!shared) Alert.alert('Respaldo', 'Este dispositivo no permite compartir archivos.');
+      if (!shared) Alert.alert(es.more.backupTitle, es.more.backupUnsupported);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      Alert.alert('Respaldo', `No se pudo crear el archivo de respaldo.\n\n${reason}`);
+      Alert.alert(es.more.backupTitle, es.more.backupFailed(reason));
     }
   }
 
@@ -32,116 +52,183 @@ export default function MasScreen() {
       // A merge, never a wipe: rows are matched by id and the newer
       // updated_at wins, so restoring an old file cannot undo recent work.
       Alert.alert(
-        'Datos restaurados',
+        es.more.restoredTitle,
         result.kind === 'legacy'
-          ? `Importamos tus datos de Tu Combustible RD: ${describeCounts(result.counts)}.`
-          : `Combinamos el respaldo: ${result.counts.merged} registros en ${result.counts.tables} tablas.`,
+          ? es.more.restoredLegacy(describeCounts(result.counts))
+          : es.more.restoredMerge(result.counts.merged, result.counts.tables),
       );
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      Alert.alert('Restaurar datos', reason);
+      Alert.alert(es.more.restoreTitle, reason);
     }
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <T face="display" style={styles.h}>
-          Más
+        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
+          {es.more.title}
         </T>
-        <T face="body" style={styles.sub}>
-          Vehículos, precios MICM de referencia y datos en este teléfono.
+        <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
+          {es.more.subtitle}
         </T>
 
-        <T face="title" style={styles.sec}>
-          Garaje
-        </T>
-        {data.vehicles.map((v) => (
-          <Pressable
-            key={v.id}
-            onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
-            style={[styles.vcard, v.id === activeVehicle?.id && styles.vOn]}>
-            <View style={{ flex: 1 }}>
-              <T face="semibold" style={{ color: colors.ink, fontSize: 16 }}>
-                {v.name}
-              </T>
-              <T face="body" style={styles.meta}>
-                {v.plate ? `${v.plate} · ` : ''}
-                {FUEL_CATALOG[v.defaultFuelType].label}
-                {v.id === activeVehicle?.id ? ' · activo' : ''}
-              </T>
-            </View>
-            {v.id === activeVehicle?.id ? null : (
-              <GhostButton label="Activar" onPress={() => setActiveVehicle(v.id)} />
-            )}
-          </Pressable>
-        ))}
-        <PrimaryButton label="Agregar vehículo" onPress={() => router.push('/vehiculo/nuevo')} />
+        <SectionHeader title={es.more.garage} caption={es.more.garageCaption} style={styles.firstSection} />
+        {data.vehicles.map((v) => {
+          const active = v.id === activeVehicle?.id;
+          return (
+            <Pressable
+              key={v.id}
+              onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
+              accessibilityRole="button"
+              style={[
+                styles.vehicle,
+                {
+                  backgroundColor: theme.bg.surface,
+                  borderColor: active ? theme.accent : theme.line,
+                },
+              ]}>
+              <View style={{ flex: 1 }}>
+                <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
+                  {v.name}
+                </T>
+                <T face="body" style={[styles.meta, { color: theme.text.secondary }]}>
+                  {v.plate ? `${v.plate} · ` : ''}
+                  {FUEL_CATALOG[v.defaultFuelType].label}
+                </T>
+              </View>
+              {active ? (
+                <StatusPill status="ok" label={es.more.active} />
+              ) : (
+                <GhostButton label={es.more.activate} onPress={() => setActiveVehicle(v.id)} />
+              )}
+            </Pressable>
+          );
+        })}
+        <PrimaryButton label={es.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
 
-        <T face="title" style={styles.sec}>
-          Referencia
-        </T>
-        <Card>
-          <T face="semibold">Precios oficiales de la semana</T>
-          <T face="body" style={styles.meta}>
-            {data.settings.priceWeekLabel}. Sirven para comparar; cada carga guarda lo que pagaste.
+        <SectionHeader title={es.more.maintenance} />
+        <NavRow
+          label={es.more.service}
+          caption={es.more.serviceCaption}
+          onPress={() => router.push('/servicio/nuevo')}
+        />
+        <NavRow
+          label={es.more.history}
+          caption={es.more.historyCaption}
+          onPress={() => router.push('/(tabs)/historial')}
+        />
+        <NavRow
+          label={es.more.reminders}
+          caption={es.more.remindersCaption}
+          onPress={() => router.push('/recordatorios')}
+        />
+        <NavRow
+          label={es.more.tasks}
+          caption={es.more.tasksCaption}
+          onPress={() => router.push('/tareas')}
+        />
+
+        <SectionHeader title={es.more.fuelSection} />
+        <NavRow
+          label={es.more.newFillUp}
+          caption={es.more.newFillUpCaption}
+          onPress={() => router.push('/carga/nueva')}
+        />
+        <NavRow
+          label={es.more.prices}
+          caption={es.more.pricesCaption(data.settings.priceWeekLabel)}
+          onPress={() => router.push('/precios')}
+        />
+        <NavRow
+          label={es.more.expense}
+          caption={es.more.expenseCaption}
+          onPress={() => router.push('/gasto/nuevo')}
+        />
+
+        <SectionHeader title={es.more.documents} />
+        <NavRow
+          label={es.more.documents}
+          caption={es.more.documentsCaption}
+          onPress={() => router.push('/documentos')}
+        />
+
+        {/* Phase 8 turns this into sign-in. Until then it says what the account
+            will and will not change, because "no hay cuenta" is a feature. */}
+        <SectionHeader title={es.more.account} />
+        <Surface>
+          <StatusPill status="proximo" label={es.more.accountSoon} />
+          <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
+            {es.more.accountBody}
           </T>
-          <Pressable onPress={() => router.push('/precios')} style={{ marginTop: 10 }}>
-            <T face="bold" style={{ color: colors.nozzle }}>
-              Editar precios de referencia
-            </T>
-          </Pressable>
-        </Card>
-        <PrimaryButton label="Registrar mantenimiento" onPress={() => router.push('/servicio/nuevo')} />
-        <GhostButton label="Registrar gasto" onPress={() => router.push('/gasto/nuevo')} />
-        <GhostButton label="Recordatorios" onPress={() => router.push('/recordatorios')} />
-        <GhostButton label="Tareas pendientes" onPress={() => router.push('/tareas')} />
-        <GhostButton label="Documentos" onPress={() => router.push('/documentos')} />
-        <GhostButton label="Notificaciones" onPress={() => router.push('/notificaciones')} />
+        </Surface>
 
-        <T face="title" style={styles.sec}>
-          Datos
-        </T>
-        <T face="body" style={styles.meta}>
-          Todo vive en este dispositivo. No hay cuenta ni nube.
-        </T>
-        <PrimaryButton label="Crear respaldo JSON" onPress={handleExport} />
-        <GhostButton label="Restaurar o importar respaldo" onPress={handleImport} />
-        <T face="body" style={styles.meta}>
-          Acepta respaldos de Car Guy y de Tu Combustible RD. Guarda el archivo en Drive, correo o
-          tu computadora antes de desinstalar la app.
+        <SectionHeader title={es.more.data} caption={es.more.dataCaption} />
+        <PrimaryButton label={es.more.backup} onPress={handleExport} />
+        <GhostButton label={es.more.restore} onPress={handleImport} />
+        <T face="body" style={[styles.meta, { color: theme.text.muted }]}>
+          {es.more.restoreCaption}
         </T>
         <GhostButton
           danger
-          label="Borrar todos los datos"
+          label={es.more.wipe}
           onPress={() =>
-            Alert.alert('Borrar todo', 'Se van vehículos y cargas. No hay marcha atrás.', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Borrar', style: 'destructive', onPress: resetAll },
+            Alert.alert(es.more.wipeTitle, es.more.wipeBody, [
+              { text: es.common.cancel, style: 'cancel' },
+              { text: es.common.delete, style: 'destructive', onPress: resetAll },
             ])
           }
         />
+
+        <SectionHeader title={es.more.appearance} caption={es.more.appearanceCaption} />
+        <Segmented<ThemePreference>
+          options={[
+            { key: 'system', label: es.more.themes.system },
+            { key: 'dark', label: es.more.themes.dark },
+            { key: 'light', label: es.more.themes.light },
+          ]}
+          value={preference}
+          onChange={setPreference}
+        />
+
+        <SectionHeader title={es.more.notifications} />
+        <NavRow
+          label={es.more.notifications}
+          caption={es.more.notificationsCaption}
+          onPress={() => router.push('/notificaciones')}
+        />
+
+        <SectionHeader title={es.more.about} />
+        <Surface>
+          <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
+            {es.more.version(version)}
+          </T>
+          <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
+            {es.more.aboutBody}
+          </T>
+        </Surface>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.receipt },
-  pad: { padding: 20, paddingBottom: 48 },
-  h: { fontSize: 36, color: colors.ink },
-  sub: { color: colors.muted, marginTop: 6, marginBottom: 8, lineHeight: 22 },
-  sec: { fontSize: 22, color: colors.ink, marginTop: 24, marginBottom: 12 },
-  meta: { color: colors.muted, marginTop: 4, lineHeight: 20, fontSize: 13 },
-  vcard: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
+  safe: { flex: 1 },
+  pad: { padding: space.gutter, paddingBottom: 48 },
+  h: { fontSize: 34 },
+  sub: { marginTop: 6, lineHeight: 22 },
+  firstSection: { marginTop: space.xl },
+  meta: { marginTop: space.sm, lineHeight: 19, fontSize: 13 },
+  cardBody: { fontSize: 14, marginTop: space.sm, lineHeight: 21 },
+  vehicle: {
+    borderRadius: radius.input,
+    padding: space.md,
+    paddingLeft: space.lg,
+    marginBottom: space.sm,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: space.md,
+    minHeight: 60,
     borderWidth: 1,
-    borderColor: colors.line,
   },
-  vOn: { borderColor: colors.teal },
 });

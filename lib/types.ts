@@ -40,6 +40,15 @@ export type FillUp = {
   totalDop: number;
   fuelType: FuelType;
   isFullTank: boolean;
+  /**
+   * "Se me olvidó registrar una carga anterior" — the odometer moved on fuel
+   * that was never logged, so nothing measured across this point is true.
+   * `computeEconomy` restarts the brim-to-brim chain here (PROMPT-06).
+   *
+   * Optional, not required: every row written before Phase 6 simply does not
+   * have it, and `undefined` reads as false everywhere it is used.
+   */
+  missedPrevious?: boolean;
   station: string;
   notes: string;
   createdAt: string;
