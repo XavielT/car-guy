@@ -7,7 +7,10 @@ import { T } from '@/components/T';
 import { OdometerHero, QuickActions, Surface, type Telltale } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { currentOdometer as currentOdometerQuery, odometer as odometerRepo } from '@/lib/db/repos';
+import { attentionReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
+import { isMarbeteWindowOpen, marbeteNudges } from '@/lib/domain/legal-dr';
+import { STATUS_LABEL } from '@/lib/domain/reminders';
 import { economyLabel, FUEL_CATALOG } from '@/lib/fuel';
 import { kmPerUnit, money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
@@ -26,12 +29,12 @@ import { useTheme } from '@/lib/theme/useTheme';
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { activeVehicle, vehicleFillups, vehicleExpenses, vehicleReminders, data, setActiveVehicle } =
-    useStore();
+  const { activeVehicle, vehicleFillups, vehicleExpenses, data, setActiveVehicle } = useStore();
 
   const [odometerKm, setOdometerKm] = useState<number | null>(null);
   const [daysSince, setDaysSince] = useState<number | null>(null);
   const [monthKm, setMonthKm] = useState<number>(0);
+  const [attention, setAttention] = useState<EvaluatedReminder[]>([]);
 
   const vehicleId = activeVehicle?.id;
 
@@ -67,6 +70,14 @@ export default function HomeScreen() {
       setMonthKm(Math.max(0, Math.max(...values) - start));
     })().catch(() => {});
 
+    // The telltales now come from the real engine rather than the simple date
+    // comparison Phase 3 used as a placeholder.
+    attentionReminders(vehicleId)
+      .then((rows) => {
+        if (!cancelled) setAttention(rows);
+      })
+      .catch(() => {});
+
     return () => {
       cancelled = true;
     };
@@ -86,7 +97,12 @@ export default function HomeScreen() {
   const insight = latestEconomyInsight(vehicleFillups);
   const avg = economy.length ? economy.reduce((a, p) => a + p.kmPerUnit, 0) / economy.length : null;
 
-  const telltales = buildTelltales(vehicleReminders, odometerKm);
+  const telltales: Telltale[] = attention.map(({ reminder, status }) => ({
+    status: status.status === 'sin_datos' ? 'proximo' : status.status,
+    label: telltaleLabel(reminder.title, status),
+  }));
+
+  const marbeteNotice = isMarbeteWindowOpen(todayIso()) ? marbeteNudges(todayIso())[0] : null;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -130,7 +146,21 @@ export default function HomeScreen() {
           daysSinceReading={daysSince}
           telltales={telltales}
           onPressOdometer={() => router.push('/odometro')}
+          onPressTelltales={() => router.push('/recordatorios')}
         />
+
+        {marbeteNotice ? (
+          <Pressable
+            onPress={() => router.push('/recordatorios')}
+            style={[styles.banner, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
+            <T face="semibold" style={{ color: theme.status.proximo, fontSize: 13 }}>
+              Marbete
+            </T>
+            <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
+              {marbeteNotice.message}
+            </T>
+          </Pressable>
+        ) : null}
 
         <QuickActions
           actions={[
@@ -218,45 +248,18 @@ function MonthStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/**
- * A deliberately simple due check — date passed, or odometer passed.
- *
- * PROMPT-05 replaces this with the real engine (thresholds, predicted dates,
- * snoozing, the four states). Anything cleverer here would only have to be
- * unpicked.
- */
-function buildTelltales(
-  reminders: { title: string; dueDate: string | null; dueOdometerKm: number | null; completedAt: string | null }[],
-  odometerKm: number | null,
-): Telltale[] {
-  const today = todayIso();
-  const out: Telltale[] = [];
-
-  for (const reminder of reminders) {
-    if (reminder.completedAt) continue;
-
-    const daysLeft = reminder.dueDate ? daysBetween(today, reminder.dueDate) : null;
-    const kmLeft =
-      reminder.dueOdometerKm != null && odometerKm != null ? reminder.dueOdometerKm - odometerKm : null;
-
-    const overdue = (daysLeft != null && daysLeft < 0) || (kmLeft != null && kmLeft < 0);
-    const soon = (daysLeft != null && daysLeft <= 30) || (kmLeft != null && kmLeft <= 500);
-    if (!overdue && !soon) continue;
-
-    const detail =
-      kmLeft != null && (daysLeft == null || kmLeft / 50 < daysLeft)
-        ? `${Math.abs(Math.round(kmLeft))} km`
-        : daysLeft != null
-          ? `${Math.abs(daysLeft)} d`
-          : '';
-
-    out.push({
-      status: overdue ? 'vencido' : 'proximo',
-      label: detail ? `${reminder.title} · ${overdue ? 'hace ' : 'faltan '}${detail}` : reminder.title,
-    });
+/** "Aceite de motor · faltan 320 km" — short enough for a pill. */
+function telltaleLabel(title: string, status: EvaluatedReminder['status']): string {
+  if (status.status === 'sin_datos') return `${title} · sin datos`;
+  if (status.dueKm != null && status.dueKm < 0) {
+    return `${title} · ${Math.abs(Math.round(status.dueKm)).toLocaleString('es-DO')} km pasado`;
   }
-
-  return out;
+  if (status.dueDays != null && status.dueDays < 0) return `${title} · vencido`;
+  if (status.dueKm != null && (status.dueDays == null || status.dueKm / 50 < status.dueDays)) {
+    return `${title} · faltan ${Math.round(status.dueKm).toLocaleString('es-DO')} km`;
+  }
+  if (status.dueDays != null) return `${title} · faltan ${status.dueDays} d`;
+  return `${title} · ${STATUS_LABEL[status.status]}`;
 }
 
 const styles = StyleSheet.create({
@@ -282,6 +285,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, letterSpacing: 0.9, marginBottom: space.md },
   monthRow: { flexDirection: 'row', justifyContent: 'space-between' },
   monthStat: { flex: 1 },
+  banner: { borderWidth: 1, borderRadius: radius.input, padding: space.md, marginBottom: space.lg },
   alertText: { fontSize: 13, lineHeight: 19, marginTop: 5 },
   grid: { gap: space.md },
   statLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8 },

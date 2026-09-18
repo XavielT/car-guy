@@ -3,7 +3,7 @@
 Claude Code updates this file at the end of every phase (block in `00-context/04-conventions.md`).
 The "Notes for the next phase" sections carry context between sessions.
 
-**Started:** 2026-09-17 · **Status:** Phase 4 done
+**Started:** 2026-09-17 · **Status:** Phase 5 done
 
 ## Phase status
 
@@ -14,7 +14,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 2 | SQLite + importer | ✅ | `imp-17092026/phase-2-sqlite` | Schema v1, repos, store rewire, catalog seed, legacy importer, backup v2 |
 | 3 | Garage + navigation | ✅ | `imp-17092026/phase-3-garage` | Five tabs, OdometerHero, rich vehicle profile, media, DateField, odometer domain |
 | 4 | Maintenance + Historial | ✅ | `imp-17092026/phase-4-maintenance` | Service records, expenses, tasks, documents, unified Historial, reminder resets |
-| 5 | Inspections + reminders | ⬜ | | |
+| 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications |
 | 6 | Identity pass | ⬜ | | |
 | 7 | Statistics + reports | ⬜ | | |
 | 8 | x-core + account | ⬜ | | |
@@ -767,3 +767,94 @@ None.
   be changed in a **migration v2** — never by editing v1.
 - The four status colours and `StatusPill` are already used by documents and tasks, so the engine's
   output has somewhere to render with no new component.
+
+## Phase 5 — Chequeos, the reminders engine and notifications   (branch `imp-17092026/phase-5-inspections`)
+
+**Status:** complete
+**Commits:** `1ec9902` engine + legal calendar · `ea8e56e` runner, guide, reminders UI · `63b616f` notifications
+
+This is the phase the whole cycle exists for: note 4, *"se me pasó revisarle los fluidos … por no
+tener esa costumbre diaria"*.
+
+### Changed
+- **Domain.** `lib/domain/reminders.ts` gained `evaluate`, `displayDueDate`, `bySeverity`;
+  `lib/domain/legal-dr.ts` and `lib/domain/inspections.ts` are new.
+- **Queries.** `lib/db/reminderQueries.ts` (`evaluatedReminders`, `attentionReminders`),
+  `lib/db/inspectionOps.ts`.
+- **Screens.** `(tabs)/chequeo.tsx` rebuilt, `chequeo/[templateId]/run.tsx`, `chequeo/guia.tsx`,
+  `inspeccion/[id].tsx`, `recordatorios/index.tsx`, `recordatorio/[id].tsx`, `notificaciones.tsx`.
+- **Home.** Telltales now come from the engine; the marbete banner appears inside its window.
+- **Notifications.** `lib/notifications/plan.ts` (pure) and `lib/notifications/index.ts` (adapter),
+  wired in `app/_layout.tsx`.
+- **Tests.** 164 total, up from 85: `reminders.test.ts` (24), `legal-dr.test.ts` (20),
+  `inspections.test.ts` (16), `notifications/plan.test.ts` (19).
+
+### Dependencies added / removed
+- **+** `expo-notifications` (ADR-07), `expo-haptics` — the success feedback after a clean check.
+
+### Acceptance criteria
+- [x] The engine implements the spec: four states plus `sin_datos`, `triggeredBy`, prediction,
+      confidence, snooze, fixed vs rolling reset, legal thresholds. Every branch is tested and the
+      suite passed on the first run.
+- [x] `legal-dr.ts` with the marbete deadline, escalating nudges, the cost tier and the vida útil
+      badge, tested across the year boundary.
+- [x] Recordatorios list with complete and snooze; home telltales from the engine; marbete banner.
+- [x] Chequeo tab with due-today cards, streak ring, template list, recent runs and the guide.
+- [x] Runner: grouped items, how-text, OK/Falla/N/A, cold-engine banner, note required on a failure,
+      photo, cannot finish while anything is unanswered, odometer prompt, result screen.
+- [x] Failed critical items create *crítica* tasks — verified: failing Refrigerante produced
+      "Revisar refrigerante" marked Crítica on the task board.
+- [x] Templates follow the vehicle type; a motorcycle gets T-CLOCS, a diesel the water separator.
+- [x] Notifications: channel before permission, ≤ 30, deterministic ids, resync on write and on
+      foreground, deep links, test button, settings; nothing attempted on web; no exact alarms.
+- [x] Guide with the overheating section in full.
+- [x] `tsc`, `expo lint`, `npm test` (164), `npm run build` (36 routes) green; web verified.
+- [ ] **Android not verified this phase** — the phone was disconnected when the build finished. The
+      APK is built and waiting. Notifications in particular can only be judged there.
+- [ ] Template editor (`chequeo/plantillas/[id]`) not built — see "Deviations".
+
+### Decisions made (defaults applied)
+- **A check is due "a cadence-length since the last run", not by calendar week.** A weekly check done
+  Sunday and again Saturday is a week apart in practice; a rule that said otherwise would be arguing
+  with someone who is doing the right thing.
+- **The streak forgives one day** for the same reason, and dies once the window has genuinely lapsed.
+  Documented in `lib/domain/inspections.ts`.
+- **Critical failures are refrigerante, aceite de motor, líquido de frenos and pastillas.** Every one
+  is a way to destroy an engine or fail to stop. Coolant is on the list because it is why this app
+  was written.
+- **A failure needs a note before the check can be submitted.** "Falla" with no detail is worth
+  almost nothing a week later.
+- **Repeating checks are planned before dated reminders.** The habit is the point; a hundred
+  reminders must not push the daily check out of a 30-slot schedule.
+- **Permission is requested when the user turns notifications on**, not at first launch, where the
+  prompt arrives before the user has any reason to say yes.
+- **Channel importance DEFAULT, not MAX.** This is a reminder to check the coolant, not an alarm.
+
+### Deviations from the package
+- **No template editor.** Reordering, disabling items and adding custom ones — and the
+  copy-on-write that scopes an edited seeded template to one vehicle — is a screen of its own. The
+  seeded lists are complete and correct for the three vehicle shapes, so the app is fully usable
+  without it; the editor is the first thing to add if the lists ever feel wrong.
+- **No "fecha simulada" dev control.** The marbete window logic is covered by tests across the year
+  boundary, which is a better check than nudging a device clock.
+- **The Phase 4 `resetForServiceItems` stayed where it was** rather than moving; `evaluate` was added
+  beside it in the same file, so both halves of the reminder lifecycle live together with their tests.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 5 · Android | Nothing verified on the device this phase | medium | The APK is built. Notifications, haptics and the runner's one-thumb ergonomics all need a real phone |
+| Phase 5 · home | "Pendientes" shows reminders but still not open tasks | low | Carried from Phase 4. The engine is in place now, so folding tasks in is a small change |
+| Phase 5 · web | Blocking `window.alert` still used for save confirmations | medium | Fifth phase running. PROMPT-06 owns it |
+| Phase 5 · notifications | `resync` runs on every store change | low | Cheap today, but it rebuilds the whole plan; debounce it if the schedule ever grows |
+
+### Notes for the next phase
+- **PROMPT-06 owns the alert problem.** Replacing `lib/alert.ts` on web with a non-blocking toast
+  fixes five phases' worth of save confirmations and unblocks browser automation.
+- The legacy `colors` alias is still used by: `carga/nueva`, `carga/[id]`, `cifras`, `precios`,
+  `onboarding`, `VehicleForm`, `FillUpForm`, `FuelPicker`, `PriceBoard`, `Field`, and the four
+  controls in `ui/index.tsx`. Historial, Inicio, Chequeo, Más and every Phase 4–5 screen are already
+  theme-aware and use `Surface`.
+- `evaluate()` is pure and takes its context explicitly, so PROMPT-07's statistics can reuse it for
+  "upcoming costs" without touching the database twice.
+- `planNotifications` is where any change to *when* the app speaks belongs — not the adapter.
