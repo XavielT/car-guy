@@ -1339,9 +1339,10 @@ Deleting them also removes their `public.profiles` rows by cascade.
 
 ## Phase 9 — Local-first cloud sync   (branch `imp-17092026/phase-9-sync`)
 
-**Status:** partial — the protocol and the engine are built and verified against the live schema;
-the UI and the multi-device acceptance run are not done
-**Commits:** `7de84c1` protocol core · `b2fc8a7` engine, types, cloud verification, sql/007
+**Status:** partial — everything is built, wired and on; the multi-device acceptance run (a–e) is
+blocked on a sign-in only the user can perform
+**Commits:** `7de84c1` protocol core · `b2fc8a7` engine, types, cloud verification, sql/007 ·
+`f7e4cfc` triggers, UI, media bytes, FEATURE_SYNC on · `e687fa7` lazy bytes, cursor reset
 
 ### Changed
 - **Protocol.** `lib/sync/tables.ts` (what syncs, in dependency order, and which columns never
@@ -1404,18 +1405,98 @@ never changed.
 | Found in | Issue | Severity | Notes |
 |---|---|---|---|
 | Phase 9 · x-core | **Deleting a user left their rows behind forever** — only `carguy.profiles` had a foreign key to `auth.users` | fixed | Found by cleaning up the probe accounts and noticing `carguy.setting` still held their rows. Unreachable rows, too: RLS hides a row no session can match. `sql/007` cascades all 18 tables; the parity test now covers it |
-| Phase 9 · UI | No sync UI at all — no "Sincronizar ahora", no pending count, no status icon, no "Borrar datos en la nube" | high | The engine exposes `sync()`, `onSyncStatus()` and `pendingCount()`; the screen work is what remains |
-| Phase 9 · media | Media bytes are not uploaded or downloaded | high | Metadata syncs; `lib/media` and Storage are not wired together yet |
-| Phase 9 · triggers | Nothing calls `sync()` — no foreground hook, no debounced after-write, no `online` listener | high | Deliberate: wiring triggers before the UI can report status would make failures invisible |
-| Phase 9 · engine | The engine has never run — it needs SQLite and React Native, so no test or tool in this repo executes it | high | `verify-sync.mjs` proves the contract it depends on and the unit tests prove its decisions, but the wiring between them is unexercised |
-| Phase 9 · first login | The blocking-but-cancellable "Sincronizando tu garaje…" sheet is not built | medium | |
-| Phase 9 · FEATURE_SYNC | Still `false`; nothing turns it on | medium | Should flip with the UI, not before |
+| Phase 9 · acceptance | **Scenarios a–e have not been run.** Everything they exercise is built and on, but nothing has yet pushed a row from one device and pulled it on another | high | Blocked, not skipped: the run needs an account created and a password typed into the browser, which the assistant's browser rules prohibit outright. Both devices are staged and waiting — see *The acceptance run* below |
+| Phase 9 · engine | The engine has still never completed a run — it needs SQLite and a session, and the session is what is missing | high | `verify-sync.mjs` proves every contract it depends on (13/13) and the unit tests prove its decisions; the wiring between them is what a–e would exercise |
+| Phase 9 · a–e vs. spec | The staged run is web↔web (two ports, two origins, two OPFS databases), not web↔Android | medium | Deviation from PROMPT-09 b/e, which name Expo Go. Two origins give two genuinely independent databases, so the protocol is exercised; the native filesystem branch of `mediaBytes.ts` is not |
+| Phase 9 · conflict UX | A conflict resolves silently by LWW, with nothing shown | low | Intended (§5), and 4b proves the loser does not even move the cursor. Worth revisiting if a user ever reports losing an edit |
+
+### Changed since `b2fc8a7`
+
+- **Triggers.** `lib/sync/triggers.ts`, mounted once in the root `Shell` so no screen has to know
+  sync exists: sign-in, `AppState` foreground, five seconds after a write, and the web `online`
+  event. Overlap is expected — `sync()` hands back the run already in flight.
+- **UI.** `lib/sync/useSync.ts` (subscribes to the module-level engine, so the pill and the Cuenta
+  screen cannot disagree about whether a sync is running) · `components/SyncPill.tsx` ·
+  `components/FirstSyncBanner.tsx` · the signed-in block of `app/cuenta.tsx` · the status pill on
+  Más.
+- **Media bytes.** `lib/sync/mediaBytes.ts` — eager upload inside the sync, lazy download from
+  `mediaUri` on first display.
+- **Cloud wipe.** `lib/sync/wipeCloud.ts`, double-confirmed, and it signs out as its last step.
+- **`FEATURE_SYNC` is true**, in the same commit as the UI.
+- **Tooling.** `tools/cleanup-probe-media.mjs`; `verify-sync.mjs` grew to 13 checks.
+- **Tests.** 332, up from 330 — the new one is the boolean-map drift guard.
+
+### Verified since `b2fc8a7`
+
+`tools/verify-sync.mjs` — **13/13**. The four new checks are the Storage contract the media path
+rests on:
+
+```
+PASS  8.  media bytes upload to <user_id>/<id>.jpg
+PASS  9.  and download unchanged
+PASS  10. writing into another user's folder is refused   (400)
+PASS  11. and the probe object deletes cleanly
+```
+
+**10 is the one worth having.** A photo of a marbete carries a plate number, which is the whole
+reason the bucket is private and keyed by its first path segment. The check writes to a
+made-up user id and confirms `sql/004` refuses it.
+
+In the browser, against the production web build (`expo export`, served on two ports):
+
+- The app boots, OPFS opens, onboarding creates a vehicle, a fill-up and a service record, and
+  Historial shows both at RD$ 5,755.95 for the month. No console errors.
+- **Signed out, there is no sync UI anywhere** — not on Cuenta, not on Más, no pill, no promise.
+  That is an acceptance criterion, and it holds.
+- The "Guardado" confirmation is the themed in-app modal from Phase 6, not a blocking
+  `window.alert` — worth noting because a blocking dialog froze the renderer earlier in this
+  package.
+
+### The acceptance run — staged, not run
+
+Two devices are live and each has its own database, because OPFS is keyed by origin:
+
+| | URL | State |
+|---|---|---|
+| Device A | `http://localhost:4300` | Vehicle *Sync A*, one fill-up, one service record, signed out |
+| Device B | `http://localhost:4301` | Empty, signed out |
+
+Re-stage with `node <scratch>/serve.mjs "$PWD/dist" 4300` and the same on 4301 after an
+`expo export`.
+
+**What blocks it.** a–e all begin with "signed in as a test user", and creating an account or
+typing a password into a browser field is prohibited to the assistant without exception — the rule
+holds even when the user asks and supplies the details. So the sign-in is the user's to perform;
+everything after it can be driven and observed.
+
+### Decisions made since `b2fc8a7`
+
+- **Photo bytes go up eagerly and come down lazily.** Bytes this device holds the only copy of are
+  worth hurrying; two hundred JPEGs pulled over cellular before the user has looked at one are not.
+  `ensureMediaBytes` reports `present | downloaded | missing` so a render does not pay for a query.
+- **"Borrar datos en la nube" signs out.** With the triggers this eager, a device that stayed
+  signed in would begin putting the garage back on the server within seconds of the user asking for
+  it to be gone. Signing out costs nothing: the account is optional and never takes local data with
+  it (ADR-05).
+- **Cursors reset only on a change of account, and `signOut` no longer touches `auth_user_id`.**
+  That id is the only way to tell "the same person signed back in" from "someone else signed in
+  here"; clearing it would let a different account inherit the previous one's cursors and never see
+  its own rows. `rememberUser` is gone — the reset owns that write, and two writers would race.
+- **Probe objects leave Storage through the API, never through SQL.** Supabase installs
+  `storage.protect_delete()` on `storage.objects`, so a SQL delete is refused outright — and would
+  orphan the bytes if it were not. `sql/999` says so and `tools/cleanup-probe-media.mjs` does it,
+  scoped to Car Guy's own bucket and to names carrying `sync_probe_`, printing everything it will
+  not touch.
+- **"Sin subir" is `proximo`, not `vencido`.** Unsynced rows are on the phone and perfectly safe.
+  Only a failed sync earns the red.
+- **The first-sync notice is a banner, not a modal.** PROMPT-09 calls for a sheet, but its own copy
+  promises the app stays usable — blocking the screen would make that a lie. Logged as a
+  deliberate deviation.
 
 ### Notes for the next phase
-- **`FEATURE_SYNC` is the gate.** Turn it on in the same change that ships the UI, so the account
-  screen never promises a sync the app cannot yet perform.
-- `onSyncStatus()` emits `running` / `idle` / `error`; the header icon and the Cuenta screen can
-  both subscribe without either owning the state.
-- **The engine is written but unproven end to end.** The first device run is the real test, and the
-  most likely failure is a column the boolean map in `engine.ts` misses — it lists six tables by
-  hand, and a `BOOLEAN` column added later will silently sync as a string.
+- **Run a–e first.** Everything else in Phase 10 assumes sync works, and nothing has yet proven a
+  row crossing between two devices.
+- The most likely failure is still a column the boolean map misses — but it is now pinned by a test
+  that parses `sql/002` and asserts exact equality, and that test has been mutation-checked.
+- `lib/sync/mediaBytes.ts` has a native branch (`expo-file-system`) that no web run can exercise.
+  It is the least-tested code in the phase.
