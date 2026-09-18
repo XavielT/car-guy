@@ -329,6 +329,20 @@ export const es = {
     comingSoon: 'Los chequeos llegan en la próxima fase.',
   },
 
+  notifications: {
+    title: 'Notificaciones',
+    subtitle: 'Te aviso cuando toque un chequeo o un mantenimiento.',
+    enable: 'Avisarme',
+    hour: 'Hora',
+    weekday: 'Día del chequeo semanal',
+    weekdays: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+    test: 'Probar notificación',
+    testSent: 'Te llega en 5 segundos.',
+    scheduled: (n: number) => (n === 1 ? '1 aviso programado' : `${n} avisos programados`),
+    denied: 'Android no nos dio permiso. Actívalo en los ajustes del teléfono.',
+    webUnsupported: 'En la web no hay avisos del sistema. Los verás dentro de la app.',
+  },
+
   placeholder: {
     comingSoonTitle: 'Próxima fase',
     service: 'El registro de mantenimientos, reparaciones y mejoras llega en la próxima fase.',

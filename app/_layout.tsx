@@ -9,17 +9,18 @@ import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono/700Bold
 import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medium';
 import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense, useEffect, useSyncExternalStore } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
-import { StoreProvider } from '@/lib/store';
+import { configure as configureNotifications, resync } from '@/lib/notifications';
+import { StoreProvider, useStore } from '@/lib/store';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
 export { ErrorBoundary } from 'expo-router';
@@ -92,6 +93,42 @@ export default function RootLayout() {
   );
 }
 
+/**
+ * Notification wiring: create the channel, follow a tapped notification to its
+ * screen, and rebuild the schedule whenever the app comes back to the
+ * foreground — cheap, and it means a plan can never go stale after a day of
+ * edits made elsewhere.
+ */
+function useNotifications() {
+  const router = useRouter();
+  const { activeVehicle, data } = useStore();
+  const vehicleId = activeVehicle?.id;
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    void configureNotifications();
+
+    let subscription: { remove: () => void } | null = null;
+    void import('expo-notifications').then((N) => {
+      subscription = N.addNotificationResponseReceivedListener((response) => {
+        const route = response.notification.request.content.data?.route;
+        if (typeof route === 'string') router.push(route as never);
+      });
+    });
+    return () => subscription?.remove();
+  }, [router]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !vehicleId) return;
+    const run = () => void resync(vehicleId).catch(() => {});
+    run();
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') run();
+    });
+    return () => listener.remove();
+  }, [vehicleId, data]);
+}
+
 function Booting() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.dark.bg.base, alignItems: 'center', justifyContent: 'center' }}>
@@ -102,6 +139,7 @@ function Booting() {
 
 function Shell() {
   const { theme, scheme } = useTheme();
+  useNotifications();
 
   return (
     <>
@@ -154,6 +192,7 @@ function Shell() {
           options={{ presentation: 'modal', headerShown: true, title: 'Nuevo documento' }}
         />
         <Stack.Screen name="documento/[id]" options={{ headerShown: true, title: 'Documento' }} />
+        <Stack.Screen name="notificaciones" options={{ headerShown: true, title: 'Notificaciones' }} />
         <Stack.Screen name="precios" options={{ headerShown: true, title: 'Precios MICM' }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: 'Editar carga' }} />
       </Stack>

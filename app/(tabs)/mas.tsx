@@ -97,6 +97,7 @@ export default function MasScreen() {
         <GhostButton label="Recordatorios" onPress={() => router.push('/recordatorios')} />
         <GhostButton label="Tareas pendientes" onPress={() => router.push('/tareas')} />
         <GhostButton label="Documentos" onPress={() => router.push('/documentos')} />
+        <GhostButton label="Notificaciones" onPress={() => router.push('/notificaciones')} />
 
         <T face="title" style={styles.sec}>
           Datos
