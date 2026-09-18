@@ -135,7 +135,7 @@ async function main() {
     '3. schema carguy is exposed through PostgREST',
     !notExposed && probe.status < 500,
     notExposed
-      ? 'PGRST106 — add `carguy` under Project Settings → API → Exposed schemas'
+      ? 'PGRST106 — add `carguy` under Settings → Data API → Exposed schemas'
       : `status ${probe.status}`,
   );
   if (notExposed) {

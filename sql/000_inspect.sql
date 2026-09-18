@@ -47,6 +47,7 @@ from information_schema.columns
 where table_schema = 'public' and table_name = 'allowed_emails'
 order by ordinal_position;
 
--- NOTE: the list of *exposed* schemas (Project Settings → API → Exposed
--- schemas) is PostgREST configuration, not database state, so no query can
--- read it. Read it off the dashboard and write it at the bottom of the paste.
+-- NOTE: the list of *exposed* schemas is PostgREST configuration, not database
+-- state, so no query can read it. Read it off the dashboard — Settings → Data
+-- API → Exposed schemas, under the INTEGRATIONS group — and write it at the
+-- bottom of the paste.

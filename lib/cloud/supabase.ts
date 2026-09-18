@@ -7,9 +7,9 @@ import { Platform } from 'react-native';
  *
  * `x-core` is shared with Music Hub and xaviel-web, which is why `db.schema` is
  * set: without it the client would read `public`, where Music Hub's tables
- * live. The schema also has to be listed under Project Settings → API →
- * Exposed schemas or PostgREST answers `PGRST106` — `describeSchemaError()`
- * below turns that into a sentence aimed at whoever can fix it.
+ * live. The schema also has to be listed under Settings → Data API → Exposed
+ * schemas or PostgREST answers `PGRST106` — `describeSchemaError()` below turns
+ * that into a sentence aimed at whoever can fix it.
  *
  * The client is created lazily and may not exist at all: Car Guy works with no
  * account and no network (ADR-05), so a missing URL or key is a configuration
@@ -103,7 +103,7 @@ export const SCHEMA_NOT_EXPOSED = 'PGRST106';
  */
 export function describeSchemaError(error: { code?: string } | null): string | null {
   if (error?.code === SCHEMA_NOT_EXPOSED) {
-    return 'El schema carguy no está expuesto en Supabase (Project Settings → API → Exposed schemas).';
+    return 'El schema carguy no está expuesto en Supabase (Settings → Data API → Exposed schemas).';
   }
   return null;
 }

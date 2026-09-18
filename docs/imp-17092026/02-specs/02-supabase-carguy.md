@@ -15,7 +15,8 @@ written to be additive and reversible, and to leave Music Hub untouched.
 - xaviel-web owns `public.site_admins`, `public.is_site_admin()`, and the empty schema
   `tucombustible` (one probe table `schema_check`, "Phase 5 may drop it").
 - Exposed schemas today: `public` and `tucombustible`. `carguy` must be added by hand
-  (Project Settings → API → Exposed schemas) — the API returns `PGRST106` until then.
+  (Settings → Data API → Exposed schemas) — the API returns `PGRST106` until then.
+  *Corrected 2026-09-18: Supabase split the old Settings → API page into API Keys and Data API.*
 
 ## 2. Signup trigger — the one change to shared code (ADR-06)
 

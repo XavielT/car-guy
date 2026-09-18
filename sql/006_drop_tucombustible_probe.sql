@@ -5,7 +5,7 @@
 -- data, and Car Guy uses `carguy` instead, so it has nothing left to do.
 --
 -- Run 000_inspect.sql query 5 first and confirm the only table is the probe.
--- Also remove `tucombustible` from Project Settings → API → Exposed schemas
+-- Also remove `tucombustible` from Settings → Data API → Exposed schemas
 -- afterwards, or PostgREST keeps advertising a schema that is gone.
 --
 -- This is the only `drop` in the whole phase, and it is on a schema no

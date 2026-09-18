@@ -28,4 +28,6 @@ drop schema if exists carguy cascade;
 -- >>>>>>>>>> PASTE THE ORIGINAL public.enforce_invite_only() HERE <<<<<<<<<<
 
 -- 5. Dashboard steps that no SQL can do:
---    · Project Settings → API → Exposed schemas: remove `carguy`.
+--    · Settings → Data API → Exposed schemas: remove `carguy`.
+--      (Supabase split the old Settings → API page; Data API is under the
+--       INTEGRATIONS group in the Settings sidebar.)
