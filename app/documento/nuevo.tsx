@@ -75,6 +75,8 @@ export default function NuevoDocumentoScreen() {
                   setKind(k);
                   if (!title.trim()) setTitle(es.documents.kinds[k]);
                 }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
                 style={[
                   styles.chip,
                   { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },

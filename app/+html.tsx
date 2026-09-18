@@ -1,6 +1,8 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { ReactNode } from 'react';
 
+import { es } from '@/lib/i18n/es';
+
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
 // The contents of this function only run in Node.js environments and
@@ -19,10 +21,7 @@ export default function Root({ children }: { children: ReactNode }) {
         {/* No <title> here on purpose: expo-router renders its own through
             react-helmet, ahead of anything static, and the first title in the
             document is the one that counts. Titles live on the Stack screens. */}
-        <meta
-          name="description"
-          content="Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos."
-        />
+        <meta name="description" content={es.web.description} />
         <meta name="theme-color" content="#121212" />
         <link rel="icon" type="image/png" href="/favicon.png" />
 
@@ -30,7 +29,7 @@ export default function Root({ children }: { children: ReactNode }) {
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-title" content="Car Guy" />
+        <meta name="apple-mobile-web-app-title" content={es.app.name} />
         {/* Car Guy is dark by default, so the status bar blends into the panel
             instead of sitting on it as a light strip. */}
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

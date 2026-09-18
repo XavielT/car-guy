@@ -101,6 +101,8 @@ export default function HistorialScreen() {
                   setFilter(f.key);
                   setLimit(PAGE);
                 }}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
                 style={[
                   styles.chip,
                   { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
@@ -177,6 +179,7 @@ export default function HistorialScreen() {
         ).map(([label, route]) => (
           <Pressable
             key={label}
+            accessibilityRole="button"
             onPress={() => {
               setPickerOpen(false);
               router.push(route as never);

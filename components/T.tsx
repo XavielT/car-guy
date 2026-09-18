@@ -1,7 +1,7 @@
 import { fonts } from '@/constants/theme';
 import { Text, type TextProps } from 'react-native';
 
-type Face = 'display' | 'title' | 'body' | 'medium' | 'semibold' | 'bold' | 'mono' | 'monoBold';
+type Face = 'display' | 'title' | 'body' | 'medium' | 'semibold' | 'mono' | 'monoBold';
 
 const map: Record<Face, string> = {
   display: fonts.display,
@@ -9,7 +9,6 @@ const map: Record<Face, string> = {
   body: fonts.body,
   medium: fonts.medium,
   semibold: fonts.semibold,
-  bold: fonts.bold,
   mono: fonts.mono,
   monoBold: fonts.monoBold,
 };

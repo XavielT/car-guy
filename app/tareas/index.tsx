@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
-import { EmptyState, PrimaryButton, StatusPill, Surface } from '@/components/ui';
+import { EmptyState, PrimaryButton, Segmented, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { tasks as taskRepo } from '@/lib/db/repos';
 import type { Task } from '@/lib/db/types';
@@ -59,24 +59,12 @@ export default function TareasScreen() {
           {es.tasks.subtitle}
         </T>
 
-        <View style={styles.row}>
-          {STATUSES.map((s) => {
-            const on = status === s;
-            return (
-              <Pressable
-                key={s}
-                onPress={() => setStatus(s)}
-                style={[
-                  styles.chip,
-                  { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
-                ]}>
-                <T face="semibold" style={{ color: on ? theme.accentInk : theme.text.secondary, fontSize: 13 }}>
-                  {es.tasks.statuses[s]}
-                </T>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Segmented
+          style={styles.row}
+          options={STATUSES.map((s) => ({ key: s, label: es.tasks.statuses[s] }))}
+          value={status}
+          onChange={setStatus}
+        />
 
         {rows.length === 0 ? (
           <EmptyState icon="checkmark-done-outline" message={es.tasks.empty} />
@@ -84,6 +72,7 @@ export default function TareasScreen() {
           rows.map((task) => (
             <Pressable
               key={task.id}
+              accessibilityRole="button"
               onPress={() => router.push({ pathname: '/tarea/[id]', params: { id: task.id } })}>
               <Surface style={{ marginBottom: space.sm }}>
                 <View style={styles.taskHeader}>

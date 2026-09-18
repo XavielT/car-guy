@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { colors, radius, space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
 import { FuelPicker } from '@/components/FuelPicker';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
 import { Chip, PrimaryButton } from '@/components/ui';
-import { parseDecimal } from '@/lib/math';
+import { parseDecimal } from '@/lib/domain/economy';
+import { useTheme } from '@/lib/theme/useTheme';
 import { es } from '@/lib/i18n/es';
 import type { FuelType } from '@/lib/types';
 import type { VehicleType } from '@/lib/db/types';
@@ -49,6 +50,7 @@ export function VehicleForm({
   submitLabel: string;
   onSubmit: (draft: VehicleDraft) => void;
 }) {
+  const { theme } = useTheme();
   const [name, setName] = useState(initial?.name ?? '');
   const [type, setType] = useState<VehicleType>(initial?.type ?? 'carro');
   const [make, setMake] = useState(initial?.make ?? '');
@@ -110,7 +112,7 @@ export function VehicleForm({
 
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-      <T face="display" style={styles.h}>
+      <T face="display" style={[styles.h, { color: theme.text.primary }]}>
         {initial?.id ? es.vehicle.editTitle : es.vehicle.newTitle}
       </T>
 
@@ -121,7 +123,7 @@ export function VehicleForm({
         onChangeText={setName}
       />
 
-      <T face="semibold" style={styles.label}>
+      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
         {es.vehicle.type}
       </T>
       <View style={styles.row}>
@@ -163,7 +165,7 @@ export function VehicleForm({
         </View>
       </View>
 
-      <T face="semibold" style={styles.label}>
+      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
         {es.vehicle.fuel}
       </T>
       <FuelPicker value={fuel} onChange={setFuel} />
@@ -184,19 +186,32 @@ export function VehicleForm({
         </View>
       </View>
 
-      <Pressable onPress={() => setSynthetic((v) => !v)} style={styles.toggle}>
-        <View style={[styles.checkbox, synthetic && styles.checkboxOn]} />
+      <Pressable
+        onPress={() => setSynthetic((v) => !v)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: synthetic }}
+        accessibilityLabel={es.vehicle.synthetic}
+        style={styles.toggle}>
+        <View
+          style={[
+            styles.checkbox,
+            {
+              borderColor: synthetic ? theme.accent : theme.line,
+              backgroundColor: synthetic ? theme.accent : theme.bg.raised,
+            },
+          ]}
+        />
         <View style={{ flex: 1 }}>
-          <T face="semibold" style={styles.toggleLabel}>
+          <T face="semibold" style={[styles.toggleLabel, { color: theme.text.primary }]}>
             {es.vehicle.synthetic}
           </T>
-          <T face="body" style={styles.hint}>
+          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
             {es.vehicle.syntheticHint}
           </T>
         </View>
       </Pressable>
 
-      <T face="semibold" style={styles.label}>
+      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
         {es.vehicle.photo}
       </T>
       <PhotoPicker
@@ -207,8 +222,12 @@ export function VehicleForm({
         onChange={setPhotoMediaId}
       />
 
-      <Pressable onPress={() => setShowPurchase((v) => !v)} style={styles.sectionToggle}>
-        <T face="semibold" style={styles.sectionToggleLabel}>
+      <Pressable
+        onPress={() => setShowPurchase((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: showPurchase }}
+        style={styles.sectionToggle}>
+        <T face="semibold" style={[styles.sectionToggleLabel, { color: theme.accent }]}>
           {showPurchase ? '−' : '+'}  {es.vehicle.purchaseSection}
         </T>
       </Pressable>
@@ -227,7 +246,10 @@ export function VehicleForm({
       <Field label={es.vehicle.notes} value={notes} onChangeText={setNotes} multiline />
 
       {error ? (
-        <T face="body" style={styles.error}>
+        <T
+          face="body"
+          accessibilityRole="alert"
+          style={[styles.error, { color: theme.danger, backgroundColor: theme.statusBg.vencido }]}>
           {error}
         </T>
       ) : null}
@@ -239,32 +261,28 @@ export function VehicleForm({
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 28, color: colors.ink, marginBottom: space.lg },
-  label: { color: colors.ink, fontSize: 13, marginBottom: 6 },
+  h: { fontSize: 28, marginBottom: space.lg },
+  label: { fontSize: 13, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
   pair: { flexDirection: 'row', gap: space.md },
   half: { flex: 1 },
-  toggle: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start', marginBottom: space.lg },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    marginTop: 2,
+  toggle: {
+    flexDirection: 'row',
+    gap: space.md,
+    alignItems: 'flex-start',
+    marginBottom: space.lg,
+    minHeight: 44,
   },
-  checkboxOn: { backgroundColor: colors.led, borderColor: colors.led },
-  toggleLabel: { color: colors.ink, fontSize: 15 },
-  hint: { color: colors.muted, fontSize: 12, marginTop: 2, lineHeight: 17 },
-  sectionToggle: { paddingVertical: space.md },
-  sectionToggleLabel: { color: colors.muted, fontSize: 14 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, marginTop: 2 },
+  toggleLabel: { fontSize: 15 },
+  hint: { fontSize: 12, marginTop: 2, lineHeight: 17 },
+  sectionToggle: { paddingVertical: space.md, minHeight: 44, justifyContent: 'center' },
+  sectionToggleLabel: { fontSize: 14 },
   error: {
-    color: colors.danger,
     fontSize: 13,
     marginBottom: space.md,
-    backgroundColor: colors.white,
     padding: space.md,
     borderRadius: radius.input,
+    overflow: 'hidden',
   },
 });

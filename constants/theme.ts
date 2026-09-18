@@ -99,9 +99,11 @@ export type CategoryKey = keyof typeof categoryColors;
 
 /**
  * Space Grotesk for titles and Manrope for UI — the same pairing X AutoHub uses —
- * and JetBrains Mono for every number so columns line up. `bold` is a
- * compatibility face for the legacy screens; it resolves to Manrope 600, the
- * heaviest UI weight the identity uses. PROMPT-06 drops it.
+ * and JetBrains Mono for every number so columns line up.
+ *
+ * The `bold` compatibility face that stood in for Tu Combustible RD's heaviest
+ * weight is gone with PROMPT-06: `semibold` is the heaviest UI weight the
+ * identity actually uses, and two names for one file invited the wrong one.
  *
  * Every family named here must also be passed to useFonts in app/_layout.tsx:
  * a missing weight falls back to the system font on web with no warning.
@@ -112,7 +114,6 @@ export const fonts = {
   body: 'Manrope_400Regular',
   medium: 'Manrope_500Medium',
   semibold: 'Manrope_600SemiBold',
-  bold: 'Manrope_600SemiBold',
   // JetBrains Mono stays: the odometer, money and km/gal are tabular figures, and
   // proportional digits make those columns shift as the numbers change. It is the
   // one face Car Guy needs that the other projects have no use for.
@@ -139,28 +140,3 @@ export const space = {
   /** Screen gutter, unchanged from Tu Combustible RD. */
   gutter: 20,
 } as const;
-
-/**
- * Compatibility alias for the screens written against Tu Combustible RD's token
- * names. Mapping them onto the dark palette makes every legacy screen compile
- * and go dark at once, without touching it. PROMPT-06 restyles those screens
- * properly and deletes this.
- *
- * It is deliberately flat and static: legacy screens read it at module scope, so
- * it cannot follow the active scheme. New code uses useTheme() instead.
- */
-export const colors = {
-  canopy: dark.bg.base,
-  canopyLift: dark.bg.raised,
-  ink: dark.text.primary,
-  muted: dark.text.secondary,
-  receipt: dark.bg.surface,
-  receiptDeep: dark.bg.raised,
-  led: dark.accent,
-  ledDim: dark.accentPressed,
-  nozzle: dark.accent,
-  teal: dark.status.ok,
-  line: dark.line,
-  white: dark.bg.raised,
-  danger: dark.status.vencido,
-};

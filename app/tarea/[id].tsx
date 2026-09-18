@@ -86,6 +86,8 @@ export default function TareaScreen() {
                   if (s === 'hecha' && task.status !== 'hecha') return setAskRegister(true);
                   void setStatus(s);
                 }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
                 style={[
                   styles.chip,
                   { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
@@ -103,7 +105,7 @@ export default function TareaScreen() {
           danger
           label={es.common.delete}
           onPress={() =>
-            Alert.alert(task.title, '¿Borrar esta tarea?', [
+            Alert.alert(task.title, es.tasks.deleteConfirm, [
               { text: es.common.cancel, style: 'cancel' },
               {
                 text: es.common.delete,

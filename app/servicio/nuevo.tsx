@@ -170,6 +170,8 @@ export default function NuevoServicioScreen() {
               <Pressable
                 key={k}
                 onPress={() => setKind(k)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
                 style={[
                   styles.kindChip,
                   { borderColor: on ? KIND_COLOR[k] : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
@@ -217,6 +219,8 @@ export default function NuevoServicioScreen() {
                         prev.includes(type.id) ? prev.filter((x) => x !== type.id) : [...prev, type.id],
                       )
                     }
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
                     style={[
                       styles.itemChip,
                       { borderColor: on ? theme.accent : theme.line, backgroundColor: on ? theme.accent : theme.bg.raised },
@@ -268,6 +272,7 @@ export default function NuevoServicioScreen() {
               <Pressable
                 key={s}
                 onPress={() => setShop(s)}
+                accessibilityRole="button"
                 style={[styles.suggestion, { borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
                 <T face="body" style={{ color: theme.text.secondary, fontSize: 12 }}>
                   {s}
@@ -277,7 +282,11 @@ export default function NuevoServicioScreen() {
           </View>
         ) : null}
 
-        <Pressable onPress={() => setShowWarranty((v) => !v)} style={styles.toggle}>
+        <Pressable
+          onPress={() => setShowWarranty((v) => !v)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showWarranty }}
+          style={styles.toggle}>
           <T face="semibold" style={{ color: theme.text.secondary, fontSize: 14 }}>
             {showWarranty ? '−' : '+'}  {es.service.warranty}
           </T>
@@ -289,7 +298,11 @@ export default function NuevoServicioScreen() {
           </>
         ) : null}
 
-        <Pressable onPress={() => setShowParts((v) => !v)} style={styles.toggle}>
+        <Pressable
+          onPress={() => setShowParts((v) => !v)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showParts }}
+          style={styles.toggle}>
           <T face="semibold" style={{ color: theme.text.secondary, fontSize: 14 }}>
             {showParts ? '−' : '+'}  {es.service.parts}
           </T>
@@ -301,7 +314,11 @@ export default function NuevoServicioScreen() {
                 <T face="body" style={{ color: theme.text.primary, flex: 1 }}>
                   {part.quantity}× {part.name}
                 </T>
-                <Pressable onPress={() => setParts((prev) => prev.filter((_, i) => i !== index))}>
+                <Pressable
+                  onPress={() => setParts((prev) => prev.filter((_, i) => i !== index))}
+                  accessibilityRole="button"
+                  accessibilityLabel={es.common.removeItem(part.name)}
+                  hitSlop={12}>
                   <T face="body" style={{ color: theme.text.muted }}>
                     ×
                   </T>

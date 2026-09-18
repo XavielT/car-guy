@@ -1,13 +1,23 @@
-import { T } from '@/components/T';
-import { Card } from '@/components/ui';
-import { colors } from '@/constants/theme';
-import { FUEL_CATALOG, FUEL_ORDER, economyLabel } from '@/lib/fuel';
-import { km, money, monthTitle } from '@/lib/format';
-import { computeEconomy, distanceInLogs, inMonth, latestEconomyInsight, roundMoney, sumSpend } from '@/lib/math';
-import { useStore } from '@/lib/store';
-import type { FuelType } from '@/lib/types';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { T } from '@/components/T';
+import { SectionHeader, Surface } from '@/components/ui';
+import { categoryColors, space } from '@/constants/theme';
+import {
+  computeEconomy,
+  distanceInLogs,
+  inMonth,
+  latestEconomyInsight,
+  roundMoney,
+  sumSpend,
+} from '@/lib/domain/economy';
+import { km, money, monthTitle } from '@/lib/format';
+import { FUEL_CATALOG, FUEL_ORDER, economyLabel } from '@/lib/fuel';
+import { es } from '@/lib/i18n/es';
+import { useStore } from '@/lib/store';
+import { useTheme } from '@/lib/theme/useTheme';
+import type { FuelType } from '@/lib/types';
 
 function monthBuckets(fillups: { occurredAt: string; totalDop: number }[]) {
   const map = new Map<string, number>();
@@ -25,7 +35,13 @@ function monthBuckets(fillups: { occurredAt: string; totalDop: number }[]) {
     .slice(0, 6);
 }
 
+/**
+ * Restyled onto the tokens this phase, not rebuilt: PROMPT-07 replaces the tiles
+ * and bars with the real statistics screen. Every number here is the one the
+ * previous version showed.
+ */
 export default function CifrasScreen() {
+  const { theme } = useTheme();
   const { vehicleFillups, vehicleExpenses, activeVehicle } = useStore();
   if (!activeVehicle) return null;
 
@@ -46,109 +62,78 @@ export default function CifrasScreen() {
   const eco = computeEconomy(vehicleFillups);
   const insight = latestEconomyInsight(vehicleFillups);
   const avg = eco.length ? eco.reduce((a, p) => a + p.kmPerUnit, 0) / eco.length : null;
+  const unit = economyLabel(activeVehicle.defaultFuelType);
   const odometerRows = [...vehicleFillups].sort(
     (a, b) => a.odometerKm - b.odometerKm || new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
   );
-  const totalKm = odometerRows.length > 1 ? odometerRows[odometerRows.length - 1].odometerKm - odometerRows[0].odometerKm : 0;
+  const totalKm =
+    odometerRows.length > 1
+      ? odometerRows[odometerRows.length - 1].odometerKm - odometerRows[0].odometerKm
+      : 0;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <T face="display" style={styles.h}>
-          Cifras
+        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
+          {es.stats.title}
         </T>
-        <T face="body" style={styles.sub}>
-          {activeVehicle.name} · gasto y consumo reales, no el de la computadora del carro.
+        <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
+          {es.stats.subtitle(activeVehicle.name)}
         </T>
 
-        <View style={styles.row}>
-          <Card>
-            <T face="medium" style={styles.lbl}>
-              Este mes
-            </T>
-            <T face="monoBold" style={styles.val}>
-              {money(sumSpend(monthLogs))}
-            </T>
-          </Card>
-        </View>
-        <View style={[styles.row, { marginTop: 12 }]}>
-          <Card>
-            <T face="medium" style={styles.lbl}>Costo total del vehículo</T>
-            <T face="monoBold" style={styles.val}>{money(combinedSpend)}</T>
-            <T face="body" style={styles.hint}>{money(allSpend)} combustible · {money(expenseSpend)} otros gastos</T>
-          </Card>
-        </View>
-        <View style={[styles.row, { marginTop: 12 }]}>
-          <Card>
-            <T face="medium" style={styles.lbl}>
-              RD$ / km
-            </T>
-            <T face="monoBold" style={styles.val}>
-              {costKm != null ? money(costKm) : '—'}
-            </T>
-            <T face="body" style={styles.hint}>
-              {dist ? km(dist) + ' entre primera y última carga' : 'Registra al menos dos cargas'}
-            </T>
-          </Card>
-        </View>
-
-        <Card style={{ marginTop: 12 }}>
-          <T face="medium" style={styles.lbl}>
-            Kilómetros registrados
-          </T>
-          <T face="monoBold" style={styles.val}>
-            {totalKm ? km(totalKm) : '—'}
-          </T>
-          <T face="body" style={styles.hint}>
-            {odometerRows.length ? `${odometerRows.length} lecturas del odómetro` : 'Aparecerá con tu primera carga'}
-          </T>
-        </Card>
-        <View style={[styles.row, { marginTop: 12 }]}>
-          <Card>
-            <T face="medium" style={styles.lbl}>
-              Consumo medio
-            </T>
-            <T face="monoBold" style={styles.val}>
-              {avg != null ? `${avg.toFixed(2)} ${economyLabel(activeVehicle.defaultFuelType)}` : '—'}
-            </T>
-          </Card>
-        </View>
+        <Tile label={es.stats.thisMonth} value={money(sumSpend(monthLogs))} />
+        <Tile
+          label={es.stats.totalCost}
+          value={money(combinedSpend)}
+          hint={es.stats.totalCostSplit(money(allSpend), money(expenseSpend))}
+        />
+        <Tile
+          label={es.stats.costPerKm}
+          value={costKm != null ? money(costKm) : '—'}
+          hint={dist ? es.stats.costPerKmHint(km(dist)) : es.stats.costPerKmEmpty}
+        />
+        <Tile
+          label={es.stats.kmLogged}
+          value={totalKm ? km(totalKm) : '—'}
+          hint={odometerRows.length ? es.stats.readings(odometerRows.length) : es.stats.readingsEmpty}
+        />
+        <Tile
+          label={es.stats.average}
+          value={avg != null ? `${avg.toFixed(2)} ${unit}` : '—'}
+        />
 
         {insight ? (
-          <Card style={styles.insightCard}>
-            <T face="medium" style={styles.lbl}>
-              Lectura del último tanque
-            </T>
-            <T face="monoBold" style={styles.val}>
-              {insight.status === 'low' ? 'Bajo' : insight.status === 'great' ? 'Excelente' : 'Estable'}
-            </T>
-            <T face="body" style={styles.hint}>
-              Comparado con el promedio de tus tanques anteriores ({insight.baseline.toFixed(2)} {economyLabel(activeVehicle.defaultFuelType)}).
-            </T>
-          </Card>
+          <Tile
+            label={es.stats.lastTank}
+            value={es.stats.lastTankValues[insight.status]}
+            hint={es.stats.lastTankHint(`${insight.baseline.toFixed(2)} ${unit}`)}
+          />
         ) : null}
 
-        <T face="title" style={styles.sec}>
-          Línea de vida del vehículo
-        </T>
+        <SectionHeader title={es.stats.timeline} />
         {odometerRows.length === 0 ? (
-          <T face="body" style={styles.hint}>
-            Cada carga irá dejando aquí la historia de los kilómetros de tu vehículo.
+          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
+            {es.stats.timelineEmpty}
           </T>
         ) : (
           odometerRows.map((fillup, index) => {
             const previous = odometerRows[index - 1];
             const distance = previous ? fillup.odometerKm - previous.odometerKm : null;
+            const at = new Date(fillup.occurredAt);
             return (
-              <View key={fillup.id} style={styles.timelineRow}>
-                <View style={styles.timelineDot} />
+              <View key={fillup.id} style={[styles.timelineRow, { borderBottomColor: theme.line }]}>
+                <View style={[styles.timelineDot, { backgroundColor: theme.accent }]} />
                 <View style={{ flex: 1 }}>
                   <View style={styles.barHead}>
-                    <T face="semibold">{km(fillup.odometerKm)}</T>
-                    <T face="body" style={styles.metaDate}>{monthTitle(new Date(fillup.occurredAt).getFullYear(), new Date(fillup.occurredAt).getMonth())}</T>
+                    <T face="monoBold" style={{ color: theme.text.primary, fontSize: 14 }}>
+                      {km(fillup.odometerKm)}
+                    </T>
+                    <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
+                      {monthTitle(at.getFullYear(), at.getMonth())}
+                    </T>
                   </View>
-                  <T face="body" style={styles.hint}>
-                    {distance != null ? `+${km(distance)} desde la lectura anterior` : 'Punto de partida'}
+                  <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: 4 }]}>
+                    {distance != null ? es.stats.timelineStep(km(distance)) : es.stats.timelineStart}
                   </T>
                 </View>
               </View>
@@ -156,45 +141,37 @@ export default function CifrasScreen() {
           })
         )}
 
-        <T face="title" style={styles.sec}>
-          Por tipo
-        </T>
+        <SectionHeader title={es.stats.byType} />
         {byType.length === 0 ? (
-          <T face="body" style={styles.hint}>
-            Cuando haya cargas, aquí se parte Premium, Regular, gasoil y GLP.
+          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
+            {es.stats.byTypeEmpty}
           </T>
         ) : (
           byType.map((x) => (
-            <View key={x.type} style={styles.barBlock}>
-              <View style={styles.barHead}>
-                <T face="semibold">{FUEL_CATALOG[x.type as FuelType].label}</T>
-                <T face="mono">{money(x.total)}</T>
-              </View>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${(x.total / maxType) * 100}%` }]} />
-              </View>
-            </View>
+            <Bar
+              key={x.type}
+              label={FUEL_CATALOG[x.type as FuelType].label}
+              value={money(x.total)}
+              fraction={x.total / maxType}
+              color={categoryColors.combustible}
+            />
           ))
         )}
 
-        <T face="title" style={styles.sec}>
-          Mes a mes
-        </T>
+        <SectionHeader title={es.stats.byMonth} />
         {months.length === 0 ? (
-          <T face="body" style={styles.hint}>
-            El gasto mensual aparece después de la primera carga.
+          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
+            {es.stats.byMonthEmpty}
           </T>
         ) : (
           months.map((m) => (
-            <View key={`${m.year}-${m.month}`} style={styles.barBlock}>
-              <View style={styles.barHead}>
-                <T face="semibold">{m.label}</T>
-                <T face="mono">{money(m.total)}</T>
-              </View>
-              <View style={styles.track}>
-                <View style={[styles.fillAmber, { width: `${(m.total / maxMonth) * 100}%` }]} />
-              </View>
-            </View>
+            <Bar
+              key={`${m.year}-${m.month}`}
+              label={m.label}
+              value={money(m.total)}
+              fraction={m.total / maxMonth}
+              color={categoryColors.mantenimiento}
+            />
           ))
         )}
       </ScrollView>
@@ -202,40 +179,72 @@ export default function CifrasScreen() {
   );
 }
 
+function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  const { theme } = useTheme();
+  return (
+    <Surface style={styles.tile}>
+      <T face="medium" style={[styles.tileLabel, { color: theme.text.muted }]}>
+        {label.toUpperCase()}
+      </T>
+      <T face="monoBold" style={[styles.tileValue, { color: theme.text.primary }]}>
+        {value}
+      </T>
+      {hint ? (
+        <T face="body" style={[styles.hint, { color: theme.text.secondary, marginTop: space.sm }]}>
+          {hint}
+        </T>
+      ) : null}
+    </Surface>
+  );
+}
+
+function Bar({
+  label,
+  value,
+  fraction,
+  color,
+}: {
+  label: string;
+  value: string;
+  fraction: number;
+  color: string;
+}) {
+  const { theme } = useTheme();
+  return (
+    <View style={styles.barBlock}>
+      <View style={styles.barHead}>
+        <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
+          {label}
+        </T>
+        <T face="mono" style={{ color: theme.text.secondary, fontSize: 13 }}>
+          {value}
+        </T>
+      </View>
+      <View style={[styles.track, { backgroundColor: theme.bg.raised }]}>
+        <View style={[styles.fill, { width: `${Math.max(fraction, 0.02) * 100}%`, backgroundColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.receipt },
-  pad: { padding: 20, paddingBottom: 48 },
-  h: { fontSize: 36, color: colors.ink },
-  sub: { color: colors.muted, marginTop: 6, marginBottom: 16, lineHeight: 22 },
-  row: {},
-  lbl: { color: colors.muted, fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase' },
-  val: { fontSize: 26, color: colors.ink, marginTop: 8 },
-  hint: { color: colors.muted, fontSize: 12, marginTop: 8, lineHeight: 18 },
-  insightCard: { marginTop: 12 },
-  sec: { fontSize: 22, color: colors.ink, marginTop: 28, marginBottom: 12 },
-  barBlock: { marginBottom: 12 },
-  barHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  metaDate: { color: colors.muted, fontSize: 12 },
+  safe: { flex: 1 },
+  pad: { padding: space.gutter, paddingBottom: 48 },
+  h: { fontSize: 34 },
+  sub: { marginTop: 6, marginBottom: space.lg, lineHeight: 22 },
+  tile: { marginBottom: space.md },
+  tileLabel: { fontSize: 11, letterSpacing: 0.9 },
+  tileValue: { fontSize: 26, marginTop: space.sm },
+  hint: { fontSize: 12, lineHeight: 18 },
+  barBlock: { marginBottom: space.md },
+  barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   timelineRow: {
     flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 12,
+    gap: space.md,
+    paddingVertical: space.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.line,
   },
-  timelineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.nozzle,
-    marginTop: 5,
-  },
-  track: {
-    height: 10,
-    backgroundColor: colors.receiptDeep,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  fill: { height: 10, backgroundColor: colors.teal, borderRadius: 999 },
-  fillAmber: { height: 10, backgroundColor: colors.ledDim, borderRadius: 999 },
+  timelineDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5 },
+  track: { height: 10, borderRadius: 999, overflow: 'hidden' },
+  fill: { height: 10, borderRadius: 999 },
 });

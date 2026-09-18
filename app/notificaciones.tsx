@@ -95,6 +95,8 @@ export default function NotificacionesScreen() {
                       <Pressable
                         key={h}
                         onPress={() => void apply({ ...config, hour: h })}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: config.hour === h }}
                         style={[
                           styles.chip,
                           { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
@@ -118,6 +120,8 @@ export default function NotificacionesScreen() {
                       <Pressable
                         key={name}
                         onPress={() => void apply({ ...config, weeklyWeekday: weekday })}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: config.weeklyWeekday === weekday }}
                         style={[
                           styles.chip,
                           { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },

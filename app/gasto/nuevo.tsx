@@ -102,6 +102,8 @@ export default function NuevoGastoScreen() {
               <Pressable
                 key={c}
                 onPress={() => setCategory(c)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
                 style={[
                   styles.chip,
                   { borderColor: on ? theme.accent : theme.line, backgroundColor: on ? theme.accent : theme.bg.raised },

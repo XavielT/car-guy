@@ -1,18 +1,22 @@
-import { VehicleForm } from '@/components/VehicleForm';
-import { GhostButton } from '@/components/ui';
-import { T } from '@/components/T';
-import { colors } from '@/constants/theme';
-import { Alert } from '@/lib/alert';
-import { importBackup } from '@/lib/backup';
-import { describeCounts } from '@/lib/import/tucombustible';
-import { saveVehicleDraft } from '@/lib/db/vehicleOps';
-import { useStore } from '@/lib/store';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { T } from '@/components/T';
+import { GhostButton } from '@/components/ui';
+import { VehicleForm } from '@/components/VehicleForm';
+import { space } from '@/constants/theme';
+import { Alert } from '@/lib/alert';
+import { importBackup } from '@/lib/backup';
+import { saveVehicleDraft } from '@/lib/db/vehicleOps';
+import { es } from '@/lib/i18n/es';
+import { describeCounts } from '@/lib/import/tucombustible';
+import { useStore } from '@/lib/store';
+import { useTheme } from '@/lib/theme/useTheme';
+
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const { refresh, setActiveVehicle } = useStore();
 
   /**
@@ -26,22 +30,34 @@ export default function OnboardingScreen() {
       if (!result) return;
       await refresh();
       Alert.alert(
-        'Datos importados',
+        es.onboarding.importedTitle,
         result.kind === 'legacy'
-          ? `Listo: ${describeCounts(result.counts)}.`
-          : `Listo: ${result.counts.merged} registros restaurados.`,
+          ? es.onboarding.importedLegacy(describeCounts(result.counts))
+          : es.onboarding.importedMerge(result.counts.merged),
       );
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Importar', error instanceof Error ? error.message : String(error));
+      Alert.alert(
+        es.onboarding.importFailedTitle,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.receipt }} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['top', 'bottom']}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <View style={styles.hero}>
+          <T face="medium" style={[styles.eyebrow, { color: theme.accent }]}>
+            {es.home.eyebrow}
+          </T>
+          <T face="display" style={[styles.title, { color: theme.text.primary }]}>
+            {es.app.tagline}
+          </T>
+        </View>
+
         <VehicleForm
-          submitLabel="Empezar a registrar"
+          submitLabel={es.vehicle.create}
           onSubmit={(draft) => {
             void (async () => {
               const id = await saveVehicleDraft(draft);
@@ -51,11 +67,12 @@ export default function OnboardingScreen() {
             })();
           }}
         />
+
         <View style={styles.alt}>
-          <T face="body" style={styles.altText}>
-            ¿Vienes de Tu Combustible RD? Trae tu historial completo desde el respaldo JSON.
+          <T face="body" style={[styles.altText, { color: theme.text.secondary }]}>
+            {es.onboarding.legacyPrompt}
           </T>
-          <GhostButton label="Importar respaldo de Tu Combustible RD" onPress={handleImport} />
+          <GhostButton label={es.onboarding.legacyAction} onPress={handleImport} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -63,6 +80,9 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  alt: { paddingHorizontal: 20, paddingBottom: 24 },
-  altText: { color: colors.muted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  hero: { paddingHorizontal: space.gutter, paddingTop: space.xxl, paddingBottom: space.sm },
+  eyebrow: { fontSize: 11, letterSpacing: 1.4 },
+  title: { fontSize: 32, marginTop: 6 },
+  alt: { paddingHorizontal: space.gutter, paddingBottom: space.xxl },
+  altText: { fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

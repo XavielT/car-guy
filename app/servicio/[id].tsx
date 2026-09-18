@@ -162,6 +162,8 @@ export default function ServicioDetalleScreen() {
                     await refresh();
                   })();
                 }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
                 style={[
                   styles.kindChip,
                   { borderColor: on ? KIND_COLOR[k] : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
@@ -179,7 +181,7 @@ export default function ServicioDetalleScreen() {
           danger
           label={es.common.delete}
           onPress={() =>
-            Alert.alert(record.title, '¿Borrar este registro?', [
+            Alert.alert(record.title, es.service.deleteConfirm, [
               { text: es.common.cancel, style: 'cancel' },
               {
                 text: es.common.delete,
