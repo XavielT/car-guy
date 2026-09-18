@@ -18,11 +18,13 @@
  *   · only paths inside sql/ are accepted;
  *   · the file is printed as a summary before anything is sent;
  *   · `--dry-run` sends nothing;
- *   · a file that MODIFIES an object Music Hub owns is refused unless `--shared`
- *     is passed as well. Mentioning `auth.users` is fine — sql/002 references it
- *     for a foreign key and hangs its own `carguy_`-prefixed trigger there, both
- *     by design. Replacing `public.enforce_invite_only()` or dropping anything
- *     in `public` is not, and only sql/001 and rollback.sql may do it.
+ *   · a file that MODIFIES anything Music Hub owns is refused unless `--shared`
+ *     is passed as well — both DDL (replacing a function in `public`, dropping
+ *     there, a trigger on `auth.users` under a name that is not ours) and DML
+ *     (deleting, updating or inserting rows in `public`, `auth` or `storage`).
+ *     Mentioning those schemas is fine: sql/002 references `auth.users` for a
+ *     foreign key and selects are always allowed. Only sql/001, rollback.sql and
+ *     the cleanup file have business writing there.
  */
 
 import { readFileSync } from 'node:fs';
@@ -73,10 +75,18 @@ const executable = sql
  * A foreign key pointing at `auth.users` is not a modification of it.
  */
 const SHARED_PATTERNS = [
+  // DDL against objects Music Hub owns.
   /create\s+or\s+replace\s+function\s+public\./i,
   /\bdrop\s+(table|function|trigger|schema|policy)\s+(if\s+exists\s+)?public\./i,
-  /\balter\s+(table|function|schema)\s+public\./i,
+  /\balter\s+(table|function|schema)\s+(public|auth)\./i,
   /\bdrop\s+schema\s+public\b/i,
+  // DML against their rows. The first version of this guard missed these
+  // entirely and waved through a file that deletes from auth.users — the shared
+  // table that holds Music Hub's accounts. Reading is fine; writing is not.
+  /\bdelete\s+from\s+(public|auth|storage)\./i,
+  /\bupdate\s+(public|auth|storage)\./i,
+  /\binsert\s+into\s+(public|auth)\./i,
+  /\btruncate\s+(table\s+)?(public|auth|storage)\./i,
 ];
 const foreignTrigger = [...executable.matchAll(/create\s+trigger\s+(\w+)[\s\S]{0,120}?on\s+auth\.users/gi)]
   .map((m) => m[1])
