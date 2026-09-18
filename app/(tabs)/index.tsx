@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '@/components/T';
 import { OdometerHero, QuickActions, Surface, type Telltale } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { currentOdometer as currentOdometerQuery, odometer as odometerRepo } from '@/lib/db/repos';
+import { useSession } from '@/lib/cloud/auth';
+import { currentOdometer as currentOdometerQuery, odometer as odometerRepo, settings as settingsRepo } from '@/lib/db/repos';
 import { attentionReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { isMarbeteWindowOpen, marbeteNudges } from '@/lib/domain/legal-dr';
@@ -26,6 +27,9 @@ import { useTheme } from '@/lib/theme/useTheme';
  * reference information about fuel prices, not a statement about *this* vehicle,
  * and the odometer is what everything else in Car Guy is computed from.
  */
+/** Remembers that the account card was dismissed, so it never returns. */
+const ACCOUNT_CARD_KEY = 'account_card_dismissed';
+
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -35,6 +39,19 @@ export default function HomeScreen() {
   const [daysSince, setDaysSince] = useState<number | null>(null);
   const [monthKm, setMonthKm] = useState<number>(0);
   const [attention, setAttention] = useState<EvaluatedReminder[]>([]);
+
+  // The account nudge: shown once the garage has something worth protecting,
+  // dismissible for good. `null` means "not read from storage yet", which keeps
+  // the card from flashing in on every launch before the setting arrives.
+  const { session, configured } = useSession();
+  const [accountCardHidden, setAccountCardHidden] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    settingsRepo
+      .get<boolean>(ACCOUNT_CARD_KEY, false)
+      .then(setAccountCardHidden)
+      .catch(() => setAccountCardHidden(true));
+  }, []);
 
   const vehicleId = activeVehicle?.id;
 
@@ -167,6 +184,40 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
 
+        {configured && !session && accountCardHidden === false ? (
+          <Surface style={styles.accountCard}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+              {es.account.onboardingTitle}
+            </T>
+            <T
+              face="body"
+              style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
+              {es.account.onboardingBody}
+            </T>
+            <View style={styles.accountActions}>
+              <Pressable
+                onPress={() => router.push('/cuenta')}
+                accessibilityRole="button"
+                style={[styles.accountPrimary, { backgroundColor: theme.accent }]}>
+                <T face="semibold" style={{ color: theme.accentInk, fontSize: 13 }}>
+                  {es.account.onboardingAction}
+                </T>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setAccountCardHidden(true);
+                  void settingsRepo.set(ACCOUNT_CARD_KEY, true);
+                }}
+                accessibilityRole="button"
+                style={styles.accountDismiss}>
+                <T face="semibold" style={{ color: theme.text.secondary, fontSize: 13 }}>
+                  {es.account.onboardingDismiss}
+                </T>
+              </Pressable>
+            </View>
+          </Surface>
+        ) : null}
+
         <QuickActions
           actions={[
             { label: es.quickActions.fuel, icon: 'flash-outline', onPress: () => router.push('/carga/nueva') },
@@ -271,6 +322,21 @@ function telltaleLabel(title: string, status: EvaluatedReminder['status']): stri
 }
 
 const styles = StyleSheet.create({
+  accountCard: { marginBottom: space.md },
+  accountActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },
+  accountPrimary: {
+    paddingHorizontal: space.lg,
+    minHeight: 40,
+    borderRadius: radius.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountDismiss: {
+    paddingHorizontal: space.md,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 40 },
   kicker: { letterSpacing: 2, fontSize: 12 },

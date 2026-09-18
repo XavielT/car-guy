@@ -49,6 +49,7 @@ export const es = {
     prices: 'Precios MICM',
     report: 'Reporte',
     export: 'Exportar',
+    account: 'Cuenta',
   },
 
   web: {
@@ -693,6 +694,71 @@ export const es = {
     report: 'Reporte PDF',
     csv: 'Exportar CSV',
     empty: 'Registra una carga o un gasto y aquí aparecen tus cifras.',
+  },
+
+  account: {
+    title: 'Cuenta',
+    subtitle: 'Opcional. La app funciona igual sin ella.',
+
+    pitch: 'Sin cuenta la app funciona igual. Con cuenta, si cambias de teléfono, tus datos te siguen.',
+    pitchMore:
+      'Nada se sube hasta que inicies sesión, y cerrar sesión no borra nada de este teléfono.',
+
+    signIn: 'Iniciar sesión',
+    signUp: 'Crear cuenta',
+    signOut: 'Cerrar sesión',
+    haveAccount: '¿Ya tienes cuenta? Inicia sesión',
+    needAccount: '¿No tienes cuenta? Crea una',
+
+    email: 'Correo',
+    emailPlaceholder: 'tucorreo@ejemplo.com',
+    password: 'Contraseña',
+    passwordHint: 'Mínimo 8 caracteres.',
+    showPassword: 'Ver contraseña',
+    hidePassword: 'Ocultar contraseña',
+    displayName: 'Tu nombre (opcional)',
+
+    forgot: '¿Olvidaste la contraseña?',
+    resetSentTitle: 'Revisa tu correo',
+    resetSentBody: (email: string) => `Te mandamos un enlace a ${email} para cambiar la contraseña.`,
+    resetNeedsEmail: 'Escribe tu correo primero.',
+
+    working: 'Un momento…',
+    signedInAs: 'Sesión iniciada',
+    lastSync: 'Última sincronización',
+    lastSyncNever: '—',
+    syncSoon: 'Tus datos se sincronizarán en la próxima actualización.',
+
+    createdTitle: 'Cuenta creada',
+    createdBody: 'Ya puedes iniciar sesión en otro teléfono con este correo.',
+
+    dangerZone: 'Zona de peligro',
+    wipeLocal: 'Borrar datos locales',
+    wipeLocalCaption: 'Borra vehículos, cargas y fotos de este teléfono. La cuenta no se toca.',
+    wipeLocalTitle: 'Borrar datos locales',
+    wipeLocalBody: 'Se van vehículos, cargas, mantenimientos y chequeos de este teléfono. No hay marcha atrás.',
+
+    notConfigured: 'La cuenta todavía no está configurada en esta instalación.',
+    notConfiguredCaption:
+      'Faltan EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY. Mira .env.example.',
+
+    onboardingTitle: 'Con cuenta tus datos te siguen',
+    onboardingBody: 'Si cambias de teléfono, tu historial va contigo. Puedes crearla después.',
+    onboardingAction: 'Crear cuenta',
+    onboardingDismiss: 'Ahora no',
+
+    errors: {
+      invalidCredentials: 'Correo o contraseña incorrectos.',
+      userExists: 'Ya hay una cuenta con ese correo. Inicia sesión.',
+      weakPassword: 'La contraseña necesita al menos 8 caracteres.',
+      invalidEmail: 'Ese correo no parece válido.',
+      rateLimited: 'Demasiados intentos. Espera un momento.',
+      network: 'Sin conexión. Tus datos siguen guardados en el teléfono.',
+      inviteOnly: 'El servidor todavía no acepta cuentas de Car Guy. Falta aplicar sql/001.',
+      generic: 'No se pudo completar. Intenta de nuevo.',
+      emailRequired: 'Escribe tu correo.',
+      passwordRequired: 'Escribe tu contraseña.',
+    },
   },
 
   report: {
