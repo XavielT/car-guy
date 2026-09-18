@@ -43,3 +43,7 @@ yarn-error.*
 
 # Xaviel's real Tu Combustible RD export (test input for the Phase 2 importer)
 docs/imp-17092026/fixtures/tu-combustible-rd-backup.real.json
+
+# Scratch output from Claude Code sessions — notes and generated files that
+# belong to a working session, not to the project.
+Claude outputs/
