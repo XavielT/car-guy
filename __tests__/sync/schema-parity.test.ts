@@ -1,0 +1,171 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { MIGRATIONS } from '@/lib/db/migrations';
+import { SYNC_TABLES } from '@/lib/sync/tables';
+
+/**
+ * The local schema and the cloud schema have to agree, column for column, or
+ * sync fails one table at a time in production with a PostgREST error nobody
+ * sees until a user reports missing data.
+ *
+ * Nothing enforces that agreement: `sql/002_schema_carguy.sql` is applied by
+ * hand in the Supabase SQL editor and has no connection to `lib/db/migrations.ts`
+ * beyond someone having written both. This test is that connection. It parses
+ * the CREATE TABLE statements out of each and compares them, so a column added
+ * to SQLite in a later phase fails here until the cloud mirror gains it too.
+ *
+ * It reads the .sql file from disk on purpose. Importing it is impossible and
+ * copying its column list into a fixture would just move the drift somewhere
+ * less visible.
+ */
+
+const SQL_PATH = join(__dirname, '../../sql/002_schema_carguy.sql');
+
+/** Column names out of `CREATE TABLE <name> ( … )`, as they appear. */
+function parseColumns(sql: string, open: RegExp): Map<string, Set<string>> {
+  const tables = new Map<string, Set<string>>();
+  let match: RegExpExecArray | null;
+
+  while ((match = open.exec(sql)) !== null) {
+    const table = match[1];
+    // Walk from the opening paren to its match, so a `(` inside a type or a
+    // default does not end the block early.
+    let depth = 0;
+    let index = open.lastIndex - 1;
+    let start = -1;
+    for (; index < sql.length; index++) {
+      if (sql[index] === '(') {
+        if (depth === 0) start = index + 1;
+        depth++;
+      } else if (sql[index] === ')') {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    const body = sql.slice(start, index);
+
+    const columns = new Set<string>();
+    for (const line of body.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('--')) continue;
+      // Table-level constraints, not columns.
+      if (/^(primary key|unique|check|foreign key|constraint)\b/i.test(trimmed)) continue;
+
+      // `a TEXT, b TEXT` on one line — the local schema does this.
+      for (const part of trimmed.split(',')) {
+        const name = part.trim().split(/\s+/)[0];
+        if (/^[a-z_][a-z0-9_]*$/.test(name)) columns.add(name);
+      }
+    }
+    if (columns.size) tables.set(table, columns);
+  }
+
+  return tables;
+}
+
+const localSql = MIGRATIONS.flatMap((migration) => migration.up).join('\n');
+const localTables = parseColumns(localSql, /CREATE TABLE (\w+)\s*\(/gi);
+const cloudTables = parseColumns(readFileSync(SQL_PATH, 'utf8'), /create table if not exists carguy\.(\w+)\s*\(/gi);
+
+/** Local bookkeeping that is deliberately absent from the cloud (ADR-03). */
+const NEVER_IN_CLOUD = new Set(['synced_at', 'blob']);
+
+describe('the parser itself', () => {
+  it('found both schemas — an empty map would make every test below vacuous', () => {
+    expect(localTables.size).toBeGreaterThan(10);
+    expect(cloudTables.size).toBeGreaterThan(10);
+  });
+
+  it('reads a known table correctly', () => {
+    expect(localTables.get('fuel_log')).toContain('missed_previous');
+    expect(cloudTables.get('fuel_log')).toContain('missed_previous');
+  });
+});
+
+describe('every synced table exists in both schemas', () => {
+  for (const table of SYNC_TABLES) {
+    it(`${table.name}`, () => {
+      expect(localTables.has(table.name)).toBe(true);
+      expect(cloudTables.has(table.name)).toBe(true);
+    });
+  }
+});
+
+describe('every local column has a home in the cloud', () => {
+  for (const table of SYNC_TABLES) {
+    // `setting` is keyed by (user_id, key) in the cloud and by `key` locally;
+    // it is the one table whose shapes differ by design.
+    if (table.name === 'setting') continue;
+
+    it(`${table.name} loses nothing on the way up`, () => {
+      const localColumns = localTables.get(table.name);
+      const cloudColumns = cloudTables.get(table.name);
+      expect(localColumns).toBeDefined();
+      expect(cloudColumns).toBeDefined();
+
+      const missing = [...localColumns!].filter(
+        (column) => !NEVER_IN_CLOUD.has(column) && !cloudColumns!.has(column),
+      );
+      expect(missing).toEqual([]);
+    });
+  }
+});
+
+describe('the cloud adds exactly what the spec says it adds', () => {
+  for (const table of SYNC_TABLES) {
+    if (table.name === 'setting') continue;
+
+    it(`${table.name} carries user_id and server_updated_at, and no bytes`, () => {
+      const cloudColumns = cloudTables.get(table.name)!;
+      expect(cloudColumns.has('user_id')).toBe(true);
+      expect(cloudColumns.has('server_updated_at')).toBe(true);
+      // The two columns that must never leave the device.
+      expect(cloudColumns.has('synced_at')).toBe(false);
+      expect(cloudColumns.has('blob')).toBe(false);
+    });
+  }
+});
+
+describe('sql/002 keeps its safety properties', () => {
+  const sql = readFileSync(SQL_PATH, 'utf8');
+  /**
+   * Comments stripped: the rollback block at the bottom of the file names the
+   * same objects it would undo, and counting those as statements would make the
+   * assertions below measure the documentation rather than the migration.
+   */
+  const executable = sql
+    .split('\n')
+    .filter((line: string) => !line.trim().startsWith('--'))
+    .join('\n');
+
+  it('touches nothing in the public schema', () => {
+    // x-core is production for Music Hub. The only shared object this phase may
+    // change is enforce_invite_only(), and that lives in sql/001.
+    expect(executable).not.toMatch(/\b(drop|alter)\s+table\s+public\./i);
+    expect(executable).not.toMatch(/\bdrop\s+schema\s+public\b/i);
+  });
+
+  it('creates exactly one trigger on auth.users, under its own name', () => {
+    const onAuthUsers = executable.match(/on auth\.users/gi) ?? [];
+    // Exactly two: one `drop trigger if exists … on auth.users` and the
+    // `create trigger` that replaces it. A third would mean this migration had
+    // grown a second opinion about a table Music Hub depends on.
+    expect(onAuthUsers).toHaveLength(2);
+    expect(executable).toContain('carguy_on_auth_user_created');
+  });
+
+  it('is idempotent — every create guards itself', () => {
+    const creates = executable.match(/^create (table|schema|function|trigger)/gim) ?? [];
+    for (const statement of creates) {
+      const line = executable.slice(executable.indexOf(statement)).split('\n')[0];
+      const guarded = /if not exists/i.test(line) || /or replace/i.test(line);
+      // `create trigger` has no IF NOT EXISTS; it is preceded by a DROP instead.
+      expect(guarded || /^create trigger/i.test(statement)).toBe(true);
+    }
+  });
+
+  it('ends with a rollback block', () => {
+    expect(sql).toMatch(/--\s*rollback:/i);
+  });
+});
