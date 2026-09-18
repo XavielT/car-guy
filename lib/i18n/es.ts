@@ -47,6 +47,8 @@ export const es = {
     document: 'Documento',
     notifications: 'Notificaciones',
     prices: 'Precios MICM',
+    report: 'Reporte',
+    export: 'Exportar',
   },
 
   web: {
@@ -620,28 +622,126 @@ export const es = {
   stats: {
     title: 'Cifras',
     subtitle: (vehicle: string) => `${vehicle} · gasto y consumo reales, no el de la computadora del carro.`,
-    thisMonth: 'Este mes',
-    totalCost: 'Costo total del vehículo',
-    totalCostSplit: (fuel: string, other: string) => `${fuel} combustible · ${other} otros gastos`,
+
+    periods: { mes: 'Mes', trimestre: '3 meses', ano: 'Año', todo: 'Todo' },
+    periodHint: {
+      mes: 'Últimos 30 días',
+      trimestre: 'Últimos 90 días',
+      ano: 'Últimos 365 días',
+      todo: 'Desde la primera carga',
+    },
+
+    categories: {
+      combustible: 'Combustible',
+      mantenimiento: 'Mantenimiento',
+      reparacion: 'Reparaciones',
+      mejora: 'Mejoras',
+      legal: 'Seguro y marbete',
+      otros: 'Otros',
+    },
+
+    total: 'Total',
+    spend: 'Gasto',
     costPerKm: 'RD$ / km',
-    costPerKmHint: (distance: string) => `${distance} entre primera y última carga`,
-    costPerKmEmpty: 'Registra al menos dos cargas',
-    kmLogged: 'Kilómetros registrados',
-    readings: (n: number) => (n === 1 ? '1 lectura del odómetro' : `${n} lecturas del odómetro`),
-    readingsEmpty: 'Aparecerá con tu primera carga',
-    average: 'Consumo medio',
+    distance: 'Km recorridos',
+    economy: 'Rendimiento',
+    average: 'Promedio',
+
+    vsPrevious: 'vs. período anterior',
+    deltaUp: (percent: number) => `↑ ${percent} %`,
+    deltaDown: (percent: number) => `↓ ${Math.abs(percent)} %`,
+    deltaFlat: 'igual',
+    deltaNew: 'sin comparación',
+    noDistance: 'Anota el odómetro para saberlo',
+
+    byMonth: 'Gasto mes a mes',
+    byMonthCaption: 'Apilado por categoría.',
+    byMonthEmpty: 'Cuando registres gastos, aquí se ve en qué se va el dinero mes a mes.',
+
+    byCategory: 'Gasto por categoría',
+    byCategoryCaption: 'Dentro del período elegido.',
+    byCategoryEmpty: 'Nada gastado en este período.',
+
+    economyTitle: 'Rendimiento por tanque',
+    economyCaption: (unit: string) => `${unit} entre tanques llenos. La línea punteada es tu promedio.`,
+    economyEmpty: 'Necesitas dos tanques llenos seguidos para medir el rendimiento.',
+
+    kmPerMonth: 'Kilómetros por mes',
+    kmPerMonthCaption: 'Según las lecturas del odómetro.',
+    kmPerMonthEmpty: 'Anota el odómetro en cada carga y aquí verás cuánto ruedas.',
+
+    ownership: 'Costo de tener el carro',
+    ownershipCaption: 'Compra menos venta, más todo lo que le has puesto.',
+    ownershipPurchase: 'Compra',
+    ownershipSold: 'Venta',
+    ownershipSpend: 'Gastos',
+    ownershipTotal: 'Total',
+    ownershipPerMonth: 'Por mes de propiedad',
+    ownershipMonths: (n: number) => (n === 1 ? '1 mes' : `${n} meses`),
+    ownershipHint: 'Agrega el precio de compra en el perfil del vehículo para verlo.',
+
+    upcoming: 'Próximos gastos estimados',
+    upcomingCaption: 'Con tus propios precios, no con promedios.',
+    upcomingEmpty: 'Nada previsto. Cuando una tarea tenga costo estimado, aparece aquí.',
+    upcomingBasis: { estimado: 'estimado', ultimo_costo: 'lo que costó la última vez' },
+
     lastTank: 'Lectura del último tanque',
     lastTankValues: { low: 'Bajo', great: 'Excelente', normal: 'Estable' },
     lastTankHint: (average: string) =>
       `Comparado con el promedio de tus tanques anteriores (${average}).`,
-    timeline: 'Línea de vida del vehículo',
-    timelineEmpty: 'Cada carga irá dejando aquí la historia de los kilómetros de tu vehículo.',
-    timelineStart: 'Punto de partida',
-    timelineStep: (distance: string) => `+${distance} desde la lectura anterior`,
-    byType: 'Por tipo',
-    byTypeEmpty: 'Cuando haya cargas, aquí se parte Premium, Regular, gasoil y GLP.',
-    byMonth: 'Mes a mes',
-    byMonthEmpty: 'El gasto mensual aparece después de la primera carga.',
+
+    report: 'Reporte PDF',
+    csv: 'Exportar CSV',
+    empty: 'Registra una carga o un gasto y aquí aparecen tus cifras.',
+  },
+
+  report: {
+    title: 'Reporte del vehículo',
+    subtitle: 'Un resumen que puedes guardar, imprimir o mandarle al taller.',
+    documentTitle: (vehicle: string) => `Car Guy · ${vehicle}`,
+    period: 'Período',
+    historyTitle: 'Historial del período',
+    historyEmpty: 'Sin registros en este período.',
+    columns: {
+      date: 'Fecha',
+      kind: 'Tipo',
+      title: 'Detalle',
+      odometer: 'Odómetro',
+      amount: 'Monto',
+    },
+    economySummary: (tanks: number, average: string, min: string, max: string) =>
+      `${tanks} tanques medidos · promedio ${average} km/gal · entre ${min} y ${max}.`,
+    footer: 'Generado con Car Guy',
+
+    generate: 'Generar reporte',
+    generating: 'Preparando el reporte…',
+    rows: (n: number) => (n === 1 ? '1 registro en el período' : `${n} registros en el período`),
+    webHint: 'Guarda como PDF desde el diálogo de impresión.',
+    sharedTitle: 'Reporte listo',
+    sharedBody: 'Lo compartimos como PDF.',
+    unavailableTitle: 'Reporte',
+    unavailableBody: 'Este dispositivo no permite compartir archivos.',
+    failed: (reason: string) => `No se pudo generar el reporte.\n\n${reason}`,
+  },
+
+  export: {
+    title: 'Exportar datos',
+    subtitle: 'Tus registros en CSV, para abrirlos en Excel o LibreOffice.',
+    history: 'Historial completo',
+    historyCaption: 'Una fila por registro: cargas, mantenimientos, gastos y chequeos.',
+    fuel: 'Combustible',
+    fuelCaption: 'Todas las columnas de cada carga, con km recorridos y km/gal.',
+    period: 'Período',
+    download: 'Descargar CSV',
+    share: 'Compartir CSV',
+    rows: (n: number) => (n === 1 ? '1 fila' : `${n} filas`),
+    doneTitle: 'Listo',
+    sharedBody: (file: string) => `Compartimos ${file}.`,
+    downloadedBody: (file: string) => `Descargamos ${file}.`,
+    unavailableBody: 'Este dispositivo no permite compartir archivos.',
+    failed: (reason: string) => `No se pudo exportar.\n\n${reason}`,
+    encodingHint:
+      'UTF-8 con BOM y separador de coma. Excel en español lo abre con los acentos correctos.',
   },
 
   fuel: {
