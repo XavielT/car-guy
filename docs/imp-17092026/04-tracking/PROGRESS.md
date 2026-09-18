@@ -18,7 +18,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
 | 8 | x-core + account | ✅ | `imp-17092026/phase-8-cuenta` | carguy schema + RLS + Storage + LWW live on x-core; 7/7 verification; account works end to end |
-| 9 | Sync | 🟡 | `imp-17092026/phase-9-sync` | Part A: the pure protocol core and the schema-parity guard. Engine not built |
+| 9 | Sync | 🟡 | `imp-17092026/phase-9-sync` | Protocol core, engine and cloud contract verified 9/9. UI and multi-device run outstanding |
 | 10 | Release | ⬜ | | |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
@@ -1336,3 +1336,86 @@ Deleting them also removes their `public.profiles` rows by cascade.
   which is the key Phase 9 needs to know whose rows are local.
 - `describeSchemaError()` turns `PGRST106` into a sentence aimed at whoever administers the
   project — Phase 9's sync status should use it rather than showing the raw code.
+
+## Phase 9 — Local-first cloud sync   (branch `imp-17092026/phase-9-sync`)
+
+**Status:** partial — the protocol and the engine are built and verified against the live schema;
+the UI and the multi-device acceptance run are not done
+**Commits:** `7de84c1` protocol core · `b2fc8a7` engine, types, cloud verification, sql/007
+
+### Changed
+- **Protocol.** `lib/sync/tables.ts` (what syncs, in dependency order, and which columns never
+  leave the device), `lib/sync/merge.ts` (dirty predicate, LWW matrix, cursor, batching, timestamp
+  normalisation).
+- **Engine.** `lib/sync/engine.ts` — push then pull, one table at a time, never throwing at its
+  caller.
+- **Database.** `lib/db/syncOps.ts` — the four operations the ordinary repositories deliberately
+  cannot do.
+- **Types.** `lib/cloud/database.types.ts` generated from the live schema; the client is now
+  `createClient<Database, 'carguy'>`.
+- **SQL.** `sql/007_user_cascade.sql`.
+- **Tooling.** `tools/verify-sync.mjs`.
+- **Tests.** 330 total, up from 228: 41 merge, 61 schema parity and cascade.
+
+### Verified
+
+`tools/verify-sync.mjs`, against x-core — **9/9**:
+
+```
+PASS  1. push shape is accepted (booleans, user_id, timestamps)
+PASS  2. server_updated_at is populated for the pull cursor
+PASS  3. a newer updated_at is applied
+PASS  3b. and the cursor advanced
+PASS  4. a stale write is rejected by the LWW trigger
+PASS  4b. and the rejected write did NOT move the cursor
+PASS  5. a tombstone is stored, not a row disappearing
+PASS  6. the pull query (gt cursor, ordered, limited) returns rows
+PASS  7. setting upserts on (user_id, key)
+```
+
+**4b is the one worth having.** The two-trigger ordering problem found while writing `sql/002` was
+argued from how Postgres fires before-triggers in name order; this is the database confirming it.
+Had the stamping trigger still run after a rejected write, every other device would pull a row that
+never changed.
+
+### Decisions made (defaults applied)
+- **Pulled rows do not go through `makeRepo.upsert`.** That method sets `synced_at = NULL` on every
+  write, because every write it performs is a local edit. Applying a row that came *down* through
+  it would mark it dirty and push it straight back, and two devices would spend their lives
+  bouncing the same rows off each other. `lib/db/syncOps.ts` writes them clean instead.
+- **`synced_at` is set to the row's own `updated_at`, not to `now()`.** If a row were stamped with
+  the wall clock and the user edited it during the round trip, `updated_at` would land *before*
+  `synced_at` and the edit would look pushed when it never was.
+- **`markSynced` runs after the server confirms, never before.** A crash in between leaves the rows
+  dirty and the next sync pushes them again — an upsert, so that costs nothing.
+- **Booleans are coerced in both directions.** SQLite has no boolean; PostgREST sends real
+  `true`/`false`. Storing those verbatim would put the string "true" in a numeric column, where
+  `is_full_tank = 1` then matches nothing.
+- **The engine never throws at its caller.** A failed sync is one that runs again on the next
+  trigger, and the app has every row locally either way (ADR-05).
+- **One sync at a time.** The triggers are deliberately eager, so overlap is the normal case, and
+  two runs would push the same rows twice and race each other's cursor writes.
+- **`sql/007` adds a foreign key where the spec said not to.** §3 mirrors no foreign keys *between*
+  carguy tables, because a child can legitimately sync before its parent. `user_id → auth.users` is
+  a different relationship: the parent is the account, and no row can exist before it, since RLS
+  requires `user_id = auth.uid()`.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| Phase 9 · x-core | **Deleting a user left their rows behind forever** — only `carguy.profiles` had a foreign key to `auth.users` | fixed | Found by cleaning up the probe accounts and noticing `carguy.setting` still held their rows. Unreachable rows, too: RLS hides a row no session can match. `sql/007` cascades all 18 tables; the parity test now covers it |
+| Phase 9 · UI | No sync UI at all — no "Sincronizar ahora", no pending count, no status icon, no "Borrar datos en la nube" | high | The engine exposes `sync()`, `onSyncStatus()` and `pendingCount()`; the screen work is what remains |
+| Phase 9 · media | Media bytes are not uploaded or downloaded | high | Metadata syncs; `lib/media` and Storage are not wired together yet |
+| Phase 9 · triggers | Nothing calls `sync()` — no foreground hook, no debounced after-write, no `online` listener | high | Deliberate: wiring triggers before the UI can report status would make failures invisible |
+| Phase 9 · engine | The engine has never run — it needs SQLite and React Native, so no test or tool in this repo executes it | high | `verify-sync.mjs` proves the contract it depends on and the unit tests prove its decisions, but the wiring between them is unexercised |
+| Phase 9 · first login | The blocking-but-cancellable "Sincronizando tu garaje…" sheet is not built | medium | |
+| Phase 9 · FEATURE_SYNC | Still `false`; nothing turns it on | medium | Should flip with the UI, not before |
+
+### Notes for the next phase
+- **`FEATURE_SYNC` is the gate.** Turn it on in the same change that ships the UI, so the account
+  screen never promises a sync the app cannot yet perform.
+- `onSyncStatus()` emits `running` / `idle` / `error`; the header icon and the Cuenta screen can
+  both subscribe without either owning the state.
+- **The engine is written but unproven end to end.** The first device run is the real test, and the
+  most likely failure is a column the boolean map in `engine.ts` misses — it lists six tables by
+  hand, and a `BOOLEAN` column added later will silently sync as a string.
