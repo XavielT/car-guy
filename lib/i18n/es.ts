@@ -696,6 +696,28 @@ export const es = {
     empty: 'Registra una carga o un gasto y aquí aparecen tus cifras.',
   },
 
+  sync: {
+    signedOut: 'Inicia sesión para sincronizar.',
+    never: 'Nunca',
+    syncing: 'Sincronizando…',
+    syncNow: 'Sincronizar ahora',
+    pending: (n: number) => (n === 1 ? '1 cambio sin subir' : `${n} cambios sin subir`),
+    upToDate: 'Todo subido',
+    lastSync: (when: string) => `Última sincronización: ${when}`,
+    doneTitle: 'Listo',
+    doneBody: (pushed: number, pulled: number) =>
+      `Subimos ${pushed} y bajamos ${pulled}.`,
+    firstLoginTitle: 'Sincronizando tu garaje…',
+    firstLoginBody: 'Esto pasa una sola vez. Puedes seguir usando la app.',
+
+    errors: {
+      network: 'Sin conexión. Lo intentamos de nuevo solo.',
+      expired: 'La sesión venció. Inicia sesión de nuevo — tus datos siguen aquí.',
+      forbidden: 'El servidor rechazó el cambio. Tus datos siguen guardados en el teléfono.',
+      generic: 'No se pudo sincronizar. Lo intentamos de nuevo solo.',
+    },
+  },
+
   account: {
     title: 'Cuenta',
     subtitle: 'Opcional. La app funciona igual sin ella.',

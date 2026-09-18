@@ -127,6 +127,35 @@ describe('the cloud adds exactly what the spec says it adds', () => {
   }
 });
 
+describe("a deleted user's rows go with them", () => {
+  const cascade = readFileSync(join(__dirname, '../../sql/007_user_cascade.sql'), 'utf8');
+
+  it('every synced table is covered by the cascade migration', () => {
+    // Found by exercising the system, not by reading it: carguy.setting still
+    // held rows for users that had been deleted, because only carguy.profiles
+    // was written with a foreign key to auth.users. A table missing from this
+    // list keeps its rows forever, unreachable — no session can ever match
+    // their user_id again, so RLS hides them from everyone.
+    for (const table of SYNC_TABLES) {
+      expect(cascade).toContain(`'${table.name}'`);
+    }
+  });
+
+  it('cascades rather than restricting', () => {
+    expect(cascade).toMatch(/on delete cascade/i);
+    expect(cascade).not.toMatch(/on delete restrict/i);
+  });
+
+  it('clears existing orphans before adding the constraint', () => {
+    // Postgres refuses to add a foreign key while rows violate it, so the
+    // delete has to come first in the same migration.
+    const deleteAt = cascade.indexOf('delete from carguy');
+    const constraintAt = cascade.indexOf('add constraint');
+    expect(deleteAt).toBeGreaterThan(-1);
+    expect(deleteAt).toBeLessThan(constraintAt);
+  });
+});
+
 describe('sql/002 keeps its safety properties', () => {
   const sql = readFileSync(SQL_PATH, 'utf8');
   /**
