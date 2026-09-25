@@ -227,6 +227,8 @@ export const es = {
     deleteConfirm: '¿Borrar este registro?',
     reclassify: 'Reclasificar',
     origin: (what: string) => `Origen: ${what}`,
+    originTask: (title: string) => `tarea "${title}"`,
+    originInspection: (date: string) => `chequeo del ${date}`,
   },
 
   expense: {
@@ -242,6 +244,7 @@ export const es = {
     save: 'Guardar gasto',
     amountRequired: 'Pon cuánto pagaste.',
     legalDone: 'Además marcamos el recordatorio como hecho:',
+    deleteConfirm: '¿Borrar este gasto?',
   },
 
   history: {
@@ -266,6 +269,7 @@ export const es = {
     addRepair: 'Reparación',
     addUpgrade: 'Mejora',
     addExpense: 'Gasto',
+    addInspection: 'Chequeo',
     addOdometer: 'Lectura de odómetro',
   },
 
@@ -964,6 +968,7 @@ export const es = {
     close: 'Cerrar',
     removeItem: (what: string) => `Quitar ${what}`,
     removePhoto: 'Quitar foto',
+    edit: 'Editar',
     photoError: 'No se pudo usar esa foto.',
   },
 } as const;

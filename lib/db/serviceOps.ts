@@ -5,6 +5,7 @@ import {
   reminders as reminderRepo,
   serviceRecordItems as itemRepo,
   serviceRecords as serviceRecordRepo,
+  tasks as taskRepo,
 } from './repos';
 import type { ExpenseCategory, ServiceKind } from './types';
 import { completeLegal, describeReset, resetForServiceItems } from '../domain/reminders';
@@ -108,6 +109,13 @@ export async function saveServiceRecord(draft: ServiceDraft): Promise<SaveResult
         },
         db,
       );
+    }
+
+    // A task that became a record points back at it, so the task detail can say
+    // what closed it and the record is not orphaned from the note that asked
+    // for it.
+    if (draft.sourceTaskId) {
+      await taskRepo.upsert({ id: draft.sourceTaskId, status: 'hecha', doneRecordId: recordId }, db);
     }
 
     if (draft.serviceTypeIds.length === 0) return [];

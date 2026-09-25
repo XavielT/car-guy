@@ -7,8 +7,14 @@ import { T } from '@/components/T';
 import { OdometerHero, QuickActions, Surface, type Telltale } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useSession } from '@/lib/cloud/auth';
-import { currentOdometer as currentOdometerQuery, odometer as odometerRepo, settings as settingsRepo } from '@/lib/db/repos';
+import {
+  currentOdometer as currentOdometerQuery,
+  odometer as odometerRepo,
+  settings as settingsRepo,
+  tasks as taskRepo,
+} from '@/lib/db/repos';
 import { attentionReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
+import type { Task } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { isMarbeteWindowOpen, marbeteNudges } from '@/lib/domain/legal-dr';
 import { STATUS_LABEL } from '@/lib/domain/reminders';
@@ -39,6 +45,7 @@ export default function HomeScreen() {
   const [daysSince, setDaysSince] = useState<number | null>(null);
   const [monthKm, setMonthKm] = useState<number>(0);
   const [attention, setAttention] = useState<EvaluatedReminder[]>([]);
+  const [openTasks, setOpenTasks] = useState<Task[]>([]);
 
   // The account nudge: shown once the garage has something worth protecting,
   // dismissible for good. `null` means "not read from storage yet", which keeps
@@ -95,6 +102,16 @@ export default function HomeScreen() {
       })
       .catch(() => {});
 
+    // Open tasks belong on the same strip as the reminders: both are "the car
+    // is waiting on you", and a note you wrote and never see again is a note
+    // you may as well not have written.
+    taskRepo
+      .listWhere({ vehicleId })
+      .then((rows) => {
+        if (!cancelled) setOpenTasks(rows.filter((t) => t.status !== 'hecha').sort(byPriority));
+      })
+      .catch(() => {});
+
     return () => {
       cancelled = true;
     };
@@ -114,10 +131,17 @@ export default function HomeScreen() {
   const insight = latestEconomyInsight(vehicleFillups);
   const avg = economy.length ? economy.reduce((a, p) => a + p.kmPerUnit, 0) / economy.length : null;
 
-  const telltales: Telltale[] = attention.map(({ reminder, status }) => ({
-    status: status.status === 'sin_datos' ? 'proximo' : status.status,
-    label: telltaleLabel(reminder.title, status),
-  }));
+  const telltales: Telltale[] = [
+    ...attention.map(({ reminder, status }) => ({
+      status: status.status === 'sin_datos' ? ('proximo' as const) : status.status,
+      label: telltaleLabel(reminder.title, status),
+    })),
+    ...openTasks.map((task) => ({
+      status: TASK_STATUS[task.priority],
+      label: task.title,
+      onPress: () => router.push({ pathname: '/tarea/[id]', params: { id: task.id } }),
+    })),
+  ];
 
   const marbeteNotice = isMarbeteWindowOpen(todayIso()) ? marbeteNudges(todayIso())[0] : null;
 
@@ -308,6 +332,12 @@ function MonthStat({ label, value }: { label: string; value: string }) {
 }
 
 /** "Aceite de motor · faltan 320 km" — short enough for a pill. */
+/** Critical first, then normal, then the nice-to-haves. */
+function byPriority(a: Task, b: Task): number {
+  const rank = { critica: 0, normal: 1, baja: 2 };
+  return rank[a.priority] - rank[b.priority];
+}
+
 function telltaleLabel(title: string, status: EvaluatedReminder['status']): string {
   if (status.status === 'sin_datos') return `${title} · sin datos`;
   if (status.dueKm != null && status.dueKm < 0) {
@@ -320,6 +350,13 @@ function telltaleLabel(title: string, status: EvaluatedReminder['status']): stri
   if (status.dueDays != null) return `${title} · faltan ${status.dueDays} d`;
   return `${title} · ${STATUS_LABEL[status.status]}`;
 }
+
+/** Priority reads as urgency on the strip, same vocabulary as the reminders. */
+const TASK_STATUS: Record<Task['priority'], Telltale['status']> = {
+  critica: 'vencido',
+  normal: 'proximo',
+  baja: 'ok',
+};
 
 const styles = StyleSheet.create({
   accountCard: { marginBottom: space.md },

@@ -9,11 +9,19 @@ import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, radius, space } from '@/constants/theme';
-import { currentOdometer as currentOdometerQuery, odometer as odometerRepo, serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
+import {
+  currentOdometer as currentOdometerQuery,
+  media as mediaRepo,
+  odometer as odometerRepo,
+  parts as partRepo,
+  serviceRecordItems as itemRepo,
+  serviceRecords as serviceRecordRepo,
+  serviceTypes as serviceTypeRepo,
+} from '@/lib/db/repos';
 import { saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
 import type { ServiceKind, ServiceType } from '@/lib/db/types';
 import { odometerWarning } from '@/lib/domain/odometer';
-import { isoFromDateInput, todayIsoDate } from '@/lib/format';
+import { dateInputFromIso, isoFromDateInput, todayIsoDate } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
 import { parseDecimal, roundMoney } from '@/lib/math';
@@ -38,7 +46,8 @@ const KIND_COLOR: Record<ServiceKind, string> = {
  */
 export default function NuevoServicioScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ kind?: string; taskId?: string; title?: string }>();
+  const params = useLocalSearchParams<{ id?: string; kind?: string; taskId?: string; title?: string }>();
+  const editingId = params.id ?? null;
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
 
@@ -62,13 +71,15 @@ export default function NuevoServicioScreen() {
   const [showParts, setShowParts] = useState(false);
   const [parts, setParts] = useState<PartDraft[]>([]);
   const [photoMediaId, setPhotoMediaId] = useState<string | null>(null);
+  const [sourceTaskId, setSourceTaskId] = useState<string | null>(params.taskId ?? null);
+  const [sourceInspectionId, setSourceInspectionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [catalog, setCatalog] = useState<ServiceType[]>([]);
   const [currentKm, setCurrentKm] = useState<number | null>(null);
   const [readings, setReadings] = useState<{ occurredAt: string; valueKm: number }[]>([]);
   const [shops, setShops] = useState<string[]>([]);
-  const [recordId] = useState(() => `svc_${Date.now()}`);
+  const [recordId] = useState(() => editingId ?? `svc_${Date.now()}`);
 
   const vehicleId = activeVehicle?.id;
 
@@ -87,12 +98,74 @@ export default function NuevoServicioScreen() {
       setCurrentKm(km);
       setReadings(rows);
       setShops(previousShops);
-      if (km != null) setOdometer(String(Math.round(km)));
+      // Editing keeps the odometer the record was saved with; only a new record
+      // gets today's reading pre-filled.
+      if (!editingId && km != null) setOdometer(String(Math.round(km)));
     })().catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [vehicleId]);
+  }, [vehicleId, editingId]);
+
+  // Editing loads the record back into the same form. There is no second screen
+  // for it: a record you are correcting has exactly the fields you typed.
+  useEffect(() => {
+    if (!editingId) return;
+    let cancelled = false;
+
+    (async () => {
+      const row = await serviceRecordRepo.getById(editingId);
+      if (!row) return;
+      const [items, partRows, photos] = await Promise.all([
+        itemRepo.listWhere({ serviceRecordId: editingId }),
+        partRepo.listWhere({ serviceRecordId: editingId }),
+        mediaRepo.listWhere({ ownerTable: 'service_record', ownerId: editingId }),
+      ]);
+      if (cancelled) return;
+
+      setKind(row.kind);
+      setDate(dateInputFromIso(row.occurredAt));
+      setOdometer(row.odometerKm != null ? String(Math.round(row.odometerKm)) : '');
+      setTitle(row.title);
+      setTitleTouched(true);
+      setSelected(items.map((i) => i.serviceTypeId));
+      setDescription(row.description);
+      setCostParts(row.costPartsDop ? String(row.costPartsDop) : '');
+      setCostLabor(row.costLaborDop ? String(row.costLaborDop) : '');
+      // There is no "was overridden" flag on the row, so we infer it: a total
+      // that matches parts + labour is one the form computed, and must keep
+      // recomputing as those are edited. Anything else the user typed by hand.
+      const computed = roundMoney(row.costPartsDop + row.costLaborDop);
+      setTotalOverride(row.totalDop === computed ? null : String(row.totalDop));
+      setShop(row.shop);
+      if (row.warrantyUntilDate || row.warrantyUntilKm != null) {
+        setShowWarranty(true);
+        setWarrantyDate(row.warrantyUntilDate ? dateInputFromIso(row.warrantyUntilDate) : '');
+        setWarrantyKm(row.warrantyUntilKm != null ? String(row.warrantyUntilKm) : '');
+      }
+      if (partRows.length) {
+        setShowParts(true);
+        setParts(
+          partRows.map((part) => ({
+            id: part.id,
+            name: part.name,
+            partNumber: part.partNumber,
+            brand: part.brand,
+            quantity: part.quantity,
+            unitCostDop: part.unitCostDop,
+          })),
+        );
+      }
+      setPhotoMediaId(photos[0]?.id ?? null);
+      // Where the record came from survives an edit — it is history, not input.
+      setSourceTaskId(row.sourceTaskId);
+      setSourceInspectionId(row.sourceInspectionId);
+    })().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingId]);
 
   if (!activeVehicle) return null;
 
@@ -137,7 +210,8 @@ export default function NuevoServicioScreen() {
         shop: shop.trim(),
         warrantyUntilDate: warrantyDate ? isoFromDateInput(warrantyDate) : null,
         warrantyUntilKm: warrantyKm.trim() ? parseDecimal(warrantyKm) : null,
-        sourceTaskId: params.taskId ?? null,
+        sourceTaskId,
+        sourceInspectionId,
         serviceTypeIds: kind === 'mantenimiento' ? selected : [],
         parts,
       });
@@ -157,7 +231,7 @@ export default function NuevoServicioScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.service.newTitle}
+          {editingId ? es.service.editTitle : es.service.newTitle}
         </T>
 
         <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>

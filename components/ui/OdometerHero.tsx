@@ -6,7 +6,7 @@ import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 import { StatusPill, type Status } from './StatusPill';
 
-export type Telltale = { status: Status; label: string };
+export type Telltale = { status: Status; label: string; onPress?: () => void };
 
 /**
  * The home screen's hero: what the car currently reads, and what it needs.
@@ -65,19 +65,27 @@ export function OdometerHero({
         {caption}
       </T>
 
-      <Pressable
-        onPress={onPressTelltales}
-        disabled={!onPressTelltales}
-        style={styles.telltales}
-        accessibilityRole={onPressTelltales ? 'button' : undefined}>
+      {/*
+        Each pill is its own tap target rather than one strip-wide button: a
+        task goes to the task, a reminder to the reminder list, and nesting one
+        button inside another is invalid HTML on web.
+      */}
+      <View style={styles.telltales}>
         {telltales.length === 0 ? (
           <StatusPill status="ok" label={es.home.allGood} />
         ) : (
-          telltales.slice(0, 4).map((t) => (
-            <StatusPill key={t.label} status={t.status} label={t.label} />
-          ))
+          telltales.slice(0, 4).map((t) => {
+            const onPress = t.onPress ?? onPressTelltales;
+            return onPress ? (
+              <Pressable key={t.label} onPress={onPress} accessibilityRole="button">
+                <StatusPill status={t.status} label={t.label} />
+              </Pressable>
+            ) : (
+              <StatusPill key={t.label} status={t.status} label={t.label} />
+            );
+          })
         )}
-      </Pressable>
+      </View>
     </View>
   );
 }
