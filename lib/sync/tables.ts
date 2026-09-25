@@ -23,9 +23,26 @@ export type SyncTable = {
    * `server_updated_at` on every push.
    */
   localOnly: string[];
-  /** Keyed by (user_id, key) rather than by id — only `setting`. */
-  keyedBy?: 'id' | 'user_key';
+  /**
+   * The cloud primary key, and so the push's conflict target.
+   *
+   * - `id` (the default): ids are UUIDs or derived from them, unique across
+   *   every account.
+   * - `user_id`: (user_id, id). The seeded catalogue tables, whose slug ids
+   *   (`aceite_motor`, `carro_semanal`) every device creates identically —
+   *   keyed by id alone, the first account to push one would own it and every
+   *   other account's push would be refused by RLS (sql/008).
+   * - `user_key`: (user_id, key) — only `setting`, which has no id.
+   */
+  keyedBy?: 'id' | 'user_id' | 'user_key';
 };
+
+/** The `onConflict` columns for an upsert into `table`. */
+export function conflictTarget(table: SyncTable): string {
+  if (table.keyedBy === 'user_key') return 'user_id,key';
+  if (table.keyedBy === 'user_id') return 'user_id,id';
+  return 'id';
+}
 
 /**
  * Dependency order: a parent is always pushed and pulled before its children.
@@ -38,9 +55,9 @@ export type SyncTable = {
 export const SYNC_TABLES: SyncTable[] = [
   // Catalogues first: reminders and service records point at service_type, and
   // inspection_item points at inspection_template.
-  { name: 'service_type', localOnly: ['syncedAt'] },
-  { name: 'inspection_template', localOnly: ['syncedAt'] },
-  { name: 'inspection_item', localOnly: ['syncedAt'] },
+  { name: 'service_type', localOnly: ['syncedAt'], keyedBy: 'user_id' },
+  { name: 'inspection_template', localOnly: ['syncedAt'], keyedBy: 'user_id' },
+  { name: 'inspection_item', localOnly: ['syncedAt'], keyedBy: 'user_id' },
 
   // The root of everything else.
   { name: 'vehicle', localOnly: ['syncedAt'] },

@@ -79,7 +79,7 @@ create trigger carguy_on_auth_user_created after insert on auth.users
 ```
 
 Every synced table mirrors the local one with these differences: `user_id uuid not null default
-auth.uid()`, `id text primary key` (legacy ids are not UUIDs), timestamps `timestamptz` (client
+auth.uid()`, `id text primary key` (legacy ids are not UUIDs; `service_type`, `inspection_template` and `inspection_item` are `(user_id, id)` since sql/008, because their seeded slug ids are identical on every account), timestamps `timestamptz` (client
 sends ISO), **no** `synced_at`, plus `server_updated_at timestamptz not null default now()`
 maintained by a `before update` trigger (used for pull cursors). Tables:
 

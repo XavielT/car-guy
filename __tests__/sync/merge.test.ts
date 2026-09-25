@@ -11,7 +11,14 @@ import {
   type RemoteRow,
   type SyncableRow,
 } from '@/lib/sync/merge';
-import { PULL_PAGE, PUSH_BATCH, SYNCED_SETTING_KEYS, SYNC_TABLES, cursorKey } from '@/lib/sync/tables';
+import {
+  PULL_PAGE,
+  PUSH_BATCH,
+  SYNCED_SETTING_KEYS,
+  SYNC_TABLES,
+  conflictTarget,
+  cursorKey,
+} from '@/lib/sync/tables';
 
 const T1 = '2026-09-18T12:00:00.000Z';
 const T2 = '2026-09-18T13:00:00.000Z';
@@ -262,6 +269,17 @@ describe('the table declarations', () => {
 
   it('keys `setting` by user and key rather than by id', () => {
     expect(SYNC_TABLES.find((t) => t.name === 'setting')?.keyedBy).toBe('user_key');
+  });
+
+  it('keys the seeded catalogue tables by account as well as id (sql/008)', () => {
+    // Every device seeds `aceite_motor`, `carro_semanal`, `carro_semanal__0`
+    // with the same ids; keyed by id alone, a second account could never push them.
+    const target = (name: string) => conflictTarget(SYNC_TABLES.find((t) => t.name === name)!);
+    expect(target('service_type')).toBe('user_id,id');
+    expect(target('inspection_template')).toBe('user_id,id');
+    expect(target('inspection_item')).toBe('user_id,id');
+    expect(target('vehicle')).toBe('id');
+    expect(target('setting')).toBe('user_id,key');
   });
 
   it('leaves the device-local settings out of the synced set', () => {
