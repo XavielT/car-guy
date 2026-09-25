@@ -869,6 +869,22 @@ row; its reminders, tasks, checks, readings and photos stayed live and would hav
 Prueba QA was then removed through the fixed "Quitar" on the phone: its task vanished from Tareas,
 the Citroen became active again, and the schedule dropped back to the one-vehicle plan (27).
 
+**EAS build on the phone, 2026-09-25.** The template-key app was uninstalled after a second backup
+was saved to the SD card, copied to `releases/backups/` and checked (1 live vehicle, 5 fill-ups,
+6 readings, 19 reminders; the vehicle photo is not in backups, re-added by hand). The EAS preview
+(key `A1:64:50:A0…`) installed through the File Manager — MIUI's "Install via USB" is off and its
+security center ignores simulated taps, so the owner confirmed that step; the File Manager's
+install permission was switched back to `deny` afterwards and the APK deleted. The backup restored
+67 records and Inicio matched the pre-uninstall numbers exactly. Later builds install over it as
+updates (same key): `e272ae4` did, data intact.
+
+Found in the restore and fixed (`e272ae4`): the restored switch said notifications were on and 27
+were scheduled, but the fresh install had no `POST_NOTIFICATIONS`. The settings screen now shows
+"El teléfono no los está dejando pasar" + "Dar permiso". Verified on the phone: revoked the
+permission with `pm revoke` → the notice appeared → "Dar permiso" → Android's prompt → Allow →
+notice gone, 27 scheduled, a test notification delivered (≈15 s rather than 5 — MIUI batches
+inexact alarms; the app never requests exact ones, by design).
+
 **Seeded ids across accounts — found, fixed, deployed.** `service_type`,
 `inspection_template` and `inspection_item` used the catalogue's slug ids (`aceite_motor`,
 `carro_semanal`) as a global `id text primary key` in `carguy`. `tools/verify-shared-ids.mjs
