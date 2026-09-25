@@ -15,7 +15,11 @@ import { ALL_TABLES } from './repos';
  */
 export async function resetDatabase(): Promise<void> {
   await enqueue(async (db) => {
-    for (const table of ALL_TABLES) {
+    // Children first. ALL_TABLES lists parents first — the right order for
+    // inserting — and with foreign keys on, deleting `vehicle` while a fill-up
+    // still points at it fails the statement and rolls the whole reset back.
+    // "Borrar datos locales" therefore never cleared a phone that had data.
+    for (const table of [...ALL_TABLES].reverse()) {
       await db.runAsync(`DELETE FROM ${table}`);
     }
     // Settings are wiped too — active vehicle, prices, the legacy-import marker.

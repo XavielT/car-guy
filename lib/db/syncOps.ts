@@ -90,7 +90,8 @@ export async function localByIds(table: string, ids: string[]): Promise<Map<stri
  * failure surfaces only as "Error finalizing statement" — naming neither the
  * column nor the table, which is a long evening.
  *
- * One transaction for the whole page, so a pull either lands or does not.
+ * One transaction for the whole page (the write queue's), so a pull lands or
+ * does not.
  */
 export async function applyRemoteRows(
   table: string,
@@ -102,44 +103,47 @@ export async function applyRemoteRows(
     let applied = 0;
     const parked: Record<string, unknown>[] = [];
 
-    await handle.withTransactionAsync(async () => {
-      for (const incoming of rows) {
-        const data: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(incoming)) {
-          const column = key.includes('_') ? key : snake(key);
-          if (CLOUD_ONLY.has(column)) continue;
-          if (value === undefined) continue;
-          data[column] = normalise(value);
-        }
-        if (!data.id) continue;
-
-        // Clean by definition: this row *is* what the server holds.
-        data.synced_at = data.updated_at;
-
-        const columns = Object.keys(data);
-        const updates = columns
-          .filter((c) => c !== 'id')
-          .map((c) => `${c} = excluded.${c}`)
-          .join(', ');
-
-        // One bad row must not stop the rest. The likely one is a child whose
-        // parent has not arrived (foreign keys are ON locally, and the cloud has
-        // none between tables); a failed statement in SQLite rolls back only
-        // itself, so the transaction carries on and the row is parked for the
-        // engine to retry once the parents are in.
-        try {
-          await handle.runAsync(
-            `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
-             ON CONFLICT(id) DO UPDATE SET ${updates}`,
-            columns.map((c) => data[c]) as never,
-          );
-          applied += 1;
-        } catch (error) {
-          console.warn(`[sync] parked ${table}/${String(data.id)}:`, error);
-          parked.push(incoming);
-        }
+    // No transaction of its own: `enqueue` already runs this inside one, and a
+    // nested BEGIN fails — its cleanup then rolled back the *outer* transaction,
+    // so on a fresh device every pull that had a new row to write failed with
+    // "cannot rollback - no transaction is active". The queue's transaction is
+    // the one that makes a page land all-or-nothing.
+    for (const incoming of rows) {
+      const data: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(incoming)) {
+        const column = key.includes('_') ? key : snake(key);
+        if (CLOUD_ONLY.has(column)) continue;
+        if (value === undefined) continue;
+        data[column] = normalise(value);
       }
-    });
+      if (!data.id) continue;
+
+      // Clean by definition: this row *is* what the server holds.
+      data.synced_at = data.updated_at;
+
+      const columns = Object.keys(data);
+      const updates = columns
+        .filter((c) => c !== 'id')
+        .map((c) => `${c} = excluded.${c}`)
+        .join(', ');
+
+      // One bad row must not stop the rest. The likely one is a child whose
+      // parent has not arrived (foreign keys are ON locally, and the cloud has
+      // none between tables); a failed statement in SQLite rolls back only
+      // itself, so the transaction carries on and the row is parked for the
+      // engine to retry once the parents are in.
+      try {
+        await handle.runAsync(
+          `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
+           ON CONFLICT(id) DO UPDATE SET ${updates}`,
+          columns.map((c) => data[c]) as never,
+        );
+        applied += 1;
+      } catch (error) {
+        console.warn(`[sync] parked ${table}/${String(data.id)}:`, error);
+        parked.push(incoming);
+      }
+    }
 
     return { applied, parked };
   });

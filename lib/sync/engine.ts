@@ -214,6 +214,9 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (!refreshError) return run(reason, true);
     }
+    // The screen shows a friendly sentence; the cause goes to the console, or
+    // a failure like this is undiagnosable from a user's report.
+    console.warn('[sync] failed:', error);
     const message = describe(error);
     emit({
       state: 'error',

@@ -47,7 +47,16 @@ export function clientModule(db: TestDb) {
   let last = 0;
   return {
     getDb: async () => db,
-    enqueue: <T>(fn: (h: TestDb) => Promise<T>) => fn(db),
+    // Exactly like lib/db/client.ts: every queued write runs inside a
+    // transaction. A fake that skipped it hid a nested-transaction bug that
+    // broke every real pull.
+    enqueue: async <T>(fn: (h: TestDb) => Promise<T>) => {
+      let result!: T;
+      await db.withTransactionAsync(async () => {
+        result = await fn(db);
+      });
+      return result;
+    },
     now: () => {
       last = Math.max(Date.now(), last + 1);
       return new Date(last).toISOString();
