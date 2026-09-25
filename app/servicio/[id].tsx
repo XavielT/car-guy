@@ -4,14 +4,16 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
-import { GhostButton, Surface } from '@/components/ui';
+import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, radius, space } from '@/constants/theme';
 import {
+  inspections as inspectionRepo,
   media as mediaRepo,
   parts as partRepo,
   serviceRecordItems as itemRepo,
   serviceRecords as serviceRecordRepo,
   serviceTypes as serviceTypeRepo,
+  tasks as taskRepo,
 } from '@/lib/db/repos';
 import type { Part, ServiceKind, ServiceRecord } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, money } from '@/lib/format';
@@ -22,6 +24,8 @@ import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const KINDS: ServiceKind[] = ['mantenimiento', 'reparacion', 'mejora'];
+
+type Origin = { kind: 'task' | 'inspection'; id: string; label: string };
 
 const KIND_COLOR: Record<ServiceKind, string> = {
   mantenimiento: categoryColors.mantenimiento,
@@ -47,6 +51,7 @@ export default function ServicioDetalleScreen() {
   const [itemNames, setItemNames] = useState<string[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   const [photoId, setPhotoId] = useState<string | null>(null);
+  const [origin, setOrigin] = useState<Origin | null>(null);
   const photoUri = useMediaUri(photoId);
 
   useEffect(() => {
@@ -69,6 +74,7 @@ export default function ServicioDetalleScreen() {
       );
       setParts(partRows);
       setPhotoId(photos[0]?.id ?? null);
+      setOrigin(await describeOrigin(row));
     })().catch(() => {});
 
     return () => {
@@ -96,6 +102,21 @@ export default function ServicioDetalleScreen() {
           {record.odometerKm != null ? ` · ${fmtKm(record.odometerKm)}` : ''}
           {record.shop ? ` · ${record.shop}` : ''}
         </T>
+
+        {origin ? (
+          <Pressable
+            accessibilityRole="link"
+            onPress={() =>
+              origin.kind === 'task'
+                ? router.push({ pathname: '/tarea/[id]', params: { id: origin.id } })
+                : router.push({ pathname: '/inspeccion/[id]', params: { id: origin.id } })
+            }
+            style={{ marginBottom: space.md }}>
+            <T face="body" style={{ color: theme.accent, fontSize: 13 }}>
+              {es.service.origin(origin.label)}
+            </T>
+          </Pressable>
+        ) : null}
 
         {photoUri ? <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" /> : null}
 
@@ -177,6 +198,11 @@ export default function ServicioDetalleScreen() {
         </View>
 
         <View style={{ height: space.lg }} />
+        <PrimaryButton
+          label={es.common.edit}
+          onPress={() => router.push({ pathname: '/servicio/nuevo', params: { id: record.id } })}
+        />
+        <View style={{ height: space.sm }} />
         <GhostButton
           danger
           label={es.common.delete}
@@ -200,6 +226,33 @@ export default function ServicioDetalleScreen() {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+/**
+ * "Origen: tarea …" — a repair that started life as a note to self or a failed
+ * check says so, and takes you back to it. Without the line the record looks
+ * like it appeared from nowhere.
+ */
+async function describeOrigin(record: ServiceRecord | null): Promise<Origin | null> {
+  if (!record) return null;
+
+  if (record.sourceTaskId) {
+    const task = await taskRepo.getById(record.sourceTaskId);
+    if (task) return { kind: 'task', id: task.id, label: es.service.originTask(task.title) };
+  }
+
+  if (record.sourceInspectionId) {
+    const run = await inspectionRepo.getById(record.sourceInspectionId);
+    if (run) {
+      return {
+        kind: 'inspection',
+        id: run.id,
+        label: es.service.originInspection(dateLabel(run.occurredAt)),
+      };
+    }
+  }
+
+  return null;
 }
 
 function Row({ label, value, big }: { label: string; value: string; big?: boolean }) {

@@ -174,6 +174,7 @@ export default function HistorialScreen() {
             [es.history.addRepair, '/servicio/nuevo?kind=reparacion'],
             [es.history.addUpgrade, '/servicio/nuevo?kind=mejora'],
             [es.history.addExpense, '/gasto/nuevo'],
+            [es.history.addInspection, '/(tabs)/chequeo'],
             [es.history.addOdometer, '/odometro'],
           ] as const
         ).map(([label, route]) => (
@@ -231,9 +232,13 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
   }
   if (entry.kind === 'mantenimiento' || entry.kind === 'reparacion' || entry.kind === 'mejora') {
     router.push({ pathname: '/servicio/[id]', params: { id: entry.id } });
+    return;
   }
-  // Expenses and inspections get their detail routes with the rest of their
-  // screens; until then those rows are informative rather than tappable-through.
+  if (entry.kind === 'gasto') {
+    router.push({ pathname: '/gasto/[id]', params: { id: entry.id } });
+    return;
+  }
+  router.push({ pathname: '/inspeccion/[id]', params: { id: entry.id } });
 }
 
 const styles = StyleSheet.create({

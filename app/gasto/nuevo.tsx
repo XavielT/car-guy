@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,10 +9,14 @@ import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
 import { PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { currentOdometer as currentOdometerQuery } from '@/lib/db/repos';
+import {
+  currentOdometer as currentOdometerQuery,
+  expenses as expenseRepo,
+  media as mediaRepo,
+} from '@/lib/db/repos';
 import { saveExpense } from '@/lib/db/serviceOps';
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from '@/lib/db/types';
-import { isoFromDateInput, todayIsoDate } from '@/lib/format';
+import { dateInputFromIso, isoFromDateInput, todayIsoDate } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
 import { parseDecimal } from '@/lib/math';
@@ -26,6 +30,8 @@ import { useTheme } from '@/lib/theme/useTheme';
  */
 export default function NuevoGastoScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ id?: string }>();
+  const editingId = params.id ?? null;
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
 
@@ -38,7 +44,7 @@ export default function NuevoGastoScreen() {
   const [photoMediaId, setPhotoMediaId] = useState<string | null>(null);
   const [currentKm, setCurrentKm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expenseId] = useState(() => `exp_${Date.now()}`);
+  const [expenseId] = useState(() => editingId ?? `exp_${Date.now()}`);
 
   const vehicleId = activeVehicle?.id;
 
@@ -54,6 +60,32 @@ export default function NuevoGastoScreen() {
       cancelled = true;
     };
   }, [vehicleId]);
+
+  // Editing reuses this form: an expense is six fields, and a second screen for
+  // correcting them would only be this one with a different title.
+  useEffect(() => {
+    if (!editingId) return;
+    let cancelled = false;
+
+    (async () => {
+      const row = await expenseRepo.getById(editingId);
+      if (!row) return;
+      const photos = await mediaRepo.listWhere({ ownerTable: 'expense', ownerId: editingId });
+      if (cancelled) return;
+
+      setCategory(row.category);
+      setAmount(String(row.amountDop));
+      setDate(dateInputFromIso(row.occurredAt));
+      setOdometer(row.odometerKm != null ? String(Math.round(row.odometerKm)) : '');
+      setDescription(row.description);
+      setVendor(row.vendor);
+      setPhotoMediaId(photos[0]?.id ?? null);
+    })().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingId]);
 
   if (!activeVehicle) return null;
 
@@ -89,7 +121,7 @@ export default function NuevoGastoScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.expense.newTitle}
+          {editingId ? es.expense.editTitle : es.expense.newTitle}
         </T>
 
         <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>

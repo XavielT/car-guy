@@ -197,6 +197,7 @@ function Shell() {
           name="gasto/nuevo"
           options={{ presentation: 'modal', headerShown: true, title: es.routes.expense }}
         />
+        <Stack.Screen name="gasto/[id]" options={{ headerShown: true, title: es.routes.expense }} />
         <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: es.routes.check }} />
         <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: es.routes.guide }} />
         <Stack.Screen name="inspeccion/[id]" options={{ headerShown: true, title: es.routes.inspection }} />
