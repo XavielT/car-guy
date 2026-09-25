@@ -1,7 +1,7 @@
 import type { VehicleDraft } from '@/components/VehicleForm';
 
 import { addMonths, todayIso } from '../domain/dates';
-import { enqueue } from './client';
+import { enqueue, now } from './client';
 import { odometer as odometerRepo, reminders as reminderRepo, vehicles as vehicleRepo } from './repos';
 import { seedVehicleDefaults } from './seed';
 
@@ -90,5 +90,59 @@ async function applySyntheticOil(vehicleId: string): Promise<void> {
     dueKm: reminder.dueKm != null ? baseKm + SYNTHETIC_KM : null,
     dueDate: reminder.dueDate ? addMonths(todayIso(), SYNTHETIC_MONTHS) : null,
     notes: 'Aceite sintético: 10,000 km o 12 meses.',
+  });
+}
+
+/**
+ * Deletes a vehicle and everything that belongs to it, in one transaction.
+ *
+ * Tombstones, not DELETEs — sync has to carry the removal to the cloud and to
+ * the user's other devices, row by row. Deleting only the vehicle row used to
+ * leave its reminders, tasks, checks and readings behind: invisible here, but
+ * still counted by queries that do not join the vehicle, and still pushed.
+ *
+ * Children without a vehicle_id (record items, parts, check results, a
+ * vehicle's own checklist items, photos) go through their parent's id.
+ */
+export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
+  await enqueue(async (db) => {
+    const stamp = now();
+    const tomb = (table: string, where: string) =>
+      db.runAsync(
+        `UPDATE ${table} SET deleted_at = ?1, updated_at = ?2, synced_at = NULL
+         WHERE deleted_at IS NULL AND ${where}`,
+        [stamp, stamp, vehicleId],
+      );
+
+    // Photos first, while their owners are still live rows to select from.
+    await tomb(
+      'media',
+      `(owner_table = 'vehicle' AND owner_id = ?3)
+        OR (owner_table = 'service_record' AND owner_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3))
+        OR (owner_table = 'expense' AND owner_id IN (SELECT id FROM expense WHERE vehicle_id = ?3))
+        OR (owner_table = 'fuel_log' AND owner_id IN (SELECT id FROM fuel_log WHERE vehicle_id = ?3))
+        OR (owner_table = 'document' AND owner_id IN (SELECT id FROM document WHERE vehicle_id = ?3))
+        OR (owner_table = 'inspection_result' AND owner_id IN
+              (SELECT r.id FROM inspection_result r JOIN inspection i ON i.id = r.inspection_id WHERE i.vehicle_id = ?3))`,
+    );
+    await tomb('service_record_item', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)');
+    await tomb('part', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)');
+    await tomb('inspection_result', 'inspection_id IN (SELECT id FROM inspection WHERE vehicle_id = ?3)');
+    await tomb('inspection_item', 'template_id IN (SELECT id FROM inspection_template WHERE vehicle_id = ?3)');
+    for (const table of [
+      'vehicle_spec',
+      'odometer_reading',
+      'fuel_log',
+      'service_record',
+      'expense',
+      'reminder',
+      'inspection_template',
+      'inspection',
+      'task',
+      'document',
+    ]) {
+      await tomb(table, 'vehicle_id = ?3');
+    }
+    await tomb('vehicle', 'id = ?3');
   });
 }

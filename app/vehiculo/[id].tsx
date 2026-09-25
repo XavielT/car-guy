@@ -38,7 +38,7 @@ export default function VehicleProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { theme } = useTheme();
-  const { refresh, setActiveVehicle, activeVehicle, data } = useStore();
+  const { refresh, setActiveVehicle, activeVehicle, data, deleteVehicle } = useStore();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [specs, setSpecs] = useState<VehicleSpec[]>([]);
@@ -271,11 +271,10 @@ export default function VehicleProfileScreen() {
                 text: es.profile.remove,
                 style: 'destructive',
                 onPress: () => {
-                  void (async () => {
-                    await vehicleRepo.softDelete(vehicle.id);
-                    await refresh();
-                    router.back();
-                  })();
+                  // The store's delete cascades to everything the vehicle owns
+                  // and moves "active" to another vehicle if needed.
+                  deleteVehicle(vehicle.id);
+                  router.back();
                 },
               },
             ])

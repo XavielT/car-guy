@@ -12,6 +12,7 @@ import {
 } from './db/repos';
 import { resetDatabase } from './db/reset';
 import { seedCatalog } from './db/seed';
+import { deleteVehicleCascade } from './db/vehicleOps';
 import type { Expense as ExpenseRow, ExpenseCategory as NewExpenseCategory, ServiceRecord } from './db/types';
 import { id } from './format';
 import { lastOdometer } from './math';
@@ -297,12 +298,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const deleteVehicle = useCallback(
     (vehicleId: string) => {
       background('escritura', async () => {
-        await vehicleRepo.softDelete(vehicleId);
-        // Its records go with it, so they stop showing up in totals.
-        for (const f of await fuelRepo.list(vehicleId)) await fuelRepo.softDelete(f.id);
-        for (const e of await expenseRepo.list(vehicleId)) await expenseRepo.softDelete(e.id);
-        for (const s of await serviceRecordRepo.list(vehicleId)) await serviceRecordRepo.softDelete(s.id);
-        for (const r of await reminderRepo.list(vehicleId)) await reminderRepo.softDelete(r.id);
+        // Everything it owns goes with it — records, reminders, tasks, checks,
+        // readings, photos — so nothing lingers in totals or in the next sync.
+        await deleteVehicleCascade(vehicleId);
 
         const active = await settingsRepo.get<string | null>('active_vehicle_id', null);
         if (active === vehicleId) {
