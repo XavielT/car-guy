@@ -76,15 +76,6 @@ lo seguirá leyendo siempre.
 
 ---
 
-## 1.1.1 — Tu Combustible RD (2026-09-17)
-
-Arreglo del compartir del respaldo en Android. Ver
-[las notas de esa versión](https://github.com/XavielT/car-guy/releases/tag/v1.1.1).
-
-## 1.1.0 — Tu Combustible RD (2026-08-19)
-
-Última versión de Tu Combustible RD antes de Car Guy.
-
 ### Antes de publicar (2026-09-25)
 
 Pruebas en el teléfono, dos navegadores haciendo de dispositivos y tres testers recorriendo la app:
@@ -102,3 +93,11 @@ Pruebas en el teléfono, dos navegadores haciendo de dispositivos y tres testers
 - **Pantallas:** un registro borrado muestra un aviso en vez de una pantalla en blanco; la búsqueda del
   Historial encuentra «gasolina»; los números de Cifras ya no se cortan.
 
+## 1.1.1 — Tu Combustible RD (2026-09-17)
+
+Arreglo del compartir del respaldo en Android. Ver
+[las notas de esa versión](https://github.com/XavielT/car-guy/releases/tag/v1.1.1).
+
+## 1.1.0 — Tu Combustible RD (2026-08-19)
+
+Última versión de Tu Combustible RD antes de Car Guy.
