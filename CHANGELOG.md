@@ -1,6 +1,10 @@
 # Changelog
 
-## 2.0.0 — Car Guy (2026-09-18)
+## 2.0.0 — Car Guy (2026-09-25)
+
+Primera versión de Car Guy para Android. Se probó en un teléfono real (Redmi Note 10 Pro, Android
+13), en la web y con la sincronización entre dos dispositivos. Lo que esas pruebas encontraron ya
+viene arreglado en esta versión — ver *Antes de publicar* al final.
 
 Tu Combustible RD se convirtió en **Car Guy**. El combustible sigue completo, pero ya no es el
 centro: ahora está al lado del aceite que toca a los 5,000 km y del marbete que vence en enero.
@@ -80,3 +84,21 @@ Arreglo del compartir del respaldo en Android. Ver
 ## 1.1.0 — Tu Combustible RD (2026-08-19)
 
 Última versión de Tu Combustible RD antes de Car Guy.
+
+### Antes de publicar (2026-09-25)
+
+Pruebas en el teléfono, dos navegadores haciendo de dispositivos y tres testers recorriendo la app:
+
+- **Sincronización:** en un teléfono nuevo no bajaba nada; ahora sí, con fotos. Ya no se pierden
+  filas en tablas grandes ni cambios hechos mientras sincroniza, y un choque entre dos teléfonos lo
+  gana el cambio más reciente. «Borrar datos locales» y «Borrar datos en la nube» funcionan de verdad.
+- **Consumo:** después de una carga parcial ya no aparece un falso «posibles fugas»; la cuenta es la
+  misma que en Inicio.
+- **Números:** «1,500» se lee como mil quinientos (antes era 1.5), igual que en un recibo dominicano.
+- **Teléfono:** el teclado ya no tapa el campo que escribes; «Atrás» desde una notificación vuelve al
+  Inicio en vez de cerrar la app; el PDF se comparte con un nombre claro.
+- **Datos:** no se aceptan fechas futuras en cargas y lecturas; el marbete registrado dos veces no
+  salta un año; los valores inválidos se rechazan con un mensaje en vez de guardarse como 0.
+- **Pantallas:** un registro borrado muestra un aviso en vez de una pantalla en blanco; la búsqueda del
+  Historial encuentra «gasolina»; los números de Cifras ya no se cortan.
+

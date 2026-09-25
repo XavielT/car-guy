@@ -13,76 +13,37 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 | Web app | <https://car-guy.vercel.app> — live, installable PWA, Vercel project `car-guy` |
 | Old web app | <https://tu-combustible-rd.vercel.app> — still up, still git-connected to this repo, so it also serves Car Guy. Delete the project when you are ready |
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
-| Android | **Nothing built for 2.0.0 yet.** v1.1.1 of Tu Combustible RD is still the latest release |
+| Android | **2.0.0 released** — GitHub release `v2.0.0` with the APK; EAS project `@xavieldev/car-guy`, EAS-managed keystore; production AAB built for the Play Store |
 | Cloud | Supabase `x-core`, schema `carguy`, 19 tables, 76 RLS policies, private `carguy-media` bucket |
 | Local folder | Still `~/dev2/tu-gasolina-rd` — rename it when no session is open |
 
-## 1. Blocking the 2.0.0 release
+## 1. Done for 2.0.0 (2026-09-25)
 
-### Android build — needs you at the keyboard
+- **Android:** EAS works through a token in the gitignored `.env.expo.local` (browser login cannot
+  complete from Claude Code). Load it with `set -a; . ./.env.expo.local; set +a`, then
+  `npx eas-cli@24.8.0 build --platform android --profile preview --local --non-interactive`
+  (no cloud queue; same EAS key). The keystore is EAS-managed.
+- **Phone:** verified on a Redmi Note 10 Pro (Android 13) — install, name/icon (themed monochrome
+  layer present)/splash, notifications incl. cold-start taps, camera, PDF share, date picker,
+  keyboard, Back from deep links. Details in PROGRESS.md.
+- **Sync:** acceptance run a–e passed between two independent browser profiles (throwaway
+  account); eight data-loss bugs found and fixed on the way. Contract: `node tools/verify-sync.mjs`
+  14/14.
+- **QA pass:** three testers + the phone, ~27 issues fixed. See PROGRESS.md "QA pass".
 
-Not started: `eas` is not logged in on this machine and `app.json` has no `extra.eas.projectId`.
+### Still yours
 
-```bash
-npx eas-cli@latest login
-npx eas-cli@latest init          # writes extra.eas.projectId
-npx eas-cli@latest build --platform android --profile preview      # APK
-npx eas-cli@latest build --platform android --profile production   # AAB
-```
-
-`eas.json` is already correct (`appVersionSource: remote`, `preview` → apk, `production` →
-app-bundle, auto-increment). EAS holds the keystore remotely, which is the safer option — the
-package `com.xaviel.carguy` is new, so this is a **new keystore** and losing it means no update is
-ever accepted as the same app again.
-
-Local build instead, if preferred (this recipe is proven, from the v1.1.1 release):
-
-```bash
-export ANDROID_HOME=$HOME/Android/Sdk
-npx expo prebuild --platform android --clean
-cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
-# -> android/app/build/outputs/apk/release/app-release.apk  (~44 MB; all four ABIs is 105 MB)
-```
-
-Save that keystore to `~/keystores/car-guy/` and back it up off the machine.
-
-### On a real phone
-
-No device and no emulator has ever run this app — carried every phase since 5. Everything below is
-unexercised on Android:
-
-- Notifications outside Expo Go (channel, scheduling, tapping through to a screen)
-- Camera capture and the photo compression path
-- The PDF report: `printToFileAsync` → `shareAsync` — the one path web cannot check at all
-- Native date picker, haptics on save, one-thumb reach in the chequeo runner
-- `lib/sync/mediaBytes.ts`'s `expo-file-system` branch — the least-tested code in the repo
-- The AsyncStorage session adapter in `lib/cloud/supabase.ts`
-
-### Sync acceptance run (PROMPT-09 a–e)
-
-The engine is built, verified 13/13 against the live schema, and turned on — but **no row has ever
-crossed between two devices.** The run needs an account created and a password typed, which the
-assistant may not do. Two devices stage in a minute:
-
-```bash
-npm run build
-node <scratch>/serve.mjs "$PWD/dist" 4300 &   # device A
-node <scratch>/serve.mjs "$PWD/dist" 4301 &   # device B
-```
-
-Two ports are two origins are two independent OPFS databases. Sign in on A, then B, and walk a–e
-from the prompt.
-
-### GitHub release and tag
-
-Once the APK exists:
-
-```bash
-gh release create v2.0.0 --title "Car Guy v2.0.0" --notes-file CHANGELOG.md \
-  <apk>#car-guy-v2.0.0.apk
-```
-
-Leave v1.1.0 and v1.1.1 alone. Tag `v2.0.0` on `main`.
+1. **Back up the EAS keystore off this machine:** in a normal terminal,
+   `npx eas-cli@24.8.0 credentials --platform android` → production → *Download existing
+   keystore*. Keep the file and its passwords somewhere safe. Every future Play Store update must be
+   signed with it.
+2. **Sign in to Music Hub once** and confirm it behaves as before (the invite-only refusal is
+   already covered by `verify-x-core.mjs`).
+3. **Sync on your own phone:** create your account in the app (Más → Cuenta) — your garage uploads
+   on the first sync. It has only ever been exercised on the web and with throwaway accounts.
+4. **Play Store** (when you want it): a Play Console account and a listing; upload the production
+   AAB (`eas submit` can do it). The package is `com.xaviel.carguy`.
+5. Optional: revoke the Expo token on expo.dev when builds are done for a while.
 
 ## 2. Hand-off to xaviel-web
 
@@ -106,16 +67,18 @@ Tu Combustible RD.
 
 **Carried several phases, each small:**
 
-- Inicio's "Pendientes" shows reminders but not open tasks (since Phase 4).
-- `servicio/[id]` has no edit form; editing a saved record cannot re-run reminder resets safely.
 - PDF documents are not wired into the documents screen.
-- Search: `LIKE … COLLATE NOCASE` folds ASCII only, so "optimo" will not find "Óptimo". Needs an ICU
-  build of SQLite.
+- Search: free text still folds ASCII only ("optimo" will not find a note saying "Óptimo"; fuel
+  names are matched accent-insensitively since 2026-09-25). Needs an ICU build of SQLite.
+- Cosmetic, from the QA pass: same-day Historial entries list oldest first (needs `created_at` in
+  the `history_feed` view — a migration), the Cifras y-axis starts at 1, a Cifras tab label
+  truncates at 320 px, and screens have no maximum width on desktop.
 
 **Dependencies and noise:**
 
 - 22 npm audit findings (15 moderate, 7 high), all transitive. Untouched all cycle — worth one pass.
-- `npx expo install --check` reports nine packages behind their SDK 57 targets.
+- `npx expo-doctor` reports 15 packages a few patch versions behind SDK 57 (e.g. expo 57.0.14 →
+  57.0.25, react-native 0.86.2 → 0.86.3). Updating needs a retest on the phone.
 - `react-native-gifted-charts` spreads React Native responder props onto DOM nodes, so the web dev
   console logs seven "Unknown event handler property" warnings per chart render. Cosmetic, dev-only.
 
@@ -130,8 +93,8 @@ Tu Combustible RD.
   trigger on `auth.users`. Harmless and left alone per ADR-06.
 - The password-reset email uses x-core's project-level template, shared with Music Hub. Changing it
   would change Music Hub's email.
-- `seedCatalog()` runs ~73 upserts on every launch. Idempotent and fast; could check a version
-  marker.
+- `seedCatalog()` reads the catalogue at every launch but writes only rows that changed (since
+  2026-09-25 — unconditional upserts used to overwrite other devices' edits through sync).
 
 ## Handy
 
