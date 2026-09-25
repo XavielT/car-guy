@@ -840,9 +840,34 @@ console errors on any screen after the Más fix. `tsc`, `expo lint`, 369 tests, 
 
 Screenshots: `docs/qa/phase-5-gaps-*.png` (12).
 
-**Not verified:** anything on Android — notifications (incl. the cold-start tap and the offer), the
-haptic, the ring's native animation. EAS is not logged in, so no preview APK was built; the command
-and the device checklist are in `05-manual-checklist.md`.
+**Verified on a real phone, 2026-09-25** — Xiaomi Redmi Note 10 Pro (M2101K6G), Android 13, a local
+release build (`releases/car-guy-2.0.0-local-arm64.apk`, Build `2dff1cb`, signed with the same key
+as the copy already installed, so it installed as an update and the owner's data stayed). EAS was
+not used: `eas login` could not complete from the Claude Code `!` shell. Test writes went to a
+throwaway vehicle, "Prueba QA", deleted afterwards.
+
+| Check | Result |
+|---|---|
+| Launch, existing data intact after the update | ✅ |
+| Enabling notifications: channel created **before** the permission prompt | ✅ Android 13's "Allow Car Guy to send you notifications?" appeared on the switch |
+| Channel `mantenimiento`, importance DEFAULT | ✅ `mImportance=3` in `dumpsys notification` |
+| No exact-alarm permission | ✅ none in `dumpsys package` |
+| Scheduled ≤ 30 | ✅ 27 with one vehicle; exactly 30 with two (cap holds) |
+| "Probar notificación" arrives in ~5 s | ✅ posted on `mantenimiento` |
+| Tap, app running → deep link | ✅ lands on Chequeo |
+| Tap, app **killed** → deep link (cold start) | ✅ lands on Chequeo a few seconds after boot |
+| Schedule rebuilt after the OS wiped it (force-stop) | ✅ back to 27 on next launch |
+| Runner: cold-engine banner, timer, "Al terminar, crear", native "Tomar foto", "faltan 3" disabled, odometer prefilled | ✅ |
+| First-check offer ("Te aviso cuando…", Ahora no / Avisarme) | ✅ shown once after the first check; Avisarme turned notifications back on |
+| Result ring animates (Reanimated, native) | ✅ caught mid-sweep at 0.8 s |
+| Failed Refrigerante → crítica task → red pill on Inicio | ✅ |
+| Haptic on a clean check | not judged — a check with a failure gives none, and a tick cannot be read over adb |
+
+**Found on the phone and fixed:** deleting a vehicle from its profile tombstoned only the vehicle
+row; its reminders, tasks, checks, readings and photos stayed live and would have synced. Fixed on
+`fix/vehicle-delete-cascade` with `deleteVehicleCascade`, tested against a real SQLite.
+Prueba QA was then removed through the fixed "Quitar" on the phone: its task vanished from Tareas,
+the Citroen became active again, and the schedule dropped back to the one-vehicle plan (27).
 
 **Seeded ids across accounts — found, fixed, deployed.** `service_type`,
 `inspection_template` and `inspection_item` used the catalogue's slug ids (`aceite_motor`,

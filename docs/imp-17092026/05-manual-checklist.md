@@ -26,14 +26,12 @@ Claude Code will point at these when it reaches them. Do them when the prompt sa
 ## Phase 5 (notifications on a real device)
 - [ ] Install the `preview` APK from the EAS build URL in PROGRESS.md and check that the weekly
       check notification arrives (Más → Notificaciones → "Probar notificación", then a real one).
-- [ ] 2026-09-25 follow-up (`fix/phase-5-gaps`): `eas whoami` said "Not logged in", so no APK was
-      built. After `npx eas-cli@latest login` (and `init` if `extra.eas.projectId` is still missing):
-      `npx eas-cli@latest build --platform android --profile preview`. On the phone, check:
-      - "Probar notificación" arrives in ~5 s; the channel is "Mantenimiento" in Android settings.
-      - Finish the first check → the "Te aviso cuando toque un chequeo o un mantenimiento" prompt.
-      - Tap a notification with the app **closed** → it opens the reminder or the check runner
-        (cold start is new in this follow-up and has never run).
-      - The result screen's ring sweeps up and a clean check gives a haptic tick.
+- [x] 2026-09-25 device checks — done on the real phone with a local release build (see the table in
+      PROGRESS.md, Phase 5 follow-up): test notification, first-check prompt, cold-start tap, ring
+      animation, ≤ 30 scheduled. Only the haptic tick was not judged.
+- [ ] Still open: an **EAS** build. `eas login` could not complete from the Claude Code `!` shell;
+      run `npx eas-cli@24.8.0 account:login` in a normal terminal, then tell Claude Code to run
+      `init` and the `preview` / `production` builds.
 
 ## Phase 8 (Supabase `x-core`) — order matters
 1. [ ] Supabase dashboard → `x-core` → Project Settings → API: copy URL + anon key into
