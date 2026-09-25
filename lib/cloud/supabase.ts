@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from './database.types';
+import { es } from '../i18n/es';
 import { Platform } from 'react-native';
 
 /**
@@ -105,7 +106,7 @@ export const SCHEMA_NOT_EXPOSED = 'PGRST106';
  */
 export function describeSchemaError(error: { code?: string } | null): string | null {
   if (error?.code === SCHEMA_NOT_EXPOSED) {
-    return 'El schema carguy no está expuesto en Supabase (Settings → Data API → Exposed schemas).';
+    return es.account.errors.schemaNotExposed;
   }
   return null;
 }

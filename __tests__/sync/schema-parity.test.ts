@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { MIGRATIONS } from '@/lib/db/migrations';
-import { BOOLEAN_COLUMNS, SYNC_TABLES } from '@/lib/sync/tables';
+import { BOOLEAN_COLUMNS, conflictTarget, SYNC_TABLES } from '@/lib/sync/tables';
 
 /**
  * The local schema and the cloud schema have to agree, column for column, or
@@ -241,4 +241,42 @@ describe('sql/002 keeps its safety properties', () => {
   it('ends with a rollback block', () => {
     expect(sql).toMatch(/--\s*rollback:/i);
   });
+});
+
+/**
+ * The push's conflict target has to be exactly the cloud's primary key —
+ * PostgREST refuses an `on_conflict` that matches no unique constraint, and one
+ * narrower than the key is how a second account ended up locked out of the
+ * seeded catalogue (sql/008). The key starts as `id` in sql/002 (`setting`:
+ * `user_id, key`); a later migration may re-key tables, and the last one wins.
+ */
+describe('every push targets the cloud primary key', () => {
+  const sqlDir = join(__dirname, '../../sql');
+  const cloudKey = new Map<string, string>();
+  for (const table of SYNC_TABLES) cloudKey.set(table.name, table.name === 'setting' ? 'user_id,key' : 'id');
+
+  // Numbered migrations after 002, in order: a re-key is a loop over a table
+  // list that adds `primary key (<cols>)`.
+  const later = require('node:fs')
+    .readdirSync(sqlDir)
+    .filter((f: string) => /^0\d\d_.*\.sql$/.test(f) && f > '002')
+    .sort();
+  for (const file of later) {
+    const sql: string = readFileSync(join(sqlDir, file), 'utf8').replace(/^\s*--.*$/gm, '');
+    const rekey = sql.match(/array\[([^\]]+)\][\s\S]*?add constraint[^;]*primary key \(([^)]+)\)/i);
+    if (!rekey) continue;
+    const tables = rekey[1].match(/'(\w+)'/g)!.map((t) => t.replace(/'/g, ''));
+    const cols = rekey[2].replace(/\s+/g, '');
+    for (const t of tables) cloudKey.set(t, cols);
+  }
+
+  it('found the sql/008 re-key', () => {
+    expect(cloudKey.get('service_type')).toBe('user_id,id');
+  });
+
+  for (const table of SYNC_TABLES) {
+    it(`${table.name} pushes on (${cloudKey.get(table.name)})`, () => {
+      expect(conflictTarget(table)).toBe(cloudKey.get(table.name));
+    });
+  }
 });

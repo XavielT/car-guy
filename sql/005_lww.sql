@@ -1,6 +1,7 @@
 -- 005_lww.sql — server-side last-write-wins.
 --
--- The client pushes with `upsert(..., { onConflict: 'id' })`, which becomes an
+-- The client pushes with `upsert(...)` on each table's key — `id`, or
+-- `user_id, id` for the seeded catalogue since sql/008 — which becomes an
 -- INSERT … ON CONFLICT DO UPDATE. Without this guard, a phone that had been
 -- offline for a week would overwrite a newer row from another device simply by
 -- syncing later. The rule from 02-supabase-carguy.md §5: an update applies only

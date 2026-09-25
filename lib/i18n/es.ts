@@ -943,7 +943,6 @@ export const es = {
     signedInAs: 'Sesión iniciada',
     lastSync: 'Última sincronización',
     lastSyncNever: '—',
-    syncSoon: 'Tus datos se sincronizarán en la próxima actualización.',
 
     createdTitle: 'Cuenta creada',
     createdBody: 'Ya puedes iniciar sesión en otro teléfono con este correo.',
@@ -974,6 +973,9 @@ export const es = {
       generic: 'No se pudo completar. Intenta de nuevo.',
       emailRequired: 'Escribe tu correo.',
       passwordRequired: 'Escribe tu contraseña.',
+      emailNotConfirmed: 'Falta confirmar el correo. Busca el enlace en tu bandeja de entrada.',
+      schemaNotExposed:
+        'El schema carguy no está expuesto en Supabase (Settings → Data API → Exposed schemas).',
     },
   },
 

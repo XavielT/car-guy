@@ -120,7 +120,11 @@ inserting with a foreign `user_id` fails `42501`; anon `select` on any `carguy` 
   autoRefreshToken: true, detectSessionInUrl: false } })`. `EXPO_PUBLIC_SUPABASE_URL`,
   `EXPO_PUBLIC_SUPABASE_ANON_KEY` from `.env` (Expo inlines `EXPO_PUBLIC_*`).
 - `lib/cloud/auth.ts`: `signUp`, `signIn`, `signOut`, `useSession()` hook (`onAuthStateChange`).
-  Sign-out keeps local data (ADR-05) and clears `setting.auth_user_id` + `last_sync_at`.
+  Sign-out keeps local data (ADR-05) and **keeps** `setting.auth_user_id` and the pull cursors
+  (amended 2026-09-25 to match the code): that id is how the engine tells the same person signing
+  back in (keep the cursors) from a different account (`resetCursorsIfAccountChanged` wipes every
+  cursor and `last_sync_at`). Clearing it on sign-out would let a second account inherit the
+  first account's cursors and never pull its own rows.
 - Screens: *Más → Cuenta* (state, sign in / create account / sign out, last sync, "Sincronizar
   ahora", "Borrar datos locales" separate and red); onboarding shows a dismissible "Con cuenta tus
   datos te siguen" card.

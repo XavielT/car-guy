@@ -38,20 +38,22 @@ Claude Code will point at these when it reaches them. Do them when the prompt sa
 - [ ] Installing an EAS build on the phone needs the current (template-key) Car Guy uninstalled
       first, which erases its data: sign in to the account or export a backup (Más → Datos) first.
 
-## Phase 8 (Supabase `x-core`) — order matters
-1. [ ] Supabase dashboard → `x-core` → Project Settings → API: copy URL + anon key into
+## Phase 8 (Supabase `x-core`) — order matters · done 2026-09-18, re-verified 2026-09-25 except item 6
+1. [x] Supabase dashboard → `x-core` → Project Settings → API: copy URL + anon key into
        `.env.local` as `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
-2. [ ] SQL editor: run `sql/000_inspect.sql`, paste the full output into
+2. [x] SQL editor: run `sql/000_inspect.sql`, paste the full output into
        `docs/imp-17092026/04-tracking/x-core-inspect.txt` (gitignored) and tell Claude Code.
-3. [ ] After Claude Code writes them, run in order: `sql/001_invite_trigger_app_aware.sql`,
+3. [x] After Claude Code writes them, run in order: `sql/001_invite_trigger_app_aware.sql`,
        `002_schema_carguy.sql`, `003_rls.sql`, `004_storage.sql`, `005_lww.sql`.
-4. [ ] Project Settings → API → **Exposed schemas**: add `carguy` (keep `public`, `tucombustible`).
-5. [ ] Storage: confirm bucket `carguy-media` exists and is private.
-6. [ ] Sign in to **Music Hub** once with your normal account (sanity that nothing changed) and try a
-       Music Hub signup with a non-invited email → must still be refused.
+4. [x] Project Settings → API → **Exposed schemas**: add `carguy` (keep `public`, `tucombustible`).
+5. [x] Storage: confirm bucket `carguy-media` exists and is private.
+6. [ ] Sign in to **Music Hub** once with your normal account (sanity that nothing changed). The
+       second half — a non-invited signup is still refused — is automated: `verify-x-core.mjs`
+       check 2, passing as of 2026-09-25.
 7. [ ] Optional, later: `sql/006_drop_tucombustible_probe.sql` (drops the empty probe schema from
        imp 11092026 Phase 2).
-8. [ ] `npx supabase login` if you want generated types (`npm run types:gen` equivalent).
+8. [x] Types were generated (`lib/cloud/database.types.ts`, `b2fc8a7`); `npm run types:gen`
+       regenerates them after `npx supabase login`.
 
 ## 2026-09-25 — seeded catalogue ids collide across accounts (`fix/catalog-per-user-keys`)
 Done 2026-09-25. Order mattered — the new client's `on_conflict=user_id,id` fails against the old
@@ -64,6 +66,7 @@ keys, and a push error aborts the whole sync — so the SQL went first and the m
 5. [x] `sql/999_cleanup_test_users.sql` run with `--shared`: probe accounts gone, 0 leftover profiles.
 
 
+## Phase 10 (release)
 - [ ] `npx eas login`, `npx vercel login`, `gh auth status`.
 - [ ] If building locally instead of EAS: after `expo prebuild`, copy the generated release keystore
       to `~/keystores/car-guy/` and note the passwords in your password manager. **Losing it means
