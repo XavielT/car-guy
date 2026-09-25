@@ -167,7 +167,8 @@ export const es = {
     remove: 'Quitar',
     archived: 'Archivado',
     removeConfirmTitle: 'Quitar vehículo',
-    removeConfirmBody: (name: string) => `Se van también las cargas y los gastos de ${name}.`,
+    removeConfirmBody: (name: string) =>
+      `Se va todo lo de ${name}: cargas, gastos, mantenimientos, recordatorios, tareas y chequeos. Si solo quieres sacarlo del selector, archívalo.`,
     archiveHint: 'Un vehículo archivado desaparece del selector pero conserva su historial.',
   },
 
