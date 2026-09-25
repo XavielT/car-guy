@@ -903,6 +903,11 @@ export const es = {
       `Subimos ${pushed} y bajamos ${pulled}.`,
     firstLoginTitle: 'Sincronizando tu garaje…',
     firstLoginBody: 'Esto pasa una sola vez. Puedes seguir usando la app.',
+    firstLoginDoneTitle: 'Tu garaje está en la nube',
+    vehiclesAdded: (n: number) =>
+      n === 1 ? 'Se agregó 1 vehículo desde la nube.' : `Se agregaron ${n} vehículos desde la nube.`,
+    uploaded: (n: number) =>
+      n === 0 ? 'Ya estaba todo al día.' : n === 1 ? 'Subimos 1 cambio a tu cuenta.' : `Subimos ${n} cambios a tu cuenta.`,
 
     errors: {
       network: 'Sin conexión. Lo intentamos de nuevo solo.',

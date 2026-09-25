@@ -1,6 +1,8 @@
 import { signOut } from '../cloud/auth';
 import { getSupabase } from '../cloud/supabase';
 import { settings as settingsRepo } from '../db/repos';
+import { markAllUnsynced } from '../db/syncOps';
+import { whenSyncIdle } from './engine';
 import { cursorKey, SYNC_TABLES } from './tables';
 
 /**
@@ -38,6 +40,9 @@ export async function wipeCloudData(message: string): Promise<WipeResult> {
 
   let deleted = 0;
 
+  // A push already in flight would put rows back up behind the delete.
+  await whenSyncIdle();
+
   try {
     for (const table of [...SYNC_TABLES].reverse()) {
       const { error, count } = await supabase
@@ -48,13 +53,26 @@ export async function wipeCloudData(message: string): Promise<WipeResult> {
       deleted += count ?? 0;
     }
 
-    // Storage objects live under <user_id>/, so one listing covers them all.
-    const { data: files } = await supabase.storage.from('carguy-media').list(userId);
-    if (files?.length) {
-      await supabase.storage
-        .from('carguy-media')
-        .remove(files.map((file) => `${userId}/${file.name}`));
+    // Storage objects live under <user_id>/. The listing is paged (the default
+    // stops at 100 files), and a failure is a failure — ignoring it would report
+    // a clean wipe while the photos stay in the bucket.
+    const bucket = supabase.storage.from('carguy-media');
+    for (;;) {
+      const { data: files, error: listError } = await bucket.list(userId, { limit: 1000 });
+      if (listError) throw listError;
+      if (!files?.length) break;
+      const { data: removed, error: removeError } = await bucket.remove(
+        files.map((file) => `${userId}/${file.name}`),
+      );
+      if (removeError) throw removeError;
+      // A remove that deletes nothing would list the same files forever.
+      if (!removed?.length) throw new Error('Storage no borró ningún archivo.');
+      if (files.length < 1000) break;
     }
+
+    // The phone still thinks every row is in the cloud; it no longer is.
+    await markAllUnsynced(SYNC_TABLES.filter((t) => t.name !== 'setting').map((t) => t.name));
+    await settingsRepo.set('sync_parked', {});
 
     for (const table of SYNC_TABLES) {
       await settingsRepo.set(cursorKey(table.name), null);

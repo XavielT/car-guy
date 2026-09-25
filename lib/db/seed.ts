@@ -20,13 +20,39 @@ import type { AppliesTo, Vehicle } from './types';
  * Seeded rows carry `is_seeded = 1`. User edits to them survive — the seeder
  * only fills the columns it owns — and user-created rows are never touched.
  */
+/**
+ * Upserts a seeded row only when it is missing or a column the seeder owns
+ * differs from the catalog.
+ *
+ * This runs at every launch. An unconditional upsert stamps `updated_at = now`
+ * and clears `synced_at` on ~70 rows each time, which makes this device's copy
+ * of the catalog the newest in the account on every start — and sync's
+ * last-write-wins then undoes, on every other device, whatever was changed
+ * there (a renamed service, an edited checklist). An up-to-date catalog must
+ * produce no writes at all.
+ */
+async function seedRow<T extends { id: string }>(
+  repo: { listWhere: (f: Record<string, unknown>, o?: { includeDeleted?: boolean }) => Promise<T[]>; upsert: (input: Partial<T> & Record<string, unknown>, db?: SQLiteDatabase) => Promise<T> },
+  input: Partial<T> & Record<string, unknown> & { id: string },
+  handle: SQLiteDatabase,
+): Promise<void> {
+  const [existing] = await repo.listWhere({ id: input.id }, { includeDeleted: true });
+  if (existing) {
+    const current = existing as unknown as Record<string, unknown>;
+    const same = Object.entries(input).every(([key, value]) => (current[key] ?? null) === (value ?? null));
+    if (same) return;
+  }
+  await repo.upsert(input, handle);
+}
+
 export async function seedCatalog(db?: SQLiteDatabase): Promise<void> {
   const run = async (handle: SQLiteDatabase) => {
     for (const [index, type] of SERVICE_TYPES.entries()) {
       // The intervals are the user's once the row exists: Más → Catálogo de
       // servicios edits them, and re-seeding at every launch must not undo that.
       const existing = await serviceTypes.getById(type.id);
-      await serviceTypes.upsert(
+      await seedRow(
+        serviceTypes,
         {
           id: type.id,
           name: type.name,
@@ -42,7 +68,8 @@ export async function seedCatalog(db?: SQLiteDatabase): Promise<void> {
     }
 
     for (const template of INSPECTION_TEMPLATES) {
-      await inspectionTemplates.upsert(
+      await seedRow(
+        inspectionTemplates,
         {
           id: template.id,
           vehicleId: null,
@@ -57,7 +84,8 @@ export async function seedCatalog(db?: SQLiteDatabase): Promise<void> {
       );
 
       for (const [index, item] of template.items.entries()) {
-        await inspectionItems.upsert(
+        await seedRow(
+          inspectionItems,
           {
             // Deterministic so re-seeding updates rather than duplicates, and so
             // inspection_result.item_id keeps pointing at the same item.

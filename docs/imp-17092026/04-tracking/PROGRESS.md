@@ -18,7 +18,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
 | 8 | x-core + account | ✅ | `imp-17092026/phase-8-cuenta` | carguy schema + RLS + Storage + LWW live on x-core; 7/7 verification; account works end to end |
-| 9 | Sync | 🟡 | `imp-17092026/phase-9-sync` | Protocol, engine, triggers, UI and media all built and on; contract verified 13/13. The two-device run (a–e) needs a sign-in only Xaviel can do |
+| 9 | Sync | ✅ | `imp-17092026/phase-9-sync` | Protocol, engine, triggers, UI and media. 2026-09-25 on `fix/phase-9-gaps`: eight data-loss bugs fixed, pull made to work at all, acceptance run a–e passed, contract 14/14 |
 | 10 | Release | 🟡 | `imp-17092026/phase-10-release` | Repo renamed to `car-guy`, web live at car-guy.vercel.app, PWA reload bug found and fixed, CHANGELOG and docs done. Android build, phone walk and tag need Xaviel |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
@@ -1521,8 +1521,56 @@ Deleting them also removes their `public.profiles` rows by cascade.
 
 ## Phase 9 — Local-first cloud sync   (branch `imp-17092026/phase-9-sync`)
 
-**Status:** partial — everything is built, wired and on; the multi-device acceptance run (a–e) is
-blocked on a sign-in only the user can perform
+**Status:** complete as of 2026-09-25 — see the follow-up directly below. (Originally: "partial —
+the multi-device acceptance run (a–e) is blocked on a sign-in only the user can perform".)
+
+### Follow-up, 2026-09-25 (`fix/phase-9-gaps`)
+
+An audit found the engine had never completed a real run, and the acceptance run showed why: **pull
+did not work at all on a fresh device.** Everything below is fixed, each with a test against a
+real SQLite (node:sqlite + the app's migrations; the test write queue is now transactional exactly
+like the real one) or the real `sync()` against a fake PostgREST.
+
+| # | Bug | Effect | Fix |
+|---|---|---|---|
+| 1 | `applyRemoteRows` opened a transaction inside the write queue's | the nested BEGIN failed and rolled back the outer one — **every pull with a new row failed** ("cannot rollback - no transaction is active") | no inner transaction; the queue's is the page's |
+| 2 | Pull cursor was `server_updated_at` alone; the server stamps `now()` = transaction start | a pushed batch shares one stamp; a page ending inside it lost the rest (600 → 500 on a new device) | cursor `(server_updated_at, id)` + 60 s overlap; live-proven by verify-sync check 12 |
+| 3 | `markSynced` wrote `synced_at = updated_at` at UPDATE time | an edit made during the upload was marked synced and never pushed | writes the `updated_at` that was pushed |
+| 4 | Catalogue seeded unconditionally at every launch | ~70 rows re-dirtied with a fresh stamp, winning LWW against other devices' edits | seeder writes only missing/different rows |
+| 5 | A foreign-key failure aborted the sync | one child before its parent blocked every later pull forever | rows apply one by one; failures parked and retried, never dropped |
+| 6 | Sync's own cursor writes re-triggered sync | a sync every ~5 s while signed in | after-write sync only with rows waiting |
+| 7 | "Borrar datos en la nube" left local rows marked uploaded; Storage listing capped at 100 | the cloud stayed empty after signing back in | re-marks everything, pages Storage, fails loudly, waits for a running sync |
+| 8 | `resetDatabase` deleted parents first with FKs on | **"Borrar datos locales" never cleared a phone with data** (rolled back) | children first |
+
+Also: settings two-way LWW (were push-only; `theme` dropped — it lives in AsyncStorage); every
+server timestamp normalised (not just `updated_at`); deleted photos' bytes removed from Storage; an
+expired token refreshed once; first-login only for a new account or a never-synced device (the
+banner ran on every cold start) and it now reports "Se agregaron N vehículos desde la nube";
+Inicio shows the sync pill when signed in; the engine logs the cause of a failed sync.
+
+**Acceptance run (PROMPT-09 §4), 2026-09-25**, two independent browser profiles ("devices" A and
+B, separate local databases) on the dev server, a throwaway `carguy-sync-e2e-…@example.com`
+account (owner's choice; the phone and its real data were not involved):
+
+| Step | What | Result |
+|---|---|---|
+| a | A: vehicle + seeded history (12 fill-ups incl. partials, 4 services, 6 expenses) + a check with a failure + vehicle photo → create account → first sync | ✅ cloud: 1 vehicle, 12 fuel, 18 readings, 4 services, 6 expenses, 19 reminders, 1 inspection + 4 results, 2 tasks, 1 media + its Storage object |
+| b | B (fresh): onboarding → "¿Ya tienes cuenta?" → sign in | ✅ after bug 1 was fixed: identical garage, RD$ 90,004.80, photo downloaded lazily (1024 px) |
+| b | B offline: rename → online → sync → A | ✅ A shows "Renombrado sin señal" |
+| c | A deletes "Bomba de agua" → B; then B pushes its own edit | ✅ gone on both; cloud row tombstoned; not resurrected |
+| d | Both offline edit the vehicle name (B later); **B syncs first**, then A, then B | ✅ both and the cloud end on "Conflicto B" (A's older push rejected by the server LWW) |
+| e | B "Borrar datos locales" → pull | ✅ after bug 8 was fixed: empty onboarding, then full restore (RD$ 77,504.80 = minus the deleted repair; photo back) |
+| — | A "Borrar datos en la nube" → sign back in | ✅ cloud 0 rows / 0 files; re-sign-in re-uploaded everything incl. the photo (bug 7) |
+| — | RLS: another account sees nothing | ✅ `verify-x-core` check 5 (live today); `verify-sync` 14/14 |
+
+Test account, its rows and its Storage object removed afterwards (sql/999, 0 leftover profiles).
+
+**Future work (logged as the prompt asks):** signing in on a phone that already has a vehicle
+similar to one in the account ("Corolla" here, "Corolla 2016" there) keeps both — look-alike
+vehicles are never auto-merged. A "¿Es el mismo vehículo? Unir" prompt could offer it.
+
+**Not yet verified:** the native (Android) file branch of media bytes, and sync on the phone. The
+owner's phone holds real data and has no account; signing it in uploads that garage — their call.
 **Commits:** `7de84c1` protocol core · `b2fc8a7` engine, types, cloud verification, sql/007 ·
 `f7e4cfc` triggers, UI, media bytes, FEATURE_SYNC on · `e687fa7` lazy bytes, cursor reset
 

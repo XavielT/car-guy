@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,8 +26,28 @@ export function FirstSyncBanner() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // When the first merge finishes, the banner stays a moment to say what it
+  // did — "Se agregaron 2 vehículos desde la nube" — and then leaves.
+  const done = status.state === 'idle' ? status.firstLogin : undefined;
+  // Which result has already had its moment; state changes only in the timer.
+  const [expired, setExpired] = useState<typeof done>(undefined);
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(() => setExpired(done), RESULT_MS);
+    return () => clearTimeout(timer);
+  }, [done]);
+  const shown = done && expired !== done ? done : undefined;
+
   if (!FEATURE_SYNC) return null;
-  if (status.state !== 'running' || status.reason !== 'first-login') return null;
+  const running = status.state === 'running' && status.reason === 'first-login';
+  if (!running && !shown) return null;
+
+  const title = running ? es.sync.firstLoginTitle : es.sync.firstLoginDoneTitle;
+  const body = running
+    ? es.sync.firstLoginBody
+    : shown!.vehiclesAdded > 0
+      ? es.sync.vehiclesAdded(shown!.vehiclesAdded)
+      : es.sync.uploaded(shown!.pushed);
 
   return (
     <View
@@ -36,18 +57,20 @@ export function FirstSyncBanner() {
         styles.wrap,
         { bottom: insets.bottom + space.xl, backgroundColor: theme.bg.raised, borderColor: theme.line },
       ]}>
-      <ActivityIndicator color={theme.accent} />
+      {running ? <ActivityIndicator color={theme.accent} /> : null}
       <View style={{ flex: 1 }}>
         <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-          {es.sync.firstLoginTitle}
+          {title}
         </T>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 2, lineHeight: 17 }}>
-          {es.sync.firstLoginBody}
+          {body}
         </T>
       </View>
     </View>
   );
 }
+
+const RESULT_MS = 6_000;
 
 const styles = StyleSheet.create({
   wrap: {

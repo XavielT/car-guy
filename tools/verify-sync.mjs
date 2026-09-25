@@ -308,6 +308,47 @@ async function main() {
   const removed = await storage(`/object/carguy-media/${objectPath}`, { method: 'DELETE' });
   check('11. and the probe object deletes cleanly', removed.status === 200, `status ${removed.status}`);
 
+  // 12 — the compound pull cursor, live. Three rows in ONE request are one
+  //      transaction, so they share `server_updated_at` (`now()` is the
+  //      transaction start). The engine's filter "strictly after (ts, first id)"
+  //      must return exactly the other two — a plain "after ts" returns none,
+  //      which is the bug that dropped rows on a new device. Same filter string
+  //      as lib/sync/merge.ts afterCursorFilter.
+  const tieIds = ['a', 'b', 'c'].map((s) => `sync_probe_tie_${stamp}_${s}`);
+  await call('/rest/v1/vehicle', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
+    body: tieIds.map((id) => ({
+      id,
+      user_id: userId,
+      name: 'Tie',
+      type: 'carro',
+      default_fuel_type: 'regular',
+      is_archived: false,
+      sort_order: 0,
+      notes: '',
+      created_at: t1,
+      updated_at: t1,
+    })),
+  });
+  const tied = await call(
+    `/rest/v1/vehicle?id=in.(${tieIds.join(',')})&select=id,server_updated_at&order=id.asc`,
+  );
+  const tieTs = Array.isArray(tied.body) ? tied.body[0]?.server_updated_at : null;
+  const sameStamp =
+    Array.isArray(tied.body) && tied.body.length === 3 && tied.body.every((r) => r.server_updated_at === tieTs);
+  const q = (v) => `"${String(v).replace(/"/g, '\\"')}"`;
+  const filter = `server_updated_at.gt.${q(tieTs)},and(server_updated_at.eq.${q(tieTs)},id.gt.${q(tieIds[0])})`;
+  const after = await call(
+    `/rest/v1/vehicle?or=(${encodeURIComponent(filter)})&id=like.sync_probe_tie_${stamp}_*&select=id&order=server_updated_at.asc,id.asc`,
+  );
+  const afterIds = Array.isArray(after.body) ? after.body.map((r) => r.id) : after.body;
+  check(
+    '12. rows sharing a server timestamp are all reachable by the (ts, id) cursor',
+    sameStamp && JSON.stringify(afterIds) === JSON.stringify(tieIds.slice(1)),
+    `one stamp for all three: ${sameStamp} · after (ts, ${tieIds[0].slice(-1)}) → ${JSON.stringify(afterIds)}`,
+  );
+
   const failed = results.filter((r) => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} passed.`);
   console.log('\n--- cleanup ---');

@@ -46,23 +46,25 @@ export async function countDirty(table: string): Promise<number> {
 }
 
 /**
- * Marks rows as pushed.
+ * Marks rows as pushed — each with the `updated_at` it had *when it was read
+ * for the push*.
  *
- * `synced_at` is set to each row's own `updated_at`, not to the wall clock. If
- * the row were stamped with `now()` and the user edited it during the round
- * trip, `updated_at` would land *before* `synced_at` and the edit would look
- * clean — pushed, when it never was. Copying `updated_at` makes the comparison
- * exact: an edit that arrives mid-flight leaves `updated_at` strictly greater,
- * and the row stays dirty.
+ * Not `synced_at = updated_at` in SQL: that reads `updated_at` at the moment
+ * this UPDATE runs, so an edit made while the upload was in flight would be
+ * stamped as synced without ever having left the phone. Writing the pushed
+ * value leaves such a row with `updated_at > synced_at` — still dirty, and it
+ * goes up on the next sync.
  */
-export async function markSynced(table: string, ids: string[], db?: SQLiteDatabase): Promise<void> {
-  if (!ids.length) return;
+export async function markSynced(
+  table: string,
+  rows: { id: string; updatedAt: string }[],
+  db?: SQLiteDatabase,
+): Promise<void> {
+  if (!rows.length) return;
   const run = async (handle: SQLiteDatabase) => {
-    const placeholders = ids.map(() => '?').join(', ');
-    await handle.runAsync(
-      `UPDATE ${table} SET synced_at = updated_at WHERE id IN (${placeholders})`,
-      ids as never,
-    );
+    for (const row of rows) {
+      await handle.runAsync(`UPDATE ${table} SET synced_at = ? WHERE id = ?`, [row.updatedAt, row.id]);
+    }
   };
   if (db) await run(db);
   else await enqueue(run);
@@ -88,44 +90,62 @@ export async function localByIds(table: string, ids: string[]): Promise<Map<stri
  * failure surfaces only as "Error finalizing statement" — naming neither the
  * column nor the table, which is a long evening.
  *
- * One transaction for the whole page, so a pull either lands or does not.
+ * One transaction for the whole page (the write queue's), so a pull lands or
+ * does not.
  */
-export async function applyRemoteRows(table: string, rows: Record<string, unknown>[]): Promise<number> {
-  if (!rows.length) return 0;
+export async function applyRemoteRows(
+  table: string,
+  rows: Record<string, unknown>[],
+): Promise<{ applied: number; parked: Record<string, unknown>[] }> {
+  if (!rows.length) return { applied: 0, parked: [] };
 
   return enqueue(async (handle) => {
     let applied = 0;
+    const parked: Record<string, unknown>[] = [];
 
-    await handle.withTransactionAsync(async () => {
-      for (const incoming of rows) {
-        const data: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(incoming)) {
-          const column = key.includes('_') ? key : snake(key);
-          if (CLOUD_ONLY.has(column)) continue;
-          if (value === undefined) continue;
-          data[column] = normalise(value);
-        }
-        if (!data.id) continue;
+    // No transaction of its own: `enqueue` already runs this inside one, and a
+    // nested BEGIN fails — its cleanup then rolled back the *outer* transaction,
+    // so on a fresh device every pull that had a new row to write failed with
+    // "cannot rollback - no transaction is active". The queue's transaction is
+    // the one that makes a page land all-or-nothing.
+    for (const incoming of rows) {
+      const data: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(incoming)) {
+        const column = key.includes('_') ? key : snake(key);
+        if (CLOUD_ONLY.has(column)) continue;
+        if (value === undefined) continue;
+        data[column] = normalise(value);
+      }
+      if (!data.id) continue;
 
-        // Clean by definition: this row *is* what the server holds.
-        data.synced_at = data.updated_at;
+      // Clean by definition: this row *is* what the server holds.
+      data.synced_at = data.updated_at;
 
-        const columns = Object.keys(data);
-        const updates = columns
-          .filter((c) => c !== 'id')
-          .map((c) => `${c} = excluded.${c}`)
-          .join(', ');
+      const columns = Object.keys(data);
+      const updates = columns
+        .filter((c) => c !== 'id')
+        .map((c) => `${c} = excluded.${c}`)
+        .join(', ');
 
+      // One bad row must not stop the rest. The likely one is a child whose
+      // parent has not arrived (foreign keys are ON locally, and the cloud has
+      // none between tables); a failed statement in SQLite rolls back only
+      // itself, so the transaction carries on and the row is parked for the
+      // engine to retry once the parents are in.
+      try {
         await handle.runAsync(
           `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
            ON CONFLICT(id) DO UPDATE SET ${updates}`,
           columns.map((c) => data[c]) as never,
         );
         applied += 1;
+      } catch (error) {
+        console.warn(`[sync] parked ${table}/${String(data.id)}:`, error);
+        parked.push(incoming);
       }
-    });
+    }
 
-    return applied;
+    return { applied, parked };
   });
 }
 
@@ -139,8 +159,15 @@ function normalise(value: unknown): unknown {
   if (typeof value === 'boolean') return value ? 1 : 0;
   if (value === null) return null;
   if (typeof value === 'object') return JSON.stringify(value);
+  // Postgres returns timestamptz as "2026-09-25T20:15:35.077+00:00"; the app
+  // writes and compares "…Z". Two spellings of one instant do not sort as one,
+  // so every timestamp that comes down is rewritten the way the app writes it.
+  if (typeof value === 'string' && TIMESTAMPTZ.test(value)) return new Date(value).toISOString();
   return value;
 }
+
+/** An ISO date-time with an explicit offset — never a bare "YYYY-MM-DD". */
+const TIMESTAMPTZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
 /** Turns a local row into the shape PostgREST expects, minus local bookkeeping. */
 export function toCloudShape(
@@ -177,6 +204,37 @@ export async function syncableSettings(keys: string[]): Promise<{ key: string; v
   return rows.map((row) => ({ key: row.key, value: row.value, updatedAt: row.updated_at }));
 }
 
+/**
+ * Makes every local row "not yet in the cloud" again.
+ *
+ * After "Borrar datos en la nube" the phone still believed each row was
+ * uploaded (`synced_at` set, photos with a `remote_path`), so signing back in
+ * pushed nothing and the cloud stayed empty for good. Clearing the marks means
+ * the next sync re-uploads the whole garage, photo bytes included.
+ */
+export async function markAllUnsynced(tables: string[]): Promise<void> {
+  await enqueue(async (handle) => {
+    for (const table of tables) {
+      await handle.runAsync(`UPDATE ${table} SET synced_at = NULL`);
+    }
+    await handle.runAsync('UPDATE media SET remote_path = NULL');
+  });
+}
+
+/**
+ * Writes a setting that came from the cloud, keeping the cloud's timestamp so
+ * it does not immediately look newer than itself and bounce back up.
+ */
+export async function applyRemoteSetting(key: string, value: string, updatedAt: string): Promise<void> {
+  await enqueue(async (handle) => {
+    await handle.runAsync(
+      `INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      [key, value, updatedAt],
+    );
+  });
+}
+
 /** Timestamp helper re-exported so the engine has one source for "now". */
 export { now, camel };
 
@@ -192,6 +250,31 @@ export async function mediaNeedingUpload(): Promise<LocalRow[]> {
   return db.getAllAsync<LocalRow>(
     `SELECT * FROM media WHERE remote_path IS NULL AND deleted_at IS NULL`,
   );
+}
+
+/** Vehicles on this phone, for the first sign-in's "Se agregaron N vehículos". */
+export async function liveVehicleCount(): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM vehicle WHERE deleted_at IS NULL');
+  return row?.n ?? 0;
+}
+
+/** Deleted photos whose bytes are still in Storage. */
+export async function deletedMediaInStorage(): Promise<{ id: string; remote_path: string }[]> {
+  const db = await getDb();
+  return db.getAllAsync<{ id: string; remote_path: string }>(
+    `SELECT id, remote_path FROM media WHERE deleted_at IS NOT NULL AND remote_path IS NOT NULL`,
+  );
+}
+
+/**
+ * Forgets a Storage path once its object is gone. Local bookkeeping only: the
+ * row is a tombstone already, and every device ignores a tombstone's bytes.
+ */
+export async function clearMediaRemotePath(id: string): Promise<void> {
+  await enqueue(async (handle) => {
+    await handle.runAsync(`UPDATE media SET remote_path = NULL WHERE id = ?`, [id] as never);
+  });
 }
 
 /**

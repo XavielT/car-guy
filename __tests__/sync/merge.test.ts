@@ -1,10 +1,14 @@
 import {
+  afterCursorFilter,
   batch,
+  cursorAfter,
   decide,
+  formatCursor,
   hasMore,
   isDirty,
-  nextCursor,
   normaliseRow,
+  overlapStart,
+  parseCursor,
   normaliseTimestamp,
   selectDirty,
   toCloudRow,
@@ -130,28 +134,39 @@ describe('decide — the LWW matrix', () => {
   });
 });
 
-describe('nextCursor', () => {
-  it('advances to the greatest server_updated_at in the page', () => {
+describe('the pull cursor', () => {
+  it('round-trips a (timestamp, id) pair, ids with "|" or "@" included', () => {
+    const cursor = { ts: '2026-09-25T20:00:00.123456+00:00', id: 'carro_semanal@veh_1' };
+    expect(parseCursor(formatCursor(cursor))).toEqual(cursor);
+  });
+
+  it('reads a cursor stored before the fix as "that time, before any id"', () => {
+    // A plain timestamp re-reads its own tie group — the safe direction.
+    expect(parseCursor(T2)).toEqual({ ts: T2, id: '' });
+    expect(parseCursor(null)).toBeNull();
+  });
+
+  it('resumes after the last row of a page, which the server sorted', () => {
     const page = [
-      remote({ id: 'a', serverUpdatedAt: T1 }),
-      remote({ id: 'b', serverUpdatedAt: T3 }),
-      remote({ id: 'c', serverUpdatedAt: T2 }),
+      { id: 'a', serverUpdatedAt: T1 },
+      { id: 'b', serverUpdatedAt: T2 },
+      { id: 'c', serverUpdatedAt: T2 },
     ];
-    expect(nextCursor(T1, page)).toBe(T3);
+    expect(cursorAfter(page)).toEqual({ ts: T2, id: 'c' });
+    expect(cursorAfter([])).toBeNull();
   });
 
-  it('never rewinds, even if a page arrives out of order', () => {
-    const page = [remote({ serverUpdatedAt: T1 })];
-    expect(nextCursor(T3, page)).toBe(T3);
+  it('asks for rows strictly after the pair, so a shared timestamp is not skipped', () => {
+    expect(afterCursorFilter({ ts: T2, id: 'c' })).toBe(
+      `server_updated_at.gt."${T2}",and(server_updated_at.eq."${T2}",id.gt."c")`,
+    );
+    expect(afterCursorFilter({ ts: T2, id: '' })).toBe(`server_updated_at.gte."${T2}"`);
   });
 
-  it('leaves the cursor alone for an empty page', () => {
-    expect(nextCursor(T2, [])).toBe(T2);
-    expect(nextCursor(null, [])).toBeNull();
-  });
-
-  it('starts the cursor from the first page when there was none', () => {
-    expect(nextCursor(null, [remote({ serverUpdatedAt: T2 })])).toBe(T2);
+  it('starts each sync a minute behind, to catch a push that committed late', () => {
+    const start = overlapStart({ ts: '2026-09-25T20:01:00.000Z', id: 'x' });
+    expect(start).toEqual({ ts: '2026-09-25T20:00:00.000Z', id: '' });
+    expect(overlapStart(null)).toBeNull();
   });
 });
 
@@ -288,7 +303,7 @@ describe('the table declarations', () => {
     expect(SYNCED_SETTING_KEYS).not.toContain('active_vehicle_id');
     expect(SYNCED_SETTING_KEYS).not.toContain('last_sync_at');
     expect(SYNCED_SETTING_KEYS).not.toContain('auth_user_id');
-    expect(SYNCED_SETTING_KEYS).toEqual(['reference_prices', 'price_week_label', 'theme']);
+    expect(SYNCED_SETTING_KEYS).toEqual(['reference_prices', 'price_week_label']);
   });
 
   it('lists every table exactly once', () => {

@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import { OdometerHero, QuickActions, Surface, type Telltale } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useSession } from '@/lib/cloud/auth';
+import { FEATURE_SYNC } from '@/lib/flags';
 import {
   currentOdometer as currentOdometerQuery,
   odometer as odometerRepo,
@@ -162,9 +164,13 @@ export default function HomeScreen() {
         <T face="medium" style={[styles.kicker, { color: theme.accent }]}>
           {es.home.eyebrow}
         </T>
-        <T face="display" style={[styles.brand, { color: theme.text.primary }]}>
-          {es.home.title}
-        </T>
+        <View style={styles.titleRow}>
+          <T face="display" style={[styles.brand, { color: theme.text.primary }]}>
+            {es.home.title}
+          </T>
+          {/* Signed in only: without an account there is nothing to be in step with. */}
+          {FEATURE_SYNC && session ? <SyncPill /> : null}
+        </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcher}>
           {data.vehicles.filter((v) => !v.isArchived).map((v) => {
@@ -374,6 +380,7 @@ const TASK_STATUS: Record<Task['priority'], Telltale['status']> = {
 };
 
 const styles = StyleSheet.create({
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   accountCard: { marginBottom: space.md },
   accountActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },
   accountPrimary: {
