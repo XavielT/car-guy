@@ -23,13 +23,15 @@ import type { AppliesTo, Vehicle } from './types';
 export async function seedCatalog(db?: SQLiteDatabase): Promise<void> {
   const run = async (handle: SQLiteDatabase) => {
     for (const [index, type] of SERVICE_TYPES.entries()) {
+      // The intervals are the user's once the row exists: Más → Catálogo de
+      // servicios edits them, and re-seeding at every launch must not undo that.
+      const existing = await serviceTypes.getById(type.id);
       await serviceTypes.upsert(
         {
           id: type.id,
           name: type.name,
           category: type.category,
-          defaultIntervalKm: type.km,
-          defaultIntervalMonths: type.months,
+          ...(existing ? {} : { defaultIntervalKm: type.km, defaultIntervalMonths: type.months }),
           appliesTo: type.appliesTo,
           isSeeded: true,
           sortOrder: index,
@@ -73,6 +75,19 @@ export async function seedCatalog(db?: SQLiteDatabase): Promise<void> {
           },
           handle,
         );
+      }
+
+      // A catalog list that got shorter leaves seeded items behind; retire them
+      // so the run does not keep asking about something the catalog dropped.
+      // Only slug ids are the seeder's — a custom item on the template stays.
+      const current = await inspectionItems.listWhere({ templateId: template.id });
+      for (const item of current) {
+        const index = item.id.startsWith(`${template.id}__`)
+          ? Number(item.id.slice(template.id.length + 2))
+          : NaN;
+        if (Number.isInteger(index) && index >= template.items.length) {
+          await inspectionItems.softDelete(item.id, handle);
+        }
       }
     }
   };

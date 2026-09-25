@@ -1,4 +1,7 @@
+import type { Reminder } from '@/lib/db/types';
 import {
+  atHour,
+  firstAttentionDay,
   hasDuplicateIds,
   MAX_SCHEDULED,
   nextWeekday,
@@ -7,6 +10,7 @@ import {
 } from '@/lib/notifications/plan';
 
 const iso = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).toISOString();
+const at = (y: number, m: number, d: number, h: number, min = 0) => new Date(y, m - 1, d, h, min).toISOString();
 const TODAY = iso(2026, 9, 18);
 
 const base = (over: Partial<PlanInput> = {}): PlanInput => ({
@@ -90,7 +94,7 @@ describe('planNotifications — reminders', () => {
         ],
       }),
     );
-    expect(plan[0].kind === 'date' && plan[0].date).toBe(iso(2026, 10, 12));
+    expect(plan[0].kind === 'date' && plan[0].date).toBe(at(2026, 10, 12, 9));
   });
 
   it('drops anything already due or overdue', () => {
@@ -211,5 +215,184 @@ describe('nextWeekday', () => {
   it('jumps a full week when the weekday is today', () => {
     const sameDay = nextWeekday(TODAY, new Date(TODAY).getDay() + 1);
     expect(new Date(sameDay).getDate()).toBe(25);
+  });
+});
+
+function reminder(over: Partial<Reminder> = {}): Reminder {
+  return {
+    id: 'r1',
+    vehicleId: 'v1',
+    title: 'Aceite de motor',
+    serviceTypeId: 'aceite_motor',
+    legalKind: null,
+    metric: 'date',
+    dueDate: null,
+    dueKm: null,
+    isRecurring: true,
+    intervalMonths: 6,
+    intervalDays: null,
+    intervalKm: 5_000,
+    fixedInterval: false,
+    thresholdDays: null,
+    thresholdKm: null,
+    notes: '',
+    lastCompletedAt: null,
+    lastCompletedKm: null,
+    lastCompletedRecordId: null,
+    snoozedUntil: null,
+    isEnabled: true,
+    createdAt: TODAY,
+    updatedAt: TODAY,
+    deletedAt: null,
+    syncedAt: null,
+    ...over,
+  } as Reminder;
+}
+
+describe('planNotifications — the user\'s hour', () => {
+  it('fires dated reminders at the chosen hour on the due day, not at the stored noon', () => {
+    const plan = planNotifications(
+      base({
+        hour: 7,
+        minute: 30,
+        reminders: [{ id: 'r', title: 'R', dueDate: iso(2026, 10, 1), predictedDueDate: null, status: 'ok' }],
+      }),
+    );
+    expect(plan[0].kind === 'date' && plan[0].date).toBe(at(2026, 10, 1, 7, 30));
+  });
+
+  it('moves the marbete nudges to the hour too', () => {
+    const plan = planNotifications(base({ marbeteNudges: [{ date: iso(2026, 10, 15), message: 'x' }] }));
+    expect(plan[0].kind === 'date' && plan[0].date).toBe(at(2026, 10, 15, 9));
+  });
+
+  it('keeps something due today when the hour is still ahead, drops it once passed', () => {
+    const input = base({
+      reminders: [{ id: 'r', title: 'Hoy', dueDate: TODAY, predictedDueDate: null, status: 'urgente' }],
+    });
+    expect(planNotifications(input, at(2026, 9, 18, 8))).toHaveLength(1);
+    expect(planNotifications(input, at(2026, 9, 18, 9, 1))).toHaveLength(0);
+  });
+
+  it('atHour keeps the local day', () => {
+    expect(new Date(atHour(iso(2027, 1, 31), 9, 0)).getDate()).toBe(31);
+    expect(new Date(atHour(iso(2027, 1, 31), 9, 0)).getHours()).toBe(9);
+  });
+});
+
+describe('planNotifications — próximo and "both"', () => {
+  it('adds a próximo notification with its own deterministic id', () => {
+    const plan = planNotifications(
+      base({
+        reminders: [
+          {
+            id: 'r',
+            title: 'Aceite',
+            dueDate: iso(2026, 12, 1),
+            predictedDueDate: null,
+            proximoDate: iso(2026, 11, 1),
+            status: 'ok',
+          },
+        ],
+      }),
+    );
+    expect(plan.map((p) => p.id)).toEqual(['reminder:r:proximo', 'reminder:r:due']);
+  });
+
+  it('drops a próximo day already in the past', () => {
+    const plan = planNotifications(
+      base({
+        reminders: [
+          { id: 'r', title: 'A', dueDate: iso(2026, 10, 1), predictedDueDate: null, proximoDate: iso(2026, 9, 1), status: 'proximo' },
+        ],
+      }),
+    );
+    expect(plan.map((p) => p.id)).toEqual(['reminder:r:due']);
+  });
+
+  it('a "both" reminder is due at whichever limit comes first', () => {
+    const plan = planNotifications(
+      base({
+        reminders: [
+          { id: 'r', title: 'A', dueDate: iso(2027, 3, 1), predictedDueDate: iso(2026, 11, 5), status: 'ok' },
+        ],
+      }),
+    );
+    expect(plan[0].kind === 'date' && plan[0].date).toBe(at(2026, 11, 5, 9));
+  });
+
+  it('names the vehicle when there is more than one', () => {
+    const plan = planNotifications(
+      base({
+        reminders: [
+          { id: 'r', title: 'A', dueDate: iso(2026, 10, 1), predictedDueDate: null, status: 'ok', vehicleName: 'Corolla' },
+        ],
+      }),
+    );
+    expect(plan[0].body).toContain('Corolla');
+  });
+});
+
+describe('planNotifications — templates across vehicles', () => {
+  it('schedules a checklist two vehicles share only once', () => {
+    const plan = planNotifications(
+      base({
+        templates: [
+          { id: 'carro_semanal', baseId: 'carro_semanal', name: 'Semanal', cadence: 'semanal', enabled: true },
+          { id: 'carro_semanal@v2', baseId: 'carro_semanal', name: 'Semanal', cadence: 'semanal', enabled: true },
+          { id: 'carro_diario', baseId: 'carro_diario', name: 'Diario', cadence: 'diaria', enabled: true },
+        ],
+      }),
+    );
+    expect(plan.map((p) => p.id)).toEqual(['template:carro_semanal', 'template:carro_diario']);
+  });
+
+  it('a disabled copy does not block the other vehicle\'s enabled one', () => {
+    const plan = planNotifications(
+      base({
+        templates: [
+          { id: 'carro_semanal@v1', baseId: 'carro_semanal', name: 'S', cadence: 'semanal', enabled: false },
+          { id: 'carro_semanal', baseId: 'carro_semanal', name: 'S', cadence: 'semanal', enabled: true },
+        ],
+      }),
+    );
+    expect(plan.map((p) => p.id)).toEqual(['template:carro_semanal']);
+  });
+
+  it('uses expo\'s weekday numbering, 1 = Sunday … 7 = Saturday', () => {
+    const plan = planNotifications(
+      base({ weeklyWeekday: 7, templates: [{ id: 's', name: 'S', cadence: 'semanal', enabled: true }] }),
+    );
+    expect(plan[0].kind === 'weekly' && plan[0].weekday).toBe(7);
+    // The settings list starts on Domingo, so index 0 + 1 is Sunday.
+    expect(new Date(nextWeekday(TODAY, 1)).getDay()).toBe(0);
+    expect(new Date(nextWeekday(TODAY, 7)).getDay()).toBe(6);
+  });
+});
+
+describe('firstAttentionDay', () => {
+  const ctx = { today: TODAY, currentKm: 50_000, kmPerDay: 50, confidence: 'buena' as const };
+
+  it('is the day a date reminder enters its 30-day window', () => {
+    const day = firstAttentionDay(reminder({ dueDate: iso(2026, 12, 17) }), ctx);
+    // 17 Dec − 30 days = 17 Nov.
+    expect(day).toBe(iso(2026, 11, 17));
+  });
+
+  it('uses the 45-day legal window', () => {
+    const day = firstAttentionDay(reminder({ legalKind: 'marbete', dueDate: iso(2027, 1, 31) }), ctx);
+    expect(day).toBe(iso(2026, 12, 17));
+  });
+
+  it('projects the odometer at the vehicle\'s pace for a km reminder', () => {
+    // 5,000 km interval → próximo at 500 km left. 3,000 km away at 50 km/day:
+    // 2,500 km to the window → day 50.
+    const day = firstAttentionDay(reminder({ metric: 'km', dueKm: 53_000 }), ctx);
+    expect(day).toBe(iso(2026, 11, 7));
+  });
+
+  it('is null when it already needs attention or nothing is known', () => {
+    expect(firstAttentionDay(reminder({ dueDate: iso(2026, 10, 1) }), ctx)).toBeNull();
+    expect(firstAttentionDay(reminder({ dueDate: null }), ctx)).toBeNull();
   });
 });

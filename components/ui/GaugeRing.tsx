@@ -1,4 +1,12 @@
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
 import { useTheme } from '@/lib/theme/useTheme';
@@ -8,13 +16,15 @@ import { T } from '../T';
  * The app mark as a progress control: a 270° sweep with the gap at the bottom,
  * used for inspection completion and streaks.
  *
- * Drawn as a stroked circle rather than an arc path so the fill is one
- * `strokeDashoffset` — no trigonometry per frame when Phase 5 animates it.
+ * Drawn as a stroked circle rather than an arc path so the fill is one dash
+ * length — no trigonometry per frame when `animate` sweeps it.
  * The circle is rotated so its 0° (three o'clock) lands at the sweep's start,
  * bottom-left.
  */
 const SWEEP = 270;
 const GAP_START = 135; // degrees clockwise from +x, i.e. bottom-left
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export function GaugeRing({
   /** 0–1. Values outside are clamped. */
@@ -25,6 +35,7 @@ export function GaugeRing({
   value,
   label,
   color,
+  animate = false,
 }: {
   progress: number;
   size?: number;
@@ -32,6 +43,8 @@ export function GaugeRing({
   value?: string;
   label?: string;
   color?: string;
+  /** Sweep up from empty on mount and on every change — the result screen's moment. */
+  animate?: boolean;
 }) {
   const { theme } = useTheme();
   const clamped = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
@@ -41,6 +54,19 @@ export function GaugeRing({
   const sweepLength = circumference * (SWEEP / 360);
 
   const stroke = color ?? theme.accent;
+
+  // Reduced motion gets the final state straight away; the ring still says
+  // the same thing, it just does not perform it.
+  const reduced = useReducedMotion();
+  const shown = useSharedValue(animate && !reduced ? 0 : clamped);
+  useEffect(() => {
+    shown.value = animate && !reduced
+      ? withTiming(clamped, { duration: 900, easing: Easing.out(Easing.cubic) })
+      : clamped;
+  }, [animate, reduced, clamped, shown]);
+  const fillProps = useAnimatedProps(() => ({
+    strokeDasharray: `${sweepLength * shown.value} ${circumference}`,
+  }));
 
   return (
     <View style={{ width: size, height: size }}>
@@ -58,7 +84,7 @@ export function GaugeRing({
           transform={`rotate(${GAP_START} ${size / 2} ${size / 2})`}
         />
         {/* Fill: the same sweep, cut to progress. */}
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -66,7 +92,7 @@ export function GaugeRing({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           fill="none"
-          strokeDasharray={`${sweepLength * clamped} ${circumference}`}
+          animatedProps={fillProps}
           transform={`rotate(${GAP_START} ${size / 2} ${size / 2})`}
         />
       </Svg>

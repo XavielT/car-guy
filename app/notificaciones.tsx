@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
+import { GhostButton, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import {
+  configure,
   DEFAULT_SETTINGS,
   getSettings,
   requestPermission,
@@ -17,14 +18,12 @@ import {
 } from '@/lib/notifications';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
-import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const HOURS = [6, 7, 8, 9, 10, 18, 19, 20];
 
 export default function NotificacionesScreen() {
   const { theme } = useTheme();
-  const { activeVehicle } = useStore();
   const [config, setConfig] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [count, setCount] = useState(0);
 
@@ -44,16 +43,17 @@ export default function NotificacionesScreen() {
   async function apply(next: NotificationSettings) {
     setConfig(next);
     await setSettings(next);
-    if (activeVehicle) {
-      const plan = await resync(activeVehicle.id);
-      setCount(plan.length);
-    }
+    await resync();
+    // What is actually pending, not what the plan meant to schedule.
+    setCount(await scheduledCount());
   }
 
   async function toggle() {
     if (!config.enabled) {
       // Permission is asked here, the first time the user says yes — not on
-      // first launch, when the request means nothing to them yet.
+      // first launch, when the request means nothing to them yet. The channel
+      // goes first: Android 13+ shows no prompt without one.
+      await configure();
       const granted = await requestPermission();
       if (!granted) return Alert.alert(es.notifications.title, es.notifications.denied);
     }
@@ -78,10 +78,19 @@ export default function NotificacionesScreen() {
           </Surface>
         ) : (
           <>
-            <PrimaryButton
-              label={config.enabled ? `${es.notifications.enable} · activado` : es.notifications.enable}
-              onPress={() => void toggle()}
-            />
+            <Surface>
+              <View style={styles.switchRow}>
+                <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
+                  {es.notifications.enable}
+                </T>
+                <Switch
+                  value={config.enabled}
+                  onValueChange={() => void toggle()}
+                  accessibilityLabel={es.notifications.enable}
+                  trackColor={{ true: theme.accent, false: theme.line }}
+                />
+              </View>
+            </Surface>
 
             {config.enabled ? (
               <>
@@ -160,5 +169,6 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, marginTop: 2, marginBottom: space.lg, lineHeight: 19 },
   label: { fontSize: 13, marginTop: space.lg, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.sm },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   chip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
 });

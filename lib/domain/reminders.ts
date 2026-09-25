@@ -8,6 +8,7 @@
  * The rules are 01-data-model.md §3.2.
  */
 import { addDays, addMonths, daysBetween } from './dates';
+import { LEGAL_LEAD_DAYS } from './legal-dr';
 import { FALLBACK_KM_PER_DAY } from './odometer';
 import type { Reminder } from '../db/types';
 
@@ -41,7 +42,11 @@ export type EvaluateContext = {
 
 const DEFAULT_PROXIMO_DAYS = 30;
 const DEFAULT_URGENTE_DAYS = 7;
-/** Marbete and seguro need a bank visit, so they warn earlier. */
+/**
+ * Marbete and seguro need a bank visit, so they warn earlier; the licencia
+ * earlier still (60/30, §3.7), because pending multas block the renewal and
+ * clearing them takes time. The per-kind leads live in legal-dr.ts.
+ */
 const LEGAL_PROXIMO_DAYS = 45;
 const LEGAL_URGENTE_DAYS = 14;
 const URGENTE_KM = 100;
@@ -58,10 +63,12 @@ const SEVERITY: Record<ReminderState, number> = {
 
 function thresholds(reminder: Reminder) {
   const legal = reminder.legalKind != null;
+  const lead = legal ? LEGAL_LEAD_DAYS[reminder.legalKind!] : undefined;
   return {
     proximoDays:
-      reminder.thresholdDays ?? (legal ? LEGAL_PROXIMO_DAYS : DEFAULT_PROXIMO_DAYS),
-    urgenteDays: legal ? LEGAL_URGENTE_DAYS : DEFAULT_URGENTE_DAYS,
+      reminder.thresholdDays ??
+      (legal ? (lead?.[0] ?? LEGAL_PROXIMO_DAYS) : DEFAULT_PROXIMO_DAYS),
+    urgenteDays: legal ? (lead?.[1] ?? LEGAL_URGENTE_DAYS) : DEFAULT_URGENTE_DAYS,
     // Ten per cent of the interval, so a 40,000 km item warns far earlier than a
     // 5,000 km one, clamped so neither extreme is useless.
     proximoKm:
@@ -178,16 +185,92 @@ export function displayDueDate(reminder: Reminder, status: ReminderStatus): stri
   return reminder.dueDate ?? status.predictedDueDate;
 }
 
+/**
+ * The instant a reminder is really due, for ordering: the earlier of its date
+ * and the day its km are predicted to run out. A km-only reminder has no
+ * `dueDays`, so sorting on that alone parked every oil change at the bottom of
+ * its group however close it was.
+ *
+ * An overdue km reminder has no predicted date (the km are already gone), so it
+ * sorts as "now" — the empty string is before every ISO date.
+ */
+function dueKey({ reminder, status }: { reminder: Reminder; status: ReminderStatus }): string {
+  const dates: string[] = [];
+  if (reminder.dueDate && reminder.metric !== 'km') dates.push(reminder.dueDate);
+  if (status.predictedDueDate) dates.push(status.predictedDueDate);
+  if (dates.length) return dates.sort()[0];
+  if (status.dueKm != null && status.dueKm < 0) return '';
+  return '\uffff';
+}
+
 /** vencido → urgente → próximo → sin datos → ok, then soonest first. */
 export function bySeverity(
-  a: { status: ReminderStatus },
-  b: { status: ReminderStatus },
+  a: { reminder?: Reminder; status: ReminderStatus },
+  b: { reminder?: Reminder; status: ReminderStatus },
 ): number {
   const diff = SEVERITY[a.status.status] - SEVERITY[b.status.status];
   if (diff !== 0) return diff;
-  const ad = a.status.dueDays ?? Number.MAX_SAFE_INTEGER;
-  const bd = b.status.dueDays ?? Number.MAX_SAFE_INTEGER;
-  return ad - bd;
+  if (!a.reminder || !b.reminder) {
+    // Callers without the row (older tests, summaries) keep the dueDays order.
+    const ad = a.status.dueDays ?? Number.MAX_SAFE_INTEGER;
+    const bd = b.status.dueDays ?? Number.MAX_SAFE_INTEGER;
+    return ad - bd;
+  }
+  const ka = dueKey({ reminder: a.reminder, status: a.status });
+  const kb = dueKey({ reminder: b.reminder, status: b.status });
+  return ka < kb ? -1 : ka > kb ? 1 : 0;
+}
+
+/**
+ * Whether a reminder belongs on the home screen's telltale row.
+ *
+ * `sin_datos` does not: a seguro whose expiry nobody has typed in yet is not the
+ * car asking for anything, and letting it sit there permanently meant "Todo al
+ * día" could never appear. The Recordatorios list still shows it, asking for
+ * the date.
+ */
+export function needsAttention(status: ReminderStatus): boolean {
+  return status.status === 'vencido' || status.status === 'urgente' || status.status === 'proximo';
+}
+
+export type AttentionItem<R, T> =
+  | { kind: 'reminder'; item: R; rank: number }
+  | { kind: 'task'; item: T; rank: number };
+
+const TASK_RANK = { critica: 0, normal: 3, baja: 5 } as const;
+const REMINDER_RANK: Record<ReminderState, number> = {
+  vencido: 1,
+  urgente: 2,
+  proximo: 4,
+  sin_datos: 6,
+  ok: 7,
+};
+
+/**
+ * Reminders and open tasks on one strip, worst first.
+ *
+ * A critical task — a failed coolant or brake check — ranks ahead of even an
+ * overdue reminder: it is something the owner saw with their own eyes, and a
+ * late oil change is rarely as dangerous as a coolant leak. A normal task sits
+ * between urgente and próximo; a low-priority one after everything that is
+ * actually due. Ties keep the input order, which is already worst first.
+ */
+export function mergeAttention<R extends { status: ReminderStatus }, T extends { priority: keyof typeof TASK_RANK }>(
+  reminders: R[],
+  tasks: T[],
+  limit = 4,
+): AttentionItem<R, T>[] {
+  const merged: AttentionItem<R, T>[] = [
+    ...reminders
+      .filter((r) => needsAttention(r.status))
+      .map((item) => ({ kind: 'reminder' as const, item, rank: REMINDER_RANK[item.status.status] })),
+    ...tasks.map((item) => ({ kind: 'task' as const, item, rank: TASK_RANK[item.priority] })),
+  ];
+  return merged
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => a.entry.rank - b.entry.rank || a.index - b.index)
+    .slice(0, limit)
+    .map(({ entry }) => entry);
 }
 
 export const STATUS_LABEL: Record<ReminderState, string> = {
@@ -343,4 +426,58 @@ export function describeReset(reminder: Reminder, patch: ReminderPatch): string 
   }
   if (!patch.isEnabled) return `${reminder.title} → listo`;
   return parts.length ? `${reminder.title} → ${parts.join(' · ')}` : reminder.title;
+}
+
+/* ------------------------------------------------------------------ *
+ * Catalog interval changes (Más → Catálogo de servicios)
+ * ------------------------------------------------------------------ */
+
+export type Interval = { km: number | null; months: number | null };
+
+/**
+ * What a reminder becomes when its catalog item's default interval changes.
+ *
+ * Only a reminder still on the **old default** follows the change: one whose
+ * interval differs was set by hand (or by the diesel override), and silently
+ * moving it would overwrite a decision. Each side is judged on its own, so a
+ * reminder whose km was customised still follows a new months default.
+ *
+ * The due point keeps its anchor — the last completion when there is one,
+ * otherwise the old due minus the old interval — and is recounted with the new
+ * interval. Returns null when nothing changes.
+ */
+export function retargetInterval(
+  reminder: Reminder,
+  previous: Interval,
+  next: Interval,
+): Partial<Reminder> | null {
+  const patch: Partial<Reminder> = {};
+
+  if (
+    previous.km !== next.km &&
+    reminder.intervalKm != null &&
+    reminder.intervalKm === previous.km &&
+    next.km != null
+  ) {
+    patch.intervalKm = next.km;
+    const anchor =
+      reminder.lastCompletedKm ?? (reminder.dueKm != null ? reminder.dueKm - previous.km : null);
+    if (anchor != null && reminder.dueKm != null) patch.dueKm = anchor + next.km;
+  }
+
+  if (
+    previous.months !== next.months &&
+    reminder.intervalMonths != null &&
+    reminder.intervalMonths === previous.months &&
+    next.months != null &&
+    !reminder.fixedInterval
+  ) {
+    patch.intervalMonths = next.months;
+    const anchor =
+      reminder.lastCompletedAt ??
+      (reminder.dueDate ? addMonths(reminder.dueDate, -previous.months) : null);
+    if (anchor != null && reminder.dueDate) patch.dueDate = addMonths(anchor, next.months);
+  }
+
+  return Object.keys(patch).length ? patch : null;
 }

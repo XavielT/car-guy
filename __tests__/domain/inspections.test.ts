@@ -1,4 +1,11 @@
-import { isDue, latestRun, taskPriorityFor, weeklyStreak } from '@/lib/domain/inspections';
+import {
+  baseTemplateId,
+  isDue,
+  latestRun,
+  scopedTemplateId,
+  taskPriorityFor,
+  weeklyStreak,
+} from '@/lib/domain/inspections';
 
 const iso = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).toISOString();
 const TODAY = iso(2026, 9, 18);
@@ -76,6 +83,14 @@ describe('weeklyStreak', () => {
     expect(weeklyStreak([run(2026, 9, 9), run(2026, 9, 2)], TODAY)).toBe(0);
   });
 
+  it('does not count two runs in the same week twice', () => {
+    // Monday, Wednesday and Friday of one week are one week of habit.
+    expect(weeklyStreak([run(2026, 9, 18), run(2026, 9, 16), run(2026, 9, 14)], TODAY)).toBe(1);
+    // …but the chain still carries through them to the week before.
+    const runs = [run(2026, 9, 18), run(2026, 9, 14), run(2026, 9, 10), run(2026, 9, 3)];
+    expect(weeklyStreak(runs, TODAY)).toBe(3);
+  });
+
   it('counts a single recent run as one', () => {
     expect(weeklyStreak([run(2026, 9, 15)], TODAY)).toBe(1);
   });
@@ -93,5 +108,18 @@ describe('taskPriorityFor', () => {
   it('leaves everything else at normal', () => {
     expect(taskPriorityFor('limpiavidrios')).toBe('normal');
     expect(taskPriorityFor(null)).toBe('normal');
+  });
+});
+
+describe('vehicle copies of seeded templates', () => {
+  it('derives one deterministic id per template and vehicle', () => {
+    expect(scopedTemplateId('carro_semanal', 'veh_1')).toBe('carro_semanal@veh_1');
+    // Copying a copy lands on the same row, never a copy of a copy.
+    expect(scopedTemplateId('carro_semanal@veh_1', 'veh_1')).toBe('carro_semanal@veh_1');
+  });
+
+  it('maps a copy back to the seeded template its runs belong to', () => {
+    expect(baseTemplateId('carro_semanal@veh_1')).toBe('carro_semanal');
+    expect(baseTemplateId('carro_semanal')).toBe('carro_semanal');
   });
 });

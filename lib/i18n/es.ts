@@ -36,6 +36,7 @@ export const es = {
     expense: 'Gasto',
     check: 'Chequeo',
     guide: 'Qué revisar y cómo',
+    templateEditor: 'Editar lista',
     inspection: 'Resultado',
     reminders: 'Recordatorios',
     reminder: 'Recordatorio',
@@ -348,6 +349,94 @@ export const es = {
     completeRegister: '¿Registrarlo como mantenimiento?',
     completeJust: 'Solo marcar hecho',
     completedToast: 'Listo. Próximo:',
+    dueOn: (date: string) => `vence ${date}`,
+    add: 'Nuevo recordatorio',
+    newTitle: 'Nuevo recordatorio',
+    editTitle: 'Editar recordatorio',
+    groups: {
+      vencido: 'Vencidos',
+      urgente: 'Urgentes',
+      proximo: 'Próximos',
+      sin_datos: 'Sin datos',
+      ok: 'Al día',
+      disabled: 'Desactivados',
+    },
+    disabledLabel: 'Desactivado',
+    enabledLabel: 'Activo',
+    enable: 'Activar',
+    disable: 'Desactivar',
+    remove: 'Eliminar',
+    removeConfirm: 'Se borra este recordatorio. Tu historial no cambia.',
+    form: {
+      title: 'Título',
+      titleRequired: 'Ponle un título.',
+      catalog: 'Del catálogo (opcional)',
+      catalogNone: 'Ninguno',
+      metric: 'Cuándo toca',
+      metrics: { date: 'Fecha', km: 'Km', both: 'Ambos' },
+      bothHint: 'Lo que llegue primero.',
+      dueDate: 'Fecha límite',
+      dueKm: 'Al llegar a (km)',
+      dueRequired: 'Pon la fecha o el kilometraje en que toca.',
+      recurring: 'Se repite',
+      yes: 'Sí',
+      no: 'No',
+      intervalMonths: 'Cada (meses)',
+      intervalDays: 'o cada (días)',
+      intervalKm: 'Cada (km)',
+      fixed: 'Intervalo fijo',
+      fixedHint:
+        'Fijo: el próximo se cuenta desde la fecha en que tocaba, no desde cuando lo hiciste. Así funcionan el marbete y el seguro. Si no, se cuenta desde el día que lo hagas.',
+      advanced: 'Avanzado',
+      advancedHide: 'Ocultar avanzado',
+      thresholdDays: 'Avisar con (días de anticipación)',
+      thresholdKm: 'Avisar con (km de anticipación)',
+      thresholdHint: 'Vacío usa lo normal: 30 días, o el 10 % del intervalo en km.',
+      notes: 'Notas',
+      enabled: 'Recordatorio activo',
+      save: 'Guardar',
+      saved: 'Recordatorio guardado',
+    },
+    multasNote: 'Las multas pendientes bloquean la renovación. Consúltalas antes de ir.',
+    multasLink: 'Consultar multas (PGR)',
+    status: 'Estado',
+  },
+
+  legal: {
+    marbeteBanner: 'Marbete',
+    vidaUtilTitle: 'Vida útil (Ley 63-17)',
+    vidaUtil: (limit: number, remaining: number | null) =>
+      remaining == null
+        ? `${limit} años para este tipo de vehículo`
+        : remaining < 0
+          ? `Pasó los ${limit} años hace ${Math.abs(remaining)} ${Math.abs(remaining) === 1 ? 'año' : 'años'}`
+          : `Le ${remaining === 1 ? 'queda 1 año' : `quedan ${remaining} años`} de ${limit}`,
+    vidaUtilNoYear: 'Pon el año del vehículo para calcularla.',
+    revisionTecnica:
+      'Revisión técnica: la ley la exige, pero INTRANT todavía no la ha puesto en marcha. Te avisamos cuando empiece.',
+  },
+
+  catalog: {
+    title: 'Catálogo de servicios',
+    caption: 'Cada cuánto toca cada cosa. Cambiarlo ajusta tus recordatorios.',
+    subtitle:
+      'Los intervalos de fábrica pensados para uso severo. Si cambias uno, los recordatorios que todavía usan el valor anterior se ajustan solos.',
+    every: (km: number | null, months: number | null) =>
+      [km != null ? `${km.toLocaleString('es-DO')} km` : null, months != null ? `${months} meses` : null]
+        .filter(Boolean)
+        .join(' · ') || 'Sin intervalo',
+    intervalKm: 'Cada (km)',
+    intervalMonths: 'Cada (meses)',
+    save: 'Guardar',
+    saved: 'Intervalo guardado',
+    updated: (n: number) =>
+      n === 0
+        ? 'Ningún recordatorio usaba el valor anterior.'
+        : n === 1
+          ? 'Se ajustó 1 recordatorio.'
+          : `Se ajustaron ${n} recordatorios.`,
+    seeded: 'De fábrica',
+    hint: 'Deja vacío lo que no aplique. Los recordatorios que ajustaste a mano no cambian.',
   },
 
   check: {
@@ -386,12 +475,46 @@ export const es = {
     resultTasks: 'Te creamos estas tareas:',
     celebrate: '¡Así se cuida un carro!',
     comingSoon: 'Los chequeos llegan en la próxima fase.',
+    withFails: 'Con fallas',
+    disabled: 'Desactivada',
+    turnOn: 'Activar',
+    turnOff: 'Apagar',
+    edit: 'Editar',
+    onFailReminder: 'Crear recordatorio',
+    onFailTitle: 'Al terminar, crear',
+    onFailShort: { task: 'Tarea', reminder: 'Recordatorio', none: 'Nada' },
+    resultReminders: 'Y estos recordatorios:',
+    resultChecked: 'Lo que revisaste',
+    elapsed: (min: number, sec: number) => `${min}:${String(sec).padStart(2, '0')}`,
+    editor: {
+      title: 'Editar lista',
+      name: 'Nombre',
+      cadence: 'Cada cuánto',
+      enabled: 'Lista activa',
+      items: 'Puntos a revisar',
+      copyNote:
+        'Los cambios son solo para este vehículo. Tus otros vehículos se quedan con la lista de siempre.',
+      up: 'Subir',
+      down: 'Bajar',
+      removed: 'Quitado',
+      add: 'Agregar punto',
+      newTitle: 'Punto nuevo',
+      label: 'Qué revisar',
+      how: '¿Cómo? (opcional)',
+      group: 'Grupo',
+      onFail: 'Si falla',
+      save: 'Guardar lista',
+      saved: 'Lista guardada',
+      labelRequired: 'Ponle nombre a cada punto.',
+      empty: 'La lista necesita al menos un punto activo.',
+    },
   },
 
   notifications: {
     title: 'Notificaciones',
     subtitle: 'Te aviso cuando toque un chequeo o un mantenimiento.',
     enable: 'Avisarme',
+    notNow: 'Ahora no',
     hour: 'Hora',
     weekday: 'Día del chequeo semanal',
     weekdays: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],

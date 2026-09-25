@@ -14,7 +14,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 2 | SQLite + importer | ✅ | `imp-17092026/phase-2-sqlite` | Schema v1, repos, store rewire, catalog seed, legacy importer, backup v2 |
 | 3 | Garage + navigation | ✅ | `imp-17092026/phase-3-garage` | Five tabs, OdometerHero, rich vehicle profile, media, DateField, odometer domain |
 | 4 | Maintenance + Historial | ✅ | `imp-17092026/phase-4-maintenance` | Service records, expenses, tasks, documents, unified Historial, reminder resets. Six criteria finished 2026-09-24 on `fix/phase-4-gaps` |
-| 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications |
+| 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications. Twenty gaps closed 2026-09-25 on `fix/phase-5-gaps` |
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
 | 8 | x-core + account | ✅ | `imp-17092026/phase-8-cuenta` | carguy schema + RLS + Storage + LWW live on x-core; 7/7 verification; account works end to end |
@@ -791,8 +791,63 @@ None.
 
 ## Phase 5 — Chequeos, the reminders engine and notifications   (branch `imp-17092026/phase-5-inspections`)
 
-**Status:** complete
+**Status:** complete (the gaps below were finished later — see the follow-up)
 **Commits:** `1ec9902` engine + legal calendar · `ea8e56e` runner, guide, reminders UI · `63b616f` notifications
+· follow-up on `fix/phase-5-gaps`, 2026-09-25
+
+### Follow-up, 2026-09-25 (`fix/phase-5-gaps`)
+
+A line-by-line audit of PROMPT-05 against main found the report below was generous: besides the two
+deviations it admits (no template editor, no fecha simulada), a reminder could not be created or
+edited at all, a failed item could never produce a reminder, and notifications fired at noon for
+every vehicle type. All of it is done now and verified in the web app with a headless Chromium
+driving a persistent profile; Android is still unverified (no device, EAS not logged in).
+
+| # | Area | Was | Now |
+|---|---|---|---|
+| 1 | Template editor | missing | `chequeo/plantillas/[id]`: reorder, switch items off/on, add items, cadence, enable. Saving a seeded template creates `<id>@<vehicleId>` (deterministic, so devices converge under sync); opening without saving copies nothing |
+| 2 | Chequeo list | rows only started a run; disabled templates vanished | Apagar/Activar and Editar per row; runs of a copy include the seeded original's, so an edit does not reset the streak or make it due |
+| 3 | Seeding by vehicle | diesel got only `diesel_semanal`; moto only a manual T-CLOCS | `templateIdsForVehicle`: diesel = diario + diésel semanal + mensual; moto = T-CLOCS **daily** + new `motor_semanal` (fluids, chain), the split research §A.4 recommends. The seeder retires catalog items that disappear |
+| 4 | Weekly streak | every run counted — three checks in one week read "3 semanas" | runs inside one window count once (≥ 6 days apart to count); the chain still breaks after 8 days |
+| 5 | Runner on failure | fixed "Crear tarea"; `on_fail = reminder` still made a task | "Al terminar, crear: Tarea · Recordatorio · Nada", defaulting from `on_fail`. A reminder is a one-off, date-only, due in 7 days |
+| 6 | Runner timer | recorded only | shown next to the progress (`0:42`) |
+| 7 | Data links | task's `source_inspection_result_id` held the inspection id; a photo's owner was the *item* id | result ids are `<inspectionId>__<itemId>`, known before saving, so photos and tasks point at the real result. Old tasks still resolve |
+| 8 | Result / past run | failures only, no photos, static ring | every answer with its note and photo; the ring sweeps (Reanimated, respects reduced motion); haptic only on a fresh run |
+| 9 | Task → record | no way back to the check; the record lost the item | the task links to its check and passes `serviceTypeId` to the record form |
+| 10 | Reminder form | `recordatorio/nuevo` missing; `[id]` was only "mark done" | `components/ReminderForm.tsx` in both: title, catálogo, Fecha · Km · Ambos, recurrence, fixed interval with its explanation, thresholds (collapsed), notes, enable. Eliminar too |
+| 11 | Recordatorios list | flat; no Editar, no Nuevo; disabled ones unreachable | grouped vencido → … → ok → Desactivados; "vence 31 ene"; sorted by effective date within a group |
+| 12 | "Hecho" | completed first, then opened the record without the item — a fixed interval advanced twice | a sheet: date, odometer, then "¿Registrarlo como mantenimiento?" (record form prefilled, which does the one reset) or "Solo marcar hecho" |
+| 13 | Inicio | Seguro/Licencia without a date were permanently "sin datos", so "Todo al día" never showed; tasks tacked on after reminders | sin-datos is list-only; tasks and reminders merged by severity, top 4 |
+| 14 | Marbete banner | showed the *next* nudge ("Ya abrió" before it opened) | the latest nudge that has arrived, plus "Estimado: RD$1,500 / 3,000". The 18 Jan nudge says "cierra hoy" on the day and "cerró el 18" after |
+| 15 | Licencia | generic 45/14; PGR link unused | 60/30; the detail explains multas and links to the PGR |
+| 16 | Vida útil | `vidaUtil()` never called | badge + revisión técnica line on the vehicle profile |
+| 17 | Catálogo de servicios | missing | `catalogo/` list + edit, linked from Más → Mantenimiento; a changed interval moves only reminders still on the old default. The seeder no longer overwrites intervals at launch |
+| 18 | Notification plan | noon for everything; no "becomes próximo"; every template of every vehicle type | the user's hour; `reminder:<id>:proximo` from the engine's own thresholds; both → earlier limit; each vehicle's actual templates, deduped; all non-archived vehicles |
+| 19 | Notification plumbing | no cold-start tap; resync on every store change, could overlap; no first-check offer | `getLastNotificationResponseAsync`; 500 ms debounce, one run at a time; the offer after the first completed check ("Te aviso cuando…"), once; a real switch in settings |
+| 20 | Fecha simulada | missing | `app/dev/tokens.tsx`: Real · 16 oct · 20 ene · any date, and "Ir a Inicio". Overrides `todayIso()`, `__DEV__` only, in memory |
+
+Also: Más's garage row nested the "Activar" button inside the row's button (invalid HTML on web,
+visible only with two vehicles) — split into siblings.
+
+**Verified in the browser** (web, dev server, headless Chromium): new car → three templates →
+weekly run with Refrigerante = Falla → "Revisar refrigerante" *Crítica* → red pill on Inicio → task
+→ record → "Todo al día". Oil showed "~15 feb 2027 (estimado)" with the low-confidence note; a
+second reading (50,500 km on 1 Sept) moved it to "~14 dic" and the note went away. Editor: moved an
+item, switched one off, added one → the run uses the copy, not due again, streak 1. Diesel and moto
+sets. Marbete on 16 Oct ("abre pronto", RD$1,500) and 20 Jan ("faltan 11 d", "cerró el 18"). No
+console errors on any screen after the Más fix. `tsc`, `expo lint`, 369 tests, `npm run build`
+(45 pages) green.
+
+Screenshots: `docs/qa/phase-5-gaps-*.png` (12).
+
+**Not verified:** anything on Android — notifications (incl. the cold-start tap and the offer), the
+haptic, the ring's native animation. EAS is not logged in, so no preview APK was built; the command
+and the device checklist are in `05-manual-checklist.md`.
+
+**Observed, deferred:** `inspection_template` / `inspection_item` / `service_type` use seeded slug
+ids (`carro_semanal`) as a *global* `text primary key` in `carguy`; if a second account ever pushes
+the same seeded row, RLS would likely refuse it (not tested). Vehicle copies (`…@<vehicleId>`) are unique and unaffected.
+Worth checking in the two-account sync run.
 
 This is the phase the whole cycle exists for: note 4, *"se me pasó revisarle los fluidos … por no
 tener esa costumbre diaria"*.

@@ -39,10 +39,16 @@ export function latestRun(runs: Run[]): Run | null {
 /**
  * How many consecutive weeks the weekly check has been done.
  *
- * A week is the seven days *before* the previous run, not a calendar week. Doing
- * it on Sunday and then the following Monday — eight days, one day late — would
- * break a calendar-week streak on a technicality, and the streak exists to
- * encourage the habit, not to referee it. The grace is one extra day.
+ * A week is the seven-day window since the previous run, not a calendar week.
+ * Doing it on Sunday and then the following Monday — eight days, one day late —
+ * would break a calendar-week streak on a technicality, and the streak exists to
+ * encourage the habit, not to referee it. The grace is one extra day: the chain
+ * holds while every gap between runs is at most eight days.
+ *
+ * Extra runs inside one window do not count twice. Doing the weekly check on
+ * Monday and again on Wednesday is one week of habit, not two, so a run only
+ * adds to the streak once it is at least six days after the last one counted
+ * (six, so that a week done a day early still counts).
  */
 export function weeklyStreak(runs: Run[], today: string): number {
   const sorted = [...runs].sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1));
@@ -52,12 +58,32 @@ export function weeklyStreak(runs: Run[], today: string): number {
   if (daysBetween(sorted[0].occurredAt, today) > 8) return 0;
 
   let streak = 1;
+  let counted = sorted[0];
   for (let i = 1; i < sorted.length; i++) {
-    const gap = daysBetween(sorted[i].occurredAt, sorted[i - 1].occurredAt);
-    if (gap <= 8) streak += 1;
-    else break;
+    if (daysBetween(sorted[i].occurredAt, sorted[i - 1].occurredAt) > 8) break;
+    if (daysBetween(sorted[i].occurredAt, counted.occurredAt) >= 6) {
+      streak += 1;
+      counted = sorted[i];
+    }
   }
   return streak;
+}
+
+/**
+ * The id a seeded template gets once one vehicle edits it.
+ *
+ * Deterministic, so a second edit finds the copy the first one made, and so two
+ * devices that both edit the same template for the same vehicle converge on one
+ * row under sync instead of producing two.
+ */
+export function scopedTemplateId(baseId: string, vehicleId: string): string {
+  return `${baseTemplateId(baseId)}@${vehicleId}`;
+}
+
+/** The seeded template a vehicle copy came from, or the id itself. */
+export function baseTemplateId(templateId: string): string {
+  const at = templateId.indexOf('@');
+  return at === -1 ? templateId : templateId.slice(0, at);
 }
 
 /**

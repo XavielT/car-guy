@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +24,9 @@ import {
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { categoryColors, fonts, palette, radius, space, type Scheme } from '@/constants/theme';
+import { dayKey, setSimulatedToday, simulatedTodayIso } from '@/lib/domain/dates';
+import { dateLabel, isoFromDateInput } from '@/lib/format';
+import { useStore } from '@/lib/store';
 import { ThemeScope, useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -53,6 +57,7 @@ export default function TokensScreen() {
         <T face="body" style={styles.sub}>
           Tokens de Car Guy. Izquierda oscuro (predeterminado), derecha claro.
         </T>
+        <SimulatedDate />
         <View style={styles.columns}>
           {(['dark', 'light'] as Scheme[]).map((scheme) => (
             <ThemeScope key={scheme} scheme={scheme}>
@@ -62,6 +67,58 @@ export default function TokensScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/**
+ * "Fecha simulada": moves `todayIso()` for the whole app, so the marbete window,
+ * due states and "Para hoy" cards can be checked on 16 October or 20 January
+ * without touching the phone's clock. In memory only — a reload is the real date.
+ */
+function SimulatedDate() {
+  const router = useRouter();
+  const { refresh } = useStore();
+  const [value, setValue] = useState<string | null>(() => {
+    const current = simulatedTodayIso();
+    return current ? dayKey(new Date(current)) : null;
+  });
+
+  const apply = (next: string | null) => {
+    setValue(next);
+    setSimulatedToday(next ? isoFromDateInput(next) : null);
+    void refresh();
+  };
+
+  // The next marbete season: 16 Oct is just after the "abre pronto" nudge,
+  // 20 Jan is inside the last-two-weeks run to the deadline.
+  const now = new Date();
+  const seasonYear = now.getMonth() >= 1 ? now.getFullYear() : now.getFullYear() - 1;
+  const presets = [
+    { label: '16 oct', date: `${seasonYear}-10-16` },
+    { label: '20 ene', date: `${seasonYear + 1}-01-20` },
+  ];
+
+  return (
+    <View style={[styles.simulated, { borderColor: palette.dark.line }]}>
+      <T face="semibold" style={{ color: palette.dark.text.primary, fontSize: 15 }}>
+        Fecha simulada
+      </T>
+      <T face="body" style={{ color: palette.dark.text.secondary, fontSize: 12, marginTop: 2, marginBottom: space.md }}>
+        {value ? `La app cree que hoy es ${dateLabel(isoFromDateInput(value))}.` : 'Usando la fecha real.'}
+      </T>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        <Chip label="Real" selected={value == null} onPress={() => apply(null)} />
+        {presets.map((p) => (
+          <Chip key={p.date} label={p.label} selected={value === p.date} onPress={() => apply(p.date)} />
+        ))}
+      </View>
+      <ThemeScope scheme="dark">
+        <DateField label="Otra fecha" value={value ?? dayKey(now)} onChange={(d) => apply(d)} />
+        {/* This screen is reached by typing its route, and a reload would drop
+            the date, so the way out has to be in-app. */}
+        <GhostButton label="Ir a Inicio" onPress={() => router.replace('/')} />
+      </ThemeScope>
+    </View>
   );
 }
 
@@ -289,6 +346,13 @@ function Swatch({
 }
 
 const styles = StyleSheet.create({
+  simulated: {
+    borderWidth: 1,
+    borderRadius: radius.card,
+    padding: space.lg,
+    marginHorizontal: space.gutter,
+    marginBottom: space.lg,
+  },
   h1: {
     color: palette.dark.text.primary,
     fontSize: 30,

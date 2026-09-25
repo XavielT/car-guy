@@ -16,6 +16,8 @@ import {
   vehicles as vehicleRepo,
 } from '@/lib/db/repos';
 import type { Vehicle, VehicleSpec } from '@/lib/db/types';
+import { todayIso } from '@/lib/domain/dates';
+import { vidaUtil, vidaUtilTone } from '@/lib/domain/legal-dr';
 import { money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
@@ -88,6 +90,10 @@ export default function VehicleProfileScreen() {
   }, [id, version, data]);
 
   if (!vehicle) return null;
+
+  // Ley 63-17 art. 41. Informational: nothing enforces it until INTRANT's
+  // revisión técnica actually starts.
+  const lifespan = vidaUtil(vehicle.type, vehicle.year, todayIso());
 
   const subtitle = [es.vehicleTypes[vehicle.type], vehicle.year, vehicle.make, vehicle.model]
     .filter(Boolean)
@@ -165,6 +171,24 @@ export default function VehicleProfileScreen() {
           <Tile label={es.profile.fillupCount} value={String(totals.fillups)} />
           <Tile label={es.profile.serviceCount} value={String(totals.services)} />
         </View>
+
+        <Surface style={{ marginBottom: space.md }}>
+          <T face="medium" style={[styles.eyebrow, { color: theme.text.muted }]}>
+            {es.legal.vidaUtilTitle.toUpperCase()}
+          </T>
+          <StatusPill
+            status={vidaUtilTone(lifespan)}
+            label={es.legal.vidaUtil(lifespan.limitYears, lifespan.remainingYears)}
+          />
+          {lifespan.age == null ? (
+            <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
+              {es.legal.vidaUtilNoYear}
+            </T>
+          ) : null}
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 12, marginTop: space.sm, lineHeight: 17 }}>
+            {es.legal.revisionTecnica}
+          </T>
+        </Surface>
 
         <T face="title" style={[styles.section, { color: theme.text.primary }]}>
           {es.profile.specs}

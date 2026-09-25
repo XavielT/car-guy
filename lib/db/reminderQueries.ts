@@ -2,7 +2,7 @@ import { currentOdometer, odometer as odometerRepo, reminders as reminderRepo } 
 import type { Reminder } from './types';
 import { todayIso } from '../domain/dates';
 import { kmPerDay } from '../domain/odometer';
-import { bySeverity, evaluate, type ReminderStatus } from '../domain/reminders';
+import { bySeverity, evaluate, needsAttention, type ReminderStatus } from '../domain/reminders';
 
 export type EvaluatedReminder = { reminder: Reminder; status: ReminderStatus };
 
@@ -16,6 +16,7 @@ export type EvaluatedReminder = { reminder: Reminder; status: ReminderStatus };
 export async function evaluatedReminders(
   vehicleId: string,
   today: string = todayIso(),
+  { includeDisabled = false }: { includeDisabled?: boolean } = {},
 ): Promise<EvaluatedReminder[]> {
   const [rows, km, readings] = await Promise.all([
     reminderRepo.listWhere({ vehicleId }),
@@ -26,7 +27,9 @@ export async function evaluatedReminders(
   const pace = kmPerDay(readings, today);
 
   return rows
-    .filter((reminder) => reminder.isEnabled)
+    // The list screen asks for the disabled ones too, so a reminder switched
+    // off — or the Revisión técnica, which starts off — can be switched back on.
+    .filter((reminder) => includeDisabled || reminder.isEnabled)
     .map((reminder) => ({
       reminder,
       status: evaluate(reminder, {
@@ -39,12 +42,15 @@ export async function evaluatedReminders(
     .sort(bySeverity);
 }
 
-/** The handful worth putting on the home screen: anything not already fine. */
+/**
+ * The handful worth putting on the home screen: anything actually coming due.
+ * `sin_datos` is left out — see `needsAttention`.
+ */
 export async function attentionReminders(
   vehicleId: string,
   limit = 4,
   today: string = todayIso(),
 ): Promise<EvaluatedReminder[]> {
   const all = await evaluatedReminders(vehicleId, today);
-  return all.filter((r) => r.status.status !== 'ok').slice(0, limit);
+  return all.filter((r) => needsAttention(r.status)).slice(0, limit);
 }
