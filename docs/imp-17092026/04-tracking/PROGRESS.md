@@ -1833,3 +1833,24 @@ what changed is that the app says so, and says nothing was lost.
 - The keystore is the one irreversible thing in this phase. EAS holds it remotely if you build
   there; a local build generates a new one for `com.xaviel.carguy` and losing it means no update is
   ever accepted as the same app again.
+
+## QA pass, 2026-09-25 (`fix/qa-pass`, `fix/qa-pass-2`)
+
+Exploratory testing: three parallel headless-browser testers (fuel/numbers, garage/maintenance,
+checks/settings/onboarding) on fresh profiles, plus a native pass on the owner's phone (Redmi Note
+10 Pro, Android 13) on a throwaway vehicle, deleted afterwards. ~27 confirmed issues fixed; 450
+tests (new ones for each logic fix); browser re-verification of the key repros; phone-verified:
+
+| Found | Fix | Verified |
+|---|---|---|
+| Review sheet ignored partials: "100 km/gal" on a partial, "posibles fugas" on the next full tank (Inicio said 40, estable) | `reviewFillUp` on the `computeEconomy` chain; `partial` status | browser + phone |
+| "1,500" → 1.5, "3,487.26" → empty, in every number field | `parseDecimal` for DR receipts; invalid input blocks the save with a message | browser + phone ("2,583" → 307.50/gal) |
+| Keyboard covered the focused field in every long form (edge-to-edge ignores adjustResize) | `softwareKeyboardLayoutMode: "pan"` | phone |
+| Back from a deep-linked screen (notification, carguy:// link) closed the app | `unstable_settings.anchor = '(tabs)'` | phone |
+| Future dates accepted; a future reading became the current odometer | `noFuture` on "when did it happen" date fields | phone (native picker) |
+| PDF shared as a UUID; "Reporte listo" shown after cancelling | `car-guy-<vehicle>-<date>.pdf`; no false alert | phone |
+| Marbete recorded twice skipped a season; recurring reminder with no interval never cleared; receipt total overwritten; edited odometer below its neighbour; negative catalogue interval deleted the interval | derived/idempotent renewal; interval required; receipt wins; `odometerBounds`; validation | tests |
+| Raw English JSON errors on import; blank screen for a deleted record; search could not find "gasolina"; Cifras clipped numbers; no aria state on web | Spanish messages; `MissingRecord`; label-aware search; font step-down; `aria-*` | browser |
+
+Deferred (cosmetic): same-day Historial order (needs a view migration), Cifras y-axis origin, a tab
+label truncating at 320 px, no max width on desktop.
