@@ -545,6 +545,9 @@ export const es = {
     scheduled: (n: number) => (n === 1 ? '1 aviso programado' : `${n} avisos programados`),
     denied: 'Android no nos dio permiso. Actívalo en los ajustes del teléfono.',
     webUnsupported: 'En la web no hay avisos del sistema. Los verás dentro de la app.',
+    blockedTitle: 'El teléfono no los está dejando pasar',
+    blockedBody: 'Los avisos están activados aquí, pero Android no le ha dado permiso a Car Guy. Pasa a menudo después de reinstalar o restaurar un respaldo.',
+    blockedAction: 'Dar permiso',
   },
 
   placeholder: {
