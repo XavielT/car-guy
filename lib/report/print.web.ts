@@ -11,7 +11,8 @@
  */
 export type PrintResult = 'shared' | 'printed' | 'unavailable';
 
-export async function printReport(html: string): Promise<PrintResult> {
+// `filename` is for the native share sheet; the browser's dialog names its own file.
+export async function printReport(html: string, _filename?: string): Promise<PrintResult> {
   const frame = document.createElement('iframe');
   // Off-screen rather than display:none — a hidden iframe has no layout in some
   // browsers and prints a blank page.

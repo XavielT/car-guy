@@ -79,10 +79,11 @@ export default function ReporteScreen() {
         generatedAt: todayIso(),
       });
 
-      const result = await printReport(html);
-      if (result === 'shared') {
-        Alert.alert(es.report.sharedTitle, es.report.sharedBody);
-      } else if (result === 'unavailable') {
+      const result = await printReport(html, reportFilename(stats.vehicle.name, todayIso()));
+      // No "listo" on 'shared': the share sheet opening is the feedback, and
+      // Android does not say whether the user shared or cancelled — an alert
+      // claiming it was sent would be wrong half the time.
+      if (result === 'unavailable') {
         Alert.alert(es.report.unavailableTitle, es.report.unavailableBody);
       }
       // 'printed' opens the browser's own dialog — saying so on top of it would
@@ -174,3 +175,14 @@ const styles = StyleSheet.create({
   loading: { paddingVertical: space.xxxl, alignItems: 'center' },
   hint: { fontSize: 12, lineHeight: 18, marginBottom: space.md },
 });
+
+/** "car-guy-corolla-2016-2026-09-25.pdf": what it is, whose, and when. */
+function reportFilename(vehicleName: string, iso: string): string {
+  const slug = vehicleName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `car-guy-${slug || 'vehiculo'}-${iso.slice(0, 10)}.pdf`;
+}

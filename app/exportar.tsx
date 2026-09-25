@@ -65,8 +65,10 @@ export default function ExportarScreen() {
       const name = exportFileName(kind, activeVehicle.name, todayIso());
       const result = await deliverText(content, name, 'text/csv', es.export.title);
 
-      if (result === 'shared') Alert.alert(es.export.doneTitle, es.export.sharedBody(name));
-      else if (result === 'downloaded') Alert.alert(es.export.doneTitle, es.export.downloadedBody(name));
+      // No alert on 'shared': the share sheet is the feedback, and Android does
+      // not say whether the user sent the file or cancelled.
+      if (result === 'shared') return;
+      if (result === 'downloaded') Alert.alert(es.export.doneTitle, es.export.downloadedBody(name));
       else Alert.alert(es.export.doneTitle, es.export.unavailableBody);
     } catch (error) {
       Alert.alert(
@@ -123,7 +125,7 @@ export default function ExportarScreen() {
             <T face="mono" style={[styles.count, { color: theme.text.muted }]}>
               {es.export.rows(logs.length)}
             </T>
-            <GhostButton label={action} onPress={() => run('combustible')} />
+            <GhostButton label={action} onPress={() => run('combustible')} disabled={busy || !logs.length} />
           </Surface>
         </View>
 
