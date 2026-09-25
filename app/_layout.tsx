@@ -46,6 +46,15 @@ function useIsClient(): boolean {
   );
 }
 
+/**
+ * A deep link (a notification, a shared link, carguy://…) opens one screen
+ * with nothing under it, so Back left the app. The tabs are the anchor: a
+ * deep-linked screen gets Inicio underneath, and Back returns there.
+ */
+export const unstable_settings = {
+  anchor: '(tabs)',
+};
+
 export default function RootLayout() {
   const mounted = useIsClient();
   // Every family named in constants/theme.ts `fonts` must appear here. A weight
