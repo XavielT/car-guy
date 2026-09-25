@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, radius, space } from '@/constants/theme';
@@ -28,7 +29,7 @@ export default function GastoDetalleScreen() {
   const { theme } = useTheme();
   const { refresh, data } = useStore();
 
-  const [expense, setExpense] = useState<Expense | null>(null);
+  const [expense, setExpense] = useState<Expense | null | undefined>(undefined);
   const [photoId, setPhotoId] = useState<string | null>(null);
   const photoUri = useMediaUri(photoId);
 
@@ -51,6 +52,8 @@ export default function GastoDetalleScreen() {
     };
   }, [id, data]);
 
+  // undefined: still loading · null: looked, and it is gone.
+  if (expense === null) return <MissingRecord />;
   if (!expense) return null;
 
   const label = EXPENSE_CATEGORY_LABELS[expense.category];

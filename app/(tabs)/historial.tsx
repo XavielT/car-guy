@@ -11,7 +11,7 @@ import { radius, space } from '@/constants/theme';
 import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
-import { historyTitle } from '@/lib/domain/history';
+import { historySubtitle, historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -217,7 +217,8 @@ function groupByMonth(entries: HistoryEntry[]) {
 function metaFor(entry: HistoryEntry): string {
   const parts = [dateLabel(entry.occurredAt)];
   if (entry.odometerKm != null) parts.push(fmtKm(entry.odometerKm));
-  if (entry.subtitle && entry.kind !== 'chequeo') parts.push(entry.subtitle);
+  const subtitle = historySubtitle(entry);
+  if (subtitle && entry.kind !== 'chequeo') parts.push(subtitle);
   return parts.join(' · ');
 }
 

@@ -72,7 +72,7 @@ export const es = {
       kmOver: (title: string, km: string) => `${title} · ${km} pasado`,
       overdue: (title: string) => `${title} · vencido`,
       kmLeft: (title: string, km: string) => `${title} · faltan ${km}`,
-      daysLeft: (title: string, days: number) => `${title} · faltan ${days} d`,
+      daysLeft: (title: string, days: number) => (days === 0 ? `${title} · hoy` : `${title} · faltan ${days} d`),
     },
     eyebrow: 'CAR GUY',
     title: 'Tablero',
@@ -379,6 +379,7 @@ export const es = {
       urgente: 'Urgentes',
       proximo: 'Próximos',
       sin_datos: 'Sin datos',
+      snoozed: 'Pospuestos',
       ok: 'Al día',
       disabled: 'Desactivados',
     },
@@ -399,6 +400,7 @@ export const es = {
       dueDate: 'Fecha límite',
       dueKm: 'Al llegar a (km)',
       dueRequired: 'Pon la fecha o el kilometraje en que toca.',
+      intervalRequired: 'Si se repite, dinos cada cuánto: meses, días o km. Si no, marca «No».',
       recurring: 'Se repite',
       yes: 'Sí',
       no: 'No',
@@ -468,6 +470,7 @@ export const es = {
     never: 'Nunca lo has hecho',
     nothingDue: 'Nada pendiente hoy. Vuelve mañana.',
     streak: 'seguidas',
+    streakLabel: (n: number) => (n === 1 ? 'semana seguida' : 'semanas seguidas'),
     streakWeeks: (n: number) => (n === 1 ? '1 semana' : `${n} semanas`),
     templates: 'Tus listas',
     recent: 'Últimos chequeos',
@@ -780,6 +783,13 @@ export const es = {
     aboutBody: 'Car Guy · Tu carro, al día. Hecho en República Dominicana.',
   },
 
+  backup: {
+    notJson: 'Ese archivo no es un respaldo válido: está vacío, dañado o no es un archivo .json.',
+    notBackup: 'El archivo no parece un respaldo de Car Guy ni de Tu Combustible RD.',
+    unknownVersion: (version: string) =>
+      `Este respaldo es de otra versión de Car Guy (formato ${version}). Actualiza la app e inténtalo de nuevo.`,
+  },
+
   onboarding: {
     welcome: 'Chequeos, mantenimientos y combustible en un solo sitio, para que nada se te pase.',
     markLabel: 'Car Guy',
@@ -1046,8 +1056,10 @@ export const es = {
   fuel: {
     newTitle: 'En la bomba',
     editTitle: 'Editar carga',
-    intro:
-      'Anota dos de tres (galones, precio, total) y el tercero se calcula solo. El consumo sale cuando marcas tanque lleno.',
+    // The unit word follows the fuel: GNV is sold by the cubic metre, not the gallon.
+    unitWord: (unit: 'gal' | 'm3') => (unit === 'm3' ? 'metros cúbicos' : 'galones'),
+    intro: (units: string) =>
+      `Anota dos de tres (${units}, precio, total) y el tercero se calcula solo. El consumo sale cuando marcas tanque lleno.`,
     date: 'Fecha',
     odometer: 'Odómetro (km)',
     odometerHint: (last: string) => `Última carga: ${last}`,
@@ -1061,8 +1073,8 @@ export const es = {
     partialHint: (unit: string) =>
       `El km/${unit} solo se calcula entre dos tanques llenos. Las parciales entran en el gasto y se suman al próximo lleno.`,
     missedPrevious: 'Se me olvidó registrar una carga anterior',
-    missedPreviousHint:
-      'Si falta una carga en el medio, los kilómetros no cuadran con los galones. Marcando esto empezamos la cuenta otra vez desde aquí, como con el primer tanque lleno.',
+    missedPreviousHint: (units: string) =>
+      `Si falta una carga en el medio, los kilómetros no cuadran con los ${units}. Marcando esto empezamos la cuenta otra vez desde aquí, como con el primer tanque lleno.`,
     station: 'Estación',
     stationOther: 'Nombre de la estación',
     notes: 'Nota (opcional)',
@@ -1075,6 +1087,8 @@ export const es = {
     odometerRequired: 'Pon el kilometraje que marca el tablero.',
     odometerTooLow: (last: number) =>
       `La última carga quedó en ${last.toLocaleString('es-DO')} km. El nuevo valor no puede ser menor.`,
+    odometerTooHigh: (next: number) =>
+      `La carga siguiente marca ${next.toLocaleString('es-DO')} km. Esta no puede ser mayor.`,
     amountsRequired: 'Llena dos de estos tres: volumen, precio por unidad, o total.',
   },
 
@@ -1085,6 +1099,7 @@ export const es = {
       great: 'Buen rendimiento',
       normal: 'Rendimiento estable',
       first: 'Primera medición',
+      partial: 'Carga parcial',
     },
     chainBrokenTitle: 'La cuenta empieza de nuevo',
     statusLabels: {
@@ -1092,6 +1107,7 @@ export const es = {
       great: 'Por encima de tu promedio',
       normal: 'En tu promedio',
       first: 'Sin comparación todavía',
+      partial: 'Se mide con el próximo lleno',
     },
     price: (unit: string) => `Precio por ${unit}`,
     distance: 'Km recorridos',
@@ -1103,6 +1119,8 @@ export const es = {
       `Está por debajo de tu promedio de ${average}. Revisa tráfico, presión de gomas o posibles fugas.`,
     greatBody: (average: string) => `Está por encima de tu promedio de ${average}.`,
     firstBody: 'Guarda otra carga para empezar a comparar tu rendimiento real.',
+    partialBody:
+      'Una carga parcial no se mide sola: su combustible entra en la cuenta del próximo tanque lleno.',
     chainBroken:
       'Marcaste que faltaba una carga anterior, así que la cuenta del consumo empieza de nuevo desde esta.',
     seeHistory: 'Ver historial',
@@ -1136,6 +1154,10 @@ export const es = {
     edit: 'Editar',
     photoError: 'No se pudo usar esa foto.',
     back: 'Volver',
+    missingTitle: 'Ese registro ya no existe',
+    missingBody: 'Se borró aquí o en otro dispositivo, o el enlace es de algo que ya no está.',
+    missingAction: 'Ir al inicio',
+    invalidNumber: (field: string) => `Revisa «${field}»: tiene que ser un número mayor o igual a cero.`,
     minutes: (n: number) => `${n} min`,
   },
 } as const;

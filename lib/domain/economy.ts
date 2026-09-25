@@ -25,12 +25,69 @@ export type AmountFields = {
   totalDop?: number | null;
 };
 
+/**
+ * Reads a number the way a Dominican receipt writes it — "RD$ 3,487.26": dot
+ * for decimals, comma for thousands — while still accepting a comma typed as
+ * the decimal mark ("11,4").
+ *
+ * It used to turn the first comma into a dot, so "2,583" became 2.583 and
+ * "3,487.26" became nothing at all.
+ *
+ * - both marks present: the last one is the decimal ("3.487,26" works too)
+ * - only commas, each followed by exactly three digits: thousands ("2,583")
+ * - any other single comma: decimal ("11,4")
+ * - repeated dots with no comma: thousands ("1.234.567")
+ */
 export function parseDecimal(raw: string): number | null {
-  const cleaned = raw.trim().replace(',', '.');
-  if (!cleaned) return null;
-  const n = Number(cleaned);
+  let s = raw.trim().replace(/^RD\$\s*/i, '').replace(/\s+/g, '');
+  if (!s) return null;
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma !== -1 && lastDot !== -1) {
+    s = lastComma > lastDot ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (lastComma !== -1) {
+    s = /^\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+  } else if ((s.match(/\./g) ?? []).length > 1) {
+    if (!/^\d{1,3}(\.\d{3})+$/.test(s)) return null;
+    s = s.replace(/\./g, '');
+  }
+  if (!/^\d*\.?\d+$|^\d+\.$/.test(s)) return null;
+  const n = Number(s);
   if (!Number.isFinite(n) || n < 0) return null;
   return n;
+}
+
+/**
+ * Something was typed but it is not a usable amount ("abc", "-200"). Forms
+ * refuse to save on this instead of storing 0 or dropping the value — a
+ * negative catalog interval used to silently delete the interval.
+ */
+export function isInvalidNumber(raw: string): boolean {
+  return raw.trim() !== '' && parseDecimal(raw) == null;
+}
+
+/**
+ * The odometer range a fill-up on `occurredAt` can have: at least the reading
+ * of the fill-up before it, at most the one after. `excludeId` is the fill-up
+ * being edited — its own old value is not a neighbour.
+ *
+ * The form used to check only new fill-ups, and only against the latest one,
+ * so editing a past tank to a lower number went through and bent every km/gal
+ * around it into nonsense.
+ */
+export function odometerBounds(
+  fillups: FillUp[],
+  occurredAt: string,
+  excludeId?: string,
+): { min: number | null; max: number | null } {
+  const others = sortFillUps(fillups.filter((f) => f.id !== excludeId));
+  const day = occurredAt.slice(0, 10);
+  const before = others.filter((f) => f.occurredAt.slice(0, 10) <= day);
+  const after = others.filter((f) => f.occurredAt.slice(0, 10) > day);
+  return {
+    min: before.length ? Math.max(...before.map((f) => f.odometerKm)) : null,
+    max: after.length ? Math.min(...after.map((f) => f.odometerKm)) : null,
+  };
 }
 
 /** Fill the missing amount when the user provides any two of three. */
@@ -45,6 +102,16 @@ export function completeAmounts(input: AmountFields): {
   const known = [volume, price, total].filter((v) => v != null).length;
   if (known < 2) return null;
 
+  // All three typed (off a receipt): what was paid and what went into the
+  // tank are the facts; the price is derived from them. Recomputing the total
+  // from volume × price silently replaced the receipt's own amount.
+  if (volume != null && price != null && total != null) {
+    return {
+      volume: roundVolume(volume),
+      pricePerUnit: roundMoney(total / volume),
+      totalDop: roundMoney(total),
+    };
+  }
   if (volume != null && price != null) {
     return {
       volume: roundVolume(volume),
@@ -150,38 +217,56 @@ export type FillUpReview = {
   distanceKm: number | null;
   kmPerUnit: number | null;
   costPerKm: number | null;
-  status: 'low' | 'great' | 'normal' | 'first';
+  status: 'low' | 'great' | 'normal' | 'first' | 'partial';
   baseline: number | null;
 };
 
-/** Review the newly registered fill-up against the previous odometer reading. */
+/**
+ * Reviews a just-saved fill-up — with the same full/partial chain as
+ * `computeEconomy`, never a shortcut of its own.
+ *
+ * It used to divide "km since the previous fill-up, of any kind" by this
+ * fill-up's volume alone. After a partial that told the partial "100 km/gal,
+ * buen rendimiento" and the next full tank "25 km/gal, posibles fugas" — a false
+ * leak alarm — while Inicio, which uses the chain, said 40 and "estable".
+ *
+ * A partial is never measured on its own (the next full tank measures it), and
+ * the first measured tank has nothing to compare against.
+ */
 export function reviewFillUp(current: FillUp, previousFillups: FillUp[]): FillUpReview {
-  const previous = current.missedPrevious
-    ? undefined
-    : sortFillUps(previousFillups).filter((fillup) => fillup.odometerKm <= current.odometerKm).at(-1);
-  const distanceKm = previous ? current.odometerKm - previous.odometerKm : null;
-  const kmPerUnit = distanceKm != null && distanceKm > 0 && current.volume > 0
-    ? roundVolume(distanceKm / current.volume)
-    : null;
-  const costPerKm = distanceKm != null && distanceKm > 0
-    ? roundMoney(current.totalDop / distanceKm)
-    : null;
-  const priorEconomy = computeEconomy(previousFillups);
+  const previous = sortFillUps(previousFillups)
+    .filter((fillup) => fillup.id !== current.id && fillup.odometerKm <= current.odometerKm)
+    .at(-1);
+  // Shown as "km recorridos": plain distance since the last fill-up.
+  const distanceKm = previous && !current.missedPrevious ? current.odometerKm - previous.odometerKm : null;
+
+  const others = previousFillups.filter((fillup) => fillup.id !== current.id);
+  const point = computeEconomy([...others, current]).find((p) => p.fillUpId === current.id) ?? null;
+  const priorEconomy = computeEconomy(others);
   const baseline = priorEconomy.length
-    ? priorEconomy.reduce((total, point) => total + point.kmPerUnit, 0) / priorEconomy.length
+    ? priorEconomy.reduce((total, p) => total + p.kmPerUnit, 0) / priorEconomy.length
     : null;
+
+  const kmPerUnit = point?.kmPerUnit ?? null;
   const differencePercent = baseline && kmPerUnit != null ? ((kmPerUnit - baseline) / baseline) * 100 : null;
-  const status = kmPerUnit == null
-    ? 'first'
-    : differencePercent == null
-      ? 'normal'
+  const status: FillUpReview['status'] = !current.isFullTank && !current.missedPrevious
+    ? 'partial'
+    : kmPerUnit == null || differencePercent == null
+      ? 'first'
       : differencePercent <= -15
         ? 'low'
         : differencePercent >= 15
           ? 'great'
           : 'normal';
 
-  return { pricePerUnit: current.pricePerUnit, distanceKm, kmPerUnit, costPerKm, status, baseline };
+  return {
+    pricePerUnit: current.pricePerUnit,
+    distanceKm,
+    kmPerUnit,
+    costPerKm: point?.costPerKm ?? null,
+    status,
+    baseline,
+  };
 }
 
 /** Compare the latest measured tank with this vehicle's previous measured tanks. */

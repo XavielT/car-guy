@@ -2,6 +2,8 @@ import {
   completeAmounts,
   computeEconomy,
   latestEconomyInsight,
+  odometerBounds,
+  parseDecimal,
   reviewFillUp,
   sortFillUps,
 } from '@/lib/domain/economy';
@@ -188,6 +190,35 @@ describe('computeEconomy — brim to brim', () => {
 });
 
 describe('reviewFillUp', () => {
+  it('measures a full tank through the partials before it — no false leak alarm', () => {
+    // Found in QA: 40 km/gal every time, then a partial and a full tank.
+    const history = [
+      fill({ id: 'a', odometerKm: 10000, isFullTank: true }),
+      fill({ id: 'b', odometerKm: 10400, isFullTank: true }),
+      fill({ id: 'c', odometerKm: 10800, isFullTank: true }),
+    ];
+    const partial = fill({ id: 'p', odometerKm: 11000, volume: 2, isFullTank: false });
+    const full = fill({ id: 'd', odometerKm: 11200, volume: 8, isFullTank: true });
+
+    const partialReview = reviewFillUp(partial, history);
+    // Never measured on its own (it used to claim "100 km/gal, buen rendimiento").
+    expect(partialReview.status).toBe('partial');
+    expect(partialReview.kmPerUnit).toBeNull();
+
+    const fullReview = reviewFillUp(full, [...history, partial]);
+    // 400 km on 2 + 8 gal, exactly what Inicio shows (it used to say 25, "posibles fugas").
+    expect(fullReview.kmPerUnit).toBe(40);
+    expect(fullReview.status).toBe('normal');
+  });
+
+  it('calls the first measured tank "no comparison yet", not "estable"', () => {
+    const first = fill({ id: 'x1', odometerKm: 5000, isFullTank: true });
+    const second = fill({ id: 'x2', odometerKm: 5400, isFullTank: true });
+    const review = reviewFillUp(second, [first]);
+    expect(review.kmPerUnit).toBe(40);
+    expect(review.status).toBe('first');
+  });
+
   it('reports "first" when there is nothing to compare against', () => {
     const current = fill({ odometerKm: 1000 });
     expect(reviewFillUp(current, []).status).toBe('first');
@@ -200,9 +231,10 @@ describe('reviewFillUp', () => {
     expect(review.distanceKm).toBe(400);
     expect(review.kmPerUnit).toBe(40);
     expect(review.costPerKm).toBe(7.5);
-    // A single prior fill-up yields no measured tank, so there is no baseline yet.
+    // A single prior fill-up yields no measured tank, so there is no baseline
+    // yet — and "no comparison" is what it says, not "estable".
     expect(review.baseline).toBeNull();
-    expect(review.status).toBe('normal');
+    expect(review.status).toBe('first');
   });
 
   it('flags a tank 15% or more below the baseline as low', () => {
@@ -411,5 +443,58 @@ describe('reviewFillUp — missedPrevious', () => {
     const review = reviewFillUp(current, previous);
     expect(review.distanceKm).toBe(400);
     expect(review.kmPerUnit).toBe(40);
+  });
+});
+
+describe('parseDecimal', () => {
+  it.each([
+    ['11.4', 11.4],
+    ['11,4', 11.4], // a comma typed as the decimal mark
+    ['2,583', 2583], // thousands, as the app itself prints money
+    ['1,500.50', 1500.5],
+    ['3,487.26', 3487.26],
+    ['3.487,26', 3487.26], // the other convention, still unambiguous
+    ['1,234,567', 1234567],
+    ['1.234.567', 1234567],
+    ['RD$ 3,500', 3500],
+    [' 305.9 ', 305.9],
+    ['0', 0],
+    ['.5', 0.5],
+  ])('%s → %s', (raw, expected) => {
+    expect(parseDecimal(raw)).toBe(expected);
+  });
+
+  it.each(['', '   ', 'abc', '-200', '1..2', '1,2,3', '12a'])('rejects %j', (raw) => {
+    expect(parseDecimal(raw)).toBeNull();
+  });
+});
+
+describe('completeAmounts with all three filled', () => {
+  it('keeps the receipt total and volume, and derives the price', () => {
+    // 10 gal at 300 would be 3,000 — but the receipt says 5,000 was paid.
+    expect(completeAmounts({ volume: 10, pricePerUnit: 300, totalDop: 5000 })).toEqual({
+      volume: 10,
+      pricePerUnit: 500,
+      totalDop: 5000,
+    });
+  });
+});
+
+describe('odometerBounds', () => {
+  const logs = [
+    fill({ id: 'a', odometerKm: 10000, occurredAt: '2026-09-01T16:00:00.000Z' }),
+    fill({ id: 'b', odometerKm: 10400, occurredAt: '2026-09-08T16:00:00.000Z' }),
+    fill({ id: 'c', odometerKm: 10800, occurredAt: '2026-09-15T16:00:00.000Z' }),
+  ];
+  it('bounds an edited fill-up by its neighbours, not by its own old value', () => {
+    // Found in QA: editing b to 9,500 went through and bent every km/gal around it.
+    expect(odometerBounds(logs, '2026-09-08T16:00:00.000Z', 'b')).toEqual({ min: 10000, max: 10800 });
+  });
+  it('bounds a backdated new fill-up too', () => {
+    expect(odometerBounds(logs, '2026-09-10T16:00:00.000Z')).toEqual({ min: 10400, max: 10800 });
+  });
+  it('is open-ended at the ends of the history', () => {
+    expect(odometerBounds(logs, '2026-09-20T16:00:00.000Z')).toEqual({ min: 10800, max: null });
+    expect(odometerBounds([], '2026-09-20T16:00:00.000Z')).toEqual({ min: null, max: null });
   });
 });

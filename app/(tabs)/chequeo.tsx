@@ -96,7 +96,7 @@ export default function ChequeoScreen() {
               progress={Math.min(1, streak / 4)}
               size={84}
               value={String(streak)}
-              label={es.check.streak}
+              label={es.check.streakLabel(streak)}
               color={theme.status.ok}
             />
           ) : null}

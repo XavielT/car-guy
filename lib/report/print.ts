@@ -12,8 +12,14 @@ import { deliverFile } from '../export/deliver';
  */
 export type PrintResult = 'shared' | 'printed' | 'unavailable';
 
-export async function printReport(html: string): Promise<PrintResult> {
+export async function printReport(html: string, filename: string): Promise<PrintResult> {
   const { uri } = await Print.printToFileAsync({ html });
-  const delivered = await deliverFile(uri, 'application/pdf', 'Reporte de Car Guy');
+  // expo-print names the file with a random UUID, and that name is what the
+  // mechanic sees in WhatsApp. Copy it to a name that says what it is.
+  const { File, Paths } = await import('expo-file-system');
+  const named = new File(Paths.cache, filename);
+  if (named.exists) named.delete();
+  new File(uri).copy(named);
+  const delivered = await deliverFile(named.uri, 'application/pdf', 'Reporte de Car Guy');
   return delivered === 'shared' ? 'shared' : 'unavailable';
 }

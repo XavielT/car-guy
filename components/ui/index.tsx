@@ -52,6 +52,7 @@ export function PrimaryButton({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: Boolean(disabled) }}
+      aria-disabled={Boolean(disabled)}
       style={({ pressed }) => [
         styles.primary,
         { backgroundColor: pressed && !disabled ? theme.accentPressed : theme.accent },
@@ -69,18 +70,23 @@ export function GhostButton({
   label,
   onPress,
   danger,
+  disabled,
 }: {
   label: string;
   onPress: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   const { theme } = useTheme();
 
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.ghost, pressed && styles.pressed]}>
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      aria-disabled={Boolean(disabled)}
+      style={({ pressed }) => [styles.ghost, pressed && styles.pressed, disabled && { opacity: 0.4 }]}>
       <T face="semibold" style={[styles.ghostLabel, { color: danger ? theme.danger : theme.text.secondary }]}>
         {label}
       </T>
@@ -104,6 +110,7 @@ export function Chip({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: Boolean(selected) }}
+      aria-selected={Boolean(selected)}
       hitSlop={{ top: 4, bottom: 4 }}
       style={[
         styles.chip,
@@ -188,6 +195,10 @@ export function KeyValueRow({
 }
 
 /**
+ * (Every control here sets both `accessibilityState`, which native reads, and
+ * the matching `aria-*` prop, which is all react-native-web 0.21 puts in the
+ * DOM — without it a screen reader on web never hears "selected".)
+ *
  * Two or more mutually exclusive options in one track. `accessibilityRole` is
  * tab/tablist rather than radio: that is what TalkBack and VoiceOver announce
  * most usefully for a control that swaps the content below it, and it is what
@@ -218,6 +229,7 @@ export function Segmented<K extends string>({
             onPress={() => onChange(option.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
+            aria-selected={on}
             style={[
               styles.segment,
               on && { backgroundColor: theme.bg.surface, borderColor: theme.line },

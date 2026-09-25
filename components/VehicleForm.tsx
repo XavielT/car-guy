@@ -86,7 +86,10 @@ export function VehicleForm({
     }
 
     const parsedOdometer = odometer.trim() ? parseDecimal(odometer) : null;
-    if (odometer.trim() && parsedOdometer == null) return setError(es.vehicle.odometerNegative);
+    if (odometer.trim() && parsedOdometer == null) {
+      // "-5" and "abc" both land here; only one of them is negative.
+      return setError(/^\s*-/.test(odometer) ? es.vehicle.odometerNegative : es.common.invalidNumber(es.vehicle.odometer));
+    }
 
     setError(null);
     onSubmit({
@@ -233,7 +236,7 @@ export function VehicleForm({
       </Pressable>
       {showPurchase ? (
         <>
-          <DateField label={es.vehicle.purchaseDate} value={purchaseDate} onChange={setPurchaseDate} />
+          <DateField label={es.vehicle.purchaseDate} value={purchaseDate} onChange={setPurchaseDate} noFuture />
           <Field
             label={es.vehicle.purchasePrice}
             keyboardType="decimal-pad"

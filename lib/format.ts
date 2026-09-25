@@ -35,6 +35,11 @@ export function km(n: number): string {
   return `${kmFmt.format(n)} km`;
 }
 
+/** An economy figure without its unit, one decimal like everywhere else. */
+export function economyNumber(n: number): string {
+  return economyFmt.format(n);
+}
+
 export function kmPerUnit(n: number, type: FuelType): string {
   const unit = FUEL_CATALOG[type].unit === 'm3' ? 'km/m³' : 'km/gal';
   return `${economyFmt.format(n)} ${unit}`;

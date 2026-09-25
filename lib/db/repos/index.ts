@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { id as newId } from '../../format';
+import { FUEL_CATALOG } from '../../fuel';
 import { enqueue, getDb, now } from '../client';
 import type {
   Expense,
@@ -261,8 +262,21 @@ export const history = {
       // COLLATE NOCASE so "texaco" finds "Texaco". It only folds ASCII, so
       // "optimo" will not find "Óptimo" — accent-insensitive search needs an
       // ICU build of SQLite and is out of scope.
-      clauses.push('(title LIKE ? COLLATE NOCASE OR subtitle LIKE ? COLLATE NOCASE)');
-      params.push(`%${opts.q}%`, `%${opts.q}%`);
+      //
+      // A fill-up's title in the feed is its fuel *code* ("regular"); the
+      // screen shows the label ("Gasolina Regular"). Matching the query against
+      // the labels here — accent-insensitively, in JS — is what lets "gasolina"
+      // or "óptimo" find fill-ups at all.
+      const fold = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const wanted = fold(opts.q);
+      const fuelCodes = Object.entries(FUEL_CATALOG)
+        .filter(([, meta]) => fold(meta.label).includes(wanted))
+        .map(([code]) => code);
+      const fuelClause = fuelCodes.length
+        ? ` OR (kind = 'combustible' AND title IN (${fuelCodes.map(() => '?').join(', ')}))`
+        : '';
+      clauses.push(`(title LIKE ? COLLATE NOCASE OR subtitle LIKE ? COLLATE NOCASE${fuelClause})`);
+      params.push(`%${opts.q}%`, `%${opts.q}%`, ...fuelCodes);
     }
 
     const rows = await db.getAllAsync<Record<string, unknown>>(
@@ -293,6 +307,20 @@ export async function currentOdometer(vehicleId: string): Promise<number | null>
     [vehicleId],
   );
   return row?.max_km ?? null;
+}
+
+/**
+ * Distance covered since tracking began: highest reading minus lowest. The
+ * profile's "Km registrados" showed the odometer itself, repeating the number
+ * right above it.
+ */
+export async function trackedDistance(vehicleId: string): Promise<number | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ lo: number | null; hi: number | null }>(
+    'SELECT MIN(value_km) AS lo, MAX(value_km) AS hi FROM odometer_reading WHERE vehicle_id = ? AND deleted_at IS NULL',
+    [vehicleId],
+  );
+  return row?.lo != null && row.hi != null ? row.hi - row.lo : null;
 }
 
 /** Every table, for the v2 backup and for resetAll. Order respects FKs. */

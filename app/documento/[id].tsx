@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -21,7 +22,7 @@ export default function DocumentoScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { refresh, data } = useStore();
-  const [doc, setDoc] = useState<VehicleDocument | null>(null);
+  const [doc, setDoc] = useState<VehicleDocument | null | undefined>(undefined);
   const uri = useMediaUri(doc?.mediaId);
 
   useEffect(() => {
@@ -38,6 +39,8 @@ export default function DocumentoScreen() {
     };
   }, [id, data]);
 
+  // undefined: still loading · null: looked, and it is gone.
+  if (doc === null) return <MissingRecord />;
   if (!doc) return null;
   const days = doc.expiresAt ? daysBetween(todayIso(), doc.expiresAt) : null;
 

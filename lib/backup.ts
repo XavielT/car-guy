@@ -1,3 +1,4 @@
+import { es } from './i18n/es';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
@@ -184,11 +185,24 @@ export async function importBackup(): Promise<ImportResult | null> {
 
   const asset = result.assets[0];
   const text = await readPickedFile(asset.uri, (asset as { file?: File }).file);
-  const parsed = JSON.parse(text) as Partial<BackupV2> & Record<string, unknown>;
+  // A broken, empty or non-JSON file would otherwise surface the engine's own
+  // English ("Unexpected token 'h'…") straight onto the screen.
+  let parsed: Partial<BackupV2> & Record<string, unknown>;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(es.backup.notJson);
+  }
+  if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(es.backup.notBackup);
+  }
 
   if (parsed.app === 'car-guy' && parsed.version === 2) {
     return { kind: 'v2', counts: await restoreV2(parsed as BackupV2) };
   }
+  // Ours, but a format this build does not know — never hand it to the legacy
+  // importer, which would call it "not a Tu Combustible RD backup".
+  if (parsed.app === 'car-guy') throw new Error(es.backup.unknownVersion(String(parsed.version)));
 
   const looksLegacy =
     (typeof parsed.app === 'string' && (KNOWN_APPS as readonly string[]).includes(parsed.app)) ||
@@ -200,5 +214,5 @@ export async function importBackup(): Promise<ImportResult | null> {
     return { kind: 'legacy', counts: await importTuCombustible(parsed, { source: 'file' }) };
   }
 
-  throw new Error('El archivo no parece un respaldo de Car Guy ni de Tu Combustible RD.');
+  throw new Error(es.backup.notBackup);
 }

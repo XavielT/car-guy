@@ -120,7 +120,12 @@ export default function RunScreen() {
         answers: payload,
       });
       await refresh();
-      router.replace({ pathname: '/inspeccion/[id]', params: { id: result.id, fresh: '1' } });
+      router.replace({
+        pathname: '/inspeccion/[id]',
+        // The reminders a failure created have no link back to the run, so the
+        // result screen can only name them if it is told on the way in.
+        params: { id: result.id, fresh: '1', reminders: JSON.stringify(result.createdReminders) },
+      });
     })();
   }
 
@@ -171,7 +176,8 @@ export default function RunScreen() {
                     <Pressable
                       onPress={() => setExpanded((p) => ({ ...p, [item.id]: !p[item.id] }))}
                       accessibilityRole="button"
-                      accessibilityState={{ expanded: Boolean(expanded[item.id]) }}>
+                      accessibilityState={{ expanded: Boolean(expanded[item.id]) }}
+                      aria-expanded={Boolean(expanded[item.id])}>
                       <T face="body" style={{ color: theme.accent, fontSize: 12, marginTop: 4 }}>
                         {es.check.how}
                       </T>
@@ -195,6 +201,7 @@ export default function RunScreen() {
                           onPress={() => setAnswers((p) => ({ ...p, [item.id]: v }))}
                           accessibilityRole="button"
                           accessibilityState={{ selected: answers[item.id] === v }}
+                          aria-selected={answers[item.id] === v}
                           style={[
                             styles.verdict,
                             { borderColor: on ? color : theme.line, backgroundColor: on ? `${color}28` : 'transparent' },

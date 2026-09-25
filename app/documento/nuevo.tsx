@@ -90,7 +90,7 @@ export default function NuevoDocumentoScreen() {
         </View>
 
         <Field label={es.documents.name} value={title} onChangeText={setTitle} />
-        <DateField label={es.documents.issued} value={issued} onChange={setIssued} />
+        <DateField label={es.documents.issued} value={issued} onChange={setIssued} noFuture />
         <DateField
           label={es.documents.expires}
           value={expires}

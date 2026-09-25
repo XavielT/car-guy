@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, radius, space } from '@/constants/theme';
@@ -47,7 +48,7 @@ export default function ServicioDetalleScreen() {
   const { theme } = useTheme();
   const { refresh, data } = useStore();
 
-  const [record, setRecord] = useState<ServiceRecord | null>(null);
+  const [record, setRecord] = useState<ServiceRecord | null | undefined>(undefined);
   const [itemNames, setItemNames] = useState<string[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   const [photoId, setPhotoId] = useState<string | null>(null);
@@ -82,6 +83,8 @@ export default function ServicioDetalleScreen() {
     };
   }, [id, data]);
 
+  // undefined: still loading · null: looked, and it is gone.
+  if (record === null) return <MissingRecord />;
   if (!record) return null;
 
   return (

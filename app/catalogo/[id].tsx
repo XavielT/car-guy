@@ -12,7 +12,7 @@ import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
-import { parseDecimal } from '@/lib/math';
+import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -52,6 +52,11 @@ export default function CatalogoItemScreen() {
   if (!type) return null;
 
   function save() {
+    // A typo must not quietly remove the interval (toInt maps it to null).
+    const bad = ([[km, es.catalog.intervalKm], [months, es.catalog.intervalMonths]] as const).find(
+      ([text]) => isInvalidNumber(text) || (text.trim() !== '' && (parseDecimal(text) ?? 0) <= 0),
+    );
+    if (bad) return Alert.alert(es.catalog.title, es.common.invalidNumber(bad[1]));
     void (async () => {
       const { updated } = await saveServiceTypeInterval(type!.id, { km: toInt(km), months: toInt(months) });
       await refresh();

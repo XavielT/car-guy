@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CompleteReminderSheet } from '@/components/CompleteReminderSheet';
 import { ReminderForm } from '@/components/ReminderForm';
+import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, SectionHeader, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
@@ -33,7 +34,7 @@ export default function RecordatorioScreen() {
   const { theme } = useTheme();
   const { refresh, data } = useStore();
 
-  const [row, setRow] = useState<EvaluatedReminder | null>(null);
+  const [row, setRow] = useState<EvaluatedReminder | null | undefined>(undefined);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [completing, setCompleting] = useState(complete === '1');
 
@@ -42,7 +43,8 @@ export default function RecordatorioScreen() {
     let cancelled = false;
     (async () => {
       const reminder = await reminderRepo.getById(id);
-      if (!reminder || cancelled) return;
+      if (cancelled) return;
+      if (!reminder) return setRow(null);
       const [rows, v] = await Promise.all([
         evaluatedReminders(reminder.vehicleId, todayIso(), { includeDisabled: true }),
         vehicleRepo.getById(reminder.vehicleId),
@@ -56,6 +58,8 @@ export default function RecordatorioScreen() {
     };
   }, [id, data]);
 
+  // undefined: still loading · null: looked, and it is gone.
+  if (row === null) return <MissingRecord />;
   if (!row || !vehicle) return null;
   const { reminder, status } = row;
 

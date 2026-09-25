@@ -10,7 +10,7 @@ import { radius, space } from '@/constants/theme';
 import { tasks as taskRepo } from '@/lib/db/repos';
 import type { ServiceKind, Task } from '@/lib/db/types';
 import { es } from '@/lib/i18n/es';
-import { parseDecimal } from '@/lib/math';
+import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -33,6 +33,7 @@ export default function NuevaTareaScreen() {
 
   function save() {
     if (!title.trim()) return setError(es.tasks.nameRequired);
+    if (isInvalidNumber(cost)) return setError(es.common.invalidNumber(es.tasks.estimatedCost));
     setError(null);
     void (async () => {
       await taskRepo.upsert({

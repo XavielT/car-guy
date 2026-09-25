@@ -173,6 +173,21 @@ describe('completeLegal', () => {
     expect(resets[0].patch.dueDate).toBe(iso(2028, 1, 31));
   });
 
+  it('lands on the same deadline when the same payment is recorded twice', () => {
+    // Found in QA: two marbete expenses on one day gave 31 ene 2029, skipping a season.
+    const first = completeLegal([marbete], 'marbete', { date: iso(2026, 12, 3) })[0].patch;
+    const renewed = { ...marbete, ...first } as typeof marbete;
+    expect(completeLegal([renewed], 'marbete', { date: iso(2026, 12, 3) })).toEqual([]);
+  });
+
+  it.each([
+    ['in the window before the deadline', iso(2026, 11, 2), iso(2028, 1, 31)],
+    ['in January, before the deadline', iso(2027, 1, 20), iso(2028, 1, 31)],
+    ['late, after the deadline passed', iso(2027, 3, 10), iso(2028, 1, 31)],
+  ])('a payment %s covers that season', (_label, paidOn, due) => {
+    expect(completeLegal([marbete], 'marbete', { date: paidOn })[0].patch.dueDate).toBe(due);
+  });
+
   it('ignores other legal kinds and other vehicles reminders', () => {
     const seguro = reminder({ id: 'seguro', legalKind: 'seguro', serviceTypeId: null });
     expect(completeLegal([marbete, seguro], 'marbete', DONE).map((r) => r.reminder.id)).toEqual([
