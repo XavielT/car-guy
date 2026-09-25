@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
@@ -9,6 +9,7 @@ import {
   configure,
   DEFAULT_SETTINGS,
   getSettings,
+  hasPermission,
   requestPermission,
   resync,
   scheduledCount,
@@ -26,14 +27,21 @@ export default function NotificacionesScreen() {
   const { theme } = useTheme();
   const [config, setConfig] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [count, setCount] = useState(0);
+  // Null until checked, so the warning never flashes on a phone that is fine.
+  const [permitted, setPermitted] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [current, pending] = await Promise.all([getSettings(), scheduledCount()]);
+      const [current, pending, granted] = await Promise.all([
+        getSettings(),
+        scheduledCount(),
+        hasPermission(),
+      ]);
       if (cancelled) return;
       setConfig(current);
       setCount(pending);
+      setPermitted(granted);
     })().catch(() => {});
     return () => {
       cancelled = true;
@@ -55,9 +63,25 @@ export default function NotificacionesScreen() {
       // goes first: Android 13+ shows no prompt without one.
       await configure();
       const granted = await requestPermission();
+      setPermitted(granted);
       if (!granted) return Alert.alert(es.notifications.title, es.notifications.denied);
     }
     await apply({ ...config, enabled: !config.enabled });
+  }
+
+  /** The "on but blocked" case: ask again, or send the user to the phone's settings. */
+  async function fixPermission() {
+    await configure();
+    const granted = await requestPermission();
+    setPermitted(granted);
+    if (granted) {
+      await resync();
+      setCount(await scheduledCount());
+      return;
+    }
+    // Android stops showing the prompt after it has been refused; only the
+    // system settings can undo that.
+    void Linking.openSettings();
   }
 
   return (
@@ -91,6 +115,18 @@ export default function NotificacionesScreen() {
                 />
               </View>
             </Surface>
+
+            {config.enabled && permitted === false ? (
+              <Surface style={{ marginTop: space.md, borderColor: theme.status.urgente }}>
+                <T face="semibold" style={{ color: theme.status.urgente, fontSize: 14 }}>
+                  {es.notifications.blockedTitle}
+                </T>
+                <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
+                  {es.notifications.blockedBody}
+                </T>
+                <GhostButton label={es.notifications.blockedAction} onPress={() => void fixPermission()} />
+              </Surface>
+            ) : null}
 
             {config.enabled ? (
               <>

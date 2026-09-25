@@ -82,6 +82,20 @@ export async function configure(): Promise<void> {
 }
 
 /** Asks for permission. Called the first time the user turns notifications on. */
+/**
+ * Whether Android will actually show them — without asking.
+ *
+ * The switch in settings is only the app's intent. A restored backup or a
+ * reinstall brings the switch back "on" on an install that has never been
+ * granted the permission, and scheduling succeeds regardless, so the schedule
+ * count alone would claim everything works while nothing is ever shown.
+ */
+export async function hasPermission(): Promise<boolean> {
+  if (!supported()) return false;
+  const N = await import('expo-notifications');
+  return (await N.getPermissionsAsync()).granted;
+}
+
 export async function requestPermission(): Promise<boolean> {
   if (!supported()) return false;
   const N = await import('expo-notifications');
