@@ -13,7 +13,7 @@ The "Notes for the next phase" sections carry context between sessions.
 | 1 | Rebrand + foundation | ✅ | `imp-17092026/phase-1-rebrand` | Car Guy identity, tokens, base components, domain tests, lint |
 | 2 | SQLite + importer | ✅ | `imp-17092026/phase-2-sqlite` | Schema v1, repos, store rewire, catalog seed, legacy importer, backup v2 |
 | 3 | Garage + navigation | ✅ | `imp-17092026/phase-3-garage` | Five tabs, OdometerHero, rich vehicle profile, media, DateField, odometer domain |
-| 4 | Maintenance + Historial | ✅ | `imp-17092026/phase-4-maintenance` | Service records, expenses, tasks, documents, unified Historial, reminder resets |
+| 4 | Maintenance + Historial | ✅ | `imp-17092026/phase-4-maintenance` | Service records, expenses, tasks, documents, unified Historial, reminder resets. Six criteria finished 2026-09-24 on `fix/phase-4-gaps` |
 | 5 | Inspections + reminders | ✅ | `imp-17092026/phase-5-inspections` | Urgency engine, DR legal calendar, inspection runner, guide, notifications |
 | 6 | Identity pass | ✅ | `imp-17092026/phase-6-identity-pass` | Alias removed, fuel restyled + `missed_previous`, Más rebuilt, all strings in es.ts, a11y pass |
 | 7 | Statistics + reports | ✅ | `imp-17092026/phase-7-cifras` | stats domain, four charts, Cifras rebuilt, PDF report, CSV export |
@@ -679,8 +679,29 @@ with a note explaining the change. Inter was removed.
 
 ## Phase 4 — Maintenance, expenses, tasks, documents and the unified Historial   (branch `imp-17092026/phase-4-maintenance`)
 
-**Status:** complete
+**Status:** complete (six acceptance criteria finished later — see the follow-up below)
 **Commits:** `5849de6` (part A — records, expenses, Historial) · `156f7c7` (part B — tasks, documents)
+· `6cca91f` (follow-up — the six gaps, on `fix/phase-4-gaps`, 2026-09-24)
+
+### Follow-up, 2026-09-24 (`fix/phase-4-gaps`)
+
+Re-auditing the phase against its acceptance criteria on main found six things that were specified
+and never built. All six are now done and verified in the running web app.
+
+| # | Criterion | Was | Now |
+|---|---|---|---|
+| 1 | `gasto/[id]` detail | never created; a `gasto` row in the Historial went nowhere and an expense could not be edited or deleted | `app/gasto/[id].tsx`, plus `?id=` edit mode on `gasto/nuevo` |
+| 2 | Service record "Editar" | the form always minted `svc_${Date.now()}`, so there was no way to correct a record | `servicio/nuevo?id=` hydrates the whole form; the detail screen has the button |
+| 3 | `total_dop` override | — | inferred on load: a total equal to parts + labour keeps recomputing, anything else is the user's own number and is left alone |
+| 4 | `done_record_id` | the record carried `source_task_id` but the task never pointed back | `saveServiceRecord` writes it in the same transaction |
+| 5 | "Origen: chequeo del …" | `es.service.origin` was dead code | the record shows and links to its task or its failed check |
+| 6 | Home Pendientes with tasks | reminders only | open tasks sit beside them, critical first; each pill is its own tap target |
+
+Also wired the Historial's `gasto` and `chequeo` rows to the detail routes that exist (the inspection
+one arrived in Phase 5 and the stale comment was never removed), and added Chequeo to the `+` picker.
+
+Screenshots: `docs/qa/phase-4-gasto-detalle.png`, `phase-4-servicio-origen.png`,
+`phase-4-pendientes-tareas.png`.
 
 Split into two parts on the same branch, per the conventions: part A is the core of notes 3/6/7/8
 and stands on its own; part B adds the two supporting surfaces.
