@@ -130,5 +130,5 @@ const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
   h: { fontSize: 28, marginBottom: space.lg },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
+  chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
 });

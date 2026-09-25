@@ -34,6 +34,7 @@ export default function MasScreen() {
   const router = useRouter();
   const { theme, preference, setPreference } = useTheme();
   const { data, activeVehicle, setActiveVehicle, resetAll, refresh } = useStore();
+  const archived = data.vehicles.filter((v) => v.isArchived);
   const { session } = useSession();
 
   const version = Constants.expoConfig?.version ?? '—';
@@ -85,7 +86,7 @@ export default function MasScreen() {
         </T>
 
         <SectionHeader title={es.more.garage} caption={es.more.garageCaption} style={styles.firstSection} />
-        {data.vehicles.map((v) => {
+        {data.vehicles.filter((v) => !v.isArchived).map((v) => {
           const active = v.id === activeVehicle?.id;
           return (
             // The row and "Activar" are siblings, not one inside the other: a
@@ -119,6 +120,29 @@ export default function MasScreen() {
             </View>
           );
         })}
+        {archived.length ? (
+          <T face="medium" style={[styles.archivedLabel, { color: theme.text.muted }]}>
+            {es.more.archivedGroup.toUpperCase()}
+          </T>
+        ) : null}
+        {archived.map((v) => (
+          <Pressable
+            key={v.id}
+            onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
+            accessibilityRole="button"
+            style={[styles.vehicle, { backgroundColor: theme.bg.surface, borderColor: theme.line, opacity: 0.7 }]}>
+            <View style={{ flex: 1 }}>
+              <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
+                {v.name}
+              </T>
+              <T face="body" style={[styles.meta, { color: theme.text.secondary }]}>
+                {v.plate ? `${v.plate} · ` : ''}
+                {FUEL_CATALOG[v.defaultFuelType].label}
+              </T>
+            </View>
+            <StatusPill status="neutral" label={es.profile.archived} />
+          </Pressable>
+        ))}
         <PrimaryButton label={es.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
 
         <SectionHeader title={es.more.maintenance} />
@@ -248,6 +272,7 @@ export default function MasScreen() {
 }
 
 const styles = StyleSheet.create({
+  archivedLabel: { fontSize: 11, letterSpacing: 0.9, marginTop: space.md, marginBottom: space.sm },
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 48 },
   h: { fontSize: 34 },

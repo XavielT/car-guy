@@ -11,6 +11,7 @@ import { addDays, addMonths, daysBetween } from './dates';
 import { LEGAL_LEAD_DAYS } from './legal-dr';
 import { FALLBACK_KM_PER_DAY } from './odometer';
 import type { Reminder } from '../db/types';
+import { es } from '../i18n/es';
 
 /* ------------------------------------------------------------------ *
  * Status — how urgent a reminder is right now (spec §3.2)
@@ -273,13 +274,7 @@ export function mergeAttention<R extends { status: ReminderStatus }, T extends {
     .map(({ entry }) => entry);
 }
 
-export const STATUS_LABEL: Record<ReminderState, string> = {
-  ok: 'Al día',
-  proximo: 'Próximo',
-  urgente: 'Urgente',
-  vencido: 'Vencido',
-  sin_datos: 'Sin datos',
-};
+export const STATUS_LABEL: Record<ReminderState, string> = es.reminders.statusLabels;
 
 /* ------------------------------------------------------------------ *
  * Completion (Phase 4)

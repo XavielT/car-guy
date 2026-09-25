@@ -62,7 +62,11 @@ export function FillUpReviewSheet({
           : null;
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={es.fuelReview.titles[review.status]}>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      // Same rule as the body: a broken chain is the real story, not "first".
+      title={missedPrevious ? es.fuelReview.chainBrokenTitle : es.fuelReview.titles[review.status]}>
       <StatusPill
         status={TONES[review.status]}
         label={es.fuelReview.statusLabels[review.status]}

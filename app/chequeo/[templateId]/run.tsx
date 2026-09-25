@@ -162,7 +162,7 @@ export default function RunScreen() {
                     </T>
                     {item.requiresColdEngine ? (
                       <T face="body" style={{ color: theme.status.proximo, fontSize: 11 }}>
-                        motor frío
+                        {es.check.coldBadge}
                       </T>
                     ) : null}
                   </View>

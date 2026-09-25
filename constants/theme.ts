@@ -30,6 +30,8 @@ export type Palette = {
   status: { ok: string; proximo: string; urgente: string; vencido: string };
   statusBg: { ok: string; proximo: string; urgente: string; vencido: string };
   danger: string;
+  /** Text on a `danger` fill — dark on the dark scheme's bright red, white on the light one's deep red. */
+  dangerInk: string;
   /** Cards get a shadow in light only; in dark, depth comes from base → surface → raised. */
   cardShadow: boolean;
 };
@@ -52,6 +54,7 @@ const dark: Palette = {
     vencido: 'rgba(240, 72, 62, 0.18)',
   },
   danger: '#F0483E',
+  dangerInk: '#121212', // 5.09:1 (white would be 3.68)
   cardShadow: false,
 };
 
@@ -73,6 +76,7 @@ const light: Palette = {
     vencido: 'rgba(185, 28, 28, 0.12)',
   },
   danger: '#B91C1C',
+  dangerInk: '#FFFFFF', // 6.47:1
   cardShadow: true,
 };
 
@@ -96,6 +100,24 @@ export const categoryColors = {
 } as const;
 
 export type CategoryKey = keyof typeof categoryColors;
+
+/**
+ * The category colours as an icon ink on a light surface.
+ *
+ * The bright hues read well on dark, but on white each one sits on a 16 % tint
+ * of itself and falls to 1.6–2.7:1 — under the 3:1 a graphic needs. These are
+ * the same hues darkened only as far as ~3.5:1 against that tint, so a fuel row
+ * is still amber and a repair still red.
+ */
+export const categoryInkLight: Record<CategoryKey, string> = {
+  combustible: '#AB7800',
+  mantenimiento: '#617BC7',
+  reparacion: '#DA4238',
+  mejora: '#238F68',
+  legal: '#8F6DC9',
+  inspeccion: '#BD6844',
+  otros: '#7F7D7D',
+};
 
 /**
  * Space Grotesk for titles and Manrope for UI — the same pairing X AutoHub uses —

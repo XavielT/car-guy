@@ -59,7 +59,7 @@ export default function DocumentoScreen() {
           />
         ) : null}
 
-        {uri ? <Image source={{ uri }} style={styles.image} resizeMode="contain" /> : null}
+        {uri ? <Image source={{ uri }} style={[styles.image, { backgroundColor: theme.bg.raised }]} resizeMode="contain" /> : null}
 
         {doc.notes ? (
           <Surface style={{ marginTop: space.lg }}>
@@ -97,5 +97,5 @@ export default function DocumentoScreen() {
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
   h: { fontSize: 26 },
-  image: { width: '100%', height: 320, borderRadius: radius.card, marginTop: space.lg, backgroundColor: '#00000022' },
+  image: { width: '100%', height: 320, borderRadius: radius.card, marginTop: space.lg },
 });

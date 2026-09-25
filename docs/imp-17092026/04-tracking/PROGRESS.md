@@ -968,7 +968,32 @@ tener esa costumbre diaria"*.
 ## Phase 6 — Fuel restyle and the identity pass   (branch `imp-17092026/phase-6-identity-pass`)
 
 **Status:** complete
-**Commits:** `434e8c8` controls, fuel, alert host · `dbbf3dc` legacy screens, alias removal, a11y
+**Commits:** `434e8c8` controls, fuel, alert host · `dbbf3dc` legacy screens, alias removal, a11y · follow-up on `fix/phase-6-gaps`, 2026-09-25
+
+### Follow-up, 2026-09-25 (`fix/phase-6-gaps`)
+
+An audit of PROMPT-06 against main: the core was real (alias gone, fonts gone, fuel restyled,
+`missed_previous` persisted end to end, review Sheet). What was open:
+
+| # | Area | Was | Now |
+|---|---|---|---|
+| 1 | Historial fuel rows | no partial label; tag hardcoded "km/gal" (wrong for GNV) | "Parcial" on partial tanks; economy through `kmPerUnit()` so GNV reads km/m³ |
+| 2 | Economy precision | "41.346 km/gal" on Inicio, Historial and the review sheet | one decimal everywhere ("41.3 km/gal") |
+| 3 | Onboarding | the vehicle form dumped on the first screen, no mark, no welcome, no way to sign in | welcome with the app mark → "Crear mi primer vehículo" or "Importar respaldo" → "¿Ya tienes cuenta?" card to Cuenta; forwards to Inicio once a sync brings vehicles |
+| 4 | Archiving | only a pill on the profile — the vehicle stayed in the selector and everywhere else, contrary to its own hint | the store carries `isArchived`; the selector hides it; "active" moves to a vehicle in use; Más → Garaje lists them under "Archivados"; no "Hacer activo" on an archived vehicle |
+| 5 | Strings | telltales, "Hacer activo", "Volver", "motor frío", odometer hint, color placeholder, minutes, reminder status labels, Historial check titles hardcoded | all in `es.ts` |
+| 6 | Touch targets | ~12 local chips at 32–40 px; the shared `Chip` at 40 | 44 px minimum everywhere |
+| 7 | Light-mode contrast | RecordRow icons 1.6–2.7:1 on their badge; white on the dark theme's red 3.68:1 | `categoryInkLight` (≥ 3.5:1, same hues); `dangerInk` token (5.09:1 dark, 6.47:1 light) |
+| 8 | Smaller | document image placeholder a hardcoded black tint; review sheet titled "Primera medición" after a flagged chain break; OdometerHero missing from the tokens page | themed; "La cuenta empieza de nuevo"; added |
+| 9 | Test | "fixtures unaffected" compared two hand-made rows | runs the real 12-fill-up legacy fixture both ways, plus a test that one flag only changes its own stretch |
+
+Screenshots: every tab in dark and light (`docs/qa/phase-6-{inicio,chequeo,historial,cifras,mas}-{dark,light}.png`),
+`phase-6-onboarding-dark.png`, `phase-6-garaje-archivados.png`. `tsc`, lint, 376 tests, web build green.
+
+Observed, deferred: Cifras logs seven React warnings about responder props reaching the DOM — from
+`react-native-gifted-charts` on web, pre-existing, harmless. The dev screens' specimen text stays
+inline (documented). Packages are a few SDK-57 patch versions behind (`expo-doctor`); updating is a
+separate task that needs a retest.
 
 The phase that makes the app one product. Five phases had been building Car Guy screens next to Tu
 Combustible RD screens that painted themselves from a static dark alias; this removes the alias and

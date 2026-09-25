@@ -146,7 +146,7 @@ export function VehicleForm({
           <Field label={es.vehicle.year} placeholder="2015" keyboardType="number-pad" value={year} onChangeText={setYear} />
         </View>
         <View style={styles.half}>
-          <Field label={es.vehicle.color} placeholder="Negro" value={color} onChangeText={setColor} />
+          <Field label={es.vehicle.color} placeholder={es.vehicle.colorPlaceholder} value={color} onChangeText={setColor} />
         </View>
       </View>
 

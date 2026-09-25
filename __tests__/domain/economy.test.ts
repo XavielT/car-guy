@@ -6,6 +6,7 @@ import {
   sortFillUps,
 } from '@/lib/domain/economy';
 import type { FillUp } from '@/lib/types';
+import sample from '../../docs/imp-17092026/fixtures/tu-combustible-rd-backup.sample.json';
 
 /**
  * These tests pin the behaviour Tu Combustible RD shipped with. The brim-to-brim
@@ -291,6 +292,34 @@ describe('computeEconomy — missedPrevious breaks the chain', () => {
     const withExplicitFalse = computeEconomy(logs.map((f) => ({ ...f, missedPrevious: false })));
     expect(withUndefined).toEqual(withExplicitFalse);
     expect(withUndefined).toHaveLength(1);
+  });
+
+  it('leaves the real legacy fixture exactly as it was when nothing is flagged', () => {
+    // The Tu Combustible RD sample export: twelve fill-ups with partials in the
+    // chain, none of which has ever heard of missedPrevious.
+    const fixture = sample.data.fillups as unknown as FillUp[];
+    for (const vehicleId of new Set(fixture.map((f) => f.vehicleId))) {
+      const logs = fixture.filter((f) => f.vehicleId === vehicleId);
+      const untouched = computeEconomy(logs);
+      expect(untouched.length).toBeGreaterThan(0);
+      expect(computeEconomy(logs.map((f) => ({ ...f, missedPrevious: false })))).toEqual(untouched);
+    }
+  });
+
+  it('flagging one fill-up in the fixture only changes the stretch it starts', () => {
+    const fixture = (sample.data.fillups as unknown as FillUp[])
+      .filter((f, _, all) => f.vehicleId === all[0].vehicleId)
+      .sort((a, b) => a.odometerKm - b.odometerKm);
+    const before = computeEconomy(fixture);
+    // Flag a full tank that currently has an economy point of its own.
+    const target = fixture.find((f) => f.isFullTank && before.some((p) => p.fillUpId === f.id))!;
+    const after = computeEconomy(fixture.map((f) => (f.id === target.id ? { ...f, missedPrevious: true } : f)));
+
+    // The flagged tank loses its point, and nothing measured before it moves.
+    expect(after.some((p) => p.fillUpId === target.id)).toBe(false);
+    const earlier = (points: typeof before) =>
+      points.filter((p) => fixture.findIndex((f) => f.id === p.fillUpId) < fixture.indexOf(target));
+    expect(earlier(after)).toEqual(earlier(before));
   });
 
   it('yields no point for the flagged tank and makes it the new baseline', () => {

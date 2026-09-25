@@ -300,7 +300,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
-    minHeight: 40,
+    // 44 is the platform minimum touch target (Apple HIG; Android asks 48dp).
+    minHeight: 44,
     justifyContent: 'center',
     borderRadius: radius.chip,
     marginRight: space.sm,

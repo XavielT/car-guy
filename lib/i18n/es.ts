@@ -67,6 +67,13 @@ export const es = {
   },
 
   home: {
+    telltale: {
+      noData: (title: string) => `${title} · sin datos`,
+      kmOver: (title: string, km: string) => `${title} · ${km} pasado`,
+      overdue: (title: string) => `${title} · vencido`,
+      kmLeft: (title: string, km: string) => `${title} · faltan ${km}`,
+      daysLeft: (title: string, days: number) => `${title} · faltan ${days} d`,
+    },
     eyebrow: 'CAR GUY',
     title: 'Tablero',
     addVehicle: '+ Agregar',
@@ -116,6 +123,7 @@ export const es = {
     modelPlaceholder: 'Corolla, CR-V…',
     year: 'Año',
     color: 'Color',
+    colorPlaceholder: 'Negro',
     plate: 'Placa',
     vin: 'Chasis (VIN)',
     fuel: 'Combustible de fábrica',
@@ -167,6 +175,7 @@ export const es = {
     remove: 'Quitar',
     archived: 'Archivado',
     removeConfirmTitle: 'Quitar vehículo',
+    makeActive: 'Hacer activo',
     removeConfirmBody: (name: string) =>
       `Se va todo lo de ${name}: cargas, gastos, mantenimientos, recordatorios, tareas y chequeos. Si solo quieres sacarlo del selector, archívalo.`,
     archiveHint: 'Un vehículo archivado desaparece del selector pero conserva su historial.',
@@ -178,6 +187,7 @@ export const es = {
     date: 'Fecha',
     save: 'Guardar lectura',
     hint: 'Anota lo que marca el tablero. Sirve para estimar cuándo toca cada mantenimiento.',
+    lastReading: (km: string) => `Última lectura: ${km}`,
   },
 
   specSuggestions: [
@@ -250,6 +260,9 @@ export const es = {
   },
 
   history: {
+    checkOk: 'Chequeo · todo bien',
+    checkWithFails: 'Chequeo · con fallas',
+    partialTag: 'Parcial',
     title: 'Historial',
     all: 'Todo',
     search: 'Buscar',
@@ -330,6 +343,13 @@ export const es = {
   },
 
   reminders: {
+    statusLabels: {
+      ok: 'Al día',
+      proximo: 'Próximo',
+      urgente: 'Urgente',
+      vencido: 'Vencido',
+      sin_datos: 'Sin datos',
+    },
     title: 'Recordatorios',
     subtitle: 'Lo que toca y cuándo, según tus kilómetros.',
     empty: 'Cuando agregues un vehículo te creamos los recordatorios del mantenimiento y los del marbete.',
@@ -477,6 +497,7 @@ export const es = {
     celebrate: '¡Así se cuida un carro!',
     comingSoon: 'Los chequeos llegan en la próxima fase.',
     withFails: 'Con fallas',
+    coldBadge: 'motor frío',
     disabled: 'Desactivada',
     turnOn: 'Activar',
     turnOff: 'Apagar',
@@ -688,6 +709,7 @@ export const es = {
 
     garage: 'Garaje',
     garageCaption: 'Toca un vehículo para ver su perfil completo.',
+    archivedGroup: 'Archivados',
     active: 'activo',
     activate: 'Activar',
     addVehicle: 'Agregar vehículo',
@@ -756,6 +778,14 @@ export const es = {
   },
 
   onboarding: {
+    welcome: 'Chequeos, mantenimientos y combustible en un solo sitio, para que nada se te pase.',
+    markLabel: 'Car Guy',
+    createFirst: 'Crear mi primer vehículo',
+    formTitle: 'Tu primer vehículo',
+    backToWelcome: 'Volver',
+    accountTitle: '¿Ya tienes cuenta?',
+    accountBody: 'Entra y tu garaje vuelve con todo su historial.',
+    accountAction: 'Iniciar sesión',
     legacyPrompt: '¿Vienes de Tu Combustible RD? Trae tu historial completo desde el respaldo JSON.',
     legacyAction: 'Importar respaldo de Tu Combustible RD',
     importedTitle: 'Datos importados',
@@ -1046,6 +1076,7 @@ export const es = {
       normal: 'Rendimiento estable',
       first: 'Primera medición',
     },
+    chainBrokenTitle: 'La cuenta empieza de nuevo',
     statusLabels: {
       low: 'Por debajo de tu promedio',
       great: 'Por encima de tu promedio',
@@ -1094,5 +1125,7 @@ export const es = {
     removePhoto: 'Quitar foto',
     edit: 'Editar',
     photoError: 'No se pudo usar esa foto.',
+    back: 'Volver',
+    minutes: (n: number) => `${n} min`,
   },
 } as const;

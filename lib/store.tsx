@@ -168,6 +168,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         defaultFuelType: v.defaultFuelType,
         tankVolume: v.tankVolume,
         createdAt: v.createdAt,
+        isArchived: v.isArchived,
       })),
       fillups: fuelRows.map((f) => ({
         id: f.id,
@@ -481,7 +482,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const activeVehicle = useMemo(() => {
     const aid = data.settings.activeVehicleId;
-    return data.vehicles.find((v) => v.id === aid) ?? data.vehicles[0] ?? null;
+    // An archived vehicle cannot be the one the app works on: archiving the
+    // active vehicle hands "active" to the next one still in use. Only when
+    // every vehicle is archived does the app fall back to one of them.
+    const inUse = data.vehicles.filter((v) => !v.isArchived);
+    return inUse.find((v) => v.id === aid) ?? inUse[0] ?? data.vehicles[0] ?? null;
   }, [data.settings.activeVehicleId, data.vehicles]);
 
   const vehicleFillups = useMemo(() => {

@@ -10,12 +10,13 @@ import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/co
 import { radius, space } from '@/constants/theme';
 import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
-import { dateLabel, km as fmtKm, money, monthTitle } from '@/lib/format';
+import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
+import type { FillUp } from '@/lib/types';
 
 const FILTERS: { key: 'todo' | RecordKind; label: string }[] = [
   { key: 'todo', label: es.history.all },
@@ -75,6 +76,7 @@ export default function HistorialScreen() {
 
   // km/gal per fill-up, exactly as the old screen showed it.
   const economy = useMemo(() => economyById(vehicleFillups), [vehicleFillups]);
+  const fillUpsById = useMemo(() => new Map(vehicleFillups.map((f) => [f.id, f])), [vehicleFillups]);
 
   const months = useMemo(() => groupByMonth(entries), [entries]);
 
@@ -147,7 +149,7 @@ export default function HistorialScreen() {
                   title={historyTitle(entry)}
                   meta={metaFor(entry)}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
-                  tag={tagFor(entry, economy)}
+                  tag={tagFor(entry, economy, fillUpsById)}
                   onPress={() => openDetail(entry, router)}
                 />
               ))}
@@ -219,10 +221,21 @@ function metaFor(entry: HistoryEntry): string {
   return parts.join(' · ');
 }
 
-function tagFor(entry: HistoryEntry, economy: ReturnType<typeof economyById>): string | null {
+/**
+ * A fill-up's tag: "Parcial" for a partial tank (it never has an economy
+ * number of its own — the next full tank measures it), otherwise its economy
+ * in the unit its fuel is sold in, so GNV reads km/m³ rather than km/gal.
+ */
+function tagFor(
+  entry: HistoryEntry,
+  economy: ReturnType<typeof economyById>,
+  fillUps: Map<string, FillUp>,
+): string | null {
   if (entry.kind !== 'combustible') return null;
+  const fill = fillUps.get(entry.id);
+  if (fill && !fill.isFullTank) return es.history.partialTag;
   const point = economy.get(entry.id);
-  return point ? `${point.kmPerUnit} km/gal` : null;
+  return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType) : null;
 }
 
 function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
@@ -247,7 +260,7 @@ const styles = StyleSheet.create({
   h: { fontSize: 34 },
   sub: { fontSize: 13, marginTop: 2, marginBottom: space.lg },
   filters: { marginBottom: space.md },
-  chip: {
+  chip: { minHeight: 44, justifyContent: 'center',
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     borderRadius: radius.chip,
