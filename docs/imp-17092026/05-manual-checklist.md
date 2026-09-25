@@ -51,18 +51,14 @@ Claude Code will point at these when it reaches them. Do them when the prompt sa
 8. [ ] `npx supabase login` if you want generated types (`npm run types:gen` equivalent).
 
 ## 2026-09-25 — seeded catalogue ids collide across accounts (`fix/catalog-per-user-keys`)
-The Claude Code permission classifier refused to apply the migration (it is a write to x-core), so
-these are yours. **Order matters** — the branch's client pushes with `on_conflict=user_id,id`, which
-fails against the current keys, and a push error aborts the whole sync:
-1. [ ] `node tools/verify-shared-ids.mjs --legacy` → expect **3/7** (reproduces the bug: account B
-       gets `403 42501` on `service_type`, `inspection_template`, `inspection_item`).
-2. [ ] `node tools/apply-sql.mjs sql/008_catalog_per_user_keys.sql` — carguy only; the final select
-       should list `user_id, id` for all three tables.
-3. [ ] `node tools/verify-shared-ids.mjs` → expect **7/7**, and `node tools/verify-sync.mjs` still 13/13.
-4. [ ] Right away: `git checkout main && git merge --no-ff fix/catalog-per-user-keys && git push origin main`
-       (production deploy). Until it lands, open web clients fail to push those three tables.
-5. [ ] `sql/999_cleanup_test_users.sql` removes the probe accounts the runs create
-       (`carguy-sync-shared-*@example.com`); two already exist from the 2026-09-25 reproduction.
+Done 2026-09-25. Order mattered — the new client's `on_conflict=user_id,id` fails against the old
+keys, and a push error aborts the whole sync — so the SQL went first and the merge right after:
+1. [x] `node tools/verify-shared-ids.mjs --legacy` → **3/7** (account B refused with `403 42501` on
+       `service_type`, `inspection_template`, `inspection_item`).
+2. [x] `node tools/apply-sql.mjs sql/008_catalog_per_user_keys.sql` — all three tables keyed `user_id, id`.
+3. [x] `node tools/verify-shared-ids.mjs` → **7/7**; `node tools/verify-sync.mjs` → 13/13.
+4. [x] `fix/catalog-per-user-keys` merged and pushed; the production bundle was confirmed serving it.
+5. [x] `sql/999_cleanup_test_users.sql` run with `--shared`: probe accounts gone, 0 leftover profiles.
 
 
 - [ ] `npx eas login`, `npx vercel login`, `gh auth status`.

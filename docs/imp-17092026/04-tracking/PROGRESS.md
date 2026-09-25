@@ -844,15 +844,15 @@ Screenshots: `docs/qa/phase-5-gaps-*.png` (12).
 haptic, the ring's native animation. EAS is not logged in, so no preview APK was built; the command
 and the device checklist are in `05-manual-checklist.md`.
 
-**Seeded ids across accounts — reproduced, fix waiting on you.** `service_type`,
-`inspection_template` and `inspection_item` use the catalogue's slug ids (`aceite_motor`,
+**Seeded ids across accounts — found, fixed, deployed.** `service_type`,
+`inspection_template` and `inspection_item` used the catalogue's slug ids (`aceite_motor`,
 `carro_semanal`) as a global `id text primary key` in `carguy`. `tools/verify-shared-ids.mjs
---legacy` proved it against x-core: the second account's push of a seeded row is refused with
-`403 42501 new row violates row-level security policy`, and a push error aborts its whole sync —
-any second account would never sync. Fix on `fix/catalog-per-user-keys` (not merged, not pushed):
-`sql/008_catalog_per_user_keys.sql` keys the three tables by `(user_id, id)`, and the engine pushes
-them with `onConflict: 'user_id,id'` (`keyedBy: 'user_id'` in `lib/sync/tables.ts`). Applying the
-SQL was refused by the permission classifier; the ordered steps are in `05-manual-checklist.md`.
+--legacy` proved it against x-core: the second account's push of a seeded row was refused with
+`403 42501 new row violates row-level security policy`, and a push error aborts the whole sync —
+any second account would never have synced. `sql/008_catalog_per_user_keys.sql` (applied
+2026-09-25) keys the three tables by `(user_id, id)`, and the engine pushes them with
+`onConflict: 'user_id,id'` (`keyedBy: 'user_id'` in `lib/sync/tables.ts`). After: 7/7 (each account
+keeps and edits its own copy) and `verify-sync.mjs` 13/13. Probe accounts removed with sql/999.
 
 This is the phase the whole cycle exists for: note 4, *"se me pasó revisarle los fluidos … por no
 tener esa costumbre diaria"*.
