@@ -17,7 +17,7 @@ export function historyTitle(entry: HistoryEntry): string {
     return FUEL_CATALOG[entry.title as keyof typeof FUEL_CATALOG]?.label ?? entry.title;
   }
   if (entry.kind === 'chequeo') {
-    return entry.title === 'ok' ? 'Chequeo · todo bien' : 'Chequeo · con fallas';
+    return entry.title === 'ok' ? es.history.checkOk : es.history.checkWithFails;
   }
   return entry.title || '—';
 }

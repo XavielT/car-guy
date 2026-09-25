@@ -18,7 +18,7 @@ import {
 import type { Vehicle, VehicleSpec } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { vidaUtil, vidaUtilTone } from '@/lib/domain/legal-dr';
-import { money } from '@/lib/format';
+import { km as fmtKm, money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { Alert } from '@/lib/alert';
@@ -154,7 +154,7 @@ export default function VehicleProfileScreen() {
             {es.profile.currentOdometer.toUpperCase()}
           </T>
           <T face="monoBold" style={{ color: theme.text.primary, fontSize: 30 }}>
-            {odometerKm == null ? '—' : `${Math.round(odometerKm).toLocaleString('es-DO')} km`}
+            {odometerKm == null ? '—' : fmtKm(Math.round(odometerKm))}
           </T>
           <GhostButton
             label={es.profile.addReading}
@@ -280,8 +280,8 @@ export default function VehicleProfileScreen() {
             ])
           }
         />
-        {activeVehicle?.id === vehicle.id ? null : (
-          <GhostButton label="Hacer activo" onPress={() => setActiveVehicle(vehicle.id)} />
+        {activeVehicle?.id === vehicle.id || vehicle.isArchived ? null : (
+          <GhostButton label={es.profile.makeActive} onPress={() => setActiveVehicle(vehicle.id)} />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -327,9 +327,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     borderBottomWidth: 1,
   },
-  specRemove: { paddingHorizontal: space.sm, minWidth: 32, alignItems: 'center' },
+  specRemove: { paddingHorizontal: space.sm, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: space.md },
-  suggestion: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.sm, paddingVertical: 4 },
+  suggestion: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.sm, paddingVertical: 4 },
   pair: { flexDirection: 'row', gap: space.md },
   half: { flex: 1 },
 });

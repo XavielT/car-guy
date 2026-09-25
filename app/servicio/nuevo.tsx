@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   hint: { fontSize: 12, lineHeight: 17, marginBottom: space.sm },
   section: { fontSize: 20, marginTop: space.md, marginBottom: space.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
-  kindChip: {
+  kindChip: { minHeight: 44, justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   },
   dot: { width: 8, height: 8, borderRadius: 999 },
   itemChip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
-  suggestion: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
+  suggestion: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
   toggle: { paddingVertical: space.md },
   partRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 6 },
   pair: { flexDirection: 'row', gap: space.md },

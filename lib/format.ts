@@ -16,6 +16,13 @@ const kmFmt = new Intl.NumberFormat('es-DO', {
   maximumFractionDigits: 0,
 });
 
+// Fuel economy is only as good as the pump's reading and the odometer's; a
+// third decimal (41.346 km/gal) claims a precision neither has.
+const economyFmt = new Intl.NumberFormat('es-DO', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
 export function money(n: number): string {
   return dop.format(n).replace('RD$', 'RD$ ');
 }
@@ -30,7 +37,7 @@ export function km(n: number): string {
 
 export function kmPerUnit(n: number, type: FuelType): string {
   const unit = FUEL_CATALOG[type].unit === 'm3' ? 'km/m³' : 'km/gal';
-  return `${qty.format(n)} ${unit}`;
+  return `${economyFmt.format(n)} ${unit}`;
 }
 
 export function dateLabel(iso: string): string {

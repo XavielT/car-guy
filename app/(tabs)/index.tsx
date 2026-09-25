@@ -20,7 +20,7 @@ import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
 import { mergeAttention, STATUS_LABEL } from '@/lib/domain/reminders';
 import { economyLabel, FUEL_CATALOG } from '@/lib/fuel';
-import { kmPerUnit, money } from '@/lib/format';
+import { km as fmtKm, kmPerUnit, money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { computeEconomy, inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -167,7 +167,7 @@ export default function HomeScreen() {
         </T>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcher}>
-          {data.vehicles.map((v) => {
+          {data.vehicles.filter((v) => !v.isArchived).map((v) => {
             const on = v.id === activeVehicle.id;
             return (
               <Pressable
@@ -274,7 +274,7 @@ export default function HomeScreen() {
           <View style={styles.monthRow}>
             <MonthStat label={es.home.monthSpend} value={money(monthSpend)} />
             <MonthStat label={es.home.monthFillups} value={String(monthLogs.length)} />
-            <MonthStat label={es.home.monthKm} value={`${Math.round(monthKm)} km`} />
+            <MonthStat label={es.home.monthKm} value={fmtKm(Math.round(monthKm))} />
           </View>
         </View>
 
@@ -308,7 +308,7 @@ export default function HomeScreen() {
             <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
               {last
                 ? es.home.lastTankHint(
-                    `${last.distanceKm} km`,
+                    fmtKm(last.distanceKm),
                     `${last.volume} ${FUEL_CATALOG[activeVehicle.defaultFuelType].unitLabel}`,
                   )
                 : es.home.lastTankEmpty}
@@ -355,15 +355,14 @@ function byPriority(a: Task, b: Task): number {
 }
 
 function telltaleLabel(title: string, status: EvaluatedReminder['status']): string {
-  if (status.status === 'sin_datos') return `${title} · sin datos`;
-  if (status.dueKm != null && status.dueKm < 0) {
-    return `${title} · ${Math.abs(Math.round(status.dueKm)).toLocaleString('es-DO')} km pasado`;
-  }
-  if (status.dueDays != null && status.dueDays < 0) return `${title} · vencido`;
+  const t = es.home.telltale;
+  if (status.status === 'sin_datos') return t.noData(title);
+  if (status.dueKm != null && status.dueKm < 0) return t.kmOver(title, fmtKm(Math.abs(Math.round(status.dueKm))));
+  if (status.dueDays != null && status.dueDays < 0) return t.overdue(title);
   if (status.dueKm != null && (status.dueDays == null || status.dueKm / 50 < status.dueDays)) {
-    return `${title} · faltan ${Math.round(status.dueKm).toLocaleString('es-DO')} km`;
+    return t.kmLeft(title, fmtKm(Math.round(status.dueKm)));
   }
-  if (status.dueDays != null) return `${title} · faltan ${status.dueDays} d`;
+  if (status.dueDays != null) return t.daysLeft(title, status.dueDays);
   return `${title} · ${STATUS_LABEL[status.status]}`;
 }
 
@@ -395,7 +394,7 @@ const styles = StyleSheet.create({
   kicker: { letterSpacing: 2, fontSize: 12 },
   brand: { fontSize: 34, marginTop: 4, marginBottom: space.md },
   switcher: { marginBottom: space.lg },
-  chip: {
+  chip: { minHeight: 44, justifyContent: 'center',
     paddingHorizontal: space.md + 2,
     paddingVertical: space.sm,
     borderRadius: radius.chip,

@@ -87,7 +87,7 @@ export function AlertHost() {
                     face="semibold"
                     style={{
                       fontSize: 15,
-                      color: quiet ? theme.text.secondary : destructive ? '#FFFFFF' : theme.accentInk,
+                      color: quiet ? theme.text.secondary : destructive ? theme.dangerInk : theme.accentInk,
                     }}>
                     {button.text}
                   </T>

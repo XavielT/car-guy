@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { categoryColors, radius, space } from '@/constants/theme';
+import { categoryColors, categoryInkLight, radius, space, type CategoryKey } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
@@ -22,13 +22,13 @@ const ICON: Record<RecordKind, keyof typeof Ionicons.glyphMap> = {
   chequeo: 'clipboard-outline',
 };
 
-const COLOR: Record<RecordKind, string> = {
-  combustible: categoryColors.combustible,
-  mantenimiento: categoryColors.mantenimiento,
-  reparacion: categoryColors.reparacion,
-  mejora: categoryColors.mejora,
-  gasto: categoryColors.otros,
-  chequeo: categoryColors.inspeccion,
+const CATEGORY: Record<RecordKind, CategoryKey> = {
+  combustible: 'combustible',
+  mantenimiento: 'mantenimiento',
+  reparacion: 'reparacion',
+  mejora: 'mejora',
+  gasto: 'otros',
+  chequeo: 'inspeccion',
 };
 
 /**
@@ -55,8 +55,11 @@ export function RecordRow({
   tag?: string | null;
   onPress?: () => void;
 }) {
-  const { theme } = useTheme();
-  const color = COLOR[kind];
+  const { theme, scheme } = useTheme();
+  // The badge tint keeps the bright hue; the icon on it needs the darker ink on
+  // a light surface to stay legible (see categoryInkLight).
+  const hue = categoryColors[CATEGORY[kind]];
+  const ink = scheme === 'light' ? categoryInkLight[CATEGORY[kind]] : hue;
 
   return (
     <Pressable
@@ -67,8 +70,8 @@ export function RecordRow({
         styles.row,
         { backgroundColor: theme.bg.surface, borderColor: theme.line, opacity: pressed ? 0.85 : 1 },
       ]}>
-      <View style={[styles.badge, { backgroundColor: `${color}28` }]}>
-        <Ionicons name={ICON[kind]} size={17} color={color} />
+      <View style={[styles.badge, { backgroundColor: `${hue}28` }]}>
+        <Ionicons name={ICON[kind]} size={17} color={ink} />
       </View>
 
       <View style={styles.body}>

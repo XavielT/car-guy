@@ -28,6 +28,8 @@ export type Vehicle = {
   defaultFuelType: FuelType;
   tankVolume: number | null;
   createdAt: string;
+  /** Hidden from the selector but kept with its history. Absent on legacy rows. */
+  isArchived?: boolean;
 };
 
 export type FillUp = {

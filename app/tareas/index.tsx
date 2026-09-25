@@ -103,6 +103,6 @@ const styles = StyleSheet.create({
   h: { fontSize: 30 },
   sub: { fontSize: 13, marginTop: 2, marginBottom: space.lg, lineHeight: 19 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
-  chip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
+  chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
   taskHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

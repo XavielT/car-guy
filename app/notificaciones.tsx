@@ -170,5 +170,5 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, marginTop: space.lg, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.sm },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  chip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
+  chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
 });

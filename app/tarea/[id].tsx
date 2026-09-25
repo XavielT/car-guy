@@ -189,5 +189,5 @@ const styles = StyleSheet.create({
   h: { fontSize: 26 },
   meta: { flexDirection: 'row', marginTop: space.sm, marginBottom: space.lg },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
+  chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
 });

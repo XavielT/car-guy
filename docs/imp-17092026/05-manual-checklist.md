@@ -29,9 +29,14 @@ Claude Code will point at these when it reaches them. Do them when the prompt sa
 - [x] 2026-09-25 device checks — done on the real phone with a local release build (see the table in
       PROGRESS.md, Phase 5 follow-up): test notification, first-check prompt, cold-start tap, ring
       animation, ≤ 30 scheduled. Only the haptic tick was not judged.
-- [ ] Still open: an **EAS** build. `eas login` could not complete from the Claude Code `!` shell;
-      run `npx eas-cli@24.8.0 account:login` in a normal terminal, then tell Claude Code to run
-      `init` and the `preview` / `production` builds.
+- [x] EAS builds, 2026-09-25, project `@xavieldev/car-guy`, token in the gitignored `.env.expo.local`.
+      Preview APK (versionCode 1) and production AAB (versionCode 2) are in `releases/`, both signed
+      with the EAS-managed key `A1:64:50:A0:…:66:F4`.
+- [ ] Back up that key: `npx eas-cli@24.8.0 credentials --platform android` → production →
+      "Download existing keystore" (interactive — run it in a normal terminal), and store the file
+      and its passwords off this machine.
+- [ ] Installing an EAS build on the phone needs the current (template-key) Car Guy uninstalled
+      first, which erases its data: sign in to the account or export a backup (Más → Datos) first.
 
 ## Phase 8 (Supabase `x-core`) — order matters
 1. [ ] Supabase dashboard → `x-core` → Project Settings → API: copy URL + anon key into

@@ -287,5 +287,5 @@ const styles = StyleSheet.create({
   section: { fontSize: 18, marginTop: space.lg, marginBottom: space.sm },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingVertical: 4 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  kindChip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
+  kindChip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },
 });

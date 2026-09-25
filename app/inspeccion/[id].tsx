@@ -118,7 +118,7 @@ export default function InspeccionScreen() {
         <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.lg }}>
           {templateName} · {dateLabel(run.occurredAt)}
           {run.odometerKm != null ? ` · ${fmtKm(run.odometerKm)}` : ''}
-          {run.durationSec ? ` · ${Math.max(1, Math.round(run.durationSec / 60))} min` : ''}
+          {run.durationSec ? ` · ${es.common.minutes(Math.max(1, Math.round(run.durationSec / 60)))}` : ''}
         </T>
 
         {failures.length === 0 && streak > 1 ? (
@@ -158,7 +158,7 @@ export default function InspeccionScreen() {
         ) : null}
 
         <View style={{ height: space.lg }} />
-        <PrimaryButton label="Volver" onPress={() => router.replace('/(tabs)/chequeo')} />
+        <PrimaryButton label={es.common.back} onPress={() => router.replace('/(tabs)/chequeo')} />
       </ScrollView>
     </SafeAreaView>
   );

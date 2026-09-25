@@ -187,6 +187,6 @@ const styles = StyleSheet.create({
   h: { fontSize: 28, marginBottom: space.lg },
   label: { fontSize: 13, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
-  chip: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
+  chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
   error: { fontSize: 13, marginBottom: space.md },
 });

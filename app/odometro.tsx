@@ -10,7 +10,7 @@ import { PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { currentOdometer as currentOdometerQuery, odometer as odometerRepo } from '@/lib/db/repos';
 import { odometerWarning } from '@/lib/domain/odometer';
-import { isoFromDateInput, todayIsoDate } from '@/lib/format';
+import { isoFromDateInput, km as fmtKm, todayIsoDate } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -60,7 +60,7 @@ export default function OdometroScreen() {
           keyboardType="number-pad"
           value={value}
           onChangeText={setValue}
-          hint={current != null ? `Última lectura: ${Math.round(current).toLocaleString('es-DO')} km` : undefined}
+          hint={current != null ? es.odometerSheet.lastReading(fmtKm(Math.round(current))) : undefined}
         />
         <DateField label={es.odometerSheet.date} value={date} onChange={setDate} />
 

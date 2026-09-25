@@ -12,6 +12,7 @@ import {
   GhostButton,
   KeyValueRow,
   NavRow,
+  OdometerHero,
   PrimaryButton,
   QuickActions,
   RecordRow,
@@ -198,6 +199,19 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
           <GaugeRing progress={0.72} size={104} value="72%" label="chequeo" />
           <GaugeRing progress={1} size={104} value="3" label="semanas" color={theme.status.ok} />
         </View>
+      </Section>
+
+      <Section title="Tablero" theme={theme}>
+        <OdometerHero
+          vehicleName="Corolla 2016"
+          odometerKm={52000}
+          daysSinceReading={3}
+          telltales={[
+            { status: 'vencido', label: 'Revisar refrigerante' },
+            { status: 'proximo', label: 'Aceite · faltan 320 km' },
+          ]}
+          onPressOdometer={() => {}}
+        />
       </Section>
 
       <Section title="Acciones rápidas" theme={theme}>
