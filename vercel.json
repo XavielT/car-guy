@@ -6,10 +6,16 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    {
-      "source": "/carga/:id",
-      "destination": "/carga/[id]"
-    }
+    { "source": "/vehiculo/:id/editar", "destination": "/vehiculo/[id]/editar" },
+    { "source": "/chequeo/:templateId/run", "destination": "/chequeo/[templateId]/run" },
+    { "source": "/carga/:id", "destination": "/carga/[id]" },
+    { "source": "/gasto/:id", "destination": "/gasto/[id]" },
+    { "source": "/servicio/:id", "destination": "/servicio/[id]" },
+    { "source": "/tarea/:id", "destination": "/tarea/[id]" },
+    { "source": "/documento/:id", "destination": "/documento/[id]" },
+    { "source": "/inspeccion/:id", "destination": "/inspeccion/[id]" },
+    { "source": "/recordatorio/:id", "destination": "/recordatorio/[id]" },
+    { "source": "/vehiculo/:id", "destination": "/vehiculo/[id]" }
   ],
   "headers": [
     {
