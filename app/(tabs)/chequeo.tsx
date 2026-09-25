@@ -6,15 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '@/components/T';
 import { EmptyState, GaugeRing, GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
-import {
-  inspectionTemplates as templateRepo,
-  inspections as inspectionRepo,
-  vehicles as vehicleRepo,
-} from '@/lib/db/repos';
-import type { Inspection, InspectionTemplate, TemplateVehicleType } from '@/lib/db/types';
+import { baseTemplateId, setTemplateEnabled, templatesForVehicle } from '@/lib/db/inspectionOps';
+import { inspections as inspectionRepo, vehicles as vehicleRepo } from '@/lib/db/repos';
+import type { Inspection, InspectionTemplate } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { isDue, latestRun, weeklyStreak } from '@/lib/domain/inspections';
-import { templatesForVehicle } from '@/lib/domain/catalog';
 import { dateLabel } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
@@ -30,29 +26,27 @@ import { useTheme } from '@/lib/theme/useTheme';
 export default function ChequeoScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { activeVehicle, data } = useStore();
+  const { activeVehicle, data, refresh } = useStore();
 
   const [templates, setTemplates] = useState<InspectionTemplate[]>([]);
   const [runs, setRuns] = useState<Inspection[]>([]);
 
-  const [vehicleType, setVehicleType] = useState<TemplateVehicleType>('carro');
   const vehicleId = activeVehicle?.id;
 
   useEffect(() => {
     if (!vehicleId) return;
     let cancelled = false;
     (async () => {
-      const [all, history, vehicle] = await Promise.all([
-        templateRepo.list(undefined, { orderBy: 'id', direction: 'ASC' }),
-        inspectionRepo.list(vehicleId, { orderBy: 'occurred_at', direction: 'DESC', limit: 40 }),
+      const [history, vehicle] = await Promise.all([
+        inspectionRepo.list(vehicleId, { orderBy: 'occurred_at', direction: 'DESC', limit: 60 }),
         vehicleRepo.getById(vehicleId),
       ]);
-      if (cancelled) return;
       // A motorcycle gets T-CLOCS, a diesel gets the water separator; neither
-      // should be asked about the other's checklist.
-      if (vehicle) setVehicleType(templatesForVehicle(vehicle.type, vehicle.defaultFuelType));
-      // Global templates plus any copy scoped to this vehicle.
-      setTemplates(all.filter((t) => t.isEnabled && (t.vehicleId == null || t.vehicleId === vehicleId)));
+      // should be asked about the other's checklist. Edited templates arrive as
+      // this vehicle's own copy.
+      const mine = vehicle ? await templatesForVehicle(vehicle) : [];
+      if (cancelled) return;
+      setTemplates(mine);
       setRuns(history);
     })().catch(() => {});
     return () => {
@@ -63,12 +57,21 @@ export default function ChequeoScreen() {
   if (!activeVehicle) return null;
 
   const today = todayIso();
-  const mine = templates.filter((t) => t.vehicleType === vehicleType);
-  const runsFor = (templateId: string) => runs.filter((r) => r.templateId === templateId);
-  const due = mine.filter((t) => isDue(t.cadence, runsFor(t.id), today));
+  const mine = templates;
+  const enabled = mine.filter((t) => t.isEnabled);
+  // A vehicle's copy of a seeded template inherits the runs done before it was
+  // edited — editing the list must not reset the streak or make it due again.
+  const runsFor = (templateId: string) =>
+    runs.filter((r) => baseTemplateId(r.templateId) === baseTemplateId(templateId));
+  const due = enabled.filter((t) => isDue(t.cadence, runsFor(t.id), today));
 
-  const weekly = mine.find((t) => t.cadence === 'semanal');
+  const weekly = enabled.find((t) => t.cadence === 'semanal');
   const streak = weekly ? weeklyStreak(runsFor(weekly.id), today) : 0;
+  const nameOf = (templateId: string) =>
+    mine.find((t) => baseTemplateId(t.id) === baseTemplateId(templateId))?.name ?? '';
+
+  const toggle = (template: InspectionTemplate) =>
+    void setTemplateEnabled(template.id, activeVehicle.id, !template.isEnabled).then(refresh);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -123,25 +126,44 @@ export default function ChequeoScreen() {
           {es.check.templates}
         </T>
         {mine.map((template) => (
-          <Pressable
-            key={template.id}
-            onPress={() =>
-              router.push({ pathname: '/chequeo/[templateId]/run', params: { templateId: template.id } })
-            }
-            accessibilityRole="button"
-            style={[styles.templateRow, { borderColor: theme.line }]}>
-            <View style={{ flex: 1 }}>
+          <View key={template.id} style={[styles.templateRow, { borderColor: theme.line }]}>
+            <Pressable
+              onPress={() =>
+                template.isEnabled
+                  ? router.push({ pathname: '/chequeo/[templateId]/run', params: { templateId: template.id } })
+                  : undefined
+              }
+              disabled={!template.isEnabled}
+              accessibilityRole="button"
+              style={{ flex: 1, opacity: template.isEnabled ? 1 : 0.5 }}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
                 {template.name}
               </T>
               <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
                 {es.check.cadences[template.cadence]}
+                {template.isEnabled ? '' : ` · ${es.check.disabled}`}
               </T>
-            </View>
-            <T face="body" style={{ color: theme.accent, fontSize: 13 }}>
-              {es.check.start}
-            </T>
-          </Pressable>
+            </Pressable>
+            <Pressable
+              onPress={() => toggle(template)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: template.isEnabled }}
+              accessibilityLabel={`${template.name}: ${template.isEnabled ? es.check.turnOff : es.check.turnOn}`}
+              hitSlop={8}>
+              <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
+                {template.isEnabled ? es.check.turnOff : es.check.turnOn}
+              </T>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push({ pathname: '/chequeo/plantillas/[id]', params: { id: template.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={`${es.check.edit} ${template.name}`}
+              hitSlop={8}>
+              <T face="body" style={{ color: theme.accent, fontSize: 13 }}>
+                {es.check.edit}
+              </T>
+            </Pressable>
+          </View>
         ))}
 
         {runs.length ? (
@@ -155,12 +177,17 @@ export default function ChequeoScreen() {
                 onPress={() => router.push({ pathname: '/inspeccion/[id]', params: { id: run.id } })}
                 accessibilityRole="button"
                 style={[styles.runRow, { borderColor: theme.line }]}>
-                <T face="body" style={{ color: theme.text.secondary, flex: 1, fontSize: 13 }}>
-                  {dateLabel(run.occurredAt)}
-                </T>
+                <View style={{ flex: 1 }}>
+                  <T face="semibold" style={{ color: theme.text.primary, fontSize: 13 }}>
+                    {nameOf(run.templateId) || es.check.title}
+                  </T>
+                  <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
+                    {dateLabel(run.occurredAt)}
+                  </T>
+                </View>
                 <StatusPill
                   status={run.status === 'ok' ? 'ok' : 'urgente'}
-                  label={run.status === 'ok' ? es.check.resultAllGood : 'Con fallas'}
+                  label={run.status === 'ok' ? es.check.resultAllGood : es.check.withFails}
                 />
               </Pressable>
             ))}

@@ -23,7 +23,7 @@ import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
 import { es } from '@/lib/i18n/es';
-import { configure as configureNotifications, resync } from '@/lib/notifications';
+import { configure as configureNotifications, requestResync, routeOf } from '@/lib/notifications';
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
@@ -106,38 +106,54 @@ export default function RootLayout() {
 
 /**
  * Notification wiring: create the channel, follow a tapped notification to its
- * screen, and rebuild the schedule whenever the app comes back to the
- * foreground — cheap, and it means a plan can never go stale after a day of
- * edits made elsewhere.
+ * screen — including the tap that launched the app from closed — and rebuild
+ * the schedule after writes (debounced: `data` changes on every one) and
+ * whenever the app comes back to the foreground, so a plan can never go stale
+ * after a day of edits made elsewhere.
  */
 function useNotifications() {
   const router = useRouter();
-  const { activeVehicle, data } = useStore();
-  const vehicleId = activeVehicle?.id;
+  const { data } = useStore();
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
     void configureNotifications();
 
+    let cancelled = false;
     let subscription: { remove: () => void } | null = null;
-    void import('expo-notifications').then((N) => {
+    void import('expo-notifications').then(async (N) => {
+      if (cancelled) return;
       subscription = N.addNotificationResponseReceivedListener((response) => {
-        const route = response.notification.request.content.data?.route;
-        if (typeof route === 'string') router.push(route as never);
+        const route = routeOf(response);
+        if (route) router.push(route as never);
       });
+      // A tap on a notification while the app was closed arrives as the "last
+      // response" rather than through the listener. Cleared once followed, so a
+      // later remount does not send the user back there.
+      const launch = await N.getLastNotificationResponseAsync();
+      const route = launch ? routeOf(launch) : null;
+      if (route && !cancelled) {
+        await N.clearLastNotificationResponseAsync();
+        router.push(route as never);
+      }
     });
-    return () => subscription?.remove();
+    return () => {
+      cancelled = true;
+      subscription?.remove();
+    };
   }, [router]);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !vehicleId) return;
-    const run = () => void resync(vehicleId).catch(() => {});
-    run();
+    requestResync();
+  }, [data]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
     const listener = AppState.addEventListener('change', (state) => {
-      if (state === 'active') run();
+      if (state === 'active') requestResync();
     });
     return () => listener.remove();
-  }, [vehicleId, data]);
+  }, []);
 }
 
 function Booting() {
@@ -200,9 +216,13 @@ function Shell() {
         <Stack.Screen name="gasto/[id]" options={{ headerShown: true, title: es.routes.expense }} />
         <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: es.routes.check }} />
         <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: es.routes.guide }} />
+        <Stack.Screen name="chequeo/plantillas/[id]" options={{ headerShown: true, title: es.routes.templateEditor }} />
         <Stack.Screen name="inspeccion/[id]" options={{ headerShown: true, title: es.routes.inspection }} />
         <Stack.Screen name="recordatorios/index" options={{ headerShown: true, title: es.routes.reminders }} />
         <Stack.Screen name="recordatorio/[id]" options={{ headerShown: true, title: es.routes.reminder }} />
+        <Stack.Screen name="recordatorio/nuevo" options={{ headerShown: true, title: es.reminders.newTitle }} />
+        <Stack.Screen name="catalogo/index" options={{ headerShown: true, title: es.catalog.title }} />
+        <Stack.Screen name="catalogo/[id]" options={{ headerShown: true, title: es.catalog.title }} />
         <Stack.Screen name="tareas/index" options={{ headerShown: true, title: es.routes.tasks }} />
         <Stack.Screen name="tarea/nueva" options={{ presentation: 'modal', headerShown: true, title: es.routes.newTask }} />
         <Stack.Screen name="tarea/[id]" options={{ headerShown: true, title: es.routes.task }} />

@@ -1,4 +1,11 @@
-import { bySeverity, displayDueDate, evaluate } from '@/lib/domain/reminders';
+import {
+  bySeverity,
+  displayDueDate,
+  evaluate,
+  mergeAttention,
+  needsAttention,
+  retargetInterval,
+} from '@/lib/domain/reminders';
 import type { Reminder } from '@/lib/db/types';
 
 /**
@@ -232,5 +239,101 @@ describe('bySeverity', () => {
     ];
     const order = [...rows].sort(bySeverity).map((x) => x.status.status);
     expect(order).toEqual(['vencido', 'urgente', 'proximo', 'sin_datos', 'ok']);
+  });
+});
+
+describe('legal thresholds per kind', () => {
+  it('licencia warns at 60 and turns urgent at 30 days', () => {
+    const lic = (dueDate: string) => reminder({ legalKind: 'licencia', metric: 'date', dueDate });
+    expect(evaluate(lic(iso(2026, 11, 20)), ctx()).status).toBe('ok'); // 63 days
+    expect(evaluate(lic(iso(2026, 11, 15)), ctx()).status).toBe('proximo'); // 58 days
+    expect(evaluate(lic(iso(2026, 10, 16)), ctx()).status).toBe('urgente'); // 28 days
+  });
+
+  it('seguro keeps 45/14', () => {
+    const seg = (dueDate: string) => reminder({ legalKind: 'seguro', metric: 'date', dueDate });
+    expect(evaluate(seg(iso(2026, 11, 20)), ctx()).status).toBe('ok');
+    expect(evaluate(seg(iso(2026, 10, 20)), ctx()).status).toBe('proximo'); // 32 days
+    expect(evaluate(seg(iso(2026, 9, 30)), ctx()).status).toBe('urgente'); // 12 days
+  });
+});
+
+describe('bySeverity — within a group', () => {
+  it('orders a km-only reminder by its predicted date, not last', () => {
+    // 40 km/day: 1,000 km left is ~25 days; the date one is 28 days out.
+    const km = reminder({ id: 'km', metric: 'km', dueKm: 51_000, intervalKm: 10_000 });
+    const date = reminder({ id: 'date', metric: 'date', dueDate: iso(2026, 10, 16) });
+    const rows = [date, km].map((r) => ({ reminder: r, status: evaluate(r, ctx()) }));
+    expect(rows.every((r) => r.status.status === 'proximo')).toBe(true);
+    expect([...rows].sort(bySeverity).map((r) => r.reminder.id)).toEqual(['km', 'date']);
+  });
+});
+
+describe('needsAttention / mergeAttention', () => {
+  const ev = (over: Partial<Reminder>) => {
+    const r = reminder(over);
+    return { reminder: r, status: evaluate(r, ctx()) };
+  };
+
+  it('leaves sin datos off the home row', () => {
+    expect(needsAttention(ev({ legalKind: 'seguro', dueDate: null }).status)).toBe(false);
+    expect(needsAttention(ev({ dueDate: iso(2026, 9, 1) }).status)).toBe(true);
+    expect(needsAttention(ev({ dueDate: iso(2027, 9, 1) }).status)).toBe(false);
+  });
+
+  it('puts a critical task first, a normal one after urgent reminders', () => {
+    const vencido = ev({ id: 'v', dueDate: iso(2026, 9, 1) });
+    const urgente = ev({ id: 'u', dueDate: iso(2026, 9, 20) });
+    const proximo = ev({ id: 'p', dueDate: iso(2026, 10, 10) });
+    const sinDatos = ev({ id: 's', legalKind: 'seguro', dueDate: null });
+    const merged = mergeAttention(
+      [vencido, urgente, proximo, sinDatos],
+      [
+        { id: 'tn', priority: 'normal' as const },
+        { id: 'tc', priority: 'critica' as const },
+      ],
+      10,
+    );
+    expect(merged.map((m) => (m.kind === 'task' ? m.item.id : m.item.reminder.id))).toEqual([
+      'tc',
+      'v',
+      'u',
+      'tn',
+      'p',
+    ]);
+  });
+
+  it('caps at the limit', () => {
+    const many = Array.from({ length: 6 }, (_, i) => ev({ id: `r${i}`, dueDate: iso(2026, 9, 1) }));
+    expect(mergeAttention(many, [], 4)).toHaveLength(4);
+  });
+});
+
+describe('retargetInterval', () => {
+  it('moves a reminder still on the old default, keeping its anchor', () => {
+    const r = reminder({
+      metric: 'both',
+      intervalKm: 5_000,
+      intervalMonths: 6,
+      lastCompletedKm: 45_000,
+      lastCompletedAt: iso(2026, 6, 1),
+      dueKm: 50_000,
+      dueDate: iso(2026, 12, 1),
+    });
+    const patch = retargetInterval(r, { km: 5_000, months: 6 }, { km: 8_000, months: 4 });
+    expect(patch).toEqual({ intervalKm: 8_000, dueKm: 53_000, intervalMonths: 4, dueDate: iso(2026, 10, 1) });
+  });
+
+  it('falls back to due minus old interval when never completed', () => {
+    const r = reminder({ metric: 'km', intervalKm: 5_000, dueKm: 55_000, intervalMonths: null });
+    expect(retargetInterval(r, { km: 5_000, months: null }, { km: 7_000, months: null })).toEqual({
+      intervalKm: 7_000,
+      dueKm: 57_000,
+    });
+  });
+
+  it('leaves a customised interval alone', () => {
+    const r = reminder({ intervalKm: 7_500, intervalMonths: 6, dueKm: 55_000 });
+    expect(retargetInterval(r, { km: 5_000, months: 6 }, { km: 8_000, months: 6 })).toBeNull();
   });
 });

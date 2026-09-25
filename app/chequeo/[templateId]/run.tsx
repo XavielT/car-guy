@@ -6,15 +6,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
-import { GaugeRing, PrimaryButton, Surface } from '@/components/ui';
+import { GaugeRing, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import {
   currentOdometer as currentOdometerQuery,
   inspectionItems as itemRepo,
   inspectionTemplates as templateRepo,
 } from '@/lib/db/repos';
-import { saveInspection, type Answer } from '@/lib/db/inspectionOps';
-import type { InspectionItem, InspectionTemplate } from '@/lib/db/types';
+import { resultIdFor, saveInspection, type Answer } from '@/lib/db/inspectionOps';
+import type { InspectionItem, InspectionTemplate, OnFail } from '@/lib/db/types';
+import { id as newId } from '@/lib/format';
 import { todayIso } from '@/lib/domain/dates';
 import { es } from '@/lib/i18n/es';
 import { parseDecimal } from '@/lib/math';
@@ -43,11 +44,23 @@ export default function RunScreen() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<Record<string, string | null>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [actions, setActions] = useState<Record<string, OnFail>>({});
+  // Chosen now so a photo taken mid-run can name the result that will own it.
+  const [inspectionId] = useState(() => newId());
+  const [elapsed, setElapsed] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [odometer, setOdometer] = useState('');
   const [error, setError] = useState<string | null>(null);
   // Lazy initialiser, not a bare Date.now() in the render body: the clock is
   // impure and the lint rightly refuses to have it read on every render.
   const [startedAt] = useState(() => Date.now());
+
+  // The timer is a gentle one: it shows the check really is two minutes, and
+  // feeds duration_sec. It never hurries anyone.
+  useEffect(() => {
+    const tick = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(tick);
+  }, [startedAt]);
 
   const vehicleId = activeVehicle?.id;
 
@@ -92,11 +105,13 @@ export default function RunScreen() {
       result: answers[item.id] ?? 'na',
       note: notes[item.id] ?? '',
       mediaId: photos[item.id] ?? null,
-      action: item.onFail === 'none' ? 'none' : 'task',
+      action: actions[item.id] ?? item.onFail,
     }));
 
+    setSaving(true);
     void (async () => {
       const result = await saveInspection({
+        id: inspectionId,
         vehicleId: activeVehicle!.id,
         templateId: template!.id,
         occurredAt: todayIso(),
@@ -105,7 +120,7 @@ export default function RunScreen() {
         answers: payload,
       });
       await refresh();
-      router.replace({ pathname: '/inspeccion/[id]', params: { id: result.id } });
+      router.replace({ pathname: '/inspeccion/[id]', params: { id: result.id, fresh: '1' } });
     })();
   }
 
@@ -118,7 +133,7 @@ export default function RunScreen() {
               {template.name}
             </T>
             <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
-              {answered}/{items.length}
+              {answered}/{items.length} · {es.check.elapsed(Math.floor(elapsed / 60), elapsed % 60)}
             </T>
           </View>
           <GaugeRing progress={items.length ? answered / items.length : 0} size={72} />
@@ -202,14 +217,23 @@ export default function RunScreen() {
                       <PhotoPicker
                         mediaId={photos[item.id] ?? null}
                         ownerTable="inspection_result"
-                        ownerId={item.id}
+                        ownerId={resultIdFor(inspectionId, item.id)}
                         vehicleId={activeVehicle.id}
                         height={130}
                         onChange={(mediaId) => setPhotos((p) => ({ ...p, [item.id]: mediaId }))}
                       />
-                      <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-                        {item.onFail === 'none' ? es.check.onFailNothing : es.check.onFailTask}
+                      <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
+                        {es.check.onFailTitle}
                       </T>
+                      <Segmented
+                        options={[
+                          { key: 'task', label: es.check.onFailShort.task },
+                          { key: 'reminder', label: es.check.onFailShort.reminder },
+                          { key: 'none', label: es.check.onFailShort.none },
+                        ]}
+                        value={actions[item.id] ?? item.onFail}
+                        onChange={(v) => setActions((p) => ({ ...p, [item.id]: v }))}
+                      />
                     </View>
                   ) : null}
                 </Surface>
@@ -233,7 +257,7 @@ export default function RunScreen() {
 
         <PrimaryButton
           label={remaining > 0 ? `${es.check.finish} · ${es.check.remaining(remaining)}` : es.check.finish}
-          disabled={remaining > 0}
+          disabled={remaining > 0 || saving}
           onPress={finish}
         />
       </ScrollView>

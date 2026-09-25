@@ -88,10 +88,10 @@ export default function MasScreen() {
         {data.vehicles.map((v) => {
           const active = v.id === activeVehicle?.id;
           return (
-            <Pressable
+            // The row and "Activar" are siblings, not one inside the other: a
+            // button nested in a button is invalid HTML on web.
+            <View
               key={v.id}
-              onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
-              accessibilityRole="button"
               style={[
                 styles.vehicle,
                 {
@@ -99,7 +99,10 @@ export default function MasScreen() {
                   borderColor: active ? theme.accent : theme.line,
                 },
               ]}>
-              <View style={{ flex: 1 }}>
+              <Pressable
+                onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
+                accessibilityRole="button"
+                style={{ flex: 1 }}>
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
                   {v.name}
                 </T>
@@ -107,13 +110,13 @@ export default function MasScreen() {
                   {v.plate ? `${v.plate} · ` : ''}
                   {FUEL_CATALOG[v.defaultFuelType].label}
                 </T>
-              </View>
+              </Pressable>
               {active ? (
                 <StatusPill status="ok" label={es.more.active} />
               ) : (
                 <GhostButton label={es.more.activate} onPress={() => setActiveVehicle(v.id)} />
               )}
-            </Pressable>
+            </View>
           );
         })}
         <PrimaryButton label={es.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
@@ -133,6 +136,11 @@ export default function MasScreen() {
           label={es.more.reminders}
           caption={es.more.remindersCaption}
           onPress={() => router.push('/recordatorios')}
+        />
+        <NavRow
+          label={es.catalog.title}
+          caption={es.catalog.caption}
+          onPress={() => router.push('/catalogo')}
         />
         <NavRow
           label={es.more.tasks}

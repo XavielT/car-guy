@@ -12,12 +12,13 @@ import {
   odometer as odometerRepo,
   settings as settingsRepo,
   tasks as taskRepo,
+  vehicles as vehicleRepo,
 } from '@/lib/db/repos';
 import { attentionReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import type { Task } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
-import { isMarbeteWindowOpen, marbeteNudges } from '@/lib/domain/legal-dr';
-import { STATUS_LABEL } from '@/lib/domain/reminders';
+import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
+import { mergeAttention, STATUS_LABEL } from '@/lib/domain/reminders';
 import { economyLabel, FUEL_CATALOG } from '@/lib/fuel';
 import { kmPerUnit, money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
@@ -46,6 +47,7 @@ export default function HomeScreen() {
   const [monthKm, setMonthKm] = useState<number>(0);
   const [attention, setAttention] = useState<EvaluatedReminder[]>([]);
   const [openTasks, setOpenTasks] = useState<Task[]>([]);
+  const [modelYear, setModelYear] = useState<number | null>(null);
 
   // The account nudge: shown once the garage has something worth protecting,
   // dismissible for good. `null` means "not read from storage yet", which keeps
@@ -70,19 +72,21 @@ export default function HomeScreen() {
     let cancelled = false;
 
     (async () => {
-      const [max, readings] = await Promise.all([
+      const [max, readings, vehicle] = await Promise.all([
         currentOdometerQuery(vehicleId),
         odometerRepo.list(vehicleId, { orderBy: 'occurred_at', direction: 'DESC' }),
+        vehicleRepo.getById(vehicleId),
       ]);
       if (cancelled) return;
 
       setOdometerKm(max);
+      setModelYear(vehicle?.year ?? null);
       setDaysSince(readings[0] ? daysBetween(readings[0].occurredAt, todayIso()) : null);
 
       // Distance this month = newest reading minus the last one from before the
       // month started. Readings, not fill-ups: a service visit or a manual entry
       // moves the odometer too.
-      const now = new Date();
+      const now = new Date(todayIso());
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 12).toISOString();
       const values = readings.filter((r) => r.occurredAt >= monthStart).map((r) => r.valueKm);
       if (values.length === 0) {
@@ -95,8 +99,9 @@ export default function HomeScreen() {
     })().catch(() => {});
 
     // The telltales now come from the real engine rather than the simple date
-    // comparison Phase 3 used as a placeholder.
-    attentionReminders(vehicleId)
+    // comparison Phase 3 used as a placeholder. Asked for more than four so
+    // the merge with tasks below has something to rank.
+    attentionReminders(vehicleId, 8)
       .then((rows) => {
         if (!cancelled) setAttention(rows);
       })
@@ -119,7 +124,7 @@ export default function HomeScreen() {
 
   if (!activeVehicle) return null;
 
-  const now = new Date();
+  const now = new Date(todayIso());
   const monthLogs = vehicleFillups.filter((f) => inMonth(f.occurredAt, now.getFullYear(), now.getMonth()));
   const monthExpenses = vehicleExpenses.filter((e) =>
     inMonth(e.occurredAt, now.getFullYear(), now.getMonth()),
@@ -131,19 +136,25 @@ export default function HomeScreen() {
   const insight = latestEconomyInsight(vehicleFillups);
   const avg = economy.length ? economy.reduce((a, p) => a + p.kmPerUnit, 0) / economy.length : null;
 
-  const telltales: Telltale[] = [
-    ...attention.map(({ reminder, status }) => ({
-      status: status.status === 'sin_datos' ? ('proximo' as const) : status.status,
-      label: telltaleLabel(reminder.title, status),
-    })),
-    ...openTasks.map((task) => ({
-      status: TASK_STATUS[task.priority],
-      label: task.title,
-      onPress: () => router.push({ pathname: '/tarea/[id]', params: { id: task.id } }),
-    })),
-  ];
+  // One strip, worst first across both kinds (see `mergeAttention`): a critical
+  // task from a failed check outranks an overdue oil change.
+  const telltales: Telltale[] = mergeAttention(attention, openTasks, 4).map((entry) =>
+    entry.kind === 'reminder'
+      ? {
+          status: entry.item.status.status === 'sin_datos' ? ('proximo' as const) : entry.item.status.status,
+          label: telltaleLabel(entry.item.reminder.title, entry.item.status),
+          onPress: () =>
+            router.push({ pathname: '/recordatorio/[id]', params: { id: entry.item.reminder.id } }),
+        }
+      : {
+          status: TASK_STATUS[entry.item.priority],
+          label: entry.item.title,
+          onPress: () => router.push({ pathname: '/tarea/[id]', params: { id: entry.item.id } }),
+        },
+  );
 
-  const marbeteNotice = isMarbeteWindowOpen(todayIso()) ? marbeteNudges(todayIso())[0] : null;
+  const marbeteNotice = currentMarbeteNudge(todayIso());
+  const marbeteTier = marbeteNotice ? marbeteTierLabel(modelYear, todayIso()) : null;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -205,6 +216,11 @@ export default function HomeScreen() {
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
               {marbeteNotice.message}
             </T>
+            {marbeteTier ? (
+              <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
+                {marbeteTier}
+              </T>
+            ) : null}
           </Pressable>
         ) : null}
 

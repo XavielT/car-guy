@@ -283,9 +283,11 @@ export const INSPECTION_TEMPLATES: InspectionTemplateSeed[] = [
     ],
   },
   {
+    // T-CLOCS is meant for before every ride. Research §A.4 splits it the way
+    // people actually ride: the quick look daily, fluids and chain weekly.
     id: 'motor_prerodaje',
     name: 'Antes de rodar (T-CLOCS)',
-    cadence: 'antes_de_viaje',
+    cadence: 'diaria',
     vehicleType: 'motor',
     items: [
       {
@@ -307,6 +309,20 @@ export const INSPECTION_TEMPLATES: InspectionTemplateSeed[] = [
         warning: 'Alguna luz que no prende, cable pelado.',
       },
       {
+        group: 'Parales',
+        label: 'Parales',
+        how: 'Pata lateral y central: resortes completos y sin daño.',
+        warning: 'Que no suba sola al arrancar.',
+      },
+    ],
+  },
+  {
+    id: 'motor_semanal',
+    name: 'Chequeo semanal (motor)',
+    cadence: 'semanal',
+    vehicleType: 'motor',
+    items: [
+      {
         group: 'Aceite y fluidos',
         label: 'Aceite y fluidos',
         how: 'Aceite de motor, aceite de caja, líquido hidráulico de freno o clutch, refrigerante si es líquida, y combustible.',
@@ -321,19 +337,20 @@ export const INSPECTION_TEMPLATES: InspectionTemplateSeed[] = [
         warning: 'Lubrica la cadena cada ~500 km o después de lluvia.',
         serviceTypeId: 'cadena_moto',
       },
-      {
-        group: 'Parales',
-        label: 'Parales',
-        how: 'Pata lateral y central: resortes completos y sin daño.',
-        warning: 'Que no suba sola al arrancar.',
-      },
     ],
   },
 ];
 
-/** Which inspection template a vehicle type starts on. */
-export function templatesForVehicle(vehicleType: string, fuelType: string): TemplateVehicleType {
-  if (vehicleType === 'motor') return 'motor';
-  if (fuelType === 'gasoil_regular' || fuelType === 'gasoil_optimo') return 'diesel';
-  return 'carro';
+/**
+ * The seeded checklists a vehicle starts with (01-data-model.md §3.5).
+ *
+ * A diesel keeps the car's daily and monthly checks and swaps only the weekly
+ * one for the version with the water separator and the intercooler.
+ */
+export function templateIdsForVehicle(vehicleType: string, fuelType: string): string[] {
+  if (vehicleType === 'motor') return ['motor_prerodaje', 'motor_semanal'];
+  if (fuelType === 'gasoil_regular' || fuelType === 'gasoil_optimo') {
+    return ['carro_diario', 'diesel_semanal', 'carro_mensual'];
+  }
+  return ['carro_diario', 'carro_semanal', 'carro_mensual'];
 }

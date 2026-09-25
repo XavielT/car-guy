@@ -1,5 +1,8 @@
 import {
+  currentMarbeteNudge,
   isMarbeteWindowOpen,
+  marbeteTierLabel,
+  vidaUtilTone,
   marbeteNudges,
   marbeteTier,
   marbeteWindowOpens,
@@ -132,5 +135,45 @@ describe('vidaUtil', () => {
     const v = vidaUtil('carro', null, iso(2026, 9, 18));
     expect(v.limitYears).toBe(15);
     expect(v.age).toBeNull();
+  });
+});
+
+describe('currentMarbeteNudge', () => {
+  it('is null outside the window', () => {
+    expect(currentMarbeteNudge(iso(2026, 9, 18))).toBeNull();
+    expect(currentMarbeteNudge(iso(2027, 2, 2))).toBeNull();
+  });
+
+  it('shows the heads-up, not the opening, before sales open', () => {
+    expect(currentMarbeteNudge(iso(2026, 10, 16))?.message).toMatch(/abre pronto/);
+  });
+
+  it('keeps showing the opening through November and December', () => {
+    expect(currentMarbeteNudge(iso(2026, 11, 20))?.message).toMatch(/Ya abrió/);
+    expect(currentMarbeteNudge(iso(2026, 12, 31))?.message).toMatch(/Ya abrió/);
+  });
+
+  it('escalates through January across the year boundary', () => {
+    expect(currentMarbeteNudge(iso(2027, 1, 6))?.message).toMatch(/Enero empezó/);
+    // Sent on the 18th as "cierra hoy"; on the banner afterwards, in the past tense.
+    expect(currentMarbeteNudge(iso(2027, 1, 18))?.message).toMatch(/cierra hoy/);
+    expect(currentMarbeteNudge(iso(2027, 1, 20))?.message).toMatch(/cerró el 18/);
+    expect(currentMarbeteNudge(iso(2027, 1, 31))?.message).toMatch(/Hoy vence/);
+  });
+});
+
+describe('marbeteTierLabel / vidaUtilTone', () => {
+  it('labels the tier as an estimate', () => {
+    expect(marbeteTierLabel(2024, iso(2026, 11, 1))).toBe('Estimado: RD$3,000');
+    expect(marbeteTierLabel(2010, iso(2026, 11, 1))).toBe('Estimado: RD$1,500');
+    expect(marbeteTierLabel(null, iso(2026, 11, 1))).toBeNull();
+  });
+
+  it('colours the vida útil badge by what is left', () => {
+    const today = iso(2026, 9, 18);
+    expect(vidaUtilTone(vidaUtil('carro', 2020, today))).toBe('ok');
+    expect(vidaUtilTone(vidaUtil('motor', 2017, today))).toBe('proximo');
+    expect(vidaUtilTone(vidaUtil('motor', 2010, today))).toBe('urgente');
+    expect(vidaUtilTone(vidaUtil('carro', null, today))).toBe('neutral');
   });
 });

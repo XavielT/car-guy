@@ -1,4 +1,4 @@
-import { INSPECTION_TEMPLATES, SERVICE_TYPES } from '@/lib/domain/catalog';
+import { INSPECTION_TEMPLATES, SERVICE_TYPES, templateIdsForVehicle } from '@/lib/domain/catalog';
 import { addMonths, daysBetween, nextJanuary31 } from '@/lib/domain/dates';
 
 /**
@@ -65,6 +65,49 @@ describe('INSPECTION_TEMPLATES', () => {
     for (const item of weekly.items) {
       if (!item.serviceTypeId) continue;
       expect(`${item.label}:${serviceIds.has(item.serviceTypeId)}`).toBe(`${item.label}:true`);
+    }
+  });
+});
+
+describe('templateIdsForVehicle', () => {
+  const byId = new Map(INSPECTION_TEMPLATES.map((t) => [t.id, t]));
+  const cadences = (ids: string[]) => ids.map((id) => byId.get(id)!.cadence);
+
+  it('gives a gasoline car, jeepeta or camioneta the daily, weekly and monthly checks', () => {
+    for (const type of ['carro', 'jeepeta', 'camioneta']) {
+      expect(templateIdsForVehicle(type, 'gasolina_regular')).toEqual([
+        'carro_diario',
+        'carro_semanal',
+        'carro_mensual',
+      ]);
+    }
+  });
+
+  it('swaps only the weekly check on a diesel', () => {
+    for (const fuel of ['gasoil_regular', 'gasoil_optimo']) {
+      expect(templateIdsForVehicle('jeepeta', fuel)).toEqual([
+        'carro_diario',
+        'diesel_semanal',
+        'carro_mensual',
+      ]);
+    }
+  });
+
+  it('gives a motorcycle T-CLOCS daily and fluids and chain weekly', () => {
+    const ids = templateIdsForVehicle('motor', 'gasolina_regular');
+    expect(ids).toEqual(['motor_prerodaje', 'motor_semanal']);
+    expect(cadences(ids)).toEqual(['diaria', 'semanal']);
+    const weekly = byId.get('motor_semanal')!.items.map((i) => i.serviceTypeId);
+    expect(weekly).toEqual(expect.arrayContaining(['aceite_motor', 'cadena_moto']));
+  });
+
+  it('only names templates that exist', () => {
+    for (const [type, fuel] of [
+      ['carro', 'gasolina_premium'],
+      ['camioneta', 'gasoil_optimo'],
+      ['motor', 'gasolina_regular'],
+    ]) {
+      for (const id of templateIdsForVehicle(type, fuel)) expect(byId.has(id)).toBe(true);
     }
   });
 });

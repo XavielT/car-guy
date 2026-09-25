@@ -60,7 +60,12 @@ export function marbeteTier(modelYear: number | null, today: string): number | n
   return deadlineYear - modelYear < NEW_TIER_YEARS ? MARBETE_TIER_NEW : MARBETE_TIER_OLD;
 }
 
-export type MarbeteNudge = { date: string; message: string };
+export type MarbeteNudge = {
+  date: string;
+  message: string;
+  /** The banner wording once the day itself has passed, when it differs. */
+  later?: string;
+};
 
 /**
  * The escalation, from a gentle heads-up in October to the deadline itself.
@@ -69,7 +74,30 @@ export type MarbeteNudge = { date: string; message: string };
  * research put on-time renewal at 86 % but only 30.7 % done by Boxing Day.
  */
 export function marbeteNudges(today: string): MarbeteNudge[] {
-  const deadline = nextMarbeteDeadline(today);
+  return nudgesFor(nextMarbeteDeadline(today)).filter((n) => daysBetween(today, n.date) >= 0);
+}
+
+/**
+ * What the Inicio banner should say today: the latest nudge that has already
+ * arrived, not the next one coming. Showing the next one had the banner
+ * announcing "Ya abrió la venta" a week before sales opened, and "Enero
+ * empezó" all through November.
+ *
+ * Null outside the window.
+ */
+export function currentMarbeteNudge(today: string): MarbeteNudge | null {
+  if (!isMarbeteWindowOpen(today)) return null;
+  const arrived = nudgesFor(nextMarbeteDeadline(today)).filter(
+    (n) => daysBetween(n.date, today) >= 0,
+  );
+  const latest = arrived[arrived.length - 1];
+  if (!latest) return null;
+  // The banner outlives the day its nudge was sent, so a nudge worded for
+  // that day carries the wording for the days after it.
+  return daysBetween(latest.date, today) > 0 && latest.later ? { ...latest, message: latest.later } : latest;
+}
+
+function nudgesFor(deadline: string): MarbeteNudge[] {
   const year = new Date(deadline).getFullYear();
   const opens = marbeteWindowOpens(deadline);
   const at = (m: number, d: number) => new Date(year, m, d, 12).toISOString();
@@ -81,13 +109,20 @@ export function marbeteNudges(today: string): MarbeteNudge[] {
     { date: at(0, 12), message: 'Quedan menos de tres semanas para el marbete.' },
     {
       date: at(0, ONLINE_CLOSES_DAY),
-      message: 'Hoy cierra la venta en línea del marbete. Después solo en banco.',
+      message: 'La venta en línea del marbete cierra hoy. Después, solo en el banco.',
+      later: 'La venta en línea del marbete cerró el 18. Ahora solo en el banco.',
     },
     { date: at(0, 25), message: 'Una semana para el marbete. Después son RD$2,000 de recargo.' },
     { date: at(0, 31), message: 'Hoy vence el marbete. Sin prórroga.' },
   ];
 
-  return nudges.filter((n) => daysBetween(today, n.date) >= 0);
+  return nudges;
+}
+
+/** "Estimado: RD$1,500" — the tier as a line the banner can carry. */
+export function marbeteTierLabel(modelYear: number | null, today: string): string | null {
+  const tier = marbeteTier(modelYear, today);
+  return tier == null ? null : `Estimado: RD$${tier.toLocaleString('en-US')}`;
 }
 
 /** Ley 63-17 art. 41 — how long a vehicle may legally circulate. */
@@ -119,6 +154,18 @@ export function vidaUtil(vehicleType: string, modelYear: number | null, today: s
   if (modelYear == null) return { limitYears, age: null, remainingYears: null };
   const age = new Date(today).getFullYear() - modelYear;
   return { limitYears, age, remainingYears: limitYears - age };
+}
+
+/**
+ * How the badge should read: fine, close (two years or less), or past the
+ * limit. Informational, so "past" is urgente-coloured rather than vencido —
+ * nothing is enforcing it yet.
+ */
+export function vidaUtilTone(v: VidaUtil): 'ok' | 'proximo' | 'urgente' | 'neutral' {
+  if (v.remainingYears == null) return 'neutral';
+  if (v.remainingYears < 0) return 'urgente';
+  if (v.remainingYears <= 2) return 'proximo';
+  return 'ok';
 }
 
 /** Lead times before an expiry, in days, per legal kind. */

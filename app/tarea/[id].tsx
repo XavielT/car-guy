@@ -6,7 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Sheet, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { tasks as taskRepo } from '@/lib/db/repos';
+import {
+  inspectionItems as itemRepo,
+  inspectionResults as resultRepo,
+  tasks as taskRepo,
+} from '@/lib/db/repos';
 import type { Task } from '@/lib/db/types';
 import { money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
@@ -28,17 +32,31 @@ export default function TareaScreen() {
   const { refresh, data } = useStore();
 
   const [task, setTask] = useState<Task | null>(null);
+  // A task from a failed check knows which result it came from, and through it
+  // the catalog item — so the record it becomes can carry that item and reset
+  // its reminder, and the task can link back to the check.
+  const [origin, setOrigin] = useState<{ inspectionId: string; serviceTypeId: string | null } | null>(null);
   const [askRegister, setAskRegister] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    taskRepo
-      .getById(id)
-      .then((row) => {
-        if (!cancelled) setTask(row);
-      })
-      .catch(() => {});
+    (async () => {
+      const row = await taskRepo.getById(id);
+      if (cancelled) return;
+      setTask(row);
+      const source = row?.sourceInspectionResultId;
+      if (!source) return setOrigin(null);
+      const result = await resultRepo.getById(source);
+      // Tasks saved before results had stable ids point at the run itself.
+      if (!result) return !cancelled && setOrigin({ inspectionId: source, serviceTypeId: null });
+      // The item may have been switched off in the editor since; it still says
+      // what was checked.
+      const [item] = await itemRepo.listWhere({ id: result.itemId }, { includeDeleted: true });
+      if (!cancelled) {
+        setOrigin({ inspectionId: result.inspectionId, serviceTypeId: item?.relatedServiceTypeId ?? null });
+      }
+    })().catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -73,6 +91,15 @@ export default function TareaScreen() {
             <T face="body" style={{ color: theme.text.secondary, marginTop: space.sm, lineHeight: 20 }}>
               {task.notes}
             </T>
+          ) : null}
+          {origin ? (
+            <Pressable
+              onPress={() => router.push({ pathname: '/inspeccion/[id]', params: { id: origin.inspectionId } })}
+              accessibilityRole="link">
+              <T face="body" style={{ color: theme.accent, fontSize: 13, marginTop: space.sm }}>
+                {es.tasks.fromInspection} ›
+              </T>
+            </Pressable>
           ) : null}
         </Surface>
 
@@ -135,7 +162,12 @@ export default function TareaScreen() {
               await setStatus('hecha');
               router.push({
                 pathname: '/servicio/nuevo',
-                params: { kind: task.kind, taskId: task.id, title: task.title },
+                params: {
+                  kind: task.kind,
+                  taskId: task.id,
+                  title: task.title,
+                  ...(origin?.serviceTypeId ? { serviceTypeId: origin.serviceTypeId } : {}),
+                },
               });
             })();
           }}

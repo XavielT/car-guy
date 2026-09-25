@@ -20,8 +20,9 @@ import {
 } from '@/lib/db/repos';
 import { saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
 import type { ServiceKind, ServiceType } from '@/lib/db/types';
+import { todayIso } from '@/lib/domain/dates';
 import { odometerWarning } from '@/lib/domain/odometer';
-import { dateInputFromIso, isoFromDateInput, todayIsoDate } from '@/lib/format';
+import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
 import { parseDecimal, roundMoney } from '@/lib/math';
@@ -46,7 +47,17 @@ const KIND_COLOR: Record<ServiceKind, string> = {
  */
 export default function NuevoServicioScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string; kind?: string; taskId?: string; title?: string }>();
+  // `serviceTypeId`, `date` and `km` arrive from a reminder's "Hecho" sheet:
+  // the record it opens is what resets that reminder, so the item comes ticked.
+  const params = useLocalSearchParams<{
+    id?: string;
+    kind?: string;
+    taskId?: string;
+    title?: string;
+    serviceTypeId?: string;
+    date?: string;
+    km?: string;
+  }>();
   const editingId = params.id ?? null;
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
@@ -54,11 +65,13 @@ export default function NuevoServicioScreen() {
   const [kind, setKind] = useState<ServiceKind>(
     KINDS.includes(params.kind as ServiceKind) ? (params.kind as ServiceKind) : 'mantenimiento',
   );
-  const [date, setDate] = useState(todayIsoDate());
-  const [odometer, setOdometer] = useState('');
+  const [date, setDate] = useState(
+    params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : dateInputFromIso(todayIso()),
+  );
+  const [odometer, setOdometer] = useState(params.km ?? '');
   const [title, setTitle] = useState(params.title ?? '');
   const [titleTouched, setTitleTouched] = useState(Boolean(params.title));
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(params.serviceTypeId ? [params.serviceTypeId] : []);
   const [search, setSearch] = useState('');
   const [description, setDescription] = useState('');
   const [costParts, setCostParts] = useState('');
@@ -100,12 +113,12 @@ export default function NuevoServicioScreen() {
       setShops(previousShops);
       // Editing keeps the odometer the record was saved with; only a new record
       // gets today's reading pre-filled.
-      if (!editingId && km != null) setOdometer(String(Math.round(km)));
+      if (!editingId && !params.km && km != null) setOdometer(String(Math.round(km)));
     })().catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [vehicleId, editingId]);
+  }, [vehicleId, editingId, params.km]);
 
   // Editing loads the record back into the same form. There is no second screen
   // for it: a record you are correcting has exactly the fields you typed.

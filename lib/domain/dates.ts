@@ -14,9 +14,29 @@ export function dayKey(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/**
+ * A development-only stand-in for today (app/dev/tokens.tsx, "Fecha simulada").
+ *
+ * The marbete window, the due states and the "Para hoy" cards all hinge on
+ * the date, and nudging a phone's clock to 16 October to look at a banner is
+ * slow and breaks everything else on the phone. Every "what day is it?" in the
+ * app goes through `todayIso()`, so overriding it here moves all of them at
+ * once. Ignored outside __DEV__, and never persisted.
+ */
+let simulatedToday: string | null = null;
+
+export function setSimulatedToday(iso: string | null): void {
+  simulatedToday = iso;
+}
+
+export function simulatedTodayIso(): string | null {
+  return simulatedToday;
+}
+
 /** Local noon ISO for today. */
 export function todayIso(): string {
-  const d = new Date();
+  const devOverride = typeof __DEV__ !== 'undefined' && __DEV__ ? simulatedToday : null;
+  const d = devOverride ? new Date(devOverride) : new Date();
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0).toISOString();
 }
 
