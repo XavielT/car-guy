@@ -8,10 +8,11 @@ import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton, Segmented } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
-import { completeAmounts, parseDecimal } from '@/lib/domain/economy';
+import { completeAmounts, odometerBounds, parseDecimal } from '@/lib/domain/economy';
 import { FUEL_CATALOG, STATIONS } from '@/lib/fuel';
 import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtVol } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
+import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FillUp, FuelType } from '@/lib/types';
 
@@ -35,6 +36,7 @@ export function FillUpForm({
   onDelete?: () => void;
 }) {
   const { theme } = useTheme();
+  const { data } = useStore();
 
   const [date, setDate] = useState(initial ? dateInputFromIso(initial.occurredAt) : todayIsoDate());
   const [odo, setOdo] = useState(initial ? String(initial.odometerKm) : '');
@@ -67,8 +69,19 @@ export function FillUpForm({
       Alert.alert(es.fuel.odometer, es.fuel.odometerRequired);
       return;
     }
-    if (lastOdo != null && !initial && odometerKm < lastOdo) {
-      Alert.alert(es.fuel.odometer, es.fuel.odometerTooLow(lastOdo));
+    // Against the fill-ups on either side of this date — for a new one and an
+    // edited one alike.
+    const bounds = odometerBounds(
+      data.fillups.filter((f) => f.vehicleId === vehicleId),
+      isoFromDateInput(date),
+      initial?.id,
+    );
+    if (bounds.min != null && odometerKm < bounds.min) {
+      Alert.alert(es.fuel.odometer, es.fuel.odometerTooLow(bounds.min));
+      return;
+    }
+    if (bounds.max != null && odometerKm > bounds.max) {
+      Alert.alert(es.fuel.odometer, es.fuel.odometerTooHigh(bounds.max));
       return;
     }
     if (!amounts) {
@@ -97,10 +110,10 @@ export function FillUpForm({
         {initial ? es.fuel.editTitle : es.fuel.newTitle}
       </T>
       <T face="body" style={[styles.p, { color: theme.text.secondary }]}>
-        {es.fuel.intro}
+        {es.fuel.intro(es.fuel.unitWord(FUEL_CATALOG[fuel].unit))}
       </T>
 
-      <DateField label={es.fuel.date} value={date} onChange={setDate} />
+      <DateField label={es.fuel.date} value={date} onChange={setDate} noFuture />
       <Field
         label={es.fuel.odometer}
         keyboardType="decimal-pad"
@@ -186,7 +199,7 @@ export function FillUpForm({
             {es.fuel.missedPrevious}
           </T>
           <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: 2 }]}>
-            {es.fuel.missedPreviousHint}
+            {es.fuel.missedPreviousHint(es.fuel.unitWord(FUEL_CATALOG[fuel].unit))}
           </T>
         </View>
       </Pressable>

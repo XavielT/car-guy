@@ -84,7 +84,7 @@ export function CompleteReminderSheet({
 
   return (
     <Sheet visible={reminder != null} onClose={onClose} title={reminder?.title ?? es.reminders.completeTitle}>
-      <DateField label={es.reminders.completeDate} value={date} onChange={setDate} />
+      <DateField label={es.reminders.completeDate} value={date} onChange={setDate} noFuture />
       <Field label={es.reminders.completeKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
       <View style={{ gap: space.xs }}>
         {reminder?.serviceTypeId ? (

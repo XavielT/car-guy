@@ -4,11 +4,13 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
+import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import {
   currentOdometer as currentOdometerQuery,
+  trackedDistance,
   expenses as expenseRepo,
   fuel as fuelRepo,
   serviceRecords as serviceRecordRepo,
@@ -40,9 +42,10 @@ export default function VehicleProfileScreen() {
   const { theme } = useTheme();
   const { refresh, setActiveVehicle, activeVehicle, data, deleteVehicle } = useStore();
 
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [vehicle, setVehicle] = useState<Vehicle | null | undefined>(undefined);
   const [specs, setSpecs] = useState<VehicleSpec[]>([]);
   const [odometerKm, setOdometerKm] = useState<number | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
   const [totals, setTotals] = useState({ spend: 0, fillups: 0, services: 0 });
   const [specName, setSpecName] = useState('');
   const [specValue, setSpecValue] = useState('');
@@ -61,18 +64,20 @@ export default function VehicleProfileScreen() {
     let cancelled = false;
 
     (async () => {
-      const [v, s, km, fuels, services, expenses] = await Promise.all([
+      const [v, s, km, fuels, services, expenses, driven] = await Promise.all([
         vehicleRepo.getById(id),
         specRepo.listWhere({ vehicleId: id }, { orderBy: 'sort_order', direction: 'ASC' }),
         currentOdometerQuery(id),
         fuelRepo.list(id),
         serviceRecordRepo.list(id),
         expenseRepo.list(id),
+        trackedDistance(id),
       ]);
       if (cancelled) return;
 
       setVehicle(v);
       setSpecs(s);
+      setDistance(driven);
       setOdometerKm(km);
       setTotals({
         spend:
@@ -89,6 +94,8 @@ export default function VehicleProfileScreen() {
     };
   }, [id, version, data]);
 
+  // undefined: still loading · null: looked, and it is gone.
+  if (vehicle === null) return <MissingRecord />;
   if (!vehicle) return null;
 
   // Ley 63-17 art. 41. Informational: nothing enforces it until INTRANT's
@@ -167,7 +174,7 @@ export default function VehicleProfileScreen() {
 
         <View style={styles.tiles}>
           <Tile label={es.profile.totalSpend} value={money(totals.spend)} />
-          <Tile label={es.profile.kmLogged} value={odometerKm ? `${Math.round(odometerKm)}` : '—'} />
+          <Tile label={es.profile.kmLogged} value={distance != null ? fmtKm(Math.round(distance)) : '—'} />
           <Tile label={es.profile.fillupCount} value={String(totals.fillups)} />
           <Tile label={es.profile.serviceCount} value={String(totals.services)} />
         </View>

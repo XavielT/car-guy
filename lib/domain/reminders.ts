@@ -398,12 +398,42 @@ export function completeLegal(
 ): { reminder: Reminder; patch: ReminderPatch }[] {
   return reminders
     .filter((r) => r.isEnabled && r.legalKind === legalKind)
-    .map((reminder) => ({
-      reminder,
+    .filter((r) => !alreadyRenewed(r, context.date))
+    .map((reminder) => {
       // Legal items are always fixed-interval, whatever the row says: the
       // deadline is set by the calendar, not by when the payment happened.
-      patch: completeReminder({ ...reminder, fixedInterval: true }, context),
-    }));
+      const patch = completeReminder({ ...reminder, fixedInterval: true }, context);
+      // The marbete's deadline comes from the payment, not from the old due
+      // date plus a year — so recording the same payment twice lands on the
+      // same 31 January instead of skipping a season.
+      if (legalKind === 'marbete') patch.dueDate = marbeteDueAfterPayment(context.date);
+      return { reminder, patch };
+    });
+}
+
+/**
+ * A payment recorded against a reminder that is already far in the future
+ * renews nothing — it is the same renewal recorded again. Without this, each
+ * extra record pushed the due date another year out.
+ */
+function alreadyRenewed(reminder: Reminder, paidOn: string): boolean {
+  if (!reminder.dueDate) return false;
+  return daysBetween(paidOn, reminder.dueDate) > RENEWED_HORIZON_DAYS;
+}
+const RENEWED_HORIZON_DAYS = 183;
+
+/**
+ * The marbete due date after paying it on `paidOn`.
+ *
+ * Sales open in late October and close on 31 January. A payment from October
+ * to December is for the coming 31 January; one from January to September is
+ * for this year's (a late payment still pays the season that just closed). The
+ * next deadline is a year after the one paid.
+ */
+export function marbeteDueAfterPayment(paidOn: string): string {
+  const d = new Date(paidOn);
+  const covered = d.getMonth() >= 9 ? d.getFullYear() + 1 : d.getFullYear();
+  return new Date(covered + 1, 0, 31, 12, 0, 0).toISOString();
 }
 
 /** "Aceite de motor → 57,000 km · 15 mar 2027" */

@@ -25,7 +25,7 @@ import { odometerWarning } from '@/lib/domain/odometer';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
-import { parseDecimal, roundMoney } from '@/lib/math';
+import { isInvalidNumber, parseDecimal, roundMoney } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -206,6 +206,16 @@ export default function NuevoServicioScreen() {
 
   function save() {
     if (!effectiveTitle.trim()) return setError(es.service.titleRequired);
+    const badNumber = (
+      [
+        [costParts, es.service.costParts],
+        [costLabor, es.service.costLabor],
+        [totalOverride ?? '', es.service.total],
+        [odometer, es.service.odometer],
+        [warrantyKm, es.service.warrantyKm],
+      ] as const
+    ).find(([text]) => isInvalidNumber(text));
+    if (badNumber) return setError(es.common.invalidNumber(badNumber[1]));
     setError(null);
 
     void (async () => {
@@ -272,7 +282,7 @@ export default function NuevoServicioScreen() {
           })}
         </View>
 
-        <DateField label={es.service.date} value={date} onChange={setDate} />
+        <DateField label={es.service.date} value={date} onChange={setDate} noFuture />
         <Field
           label={es.service.odometer}
           keyboardType="number-pad"

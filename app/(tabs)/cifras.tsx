@@ -13,7 +13,7 @@ import { space } from '@/constants/theme';
 import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
 import { computeEconomy, latestEconomyInsight } from '@/lib/domain/economy';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
-import { km, money } from '@/lib/format';
+import { economyNumber, km, money } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
@@ -132,7 +132,7 @@ export default function CifrasScreen() {
               />
               <Kpi
                 label={es.stats.economy}
-                value={points.length ? `${averageOf(points).toFixed(2)} ${unit}` : '—'}
+                value={points.length ? `${economyNumber(averageOf(points))} ${unit}` : '—'}
                 onPress={() => scrollTo('economy')}
               />
             </View>
@@ -162,7 +162,7 @@ export default function CifrasScreen() {
                   {es.stats.lastTankValues[insight.status]}
                 </T>
                 <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
-                  {es.stats.lastTankHint(`${insight.baseline.toFixed(2)} ${unit}`)}
+                  {es.stats.lastTankHint(`${economyNumber(insight.baseline)} ${unit}`)}
                 </T>
               </Surface>
             ) : null}
@@ -260,8 +260,9 @@ function Kpi({
 }) {
   const { theme } = useTheme();
 
+  // "Sin comparación" is not a rise — it gets the neutral colour, not the warning one.
   const deltaColor =
-    !delta || delta.direction === 'flat' || invertDelta
+    !delta || delta.percent == null || delta.direction === 'flat' || invertDelta
       ? theme.text.muted
       : delta.direction === 'up'
         ? theme.status.urgente
@@ -289,7 +290,13 @@ function Kpi({
         <T face="medium" style={[styles.cardLabel, { color: theme.text.muted }]}>
           {label.toUpperCase()}
         </T>
-        <T face="monoBold" style={[styles.kpiValue, { color: theme.text.primary }]} numberOfLines={1}>
+        {/* A long amount steps down instead of being cut off ("RD$ 13,500…"). */}
+        <T
+          face="monoBold"
+          style={[styles.kpiValue, value.length > 10 && { fontSize: 17 }, { color: theme.text.primary }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}>
           {value}
         </T>
         {deltaText ? (

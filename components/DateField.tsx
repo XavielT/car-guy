@@ -19,11 +19,14 @@ export function DateField({
   value,
   onChange,
   hint,
+  noFuture,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
   hint?: string;
+  /** For "when did it happen" dates: a fill-up or a reading cannot be tomorrow. */
+  noFuture?: boolean;
 }) {
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
@@ -58,6 +61,7 @@ export function DateField({
         <DateTimePicker
           value={date}
           mode="date"
+          maximumDate={noFuture ? new Date() : undefined}
           onChange={(event, next) => {
             setOpen(false);
             if (event.type === 'dismissed' || !next) return;

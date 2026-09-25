@@ -5,6 +5,7 @@ import { categoryColors, fonts, space } from '@/constants/theme';
 import type { EconomyPoint, FuelType } from '@/lib/types';
 import { economyLabel } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
+import { economyNumber } from '@/lib/format';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 import { ChartFrame } from './ChartFrame';
@@ -56,7 +57,7 @@ export function EconomyLine({
               {es.stats.average}
             </T>
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
-              {average.toFixed(2)}
+              {economyNumber(average)}
             </T>
           </View>
         ) : null

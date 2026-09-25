@@ -19,7 +19,7 @@ import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, type ExpenseCategory } fro
 import { dateInputFromIso, isoFromDateInput, todayIsoDate } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
-import { parseDecimal } from '@/lib/math';
+import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -92,6 +92,7 @@ export default function NuevoGastoScreen() {
   function save() {
     const parsedAmount = parseDecimal(amount);
     if (parsedAmount == null || parsedAmount <= 0) return setError(es.expense.amountRequired);
+    if (isInvalidNumber(odometer)) return setError(es.common.invalidNumber(es.expense.odometer));
     setError(null);
 
     void (async () => {
@@ -149,7 +150,7 @@ export default function NuevoGastoScreen() {
         </View>
 
         <Field label={es.expense.amount} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} />
-        <DateField label={es.expense.date} value={date} onChange={setDate} />
+        <DateField label={es.expense.date} value={date} onChange={setDate} noFuture />
         <Field
           label={es.expense.odometer}
           keyboardType="number-pad"

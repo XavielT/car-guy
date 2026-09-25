@@ -18,7 +18,17 @@ import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /** The order the groups appear in — the engine's severity, then the switched-off. */
-const GROUPS: (ReminderState | 'disabled')[] = ['vencido', 'urgente', 'proximo', 'sin_datos', 'ok', 'disabled'];
+// A snoozed reminder is neither "al día" nor urgent, so it waits in its own
+// group (it used to sit under AL DÍA while its line still said "venció ayer").
+const GROUPS: (ReminderState | 'snoozed' | 'disabled')[] = [
+  'vencido',
+  'urgente',
+  'proximo',
+  'sin_datos',
+  'snoozed',
+  'ok',
+  'disabled',
+];
 
 /**
  * Everything the car is waiting on, worst first.
@@ -56,7 +66,8 @@ export default function RecordatoriosScreen() {
 
   if (!activeVehicle) return null;
 
-  const groupOf = (row: EvaluatedReminder) => (row.reminder.isEnabled ? row.status.status : 'disabled');
+  const groupOf = (row: EvaluatedReminder) =>
+    !row.reminder.isEnabled ? 'disabled' : row.status.snoozed ? 'snoozed' : row.status.status;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>

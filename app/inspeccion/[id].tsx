@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Image, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GaugeRing, GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -32,12 +33,19 @@ import { useTheme } from '@/lib/theme/useTheme';
 export default function InspeccionScreen() {
   // `fresh` marks the arrival straight from the runner, as opposed to opening
   // a past run from the Historial.
-  const { id, fresh } = useLocalSearchParams<{ id: string; fresh?: string }>();
+  const { id, fresh, reminders } = useLocalSearchParams<{ id: string; fresh?: string; reminders?: string }>();
+  const createdReminders: string[] = (() => {
+    try {
+      return reminders ? (JSON.parse(reminders) as string[]) : [];
+    } catch {
+      return [];
+    }
+  })();
   const router = useRouter();
   const { theme } = useTheme();
   const { data } = useStore();
 
-  const [run, setRun] = useState<Inspection | null>(null);
+  const [run, setRun] = useState<Inspection | null | undefined>(undefined);
   const [results, setResults] = useState<InspectionResult[]>([]);
   const [templateName, setTemplateName] = useState('');
   const [openTasks, setOpenTasks] = useState<Task[]>([]);
@@ -48,7 +56,8 @@ export default function InspeccionScreen() {
     let cancelled = false;
     (async () => {
       const row = await inspectionRepo.getById(id);
-      if (!row || cancelled) return;
+      if (cancelled) return;
+      if (!row) return setRun(null);
       const [rows, template, tasks, history] = await Promise.all([
         resultRepo.listWhere({ inspectionId: id }),
         templateRepo.getById(row.templateId),
@@ -92,6 +101,8 @@ export default function InspeccionScreen() {
       .catch(() => {});
   }, [fresh, run]);
 
+  // undefined: still loading · null: looked, and it is gone.
+  if (run === null) return <MissingRecord />;
   if (!run) return null;
 
   const failures = results.filter((r) => r.result === 'falla');
@@ -123,7 +134,7 @@ export default function InspeccionScreen() {
 
         {failures.length === 0 && streak > 1 ? (
           <T face="title" style={{ color: theme.status.ok, fontSize: 18, marginBottom: space.lg }}>
-            {es.check.streakWeeks(streak)} {es.check.streak}. {es.check.celebrate}
+            {streak} {es.check.streakLabel(streak)}. {es.check.celebrate}
           </T>
         ) : null}
 
@@ -142,6 +153,17 @@ export default function InspeccionScreen() {
                 label={task.title}
                 onPress={() => router.push({ pathname: '/tarea/[id]', params: { id: task.id } })}
               />
+            ))}
+          </>
+        ) : null}
+
+        {createdReminders.length ? (
+          <>
+            <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+              {es.check.resultReminders}
+            </T>
+            {createdReminders.map((title) => (
+              <GhostButton key={title} label={title} onPress={() => router.push('/recordatorios')} />
             ))}
           </>
         ) : null}

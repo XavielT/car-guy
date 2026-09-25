@@ -114,6 +114,10 @@ export function ReminderForm({
     if (!editing && enabled && missingDue) {
       return setError(es.reminders.form.dueRequired);
     }
+    // "Se repite" with no interval has nothing to repeat by: "Hecho" would
+    // recompute the same due date and the reminder would never clear.
+    const hasInterval = [intervalMonths, intervalDays, intervalKm].some((v) => (parseInt0(v) ?? 0) > 0);
+    if (recurring && !hasInterval) return setError(es.reminders.form.intervalRequired);
     setError(null);
 
     void (async () => {

@@ -1,5 +1,6 @@
 import type { HistoryEntry } from '../db/types';
 import { FUEL_CATALOG } from '../fuel';
+import { EXPENSE_CATEGORY_LABELS } from '../db/types';
 import { es } from '../i18n/es';
 
 /**
@@ -19,7 +20,19 @@ export function historyTitle(entry: HistoryEntry): string {
   if (entry.kind === 'chequeo') {
     return entry.title === 'ok' ? es.history.checkOk : es.history.checkWithFails;
   }
+  // An expense saved without a description is still a Marbete, not a "—".
+  if (entry.kind === 'gasto' && !entry.title) return expenseLabel(entry.subtitle) ?? '—';
   return entry.title || '—';
+}
+
+/** The meta line's second part: an expense's category key becomes its label. */
+export function historySubtitle(entry: HistoryEntry): string | null {
+  if (entry.kind === 'gasto') return expenseLabel(entry.subtitle) ?? entry.subtitle;
+  return entry.subtitle;
+}
+
+function expenseLabel(key: string | null): string | null {
+  return key ? ((EXPENSE_CATEGORY_LABELS as Record<string, string>)[key] ?? null) : null;
 }
 
 /** The Spanish name of a feed row's kind. */

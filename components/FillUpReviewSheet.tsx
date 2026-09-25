@@ -26,6 +26,7 @@ const TONES: Record<FillUpReview['status'], Tone> = {
   great: 'ok',
   normal: 'neutral',
   first: 'neutral',
+  partial: 'neutral',
 };
 
 export function FillUpReviewSheet({
@@ -59,7 +60,9 @@ export function FillUpReviewSheet({
         ? es.fuelReview.greatBody(average)
         : review.status === 'first'
           ? es.fuelReview.firstBody
-          : null;
+          : review.status === 'partial'
+            ? es.fuelReview.partialBody
+            : null;
 
   return (
     <Sheet

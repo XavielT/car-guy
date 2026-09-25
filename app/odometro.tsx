@@ -62,7 +62,7 @@ export default function OdometroScreen() {
           onChangeText={setValue}
           hint={current != null ? es.odometerSheet.lastReading(fmtKm(Math.round(current))) : undefined}
         />
-        <DateField label={es.odometerSheet.date} value={date} onChange={setDate} />
+        <DateField label={es.odometerSheet.date} value={date} onChange={setDate} noFuture />
 
         {warning ? (
           <T face="body" style={[styles.warning, { color: theme.status.proximo }]}>

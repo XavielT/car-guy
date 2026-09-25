@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Sheet, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -31,7 +32,7 @@ export default function TareaScreen() {
   const { theme } = useTheme();
   const { refresh, data } = useStore();
 
-  const [task, setTask] = useState<Task | null>(null);
+  const [task, setTask] = useState<Task | null | undefined>(undefined);
   // A task from a failed check knows which result it came from, and through it
   // the catalog item — so the record it becomes can carry that item and reset
   // its reminder, and the task can link back to the check.
@@ -62,6 +63,8 @@ export default function TareaScreen() {
     };
   }, [id, data]);
 
+  // undefined: still loading · null: looked, and it is gone.
+  if (task === null) return <MissingRecord />;
   if (!task) return null;
 
   async function setStatus(status: Task['status']) {

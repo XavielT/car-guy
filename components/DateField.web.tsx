@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { fonts, radius, space } from '@/constants/theme';
+import { todayIsoDate } from '@/lib/format';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
@@ -17,11 +18,14 @@ export function DateField({
   value,
   onChange,
   hint,
+  noFuture,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
   hint?: string;
+  /** For "when did it happen" dates: a fill-up or a reading cannot be tomorrow. */
+  noFuture?: boolean;
 }) {
   const { theme, scheme } = useTheme();
 
@@ -33,6 +37,7 @@ export function DateField({
       <input
         type="date"
         value={value}
+        max={noFuture ? todayIsoDate() : undefined}
         aria-label={label}
         onChange={(event) => onChange(event.target.value)}
         style={{
