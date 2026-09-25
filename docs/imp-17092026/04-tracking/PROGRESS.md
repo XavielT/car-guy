@@ -1238,7 +1238,42 @@ restyled and becomes the screen that answers what the car costs.
 **Status:** complete
 **Commits:** `3d1de94` client, UI and the SQL · `698f8bc` verification tooling ·
 `e3adfde` dashboard paths · `b6addb9` baseline · `620bde7` sql/001 applied ·
-`96932ef` sql/002–005 applied · `5a67997` guard fix and cleanup
+`96932ef` sql/002–005 applied · `5a67997` guard fix and cleanup · follow-up on
+`fix/phase-8-gaps`, 2026-09-25
+
+### Follow-up, 2026-09-25 (`fix/phase-8-gaps`)
+
+Re-verified live today: `node tools/verify-x-core.mjs` **7/7** (Car Guy signup 200 + session; bare
+signup still "Sign-ups are invite-only. Ask Xaviel for an invite link."; `carguy` exposed; A reads
+its own vehicle; B sees `[]`; B writing as A → 42501; anon → 401). Probe accounts removed with
+sql/999 (0 leftover profiles). Earlier today `sql/008` re-keyed the seeded catalogue per account
+(see Phase 5 follow-up).
+
+Fixed:
+- **`sql/rollback.sql` could not have run.** Step 4 was still a `PASTE THE ORIGINAL` placeholder,
+  and step 1 deleted from `storage.objects`/`storage.buckets`, which `storage.protect_delete()`
+  refuses (42501). The original `enforce_invite_only()` body is now inline (verbatim from 001's
+  rollback block); emptying the bucket is a documented dashboard / Storage API step. Same fix in
+  004's rollback block. `apply-sql.mjs --dry-run` now flags the file as shared, as it should.
+- **Spec vs code on sign-out:** the code keeps `auth_user_id` and the cursors, for a documented
+  reason (it is how a different account is detected); the spec said to clear them. The spec is
+  amended to match the code.
+- **Tests:** `translateAuthError` had none — 13 cases now, including the invite-only trigger
+  message; "Email not confirmed" gets its own Spanish line. The parity test now also checks that
+  every push's conflict target equals the cloud primary key after all migrations (mutation-checked:
+  reverting `service_type` to `id` fails it).
+- **Small:** the schema-not-exposed message moved to `es.ts`; the dead `syncSoon` branch and
+  stale "no sync yet" comment in `cuenta.tsx` removed; `005`'s header no longer says
+  `onConflict: 'id'`; `npm run types:gen` added (needs `npx supabase login`).
+
+Superseded statements in the report below (true when written, during part A): "`database.types.ts`
+does not exist" (generated at `b2fc8a7`); "`sql/001` is left syntactically broken" (fixed and
+applied); "No foreign keys" (sql/007 adds `user_id → auth.users on delete cascade`);
+"`FEATURE_SYNC = false`" (true since Phase 9); "auth.ts … clears it on sign-out" (it keeps it —
+see above); the "left on x-core" account list (all removed).
+
+Still open — only you can do it: **sign in to Music Hub once** with your normal account and
+confirm it works as before (05-manual-checklist.md, Phase 8 item 6).
 
 Split as the prompt anticipated: it names the discovery SQL as "the one legitimate pause in the
 cycle" and says to do the client and UI while waiting. Part A was built during that pause; part B

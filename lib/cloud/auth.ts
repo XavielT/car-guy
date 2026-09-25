@@ -37,6 +37,9 @@ export function translateAuthError(raw: string): string {
   const message = raw.toLowerCase();
 
   if (message.includes('invalid login credentials')) return es.account.errors.invalidCredentials;
+  // x-core has email confirmation off (it is shared with Music Hub), so this
+  // should not happen — but if the setting ever changes, say what to do.
+  if (message.includes('email not confirmed')) return es.account.errors.emailNotConfirmed;
   if (message.includes('already registered') || message.includes('already been registered')) {
     return es.account.errors.userExists;
   }

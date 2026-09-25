@@ -58,7 +58,8 @@
     "web": "expo start --web",
     "build": "EXPO_PUBLIC_GIT_SHA=\"$(git rev-parse --short HEAD 2>/dev/null || printf %.7s \"$VERCEL_GIT_COMMIT_SHA\")\" expo export -p web && node tools/finalize-web.mjs",
     "test": "jest",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "types:gen": "npx supabase gen types typescript --project-id nakgrkcqyuycadeuenuw --schema carguy > lib/cloud/database.types.ts.tmp && mv lib/cloud/database.types.ts.tmp lib/cloud/database.types.ts"
   },
   "private": true,
   "overrides": {

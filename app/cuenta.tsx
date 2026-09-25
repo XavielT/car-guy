@@ -31,9 +31,9 @@ type Mode = 'signIn' | 'signUp';
  * The account screen — and, just as much, the screen that explains why you do
  * not need one.
  *
- * Phase 8 stops at a session. There is no sync yet, so the screen never
- * promises one in production (`FEATURE_SYNC`); in dev it says so out loud,
- * because a developer signing in wants to know nothing happened.
+ * Signed in, it is also where sync reports itself: when it last ran, what is
+ * still waiting to go up, and "Sincronizar ahora". `FEATURE_SYNC` can still
+ * switch the button off, but sync shipped in Phase 9 and the flag is on.
  */
 export default function CuentaScreen() {
   const router = useRouter();
@@ -169,11 +169,7 @@ export default function CuentaScreen() {
                     disabled={running}
                   />
                 </View>
-              ) : (
-                <T face="body" style={[styles.cardBody, { color: theme.text.muted }]}>
-                  {es.account.syncSoon}
-                </T>
-              )}
+              ) : null}
             </Surface>
 
             <GhostButton label={es.account.signOut} onPress={handleSignOut} />

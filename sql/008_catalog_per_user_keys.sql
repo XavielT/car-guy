@@ -50,7 +50,8 @@ where tc.table_schema = 'carguy'
 group by tc.table_name
 order by tc.table_name;
 
--- rollback (only possible while no two accounts share an id in these tables):
+-- rollback:
+-- (only possible while no two accounts share an id in these tables)
 -- do $$
 -- declare t text;
 -- begin
