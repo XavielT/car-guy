@@ -3,7 +3,14 @@ import { Platform } from 'react-native';
 import { getSupabase } from '../cloud/supabase';
 
 import { media as mediaRepo } from '../db/repos';
-import { mediaNeedingUpload, saveMediaBytes, setMediaRemotePath, type LocalRow } from '../db/syncOps';
+import {
+  clearMediaRemotePath,
+  deletedMediaInStorage,
+  mediaNeedingUpload,
+  saveMediaBytes,
+  setMediaRemotePath,
+  type LocalRow,
+} from '../db/syncOps';
 
 /**
  * The half of media sync that PostgREST cannot carry.
@@ -40,6 +47,7 @@ type StorageClient = {
         body: Blob,
         options?: { contentType?: string; upsert?: boolean },
       ) => Promise<{ error: unknown }>;
+      remove: (paths: string[]) => Promise<{ error: unknown }>;
     };
   };
 };
@@ -110,6 +118,23 @@ export async function uploadMediaBytes(supabase: StorageClient, userId: string):
   }
 
   return uploaded;
+}
+
+/**
+ * Removes the Storage objects of deleted photos.
+ *
+ * Replacing a photo mints a new media row and tombstones the old one, and
+ * nothing ever deleted the old one's bytes — the bucket only ever grew, with
+ * files no row could reach. Storage policies scope this to the user's folder.
+ */
+export async function removeDeletedMediaBytes(supabase: StorageClient): Promise<number> {
+  const rows = await deletedMediaInStorage();
+  if (!rows.length) return 0;
+  const { error } = await supabase.storage.from(BUCKET).remove(rows.map((row) => row.remote_path));
+  // Next sync; a leftover file costs storage, not correctness.
+  if (error) return 0;
+  for (const row of rows) await clearMediaRemotePath(row.id);
+  return rows.length;
 }
 
 /**

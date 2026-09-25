@@ -4,7 +4,8 @@ import { AppState, Platform } from 'react-native';
 import { useSession } from '../cloud/auth';
 import { FEATURE_SYNC } from '../flags';
 import { useStore } from '../store';
-import { resetCursorsIfAccountChanged, sync } from './engine';
+import { settings as settingsRepo } from '../db/repos';
+import { pendingCount, resetCursorsIfAccountChanged, sync } from './engine';
 
 /**
  * When a sync happens.
@@ -44,8 +45,15 @@ export function useSyncTriggers(): void {
     // The reset must land before the pull, not beside it: a pull that started
     // on the old account's cursor would return nothing and then write a cursor
     // of its own, hiding the new garage for good.
+    // "First login" means this account has never synced on this device — a
+    // new account here, or a device that never finished a sync. A cold start
+    // with a saved session is just a foreground sync, and must not show the
+    // "esto pasa una sola vez" banner every time the app opens.
     void resetCursorsIfAccountChanged(userId)
-      .then(() => sync('first-login'))
+      .then(async (changed) => {
+        const neverSynced = (await settingsRepo.get<string | null>('last_sync_at', null)) == null;
+        return sync(changed || neverSynced ? 'first-login' : 'foreground');
+      })
       .catch(() => {});
   }, [userId]);
 
@@ -66,7 +74,15 @@ export function useSyncTriggers(): void {
     }
 
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => void sync('after-write'), AFTER_WRITE_DELAY);
+    // `data` also changes when sync itself writes its cursors and last_sync_at
+    // (every table's change listener reloads the store), so "data changed" is
+    // not "the user wrote something". Only a sync with rows waiting is worth
+    // starting — otherwise each sync would schedule the next, every 5 s.
+    timer.current = setTimeout(() => {
+      void pendingCount()
+        .then((waiting) => (waiting > 0 ? sync('after-write') : undefined))
+        .catch(() => {});
+    }, AFTER_WRITE_DELAY);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };

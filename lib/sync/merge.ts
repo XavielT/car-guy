@@ -106,21 +106,61 @@ export function decide(local: SyncableRow | null | undefined, incoming: RemoteRo
 }
 
 /**
- * The cursor for the next pull: the greatest `server_updated_at` in this page.
+ * The pull cursor: the last `(server_updated_at, id)` a table was read up to.
  *
- * Taking the maximum rather than the last element means an out-of-order page —
- * which PostgREST should not send, but which a changed `order by` or a future
- * pagination bug could produce — cannot silently rewind the cursor and make the
- * next pull re-fetch rows it already has.
+ * A timestamp alone is not a cursor. The server stamps `server_updated_at`
+ * with `now()` — the *transaction* start — so every row of one pushed batch
+ * shares it, and "rows after T" skips the rest of a batch whenever a page ends
+ * inside one. Ordering by (timestamp, id) and resuming strictly after the last
+ * pair makes every row reachable exactly once.
  *
- * An empty page leaves the cursor exactly where it was.
+ * Stored as `"<timestamp>|<id>"`. A plain timestamp (the format before this
+ * fix) reads as "that time, before any id", i.e. it re-reads its own tie group,
+ * which is the safe direction.
  */
-export function nextCursor(current: string | null, page: RemoteRow[]): string | null {
-  let cursor = current;
-  for (const row of page) {
-    if (cursor == null || row.serverUpdatedAt > cursor) cursor = row.serverUpdatedAt;
-  }
-  return cursor;
+export type Cursor = { ts: string; id: string };
+
+export function parseCursor(raw: string | null | undefined): Cursor | null {
+  if (!raw) return null;
+  const bar = raw.lastIndexOf('|');
+  return bar === -1 ? { ts: raw, id: '' } : { ts: raw.slice(0, bar), id: raw.slice(bar + 1) };
+}
+
+export function formatCursor(cursor: Cursor): string {
+  return `${cursor.ts}|${cursor.id}`;
+}
+
+/** Where the next page starts: the last row of this one (the server sorted them). */
+export function cursorAfter(page: { serverUpdatedAt: string; id: string }[]): Cursor | null {
+  const last = page[page.length - 1];
+  return last ? { ts: last.serverUpdatedAt, id: last.id } : null;
+}
+
+/**
+ * The cursor to start a sync from: a little *behind* the stored one.
+ *
+ * `now()` is when a transaction started, not when it became visible, so a
+ * slow push that began before a quick one but committed after it lands behind
+ * a cursor that has already moved on. Re-reading a short window at the start of
+ * every sync catches it; the rows it re-reads are unchanged, and `decide`
+ * skips an unchanged row, so the overlap costs a few reads and nothing else.
+ */
+export const CURSOR_OVERLAP_MS = 60_000;
+
+export function overlapStart(cursor: Cursor | null, overlapMs = CURSOR_OVERLAP_MS): Cursor | null {
+  if (!cursor) return null;
+  const time = Date.parse(cursor.ts);
+  if (Number.isNaN(time)) return cursor;
+  return { ts: new Date(time - overlapMs).toISOString(), id: '' };
+}
+
+/** PostgREST filter for "strictly after this cursor" in (server_updated_at, id) order. */
+export function afterCursorFilter(cursor: Cursor): string {
+  // Values are double-quoted: timestamps carry ':' and '+', ids may carry '@'.
+  const q = (v: string) => `"${v.replace(/"/g, '\\"')}"`;
+  return cursor.id
+    ? `server_updated_at.gt.${q(cursor.ts)},and(server_updated_at.eq.${q(cursor.ts)},id.gt.${q(cursor.id)})`
+    : `server_updated_at.gte.${q(cursor.ts)}`;
 }
 
 /** A full page means there is probably another one behind it. */

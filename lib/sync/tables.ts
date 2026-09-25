@@ -97,7 +97,10 @@ export const SYNC_TABLE_NAMES = SYNC_TABLES.map((table) => table.name);
  * (`sync_cursor.*`, `last_sync_at`, `auth_user_id`) are local for the same
  * reason — they describe this device's progress.
  */
-export const SYNCED_SETTING_KEYS = ['reference_prices', 'price_week_label', 'theme'];
+// `theme` is not here: the appearance choice lives in AsyncStorage
+// (lib/theme/useTheme.ts), not in this table, and dark on the phone with light
+// on the laptop is a reasonable thing to want.
+export const SYNCED_SETTING_KEYS = ['reference_prices', 'price_week_label'];
 
 /**
  * Columns that are `boolean` in the cloud and `INTEGER` locally.
