@@ -1854,3 +1854,36 @@ tests (new ones for each logic fix); browser re-verification of the key repros; 
 
 Deferred (cosmetic): same-day Historial order (needs a view migration), Cifras y-axis origin, a tab
 label truncating at 320 px, no max width on desktop.
+
+## Release — Car Guy v2.0.0 (2026-09-25)
+
+| | |
+|---|---|
+| GitHub release | <https://github.com/XavielT/car-guy/releases/tag/v2.0.0> — "Latest"; APK attached as `car-guy-v2.0.0.apk` (115,984,315 bytes). v1.1.0 and v1.1.1 untouched |
+| Tag | `v2.0.0` on `8385644` — the commit the release APK was built from (Más → Acerca de shows "Build 8385644"). `66dba7e` after it only moves a CHANGELOG section |
+| APK | `releases/car-guy-v2.0.0.apk` (gitignored), versionCode 2, versionName 2.0.0, `com.xaviel.carguy` |
+| AAB (Play Store) | `releases/car-guy-v2.0.0.aab`, production profile, EAS remote version (auto-increment) |
+| Build tooling | EAS, run locally (`eas build --local`) with the EAS-managed credentials; project `@xavieldev/car-guy` |
+| Keystore | **EAS-managed** (Expo servers), certificate SHA-256 `A1:64:50:A0:…:66:F4`. No local copy yet — the owner downloads a backup with `eas credentials` (NEXT.md §1) |
+| Web | <https://car-guy.vercel.app> — Vercel project `car-guy`, production from `main`; PWA verified: manifest "Car Guy", standalone, 192/512 any + maskable icons, `sw.js` 200, no COOP/COEP headers |
+| Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd` on 2026-09-18) |
+
+**Regression walk.** Web: three exploratory testers (fuel, garage, checks/settings) plus the
+sync acceptance run a–e (see "QA pass" and the Phase 9 follow-up). Android, on the release build
+and the builds before it that day, on a Redmi Note 10 Pro (Android 13):
+
+| Check | Result |
+|---|---|
+| Install as an update over the previous EAS build; data intact | ✅ |
+| Launcher name "Car Guy"; adaptive icon with background/foreground/**monochrome** (themed) layers | ✅ (from the APK) |
+| Splash: amber gauge + green dot on `#121212` | ✅ |
+| Notifications outside Expo Go: permission, channel, ≤ 30 scheduled, test delivery, warm + cold-start tap deep links | ✅ |
+| Blocked-permission notice after a restore → "Dar permiso" | ✅ |
+| Camera capture (permission "only this time") | ✅ |
+| PDF share (named `car-guy-<vehicle>-<date>.pdf`) | ✅ |
+| Native date picker, future days disabled; no off-by-one | ✅ |
+| Keyboard no longer covers focused fields (`pan`) | ✅ |
+| Back from a deep-linked screen lands on Inicio | ✅ |
+| "2,583" parsed as 2,583; review sheet correct | ✅ |
+| Haptic tick on a clean check | not judged (can't be felt over adb) |
+| Sync on the phone itself | not exercised — the phone holds the owner's real data and no account (NEXT.md §1) |
