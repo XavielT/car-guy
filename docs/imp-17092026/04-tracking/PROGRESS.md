@@ -844,10 +844,15 @@ Screenshots: `docs/qa/phase-5-gaps-*.png` (12).
 haptic, the ring's native animation. EAS is not logged in, so no preview APK was built; the command
 and the device checklist are in `05-manual-checklist.md`.
 
-**Observed, deferred:** `inspection_template` / `inspection_item` / `service_type` use seeded slug
-ids (`carro_semanal`) as a *global* `text primary key` in `carguy`; if a second account ever pushes
-the same seeded row, RLS would likely refuse it (not tested). Vehicle copies (`…@<vehicleId>`) are unique and unaffected.
-Worth checking in the two-account sync run.
+**Seeded ids across accounts — reproduced, fix waiting on you.** `service_type`,
+`inspection_template` and `inspection_item` use the catalogue's slug ids (`aceite_motor`,
+`carro_semanal`) as a global `id text primary key` in `carguy`. `tools/verify-shared-ids.mjs
+--legacy` proved it against x-core: the second account's push of a seeded row is refused with
+`403 42501 new row violates row-level security policy`, and a push error aborts its whole sync —
+any second account would never sync. Fix on `fix/catalog-per-user-keys` (not merged, not pushed):
+`sql/008_catalog_per_user_keys.sql` keys the three tables by `(user_id, id)`, and the engine pushes
+them with `onConflict: 'user_id,id'` (`keyedBy: 'user_id'` in `lib/sync/tables.ts`). Applying the
+SQL was refused by the permission classifier; the ordered steps are in `05-manual-checklist.md`.
 
 This is the phase the whole cycle exists for: note 4, *"se me pasó revisarle los fluidos … por no
 tener esa costumbre diaria"*.

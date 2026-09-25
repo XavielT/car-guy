@@ -15,11 +15,13 @@ import { uploadMediaBytes } from './mediaBytes';
 import { batch, decide, hasMore, nextCursor, normaliseTimestamp } from './merge';
 import {
   BOOLEAN_COLUMNS,
+  conflictTarget,
   cursorKey,
   PULL_PAGE,
   PUSH_BATCH,
   SYNCED_SETTING_KEYS,
   SYNC_TABLES,
+  type SyncTable,
 } from './tables';
 
 /**
@@ -149,7 +151,7 @@ async function run(reason: SyncReason): Promise<SyncResult> {
         pushed += await pushSettings(supabase, userId);
         continue;
       }
-      pushed += await pushTable(supabase, table.name, table.localOnly, userId);
+      pushed += await pushTable(supabase, table, userId);
     }
 
     for (const table of SYNC_TABLES) {
@@ -177,12 +179,8 @@ async function run(reason: SyncReason): Promise<SyncResult> {
 
 type Client = NonNullable<ReturnType<typeof getSupabase>>;
 
-async function pushTable(
-  supabase: Client,
-  table: string,
-  localOnly: string[],
-  userId: string,
-): Promise<number> {
+async function pushTable(supabase: Client, spec: SyncTable, userId: string): Promise<number> {
+  const { name: table, localOnly } = spec;
   const rows = await dirtyRows(table);
   if (!rows.length) return 0;
 
@@ -194,7 +192,7 @@ async function pushTable(
 
     const { error } = await supabase
       .from(table as never)
-      .upsert(payload as never, { onConflict: 'id' });
+      .upsert(payload as never, { onConflict: conflictTarget(spec) });
     if (error) throw error;
 
     // Only after the server has it. A crash between the upsert and this line
