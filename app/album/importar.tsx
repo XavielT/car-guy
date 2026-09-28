@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DateField } from '@/components/DateField';
 import { T } from '@/components/T';
@@ -47,6 +47,7 @@ export default function ImportScreen() {
   const { theme } = useTheme();
   const { data, activeVehicle, refresh } = useStore();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [vehicleId, setVehicleId] = useState(paramVehicle ?? activeVehicle?.id ?? '');
   const [access, setAccess] = useState<PhotoAccess | null>(null);
@@ -272,7 +273,7 @@ export default function ImportScreen() {
           numColumns={3}
           keyExtractor={(p) => p.id}
           columnWrapperStyle={{ gap: 6 }}
-          contentContainerStyle={{ gap: 6, paddingBottom: 120 }}
+          contentContainerStyle={{ gap: 6, paddingBottom: 140 + insets.bottom }}
           initialNumToRender={18}
           windowSize={5}
           renderItem={({ item: p }) => {
@@ -326,11 +327,14 @@ export default function ImportScreen() {
       </View>
 
       {LIBRARY_AVAILABLE && selected.size ? (
-        <View style={[styles.footer, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
+        // Absolute, so it clears the navigation bar itself (SafeAreaView padding does not apply).
+        <View style={[styles.footer, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, paddingBottom: space.md + insets.bottom }]}>
           <T face="mono" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
             {es.importer.selected(selected.size)}
           </T>
-          <PrimaryButton label={es.importer.review} onPress={() => void openReview()} />
+          <View style={{ width: 160 }}>
+            <PrimaryButton label={es.importer.review} onPress={() => void openReview()} />
+          </View>
         </View>
       ) : null}
 
