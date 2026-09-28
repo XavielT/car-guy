@@ -3,7 +3,7 @@
 Claude Code appends a report per phase (block in `00-context/04-conventions.md`, plus *Design
 check* and *Flags flipped*). "Notes for the next phase" carry context between sessions.
 
-**Started:** 2026-09-28 · **Status:** Phase 4 done
+**Started:** 2026-09-28 · **Status:** Phase 5 done
 
 ## Phase status
 
@@ -14,7 +14,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 2 | JDM screens + Garaje | ✅ | `imp-28092026/phase-2-jdm-screens` | web + Android (Redmi) verified 2026-09-28 |
 | 3 | Álbum / memoria | ✅ | `imp-28092026/phase-3-album` | web + Android (Redmi) verified 2026-09-28; sql/011 applied |
 | 4 | Build log | ✅ | `imp-28092026/phase-4-build` | web verified 2026-09-28; Android device check pending (phone not connected) |
-| 5 | DIY | ⬜ | | |
+| 5 | DIY | ✅ | `imp-28092026/phase-5-diy` | web verified 2026-09-28; Android device check pending with Phase 4's |
 | 6 | Pista | ⬜ | | |
 | 7 | Compartir | ⬜ | | |
 | 8 | Release 2.1.0 | ⬜ | | |
@@ -78,9 +78,11 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | 3 | Web thumbs have no blurhash: `Image.generateBlurhashAsync` is Android/iOS only. Web cells show the well colour until the (local, fast) thumb loads | low | a JS blurhash encoder would add ~5 KB if it matters |
 | 3 | "Guardar original en Google Fotos/Drive" opens the share sheet once per photo (expo-sharing shares one file). In the viewer it shares the stored 1600 px copy — the untouched original only exists at import time, so the viewer's label says "copia" | low | a multi-file share needs a native module |
 | 3 | Over-quota refusal verified live against Storage with a 1-byte quota on a throwaway user; the 90 % / 100 % meter states verified in unit tests only (no account holds 270 MB) | low | — |
-| 4 | Phase 4 not yet run on the Redmi (phone not connected at merge time) | medium | install `carguy-phase4.apk` or the next build; check share-as-image and long-press natively |
+| 4–5 | Phases 4 and 5 not yet run on the Redmi (phone not connected at merge time) | medium | install the latest preview build; check share-as-image, long-press, the ficha's share sheet, the runner's fluid card, WhatsApp/tel links natively |
 | 4 | `inventory_item` has no column linking an item to the mod that used it; "Usar en un mod" prefills the mod form and appends "Usado en: <mod>" to the item's notes | low | a `used_in_mod_id` column needs migration v4 + cloud SQL; not worth it until someone filters by it |
 | 4 | The ficha image on web is html2canvas's rendering (fonts and the dark card come through; a long value is clipped at the card edge, as on screen) | low | — |
+| 5 | Presets hold only platform facts (bolt pattern, bore, lug thread, brake fluid type, tank, engine code); oil capacities, plug gaps and tire pressures are left null on purpose | low | the user fills them from the manual; a reviewed data source could extend the presets later |
+| 5 | vPIC decodes US-market VINs; EU VINs mostly fail (verified with a DS3-shaped VIN → ErrorCode 7) and JDM cars have no VIN — the copy says so and nothing blocks | low | by design (research §D) |
 
 ## Blockers
 
@@ -749,3 +751,96 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 - Phase 5 (DIY): the ficha técnica's presets write `vehicle_specsheet` columns (oil, fluids, torques) — separate from
   `stock` / `overrides`, which stay the build's. `SPEC_FIELDS` is the place to add a field both screens show.
 - `CATEGORY_SERVICE` is the one map from a mod system to a reminder; add entries there.
+
+
+## Phase 5 — DIY: ficha técnica, fluidos, OBD, contactos   (branch `imp-28092026/phase-5-diy`)
+
+**Status:** complete (Android device check pending, as Phase 4)
+**Commits:** `feat(diy): ficha técnica con presets y VIN, guía de fluidos, códigos OBD, contactos …`, `docs(imp-28092026): phase 5 report`
+
+### Changed
+- **Domain** — `lib/domain/specPresets.ts`: `FICHA_FIELDS` (the 26 service-data columns of `vehicle_specsheet`, by
+  section Motor · Fluidos · Encendido y eléctrico · Gomas y aros · Combustible, with units), 15 `SPEC_PRESETS` (AE85 3A-U,
+  AE86 4A-GE 16V, 4A-GE 20V engine preset, S13 SR20DET/KA24DE, S14, Civic EG/EK D16/B16, C3 TU5JP4, DS3 EP6 VTi/THP,
+  Corolla E120/E150, Hilux N70, Yaris) — **only platform facts**, everything uncertain null, each with its `sources` and
+  "Verifica con el manual de tu carro"; `presetsFor()` (chassis + engine > chassis > make + model; spaces/dashes ignored,
+  family codes match variants), `applyPreset()` (empty fields only, marked `preset`), `fichaText()` (plain text for
+  WhatsApp). `lib/domain/vpic.ts`: `checkVin()` (17 chars, no I/O/Q, and a JDM frame number "AE85-5012345" told apart),
+  `vpicErrorCode()` (the leading integer), `mapVpic()` (decoded only with ErrorCode 0/1 **and** a model), `decodeVin()`
+  (8 s abort, never throws). `lib/domain/contacts.ts`: `normalizePhone()` (DR 809/829/849 gain the 1), `whatsappLink()`,
+  `telLink()`, `formatPhone()`. `lib/domain/fluids.ts`: 8 cards with the checklist's "cómo revisar", `fluidForItem()`
+  (inspection label → card), `isTirePressureItem()`. Kinds follow the schema's types (`coolant`, `washer`; `gomera`,
+  `pintor`, `dealer`).
+- **DB** — `lib/db/diyQueries.ts`: `readFicha` / `setFichaValue` (source TÚ, drops the verified mark) / `setVerified` /
+  `loadPreset` (also the build's stock engine code + displacement when empty) / `applyVin` (make, model, year, gearbox,
+  drive, stock displacement — empty only); torques; fluids (one card per kind, derived id); OBD `logDtc` (normalised
+  code), resolve, `repairsFor`, `linkDtcRepair`, `createRepairForDtc` (a reparación titled "Código P0301", linked);
+  contacts + `contactLinks()` (services and mods). `serviceOps` takes `contactId`. **Migration v4**: `history_feed`
+  gains `obd` rows (code, abierto/resuelto) — view only, local, v3's mod subtitles kept. (The prompt called this v3;
+  Phase 4 had already used v3.)
+- **Screens** — `app/vehiculo/[id]/ficha` (sections, value + source chip PRESET/VPIC/TÚ + "Verificado por mí" checkbox,
+  tap to edit/clear, "Cargar preset" with the car's matches first, "Decodificar VIN" with honest copy for no VIN / a
+  frame number / invalid / not decoded / offline, torques with a photo of the manual page, the car's OBD codes, "Ficha
+  lista para el taller" — the share sheet natively, the Web Share API or the clipboard on web); `app/vehiculo/[id]/fluidos`
+  (a card per fluid: photo, how-to, notes); `app/obd/index` (search, Spanish + English, generic/manufacturer note, log
+  against a car, the log) and `app/obd/[code]`; `app/contactos/index|nuevo|[id]` (by kind, call + WhatsApp buttons,
+  rating, notes, what they did). `components/diy/`: `DtcPieces`, `ContactPieces` (`ContactPicker`: saved contacts +
+  "Otro (escribir)"), `FichaTab`.
+- **Integration** — hub Ficha tab (headline values, open codes, the ways in); the service form's shop field is the
+  contact picker (the name still goes to `shop`); the mod form's installer uses it too; the inspection runner shows the
+  fluid card inline ("Aquí está el refrigerante en tu DS3") and the OEM psi on "Presión de gomas"; Historial opens `obd`
+  rows, FAB "Código OBD"; Más → DIY (Contactos, Códigos OBD). `FEATURE_DIY = true`.
+- **Tests** 757 → **778**: `__tests__/domain/diy.test.ts` (15: every ficha field is a real column, every preset parses
+  with typed values + caveat + source, matching, empty-only apply, the shop text, vPIC error codes, a **recorded** US decode
+  (`__tests__/fixtures/vpic-1HGCM82633A004352.json`) and a recorded EU failure, timeout/network never throw, frame
+  numbers, DR phone normalisation and links, P0301 in Spanish, P1300 manufacturer, fluid matching), `__tests__/db/diy.test.ts`
+  (6, real SQLite + seed: DS3 preset keeps a user value and fills 3, verify + retype, VIN fills empty only, P0301 → repair
+  → feed obd row, contact links).
+
+### Dependencies added / removed
+- none
+
+### Acceptance criteria
+- [x] Presets with honest nulls and caveats; source chips and verification toggle.
+- [x] vPIC decode on demand with graceful failure; chassis code first-class (frame numbers are not VINs).
+- [x] Fluids guide with the user's photos, surfaced in the inspection runner.
+- [x] OBD lookup + per-vehicle events + link to repair; bundled Spanish table.
+- [x] Contacts with WhatsApp/call, linked to services and mods.
+- [x] Migration v4 (feed with obd); `FEATURE_DIY` on; tests; tsc, lint, 778/778, build (68/68 pages titled),
+  `verify-x-core` 14/14, `verify-sync` 14/14.
+
+### Verification (web, Playwright, the seed, dark and light — 0 page errors)
+- DS3: "Cargar preset" → Citroën DS3 (EP6 1.6 VTi) → "4 datos del preset" (flagged PRESET); verified Patrón de tornillos
+  and Centro del aro (green checks); a torque "Tuercas de rueda 100 Nm" with a photo; the shop text copied ("FICHA · DS3 ·
+  2015 Citroën DS3 / Motor… (Verifica con el manual de tu carro)").
+- Fluids: a Refrigerante photo → the weekly check on the DS3 shows "AQUÍ ESTÁ EL REFRIGERANTE EN TU DS3" with it.
+- OBD: P0301 → "Fallo de encendido en el cilindro 1" / "Cylinder 1 Misfire Detected", generic; logged at 51,900 km →
+  "Vincular a reparación" → "+ Nueva reparación" opens the record "CÓDIGO P0301"; Historial shows the obd row.
+- Contacts: "Gomera La 27" (809 555 1234 → Llamar + WhatsApp buttons); a service "Bujías y bobinas" with Taller de Tony
+  picked → Tony's page lists it next to the seed's swap and ECU. Más → DIY present.
+- Screenshots `docs/qa/imp-28092026-phase-5-*-{dark,light}.png`.
+- **Android**: the arm64 preview APK builds (4m 38s, EAS-signed); not run on the phone (not connected) — pending with
+  Phase 4's check.
+
+### Decisions made (defaults applied)
+- Presets carry only data I am sure is standard for the platform; the DS3's oil norm (PSA B71 2290) is the one oil value
+  included. A preset never overwrites a value the user or another source put there.
+- A 4x4 from vPIC is stored as `awd` (the schema's Drivetrain has no 4WD).
+- The contact picker keeps writing the name to `shop`, so v2.0 screens and the report still show who did it.
+- A fluid card appears in the runner only when it has a photo or notes (an empty card says nothing new).
+
+### Deviations from the package
+- Migration v4, not v3 (v3 was Phase 4's view change).
+- "Vincular a reparación" links via `vehicle_dtc_event.repair_record_id`; the record has no dtc source column, so its
+  title/description name the code.
+
+### Design check
+- No artboard for this block; the screens follow the identity (eyebrow + Saira title, mono values, source chips in the
+  badge face, amber for PRESET/VPIC and green for TÚ/verified, one accent per card).
+
+### Flags flipped
+- `FEATURE_DIY` → true
+
+### Notes for the next phase
+- Phase 6 (Pista): the hub's Pista tab and `vehicleBadges()`' `lastDiscipline` are waiting; `consumable_usage` + tires
+  from Phase 4 (`heat_cycles`, `quemada`) are the consumables' home; `contactPicker` can serve "organizador".
