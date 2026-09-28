@@ -9,12 +9,12 @@ import { T } from '@/components/T';
 import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { radius, space } from '@/constants/theme';
-import { history, mods as modsRepo } from '@/lib/db/repos';
+import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
-import { FEATURE_ALBUM, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_TRACK } from '@/lib/flags';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -25,11 +25,12 @@ const FILTERS: { key: 'todo' | RecordKind; label: string }[] = [
   { key: 'combustible', label: es.history.kinds.combustible },
   { key: 'mantenimiento', label: es.history.kinds.mantenimiento },
   { key: 'reparacion', label: es.history.kinds.reparacion },
-  { key: 'mejora', label: es.history.kinds.mejora },
+  // With the build log live the chip says MODS; it still finds v2.0 "mejora" records.
+  { key: 'mejora', label: FEATURE_BUILD ? es.build.tabs.mods : es.history.kinds.mejora },
   { key: 'chequeo', label: es.history.kinds.chequeo },
   { key: 'gasto', label: es.history.kinds.gasto },
   // Milestones and track days are in the feed already (schema v2); their chips
-  // appear with the screens that create them. Mods stay under "Mejoras".
+  // appear with the screens that create them.
   ...(FEATURE_ALBUM ? [{ key: 'hito' as const, label: es.history.kinds.hito }] : []),
   ...(FEATURE_TRACK ? [{ key: 'pista' as const, label: es.history.kinds.pista }] : []),
 ];
@@ -270,11 +271,7 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
     return;
   }
   if (entry.kind === 'mod') {
-    // Until the build log has its own screen (PROMPT-04), a mod opens the v2.0
-    // "mejora" record it was migrated from; one without a record opens nothing.
-    void modsRepo.getById(entry.id).then((mod) => {
-      if (mod?.serviceRecordId) router.push({ pathname: '/servicio/[id]', params: { id: mod.serviceRecordId } });
-    });
+    router.push({ pathname: '/mod/[id]', params: { id: entry.id } });
     return;
   }
   if (entry.kind === 'hito') {

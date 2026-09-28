@@ -69,7 +69,7 @@ export type VehicleSpec = Syncable & {
   sortOrder: number;
 };
 
-export type OdometerSource = 'fuel' | 'service' | 'inspection' | 'manual' | 'import';
+export type OdometerSource = 'fuel' | 'service' | 'inspection' | 'manual' | 'import' | 'mod';
 
 export type OdometerReading = Syncable & {
   vehicleId: string;

@@ -71,6 +71,7 @@ function stats(over: Partial<VehicleStats> = {}): VehicleStats {
     ownership: null,
     upcoming: { items: [], total: 0 },
     rowsInPeriod: [],
+    modsInvested: 0,
     ...over,
   };
 }

@@ -23,7 +23,7 @@ export const FEATURE_SYNC = true;
 /** Álbum, memoria, Ex vehicles — PROMPT-03. */
 export const FEATURE_ALBUM = true;
 /** Build log: mods, specs, wishlist, inventario — PROMPT-04. */
-export const FEATURE_BUILD = false;
+export const FEATURE_BUILD = true;
 /** Ficha técnica, fluidos, OBD, contactos — PROMPT-05. */
 export const FEATURE_DIY = false;
 /** Pista: eventos, sesiones, setup sheets — PROMPT-06. */

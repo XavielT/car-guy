@@ -16,6 +16,7 @@ import { computeEconomy, latestEconomyInsight } from '@/lib/domain/economy';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
 import { economyNumber, km, money } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
+import { FEATURE_BUILD } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -131,6 +132,14 @@ export default function CifrasScreen() {
                 value={points.length ? `${economyNumber(averageOf(points))} ${unit}` : '—'}
                 onPress={() => scrollTo('economy')}
               />
+              {FEATURE_BUILD && stats.modsInvested > 0 ? (
+                <Kpi
+                  label={es.stats.modsInvested}
+                  value={money(stats.modsInvested)}
+                  hint={es.stats.modsInvestedHint}
+                  onPress={() => router.push({ pathname: '/vehiculo/[id]/build', params: { id: activeVehicle.id } })}
+                />
+              ) : null}
             </View>
 
             <View onLayout={rememberOffset('byMonth')}>

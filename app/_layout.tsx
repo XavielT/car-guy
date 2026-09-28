@@ -228,6 +228,15 @@ function Shell() {
         <Stack.Screen name="foto/[id]" options={{ presentation: 'fullScreenModal', headerShown: false, title: es.routes.photo, contentStyle: { backgroundColor: '#000000' } }} />
         <Stack.Screen name="hito/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newMilestone }} />
         <Stack.Screen name="hito/[id]" options={{ headerShown: true, title: es.routes.milestone }} />
+        <Stack.Screen name="vehiculo/[id]/build" options={{ headerShown: true, title: es.routes.build }} />
+        <Stack.Screen name="mod/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newMod }} />
+        <Stack.Screen name="mod/[id]" options={{ headerShown: true, title: es.routes.mod }} />
+        <Stack.Screen name="wishlist/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newWish }} />
+        <Stack.Screen name="wishlist/[id]" options={{ headerShown: true, title: es.routes.wish }} />
+        <Stack.Screen name="inventario/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newInventory }} />
+        <Stack.Screen name="inventario/[id]" options={{ headerShown: true, title: es.routes.inventory }} />
+        <Stack.Screen name="ruedas/[setId]" options={{ headerShown: true, title: es.routes.wheelSet }} />
+        <Stack.Screen name="goma/[id]" options={{ headerShown: true, title: es.routes.tire }} />
         <Stack.Screen
           name="odometro"
           options={{ presentation: 'modal', headerShown: true, title: es.routes.odometer }}

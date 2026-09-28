@@ -28,6 +28,12 @@ export function historyTitle(entry: HistoryEntry): string {
 /** The meta line's second part: an expense's category key becomes its label. */
 export function historySubtitle(entry: HistoryEntry): string | null {
   if (entry.kind === 'gasto') return expenseLabel(entry.subtitle) ?? entry.subtitle;
+  if (entry.kind === 'mod' && entry.subtitle?.includes('|')) {
+    // "<status>|<brand>" (history_feed v3): "Instalado · BC Racing".
+    const [status, brand] = entry.subtitle.split('|');
+    const label = (es.build.statuses as Record<string, string>)[status] ?? status;
+    return brand ? `${label} · ${brand}` : label;
+  }
   return entry.subtitle;
 }
 

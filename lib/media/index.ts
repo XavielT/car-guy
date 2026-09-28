@@ -213,7 +213,7 @@ export async function pickCandidates(opts: { multiple?: boolean; camera?: boolea
   );
 }
 
-export type ImportProgress = { done: number; total: number; imported: number; duplicates: number; failed: number };
+export type ImportProgress = { done: number; total: number; imported: number; duplicates: number; failed: number; mediaIds: string[] };
 
 /**
  * Stores a confirmed batch into a vehicle's album, one photo at a time so the
@@ -225,7 +225,7 @@ export async function importCandidates(
   opts: { onProgress?: (p: ImportProgress) => void; shouldStop?: () => boolean } = {},
 ): Promise<ImportProgress> {
   const shapes = [...(await findAlbumDupShapes(target.vehicleId))];
-  const progress: ImportProgress = { done: 0, total: candidates.length, imported: 0, duplicates: 0, failed: 0 };
+  const progress: ImportProgress = { done: 0, total: candidates.length, imported: 0, duplicates: 0, failed: 0, mediaIds: [] };
   for (const c of candidates) {
     if (opts.shouldStop?.()) break;
     try {
@@ -234,6 +234,7 @@ export async function importCandidates(
       if (result.duplicate) progress.duplicates += 1;
       else {
         progress.imported += 1;
+        progress.mediaIds.push(result.media.id);
         // Two copies of one photo in the same batch are duplicates too.
         shapes.push({ width: result.media.width, height: result.media.height, takenAt: result.media.takenAt, sizeBytes: result.media.sizeBytes });
       }
@@ -241,7 +242,7 @@ export async function importCandidates(
       progress.failed += 1;
     }
     progress.done += 1;
-    opts.onProgress?.({ ...progress });
+    opts.onProgress?.({ ...progress, mediaIds: [...progress.mediaIds] });
   }
   return progress;
 }

@@ -24,6 +24,7 @@ import { garageFacts, type GarageFacts } from '@/lib/db/garageQueries';
 import {
   currentOdometer as currentOdometerQuery,
   documents as documentRepo,
+  mods as modRepo,
   trackedDistance,
   expenses as expenseRepo,
   fuel as fuelRepo,
@@ -42,6 +43,8 @@ import { dateLabel, isoFromDateInput, km as fmtKm, money, todayIsoDate } from '@
 import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { AlbumTab } from '@/components/album/AlbumTab';
+import { BuildSummary, BuildTab } from '@/components/build/BuildTab';
+import { investedTotal } from '@/lib/domain/build';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -110,7 +113,7 @@ export default function VehicleHubScreen() {
     let cancelled = false;
 
     (async () => {
-      const [v, s, km, fuels, services, expenses, driven, f, d] = await Promise.all([
+      const [v, s, km, fuels, services, expenses, driven, f, d, ms] = await Promise.all([
         vehicleRepo.getById(id),
         specRepo.listWhere({ vehicleId: id }, { orderBy: 'sort_order', direction: 'ASC' }),
         currentOdometerQuery(id),
@@ -120,6 +123,7 @@ export default function VehicleHubScreen() {
         trackedDistance(id),
         garageFacts(id),
         documentRepo.list(id),
+        modRepo.listWhere({ vehicleId: id }),
       ]);
       if (cancelled) return;
 
@@ -133,7 +137,9 @@ export default function VehicleHubScreen() {
         spend:
           fuels.reduce((t, x) => t + x.totalDop, 0) +
           services.reduce((t, r) => t + r.totalDop, 0) +
-          expenses.reduce((t, e) => t + e.amountDop, 0),
+          expenses.reduce((t, e) => t + e.amountDop, 0) +
+          // Mods count like Cifras does: a migrated one's record already carries its cost.
+          investedTotal(ms.filter((m) => !m.serviceRecordId)),
         fillups: fuels.length,
         services: services.length,
       });
@@ -264,6 +270,7 @@ export default function VehicleHubScreen() {
               <GhostButton label={es.album.unlock} onPress={() => setUnlocked(true)} />
             </View>
           ) : null}
+          {tab === 'resumen' && FEATURE_BUILD ? <BuildSummary vehicleId={vehicle.id} version={version} /> : null}
           {tab === 'resumen' ? (
             <Resumen
               vehicle={vehicle}
@@ -280,6 +287,8 @@ export default function VehicleHubScreen() {
             />
           ) : tab === 'album' && FEATURE_ALBUM ? (
             <AlbumTab vehicleId={vehicle.id} version={version} />
+          ) : tab === 'build' && FEATURE_BUILD ? (
+            <BuildTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'docs' ? (
             <Docs docs={docs} onOpen={(docId) => router.push({ pathname: '/documento/[id]', params: { id: docId } })} onAll={() => router.push('/documentos')} />
           ) : (
