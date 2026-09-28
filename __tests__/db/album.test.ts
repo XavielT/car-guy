@@ -16,6 +16,7 @@ import {
   timelineEvents,
 } from '@/lib/db/albumQueries';
 import { deletedMediaInStorage } from '@/lib/db/syncOps';
+import { deleteVehicleCascade } from '@/lib/db/vehicleOps';
 import { buildTimeline } from '@/lib/domain/album';
 import { removeDeletedMediaBytes, uploadMediaBytes } from '@/lib/sync/mediaBytes';
 import { readStorageMeter, writeStorageMeter } from '@/lib/sync/storageMeter';
@@ -155,4 +156,20 @@ describe('uploads', () => {
     expect(c.removed).toEqual([['user1/p2019.jpg', 'user1/p2019.thumb.jpg']]);
     expect(await deletedMediaInStorage()).toEqual([]);
   });
+});
+
+it('deleting a vehicle takes its album, hitos and v2 rows with it', async () => {
+  db.prepare(`INSERT INTO vehicle (id, name, type, default_fuel_type, created_at, updated_at) VALUES ('veh_del', 'Borrar', 'carro', 'regular', ?, ?)`).run(T, T);
+  db.prepare(
+    `INSERT INTO media (id, owner_table, owner_id, kind, mime, created_at, updated_at) VALUES ('m_del', 'vehicle', 'veh_del', 'photo', 'image/jpeg', ?, ?)`,
+  ).run(T, T);
+  db.prepare(`INSERT INTO album_item (id, vehicle_id, media_id, created_at, updated_at) VALUES ('ai_del', 'veh_del', 'm_del', ?, ?)`).run(T, T);
+  await saveMilestone({ id: 'hito_del', vehicleId: 'veh_del', kind: 'otro', occurredAt: T, title: 'x' });
+  db.prepare(`INSERT INTO vehicle_ownership (id, vehicle_id, created_at, updated_at) VALUES ('own_veh_del', 'veh_del', ?, ?)`).run(T, T);
+  await deleteVehicleCascade('veh_del');
+  for (const [table, id] of [['media', 'm_del'], ['album_item', 'ai_del'], ['milestone', 'hito_del'], ['vehicle_ownership', 'own_veh_del'], ['vehicle', 'veh_del']]) {
+    expect([table, row(`SELECT deleted_at IS NOT NULL AS gone FROM ${table} WHERE id = ?`, id).gone]).toEqual([table, 1]);
+  }
+  // The other vehicle's album is untouched.
+  expect((await albumPhotos('veh_a')).length).toBeGreaterThan(0);
 });

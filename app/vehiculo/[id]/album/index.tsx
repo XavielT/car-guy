@@ -21,7 +21,7 @@ import {
   type TimelineItem,
   type TimelineSection,
 } from '@/lib/domain/album';
-import { km as fmtKm, monthTitle } from '@/lib/format';
+import { dateLabel, km as fmtKm, monthTitle } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -210,7 +210,7 @@ export default function AlbumScreen() {
           ) : (
             <View style={[styles.gridRow, { height: cell + GAP }]}>
               {r.photos.map((p) => (
-                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => openPhoto(p.id)} accessibilityLabel={es.viewer.of(1, 1)}>
+                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => openPhoto(p.id)} accessibilityLabel={p.takenAt ? dateLabel(p.takenAt) : es.viewer.noDate}>
                   {p.isFavorite ? <Ionicons name="star" size={14} color={theme.accentFill} style={styles.star} /> : null}
                 </PhotoThumb>
               ))}
@@ -356,7 +356,7 @@ function TimelineCard({
             {shown.map((p, i) => {
               const last = i === shown.length - 1 && extra > 0;
               return (
-                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => onPhoto(p.id)} accessibilityLabel={last ? es.album.more(extra) : title}>
+                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => onPhoto(p.id)} accessibilityLabel={last ? es.album.more(extra + 1) : p.takenAt ? dateLabel(p.takenAt) : title}>
                   {last ? (
                     <View style={[StyleSheet.absoluteFill, styles.more]}>
                       <T face="monoBold" style={{ color: '#FFFFFF', fontSize: 15 }}>

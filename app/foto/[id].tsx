@@ -182,10 +182,14 @@ export default function PhotoViewer() {
             showsHorizontalScrollIndicator={false}
             onViewableItemsChanged={onViewable}
             viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
+            // One page either side, and only the visible one fetches its full copy:
+            // FlatList's default of ten pages meant ten full downloads per open.
             windowSize={3}
-            renderItem={({ item }) => (
+            initialNumToRender={1}
+            maxToRenderPerBatch={1}
+            renderItem={({ item, index: i }) => (
               <View style={{ width, flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <ZoomableImage mediaId={item.id} blurhash={item.blurhash} width={width} height={Math.max(200, height - 260)} onZoomChange={setZoomed} />
+                <ZoomableImage mediaId={item.id} blurhash={item.blurhash} width={width} height={Math.max(200, height - 260)} onZoomChange={setZoomed} active={i === index} />
               </View>
             )}
           />

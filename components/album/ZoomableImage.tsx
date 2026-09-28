@@ -20,14 +20,17 @@ export function ZoomableImage({
   width,
   height,
   onZoomChange,
+  active = true,
 }: {
   mediaId: string;
   blurhash?: string | null;
   width: number;
   height: number;
   onZoomChange?: (zoomed: boolean) => void;
+  /** Only the page on screen loads its full copy; neighbours show the thumb (egress). */
+  active?: boolean;
 }) {
-  const full = useMediaUri(mediaId);
+  const full = useMediaUri(active ? mediaId : null);
   const thumb = useMediaUri(mediaId, { thumb: true });
 
   const scale = useSharedValue(1);

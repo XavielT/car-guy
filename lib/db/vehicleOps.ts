@@ -163,8 +163,21 @@ export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
         OR (owner_table = 'fuel_log' AND owner_id IN (SELECT id FROM fuel_log WHERE vehicle_id = ?3))
         OR (owner_table = 'document' AND owner_id IN (SELECT id FROM document WHERE vehicle_id = ?3))
         OR (owner_table = 'inspection_result' AND owner_id IN
-              (SELECT r.id FROM inspection_result r JOIN inspection i ON i.id = r.inspection_id WHERE i.vehicle_id = ?3))`,
+              (SELECT r.id FROM inspection_result r JOIN inspection i ON i.id = r.inspection_id WHERE i.vehicle_id = ?3))
+        OR id IN (SELECT media_id FROM album_item WHERE vehicle_id = ?3)
+        OR id IN (SELECT mm.media_id FROM mod_media mm JOIN mod ON mod.id = mm.mod_id WHERE mod.vehicle_id = ?3)`,
     );
+    // Schema v2 children reached through their parent (IMP 28092026).
+    await tomb('mod_media', 'mod_id IN (SELECT id FROM mod WHERE vehicle_id = ?3)');
+    await tomb(
+      'setup_sheet',
+      'session_id IN (SELECT s.id FROM track_session s JOIN track_event e ON e.id = s.event_id WHERE e.vehicle_id = ?3)',
+    );
+    await tomb(
+      'consumable_usage',
+      'session_id IN (SELECT s.id FROM track_session s JOIN track_event e ON e.id = s.event_id WHERE e.vehicle_id = ?3)',
+    );
+    await tomb('track_session', 'event_id IN (SELECT id FROM track_event WHERE vehicle_id = ?3)');
     await tomb('service_record_item', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)');
     await tomb('part', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)');
     await tomb('inspection_result', 'inspection_id IN (SELECT id FROM inspection WHERE vehicle_id = ?3)');
@@ -180,6 +193,21 @@ export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
       'inspection',
       'task',
       'document',
+      // v2. Inventory stays (an item can outlive the car); vehicle_member is the server's.
+      'album_item',
+      'milestone',
+      'vehicle_ownership',
+      'mod',
+      'vehicle_specsheet',
+      'spec_snapshot',
+      'torque_spec',
+      'wishlist_item',
+      'tire',
+      'wheel_set',
+      'vehicle_dtc_event',
+      'fluid_guide_item',
+      'track_event',
+      'vehicle_share',
     ]) {
       await tomb(table, 'vehicle_id = ?3');
     }
