@@ -71,3 +71,6 @@ docs/imp-17092026/04-tracking/x-core-inspect.txt
 releases/
 *.keystore
 *.jks
+
+# Real-garage backups exported from a device (never committed)
+docs/imp-28092026/fixtures/*.real.json

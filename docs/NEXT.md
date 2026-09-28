@@ -15,7 +15,7 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
 | Android | **2.0.0 released** — GitHub release `v2.0.0` with the APK; EAS project `@xavieldev/car-guy`, EAS-managed keystore; production AAB built for the Play Store |
 | Cloud | Supabase `x-core`, schema `carguy`, 19 tables, 76 RLS policies, private `carguy-media` bucket |
-| Local folder | Still `~/dev2/tu-gasolina-rd` — rename it when no session is open |
+| Local folder | `~/dev2/car-guy`. **Rename pending** (2026-09-28): on this laptop it is still `~/dev2/tu-gasolina-rd` — run `mv ~/dev2/tu-gasolina-rd ~/dev2/car-guy` with no Claude session open there |
 
 ## 1. Done for 2.0.0 (2026-09-25)
 
