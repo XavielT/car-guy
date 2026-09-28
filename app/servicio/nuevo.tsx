@@ -23,7 +23,8 @@ import type { ServiceKind, ServiceType } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
-import { FEATURE_BUILD } from '@/lib/flags';
+import { FEATURE_BUILD, FEATURE_DIY } from '@/lib/flags';
+import { ContactPicker } from '@/components/diy/ContactPieces';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal, roundMoney } from '@/lib/math';
@@ -86,6 +87,7 @@ export default function NuevoServicioScreen() {
   const [costLabor, setCostLabor] = useState('');
   const [totalOverride, setTotalOverride] = useState<string | null>(null);
   const [shop, setShop] = useState('');
+  const [contactId, setContactId] = useState<string | null>(null);
   const [showWarranty, setShowWarranty] = useState(false);
   const [warrantyDate, setWarrantyDate] = useState('');
   const [warrantyKm, setWarrantyKm] = useState('');
@@ -159,6 +161,7 @@ export default function NuevoServicioScreen() {
       const computed = roundMoney(row.costPartsDop + row.costLaborDop);
       setTotalOverride(row.totalDop === computed ? null : String(row.totalDop));
       setShop(row.shop);
+      setContactId(row.contactId ?? null);
       if (row.warrantyUntilDate || row.warrantyUntilKm != null) {
         setShowWarranty(true);
         setWarrantyDate(row.warrantyUntilDate ? dateInputFromIso(row.warrantyUntilDate) : '');
@@ -239,6 +242,7 @@ export default function NuevoServicioScreen() {
         costLaborDop: laborCost,
         totalDop: total,
         shop: shop.trim(),
+        contactId: FEATURE_DIY ? contactId : undefined,
         warrantyUntilDate: warrantyDate ? isoFromDateInput(warrantyDate) : null,
         warrantyUntilKm: warrantyKm.trim() ? parseDecimal(warrantyKm) : null,
         sourceTaskId,
@@ -378,8 +382,21 @@ export default function NuevoServicioScreen() {
           hint={es.service.totalAuto}
         />
 
-        <Field label={es.service.shop} placeholder={es.service.shopPlaceholder} value={shop} onChangeText={setShop} />
-        {shops.length ? (
+        {FEATURE_DIY ? (
+          // The shop is a contact now (call / WhatsApp from it), with free text for a one-off.
+          <ContactPicker
+            contactId={contactId}
+            text={shop}
+            textLabel={es.service.shop}
+            onChange={({ contactId: c, text }) => {
+              setContactId(c);
+              setShop(text);
+            }}
+          />
+        ) : (
+          <Field label={es.service.shop} placeholder={es.service.shopPlaceholder} value={shop} onChangeText={setShop} />
+        )}
+        {shops.length && !contactId ? (
           <View style={styles.row}>
             {shops.map((s) => (
               <Pressable

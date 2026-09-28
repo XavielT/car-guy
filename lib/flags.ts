@@ -25,7 +25,7 @@ export const FEATURE_ALBUM = true;
 /** Build log: mods, specs, wishlist, inventario — PROMPT-04. */
 export const FEATURE_BUILD = true;
 /** Ficha técnica, fluidos, OBD, contactos — PROMPT-05. */
-export const FEATURE_DIY = false;
+export const FEATURE_DIY = true;
 /** Pista: eventos, sesiones, setup sheets — PROMPT-06. */
 export const FEATURE_TRACK = false;
 /** Ficha pública, libro PDF, garaje compartido — PROMPT-07. */

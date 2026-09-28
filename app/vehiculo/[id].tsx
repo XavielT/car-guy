@@ -44,6 +44,7 @@ import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { AlbumTab } from '@/components/album/AlbumTab';
 import { BuildSummary, BuildTab } from '@/components/build/BuildTab';
+import { FichaTab } from '@/components/diy/FichaTab';
 import { investedTotal } from '@/lib/domain/build';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
@@ -289,6 +290,8 @@ export default function VehicleHubScreen() {
             <AlbumTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'build' && FEATURE_BUILD ? (
             <BuildTab vehicleId={vehicle.id} version={version} />
+          ) : tab === 'ficha' && FEATURE_DIY ? (
+            <FichaTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'docs' ? (
             <Docs docs={docs} onOpen={(docId) => router.push({ pathname: '/documento/[id]', params: { id: docId } })} onAll={() => router.push('/documentos')} />
           ) : (

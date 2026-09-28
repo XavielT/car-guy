@@ -1,3 +1,4 @@
+import { lookup } from './dtc';
 import type { HistoryEntry } from '../db/types';
 import { FUEL_CATALOG } from '../fuel';
 import { EXPENSE_CATEGORY_LABELS } from '../db/types';
@@ -28,6 +29,11 @@ export function historyTitle(entry: HistoryEntry): string {
 /** The meta line's second part: an expense's category key becomes its label. */
 export function historySubtitle(entry: HistoryEntry): string | null {
   if (entry.kind === 'gasto') return expenseLabel(entry.subtitle) ?? entry.subtitle;
+  if (entry.kind === 'obd') {
+    const d = lookup(entry.title);
+    const state = entry.subtitle === 'resuelto' ? 'Resuelto' : 'Abierto';
+    return [state, d?.descEs].filter(Boolean).join(' · ');
+  }
   if (entry.kind === 'mod' && entry.subtitle?.includes('|')) {
     // "<status>|<brand>" (history_feed v3): "Instalado · BC Racing".
     const [status, brand] = entry.subtitle.split('|');
@@ -62,6 +68,8 @@ export function historyKindLabel(kind: HistoryEntry['kind']): string {
       return es.history.kinds.hito;
     case 'pista':
       return es.history.kinds.pista;
+    case 'obd':
+      return es.history.kinds.obd;
     default:
       return kind;
   }

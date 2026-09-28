@@ -301,7 +301,7 @@ export type Media = Syncable & {
 export type HistoryEntry = {
   id: string;
   vehicleId: string;
-  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo' | 'mod' | 'hito' | 'pista';
+  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo' | 'mod' | 'hito' | 'pista' | 'obd';
   occurredAt: string;
   /** Tie-breaker for same-day entries (v2 view). */
   createdAt?: string | null;
