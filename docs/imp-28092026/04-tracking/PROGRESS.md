@@ -73,7 +73,7 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | Phase | Blocker | Needs | Status |
 |---|---|---|---|
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel, in a terminal with no session open there | open |
-| 0 | Throwaway users from the baseline verify runs (`carguy-test-1790608644357-%`, `carguy-sync-1790608647648@example.com`) still in `auth.users` — `apply-sql.mjs sql/999_cleanup_test_users.sql --shared` was refused by the auto-mode classifier | Xaviel runs `node tools/apply-sql.mjs sql/999_cleanup_test_users.sql --shared` (or allows it) | open |
+| 0 | Throwaway users from the baseline verify runs (`carguy-test-1790608644357-%`, `carguy-sync-1790608647648@example.com`) still in `auth.users` — `apply-sql.mjs sql/999_cleanup_test_users.sql --shared` was refused by the auto-mode classifier | Xaviel allowed it | resolved 2026-09-28 — applied, `leftover_profiles = 0` |
 
 ---
 
@@ -141,7 +141,7 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 - The v1 seed had no demo vehicles and no inspection data to move; see Audit corrections.
 
 ### Observed, deferred
-- Cleanup of the baseline's throwaway users is Xaviel's (Blockers).
+- Cleanup of the baseline's throwaway users: done after Xaviel allowed it (Blockers).
 - `adb` not on `PATH`.
 
 ### Design check
