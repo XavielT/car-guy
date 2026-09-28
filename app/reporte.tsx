@@ -119,10 +119,10 @@ export default function ReporteScreen() {
 
         {stats ? (
           <Surface style={styles.summary}>
-            <T face="medium" style={[styles.eyebrow, { color: theme.text.muted }]}>
-              {stats.vehicle.name.toUpperCase()}
+            <T face="eyebrow" style={[styles.eyebrow, { color: theme.text.muted }]}>
+              {stats.vehicle.name}
             </T>
-            <T face="body" style={[styles.range, { color: theme.text.secondary }]}>
+            <T face="mono" style={[styles.range, { color: theme.text.secondary }]}>
               {stats.period.from
                 ? `${dateLabel(stats.period.from)} — ${dateLabel(stats.period.to)}`
                 : es.stats.periodHint.todo}
@@ -165,15 +165,15 @@ export default function ReporteScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 30 },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { marginTop: 6, lineHeight: 22 },
   firstSection: { marginTop: space.lg },
   summary: { marginTop: space.lg, marginBottom: space.lg },
-  eyebrow: { fontSize: 11, letterSpacing: 0.9 },
-  range: { fontSize: 13, marginTop: 4 },
+  eyebrow: { fontSize: 11 },
+  range: { fontSize: 12, marginTop: 4 },
   rule: { height: 1, marginVertical: space.md },
   loading: { paddingVertical: space.xxxl, alignItems: 'center' },
-  hint: { fontSize: 12, lineHeight: 18, marginBottom: space.md },
+  hint: { fontSize: 13, lineHeight: 18, marginBottom: space.md },
 });
 
 /** "car-guy-corolla-2016-2026-09-25.pdf": what it is, whose, and when. */

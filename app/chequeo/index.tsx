@@ -74,16 +74,17 @@ export default function ChequeoScreen() {
     void setTemplateEnabled(template.id, activeVehicle.id, !template.isEnabled).then(refresh);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
+    // The stack header already says "Chequeo" and sits under the status bar,
+    // so no in-page title and no top inset here.
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.check.title}
-        </T>
-
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <T face="medium" style={[styles.eyebrow, { color: theme.text.muted }]}>
-              {es.check.todayTitle.toUpperCase()}
+            <T face="eyebrow" style={[styles.eyebrow, { color: theme.accent }]}>
+              {es.check.todayTitle}
+              <T face="kana" style={[styles.kana, { color: theme.text.muted }]}>
+                {' 点検'}
+              </T>
             </T>
             {due.length === 0 ? (
               <T face="body" style={{ color: theme.text.secondary, fontSize: 14 }}>
@@ -104,7 +105,7 @@ export default function ChequeoScreen() {
 
         {due.map((template) => (
           <Surface key={template.id} style={{ marginBottom: space.md }}>
-            <T face="title" style={{ color: theme.text.primary, fontSize: 18 }}>
+            <T face="display" style={{ color: theme.text.primary, fontSize: 22, textTransform: 'uppercase' }}>
               {template.name}
             </T>
             <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2, marginBottom: space.md }}>
@@ -122,7 +123,7 @@ export default function ChequeoScreen() {
           </Surface>
         ))}
 
-        <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+        <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
           {es.check.templates}
         </T>
         {mine.map((template) => (
@@ -150,7 +151,7 @@ export default function ChequeoScreen() {
               accessibilityState={{ checked: template.isEnabled }}
               accessibilityLabel={`${template.name}: ${template.isEnabled ? es.check.turnOff : es.check.turnOn}`}
               hitSlop={8}>
-              <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
+              <T face="title" style={[styles.action, { color: theme.text.secondary }]}>
                 {template.isEnabled ? es.check.turnOff : es.check.turnOn}
               </T>
             </Pressable>
@@ -159,7 +160,7 @@ export default function ChequeoScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${es.check.edit} ${template.name}`}
               hitSlop={8}>
-              <T face="body" style={{ color: theme.accent, fontSize: 13 }}>
+              <T face="title" style={[styles.action, { color: theme.accent }]}>
                 {es.check.edit}
               </T>
             </Pressable>
@@ -168,7 +169,7 @@ export default function ChequeoScreen() {
 
         {runs.length ? (
           <>
-            <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+            <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.check.recent}
             </T>
             {runs.slice(0, 8).map((run) => (
@@ -181,7 +182,7 @@ export default function ChequeoScreen() {
                   <T face="semibold" style={{ color: theme.text.primary, fontSize: 13 }}>
                     {nameOf(run.templateId) || es.check.title}
                   </T>
-                  <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
+                  <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
                     {dateLabel(run.occurredAt)}
                   </T>
                 </View>
@@ -208,10 +209,11 @@ export default function ChequeoScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 34, marginBottom: space.lg },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.md },
-  eyebrow: { fontSize: 11, letterSpacing: 0.9, marginBottom: 6 },
-  section: { fontSize: 20, marginTop: space.xl, marginBottom: space.sm },
+  eyebrow: { fontSize: 12, marginBottom: 6 },
+  kana: { fontSize: 10, letterSpacing: 0, textTransform: 'none' },
+  section: { fontSize: 12, marginTop: space.xxl, marginBottom: space.xs },
+  action: { fontSize: 13, letterSpacing: 0.9, textTransform: 'uppercase' },
   templateRow: {
     flexDirection: 'row',
     alignItems: 'center',

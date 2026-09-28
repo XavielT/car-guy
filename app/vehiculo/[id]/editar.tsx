@@ -40,6 +40,16 @@ export default function EditarVehiculoScreen() {
         purchasePrice: v.purchasePrice,
         photoMediaId: v.photoMediaId,
         notes: v.notes,
+        nickname: v.nickname,
+        status: v.status,
+        chassisCode: v.chassisCode,
+        chassisNumber: v.chassisNumber,
+        engineCode: v.engineCode,
+        transmission: v.transmission,
+        drivetrain: v.drivetrain,
+        origin: v.origin,
+        importedYear: v.importedYear,
+        story: v.story,
       });
     })();
   }, [id]);

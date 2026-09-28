@@ -1,21 +1,22 @@
 import { StyleSheet, View } from 'react-native';
 
 import { T } from '@/components/T';
+import { CarbonFrame } from '@/components/ui/CarbonFrame';
 import { palette, radius, space } from '@/constants/theme';
 import { money } from '@/lib/format';
 import { FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
 import type { ReferencePrices } from '@/lib/types';
 
 /**
- * The MICM reference board. Dark in both schemes, on purpose: this is a *panel*
- * — the thing bolted to the canopy at the bomba — not a card in the page's
- * surface. The identity spec allows exactly this exception, so it reads from
- * `palette.dark` directly rather than from useTheme(), and every colour inside
- * it is checked against that near-black instead of against the active scheme.
+ * The MICM reference board — an *instrument*, dark in both schemes (05-design-jdm.md:
+ * "PriceBoard and the cluster hero stay dark panels in light mode"). It reads
+ * from `palette.dark` directly rather than from useTheme(), and every colour
+ * inside it is checked against that near-black instead of the active scheme.
  *
- * Tu Combustible RD's amber LED digits survive here and nowhere else, which is
- * the point: the old identity was about buying fuel, and this is the one surface
- * still about buying fuel.
+ * Built like a cluster pod: a carbon bezel strip with the two bolts (trim only,
+ * no text on it), the eyebrow in Saira tracked amber, the week in Saira 800,
+ * then each grade on its own LCD well with the price in JetBrains Mono amber —
+ * Tu Combustible RD's LED digits, the one surface still about buying fuel.
  */
 const board = palette.dark;
 
@@ -32,81 +33,100 @@ export function PriceBoard({
 }) {
   return (
     <View style={styles.board}>
-      <View style={styles.screws}>
+      <CarbonFrame style={styles.bezel} opacity={board.carbonOpacity * 2}>
         <View style={styles.screw} />
         <View style={styles.screw} />
-      </View>
-      <T face="medium" style={styles.eyebrow}>
-        {eyebrow.toUpperCase()}
-      </T>
-      <T face="monoBold" style={styles.led}>
-        {amount}
-      </T>
-      <T face="body" style={styles.caption}>
-        {caption}
-      </T>
-      <View style={styles.rule} />
-      {FUEL_ORDER.map((type) => (
-        <View key={type} style={styles.row}>
-          <T face="semibold" style={styles.grade}>
-            {FUEL_CATALOG[type].shortLabel}
+      </CarbonFrame>
+
+      <View style={styles.body}>
+        <T face="eyebrow" style={styles.eyebrow}>
+          {eyebrow}
+          <T face="kana" style={styles.kana}>
+            {' 給油'}
           </T>
-          <View style={styles.dots} />
-          <T face="mono" style={styles.price}>
-            {money(prices[type])}
-          </T>
+        </T>
+        <T face="display" style={styles.week}>
+          {amount}
+        </T>
+        <T face="body" style={styles.caption}>
+          {caption}
+        </T>
+
+        <View style={styles.grid}>
+          {FUEL_ORDER.map((type) => (
+            <View key={type} style={styles.row}>
+              <T face="title" style={styles.grade} numberOfLines={1}>
+                {FUEL_CATALOG[type].shortLabel}
+              </T>
+              <View style={styles.well}>
+                <T face="monoBold" style={styles.price} numberOfLines={1}>
+                  {money(prices[type])}
+                </T>
+              </View>
+            </View>
+          ))}
         </View>
-      ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   board: {
-    backgroundColor: board.bg.base,
+    backgroundColor: board.bg.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.10)',
-    borderRadius: radius.sheet,
-    padding: space.xl,
-    paddingTop: 18,
+    borderColor: board.lineStrong,
+    borderRadius: radius.card + 2,
+    overflow: 'hidden',
   },
-  screws: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  screw: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    // The house amber at low alpha, so the two bolts read as metal catching the
-    // accent rather than as two lit dots competing with the digits.
-    backgroundColor: 'rgba(255, 179, 0, 0.35)',
-  },
-  eyebrow: {
-    color: board.accent,
-    fontSize: 12,
-    letterSpacing: 1.6,
-  },
-  led: {
-    // The week label, not a price: white so the amber is reserved for the
-    // numbers people came to read.
-    color: board.text.primary,
-    fontSize: 30,
-    marginTop: space.sm,
-    letterSpacing: -0.5,
-  },
-  caption: { color: board.text.secondary, marginTop: 6, fontSize: 13, lineHeight: 19 },
-  rule: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
-    marginVertical: 14,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
-  grade: { color: board.text.secondary, fontSize: 13, width: 88 },
-  dots: {
-    flex: 1,
+  bezel: {
+    height: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    backgroundColor: board.bg.base,
     borderBottomWidth: 1,
-    borderStyle: 'dotted',
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    marginHorizontal: space.sm,
-    marginTop: space.sm,
+    borderBottomColor: board.lineStrong,
   },
-  price: { color: board.text.primary, fontSize: 14 },
+  screw: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: board.bg.raised,
+    borderWidth: 1,
+    borderColor: board.lineStrong,
+  },
+  body: { padding: space.lg, paddingTop: space.md },
+  eyebrow: { color: board.accent, fontSize: 11 },
+  kana: { color: board.text.muted, fontSize: 10, letterSpacing: 0, textTransform: 'none' },
+  week: {
+    color: board.text.primary,
+    fontSize: 26,
+    lineHeight: 28,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+  caption: { color: board.text.secondary, marginTop: 4, fontSize: 13, lineHeight: 18 },
+  grid: { marginTop: space.md, gap: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  grade: {
+    color: board.text.secondary,
+    fontSize: 14,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    flex: 1,
+  },
+  // The LCD inset each price sits in.
+  well: {
+    backgroundColor: board.bg.well,
+    borderWidth: 1,
+    borderColor: board.lineStrong,
+    borderRadius: radius.lamp,
+    paddingHorizontal: space.md,
+    paddingVertical: 5,
+    minWidth: 128,
+    alignItems: 'flex-end',
+  },
+  price: { color: board.accent, fontSize: 16, letterSpacing: 0.3 },
 });

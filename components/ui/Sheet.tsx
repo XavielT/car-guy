@@ -97,5 +97,5 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     marginBottom: space.lg,
   },
-  title: { fontSize: 20, marginBottom: space.lg },
+  title: { fontSize: 20, marginBottom: space.lg, textTransform: 'uppercase', letterSpacing: 0.6 },
 });

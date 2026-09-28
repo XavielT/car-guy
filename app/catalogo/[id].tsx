@@ -89,6 +89,6 @@ export default function CatalogoItemScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 26 },
+  h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { fontSize: 13, marginTop: 4, marginBottom: space.lg, lineHeight: 19 },
 });

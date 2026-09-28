@@ -1,7 +1,7 @@
 import { BarChart } from 'react-native-gifted-charts';
 import { StyleSheet, View } from 'react-native';
 
-import { categoryColors, fonts, space } from '@/constants/theme';
+import { categoryColors, categoryInkLight, fonts, space, type CategoryKey } from '@/constants/theme';
 import { money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { STAT_CATEGORIES, type MonthlySpend, type StatCategory } from '@/lib/domain/stats';
@@ -9,7 +9,16 @@ import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 import { ChartFrame } from './ChartFrame';
 
-/** The category palette, keyed the way `StatCategory` is. */
+const STAT_TO_CATEGORY: Record<StatCategory, CategoryKey> = {
+  combustible: 'combustible',
+  mantenimiento: 'mantenimiento',
+  reparacion: 'reparacion',
+  mejora: 'mejora',
+  legal: 'legal',
+  otros: 'otros',
+};
+
+/** The category palette (dark scheme), keyed the way `StatCategory` is. */
 export const CATEGORY_COLOR: Record<StatCategory, string> = {
   combustible: categoryColors.combustible,
   mantenimiento: categoryColors.mantenimiento,
@@ -18,6 +27,17 @@ export const CATEGORY_COLOR: Record<StatCategory, string> = {
   legal: categoryColors.legal,
   otros: categoryColors.otros,
 };
+
+/**
+ * The category colour for the active scheme: the bright tokens on dark, the
+ * computed light inks on a white card (the bright cyan/green on white would
+ * sit under the 3:1 a chart mark needs).
+ */
+export function useCategoryColor(): (category: StatCategory) => string {
+  const { scheme } = useTheme();
+  return (category) =>
+    scheme === 'light' ? categoryInkLight[STAT_TO_CATEGORY[category]] : CATEGORY_COLOR[category];
+}
 
 const MONTH_INITIALS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
@@ -30,6 +50,7 @@ const MONTH_INITIALS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', '
  */
 export function StackedBars({ months }: { months: MonthlySpend[] }) {
   const { theme } = useTheme();
+  const colorOf = useCategoryColor();
 
   const hasData = months.some((month) => month.total > 0);
   const max = Math.max(...months.map((m) => m.total), 1);
@@ -38,7 +59,7 @@ export function StackedBars({ months }: { months: MonthlySpend[] }) {
     label: MONTH_INITIALS[month.monthIndex],
     stacks: STAT_CATEGORIES.filter((category) => month.byCategory[category] > 0).map((category) => ({
       value: month.byCategory[category],
-      color: CATEGORY_COLOR[category],
+      color: colorOf(category),
     })),
   }));
 
@@ -71,7 +92,7 @@ export function StackedBars({ months }: { months: MonthlySpend[] }) {
             rulesColor={theme.line}
             rulesType="dashed"
             yAxisTextStyle={{ color: theme.text.muted, fontSize: 9, fontFamily: fonts.mono }}
-            xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 10, fontFamily: fonts.medium }}
+            xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 11, fontFamily: fonts.title }}
             yAxisLabelWidth={44}
             formatYLabel={(value: string) => compact(Number(value))}
             disablePress
@@ -86,6 +107,7 @@ export function StackedBars({ months }: { months: MonthlySpend[] }) {
 /** Only the categories that actually appear, so the legend stays honest. */
 function Legend({ months }: { months: MonthlySpend[] }) {
   const { theme } = useTheme();
+  const colorOf = useCategoryColor();
   const totals = new Map<StatCategory, number>();
   for (const month of months) {
     for (const category of STAT_CATEGORIES) {
@@ -101,8 +123,8 @@ function Legend({ months }: { months: MonthlySpend[] }) {
     <View style={styles.legend}>
       {present.map(([category, total]) => (
         <View key={category} style={styles.legendItem}>
-          <View style={[styles.swatch, { backgroundColor: CATEGORY_COLOR[category] }]} />
-          <T face="body" style={{ color: theme.text.secondary, fontSize: 12 }}>
+          <View style={[styles.swatch, { backgroundColor: colorOf(category) }]} />
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
             {es.stats.categories[category]}
           </T>
           <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>

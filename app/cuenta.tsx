@@ -7,6 +7,7 @@ import { Field } from '@/components/Field';
 import { T } from '@/components/T';
 import {
   GhostButton,
+  Hanko,
   KeyValueRow,
   PrimaryButton,
   SectionHeader,
@@ -14,7 +15,7 @@ import {
   StatusPill,
   Surface,
 } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { resetPassword, signIn, signOut, signUp, useSession } from '@/lib/cloud/auth';
 import { FEATURE_SYNC } from '@/lib/flags';
@@ -137,10 +138,16 @@ export default function CuentaScreen() {
         ) : session ? (
           <>
             <Surface style={styles.card}>
-              <StatusPill status="ok" label={es.account.signedInAs} />
-              <T face="monoBold" style={[styles.email, { color: theme.text.primary }]}>
-                {session.user.email}
-              </T>
+              <View style={styles.identity}>
+                <View style={{ flex: 1 }}>
+                  <StatusPill status="ok" label={es.account.signedInAs} />
+                  <T face="monoBold" style={[styles.email, { color: theme.text.primary }]}>
+                    {session.user.email}
+                  </T>
+                </View>
+                {/* The hanko avatar Inicio shows, with the account's initial. */}
+                <Hanko char={(session.user.email ?? '?').slice(0, 1).toUpperCase()} size={48} />
+              </View>
               <View style={[styles.rule, { backgroundColor: theme.line }]} />
 
               <KeyValueRow
@@ -253,7 +260,7 @@ export default function CuentaScreen() {
               accessibilityRole="switch"
               accessibilityState={{ checked: reveal }}
               style={styles.reveal}>
-              <T face="semibold" style={{ color: theme.accent, fontSize: 13 }}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
                 {reveal ? es.account.hidePassword : es.account.showPassword}
               </T>
             </Pressable>
@@ -293,11 +300,12 @@ export default function CuentaScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 30 },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { marginTop: 6, lineHeight: 22 },
   card: { marginTop: space.lg, marginBottom: space.lg },
   cardBody: { fontSize: 13, marginTop: space.sm, lineHeight: 19 },
   pitch: { fontSize: 15, lineHeight: 22 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   email: { fontSize: 15, marginTop: space.md },
   rule: { height: 1, marginVertical: space.md },
   modes: { marginBottom: space.lg },
@@ -307,14 +315,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: space.md,
     padding: space.md,
-    borderRadius: 14,
+    borderRadius: radius.input,
     overflow: 'hidden',
   },
   syncError: {
     fontSize: 13,
     marginTop: space.md,
     padding: space.md,
-    borderRadius: 14,
+    borderRadius: radius.input,
     overflow: 'hidden',
   },
 });

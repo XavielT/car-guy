@@ -86,10 +86,14 @@ export default function TareaScreen() {
         </View>
 
         <Surface style={{ marginBottom: space.md }}>
-          <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
             {es.service.kinds[task.kind]}
-            {task.estimatedCostDop != null ? ` · ${money(task.estimatedCostDop)}` : ''}
           </T>
+          {task.estimatedCostDop != null ? (
+            <T face="monoBold" style={{ color: theme.text.primary, fontSize: 18, marginTop: 4 }}>
+              {money(task.estimatedCostDop)}
+            </T>
+          ) : null}
           {task.notes ? (
             <T face="body" style={{ color: theme.text.secondary, marginTop: space.sm, lineHeight: 20 }}>
               {task.notes}
@@ -99,7 +103,7 @@ export default function TareaScreen() {
             <Pressable
               onPress={() => router.push({ pathname: '/inspeccion/[id]', params: { id: origin.inspectionId } })}
               accessibilityRole="link">
-              <T face="body" style={{ color: theme.accent, fontSize: 13, marginTop: space.sm }}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 14, marginTop: space.sm }}>
                 {es.tasks.fromInspection} ›
               </T>
             </Pressable>
@@ -120,9 +124,9 @@ export default function TareaScreen() {
                 accessibilityState={{ selected: on }}
                 style={[
                   styles.chip,
-                  { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
+                  { backgroundColor: on ? theme.accentFill : theme.bg.raised, borderColor: on ? theme.accentFill : theme.line },
                 ]}>
-                <T face="semibold" style={{ color: on ? theme.accentInk : theme.text.secondary, fontSize: 13 }}>
+                <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
                   {es.tasks.statuses[s]}
                 </T>
               </Pressable>
@@ -189,7 +193,7 @@ export default function TareaScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 26 },
+  h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3 },
   meta: { flexDirection: 'row', marginTop: space.sm, marginBottom: space.lg },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },

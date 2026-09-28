@@ -295,7 +295,7 @@ export function ReminderForm({
 function Label({ text }: { text: string }) {
   const { theme } = useTheme();
   return (
-    <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+    <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
       {text}
     </T>
   );
@@ -311,7 +311,7 @@ function Hint({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 13, marginBottom: 6 },
+  label: { fontSize: 12, marginBottom: 6 },
   hint: { fontSize: 12, lineHeight: 17, marginBottom: space.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
   pair: { flexDirection: 'row', gap: space.md },

@@ -10,7 +10,9 @@ import { compact } from './StackedBars';
 const MONTH_INITIALS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
 /**
- * Kilometres per month, in the accent rather than a category colour: distance
+ * Kilometres per month, in the accent rather than a category colour (the
+ * bright amber on dark, the dark amber ink on light — a bar is a mark, and
+ * #FFB300 on white is under 2:1): distance
  * is not a kind of spending, and borrowing `combustible`'s amber here would
  * imply the two bars are the same quantity seen twice.
  */
@@ -49,7 +51,7 @@ export function DistanceBars({ months }: { months: MonthlyDistance[] }) {
           rulesColor={theme.line}
           rulesType="dashed"
           yAxisTextStyle={{ color: theme.text.muted, fontSize: 9, fontFamily: fonts.mono }}
-          xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 10, fontFamily: fonts.medium }}
+          xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 11, fontFamily: fonts.title }}
           yAxisLabelWidth={44}
           formatYLabel={(value: string) => compact(Number(value))}
           disablePress

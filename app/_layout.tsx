@@ -18,6 +18,7 @@ import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 import { AlertHost } from '@/components/AlertHost';
 import { clearBootAttempts, DatabaseBoundary } from '@/components/BootError';
 import { FirstSyncBanner } from '@/components/FirstSyncBanner';
+import { T } from '@/components/T';
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
@@ -201,6 +202,13 @@ function Shell() {
           headerStyle: { backgroundColor: theme.bg.surface },
           headerShadowVisible: false,
           headerTitleStyle: { fontFamily: fonts.title, fontSize: 18 },
+          // Titles are Saira uppercase (05-design-jdm.md). Drawn here rather than
+          // by uppercasing `title`, which is also the browser tab's text.
+          headerTitle: ({ children, tintColor }) => (
+            <T face="title" numberOfLines={1} style={{ color: tintColor ?? theme.text.primary, fontSize: 18, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+              {children}
+            </T>
+          ),
         }}>
         {/* These titles are what the browser tab shows on web: expo-router feeds
             the screen title to react-helmet, and a screen without one renders an
@@ -228,6 +236,7 @@ function Shell() {
           options={{ presentation: 'modal', headerShown: true, title: es.routes.expense }}
         />
         <Stack.Screen name="gasto/[id]" options={{ headerShown: true, title: es.routes.expense }} />
+        <Stack.Screen name="chequeo/index" options={{ headerShown: true, title: es.routes.check }} />
         <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: es.routes.check }} />
         <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: es.routes.guide }} />
         <Stack.Screen name="chequeo/plantillas/[id]" options={{ headerShown: true, title: es.routes.templateEditor }} />

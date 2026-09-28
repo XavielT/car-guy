@@ -79,7 +79,7 @@ export function RecordRow({
         styles.row,
         { backgroundColor: theme.bg.surface, borderColor: theme.line, opacity: pressed ? 0.85 : 1 },
       ]}>
-      <View style={[styles.badge, { backgroundColor: `${hue}28` }]}>
+      <View style={[styles.badge, { backgroundColor: `${hue}24`, borderColor: `${hue}55` }]}>
         <Ionicons name={ICON[kind]} size={17} color={ink} />
       </View>
 
@@ -87,11 +87,11 @@ export function RecordRow({
         <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }} numberOfLines={1}>
           {title}
         </T>
-        <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+        <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: 1 }} numberOfLines={1}>
           {meta}
         </T>
         {tag ? (
-          <T face="mono" style={{ color: theme.status.ok, fontSize: 12, marginTop: 3 }}>
+          <T face="mono" style={{ color: theme.statusText.ok, fontSize: 12, marginTop: 3 }}>
             {tag}
           </T>
         ) : null}
@@ -116,6 +116,14 @@ const styles = StyleSheet.create({
     padding: space.md,
     marginBottom: space.sm,
   },
-  badge: { width: 34, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  // A lamp, not a coin: rounded square in the category hue (05-design-jdm.md category colours).
+  badge: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   body: { flex: 1 },
 });

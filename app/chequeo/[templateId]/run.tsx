@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
-import { GaugeRing, PrimaryButton, Segmented, Surface } from '@/components/ui';
+import { BoostRing, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import {
   currentOdometer as currentOdometerQuery,
@@ -134,19 +134,28 @@ export default function RunScreen() {
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <T face="display" style={{ color: theme.text.primary, fontSize: 26 }}>
+            <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
+              {es.check.cadences[template.cadence]}
+            </T>
+            <T face="display" style={[styles.title, { color: theme.text.primary }]}>
               {template.name}
             </T>
-            <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
+            <T face="mono" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4 }}>
               {answered}/{items.length} · {es.check.elapsed(Math.floor(elapsed / 60), elapsed % 60)}
             </T>
           </View>
-          <GaugeRing progress={items.length ? answered / items.length : 0} size={72} />
+          {/* The boost gauge fills as the list does: amber only, completion is not danger. */}
+          <BoostRing
+            progress={items.length ? answered / items.length : 0}
+            size={104}
+            value={`${items.length ? Math.round((answered / items.length) * 100) : 0}%`}
+            label={es.check.title}
+          />
         </View>
 
         {needsCold ? (
           <View style={[styles.cold, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
-            <T face="semibold" style={{ color: theme.status.proximo, fontSize: 13 }}>
+            <T face="semibold" style={{ color: theme.statusText.proximo, fontSize: 14, lineHeight: 19 }}>
               {es.check.coldEngine}
             </T>
           </View>
@@ -154,8 +163,8 @@ export default function RunScreen() {
 
         {Object.entries(groups).map(([group, groupItems]) => (
           <View key={group}>
-            <T face="medium" style={[styles.group, { color: theme.text.muted }]}>
-              {group.toUpperCase()}
+            <T face="eyebrow" accessibilityRole="header" style={[styles.group, { color: theme.text.muted }]}>
+              {group}
             </T>
             {groupItems.map((item) => {
               const verdict = answers[item.id];
@@ -166,7 +175,7 @@ export default function RunScreen() {
                       {item.label}
                     </T>
                     {item.requiresColdEngine ? (
-                      <T face="body" style={{ color: theme.status.proximo, fontSize: 11 }}>
+                      <T face="eyebrow" style={{ color: theme.statusText.proximo, fontSize: 10 }}>
                         {es.check.coldBadge}
                       </T>
                     ) : null}
@@ -178,7 +187,7 @@ export default function RunScreen() {
                       accessibilityRole="button"
                       accessibilityState={{ expanded: Boolean(expanded[item.id]) }}
                       aria-expanded={Boolean(expanded[item.id])}>
-                      <T face="body" style={{ color: theme.accent, fontSize: 12, marginTop: 4 }}>
+                      <T face="semibold" style={{ color: theme.accent, fontSize: 13, marginTop: 4 }}>
                         {es.check.how}
                       </T>
                     </Pressable>
@@ -194,7 +203,7 @@ export default function RunScreen() {
                     {(['ok', 'falla', 'na'] as Verdict[]).map((v) => {
                       const on = verdict === v;
                       const color =
-                        v === 'ok' ? theme.status.ok : v === 'falla' ? theme.statusText.vencido : theme.text.muted;
+                        v === 'ok' ? theme.statusText.ok : v === 'falla' ? theme.statusText.vencido : theme.text.muted;
                       return (
                         <Pressable
                           key={v}
@@ -206,7 +215,7 @@ export default function RunScreen() {
                             styles.verdict,
                             { borderColor: on ? color : theme.line, backgroundColor: on ? `${color}28` : 'transparent' },
                           ]}>
-                          <T face="semibold" style={{ color: on ? color : theme.text.secondary, fontSize: 13 }}>
+                          <T face="title" style={[styles.verdictLabel, { color: on ? color : theme.text.secondary }]}>
                             {v === 'ok' ? es.check.ok : v === 'falla' ? es.check.fail : es.check.na}
                           </T>
                         </Pressable>
@@ -229,7 +238,7 @@ export default function RunScreen() {
                         height={130}
                         onChange={(mediaId) => setPhotos((p) => ({ ...p, [item.id]: mediaId }))}
                       />
-                      <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
+                      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: 6 }}>
                         {es.check.onFailTitle}
                       </T>
                       <Segmented
@@ -276,7 +285,8 @@ const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.lg },
   cold: { borderWidth: 1, borderRadius: radius.input, padding: space.md, marginBottom: space.lg },
-  group: { fontSize: 11, letterSpacing: 0.9, marginTop: space.lg, marginBottom: space.sm },
+  title: { fontSize: 28, lineHeight: 30, textTransform: 'uppercase', letterSpacing: 0.3 },
+  group: { fontSize: 11, marginTop: space.lg, marginBottom: space.sm },
   itemHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   verdicts: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
   verdict: {
@@ -286,4 +296,5 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     alignItems: 'center',
   },
+  verdictLabel: { fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
 });

@@ -125,7 +125,7 @@ export default function NuevoGastoScreen() {
           {editingId ? es.expense.editTitle : es.expense.newTitle}
         </T>
 
-        <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {es.expense.category}
         </T>
         <View style={styles.row}>
@@ -139,9 +139,9 @@ export default function NuevoGastoScreen() {
                 accessibilityState={{ selected: on }}
                 style={[
                   styles.chip,
-                  { borderColor: on ? theme.accent : theme.line, backgroundColor: on ? theme.accent : theme.bg.raised },
+                  { borderColor: on ? theme.accentFill : theme.line, backgroundColor: on ? theme.accentFill : theme.bg.raised },
                 ]}>
-                <T face="semibold" style={{ color: on ? theme.accentInk : theme.text.secondary, fontSize: 12 }}>
+                <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
                   {EXPENSE_CATEGORY_LABELS[c]}
                 </T>
               </Pressable>
@@ -161,7 +161,7 @@ export default function NuevoGastoScreen() {
         <Field label={es.expense.description} value={description} onChangeText={setDescription} />
         <Field label={es.expense.vendor} value={vendor} onChangeText={setVendor} />
 
-        <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {es.expense.photo}
         </T>
         <PhotoPicker
@@ -185,8 +185,8 @@ export default function NuevoGastoScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 28, marginBottom: space.lg },
-  label: { fontSize: 13, marginBottom: 6 },
+  h: { fontSize: 28, lineHeight: 30, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.lg },
+  label: { fontSize: 12, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
   chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
   error: { fontSize: 13, marginBottom: space.md },

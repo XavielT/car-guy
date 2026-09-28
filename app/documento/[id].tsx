@@ -99,6 +99,6 @@ export default function DocumentoScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 26 },
+  h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3 },
   image: { width: '100%', height: 320, borderRadius: radius.card, marginTop: space.lg },
 });

@@ -4,7 +4,7 @@ import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
+import { GhostButton, Hanko, PrimaryButton, Surface } from '@/components/ui';
 import { VehicleForm } from '@/components/VehicleForm';
 import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
@@ -93,8 +93,12 @@ export default function OnboardingScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.welcome}>
         <View style={styles.hero}>
-          <Image source={MARK} style={styles.mark} accessibilityLabel={es.onboarding.markLabel} />
-          <T face="medium" style={[styles.eyebrow, { color: theme.accent }]}>
+          {/* The mark (the tach, needle into the red) with the hanko stamped beside it. */}
+          <View style={styles.markRow}>
+            <Image source={MARK} style={styles.mark} accessibilityLabel={es.onboarding.markLabel} />
+            <Hanko char="車" size={48} shape="square" accessibilityLabel={es.onboarding.markLabel} />
+          </View>
+          <T face="badge" style={[styles.eyebrow, { color: theme.accent }]}>
             {es.home.eyebrow}
           </T>
           <T face="display" style={[styles.title, { color: theme.text.primary }]}>
@@ -114,7 +118,7 @@ export default function OnboardingScreen() {
         </View>
 
         <Surface style={styles.account}>
-          <T face="title" style={{ color: theme.text.primary, fontSize: 17 }}>
+          <T face="title" style={{ color: theme.text.primary, fontSize: 17, textTransform: 'uppercase', letterSpacing: 0.8 }}>
             {es.onboarding.accountTitle}
           </T>
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
@@ -130,13 +134,15 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   welcome: { flexGrow: 1, padding: space.gutter, paddingBottom: space.xxl },
   hero: { paddingTop: space.xxl, paddingBottom: space.xl },
-  mark: { width: 72, height: 72, borderRadius: 18, marginBottom: space.lg },
-  eyebrow: { fontSize: 11, letterSpacing: 1.4 },
-  title: { fontSize: 34, marginTop: 6 },
+  markRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg, marginBottom: space.xl },
+  mark: { width: 80, height: 80, borderRadius: 20 },
+  // The wordmark is Michroma (05-design-jdm.md: badges / wordmark).
+  eyebrow: { fontSize: 12 },
+  title: { fontSize: 36, lineHeight: 38, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.3 },
   lede: { fontSize: 15, lineHeight: 22, marginTop: space.md },
   actions: { gap: space.md, marginBottom: space.xl },
   altText: { fontSize: 13, textAlign: 'center', lineHeight: 19, marginTop: space.sm },
   account: { gap: space.xs },
   formHeader: { paddingHorizontal: space.gutter, paddingTop: space.lg },
-  formTitle: { fontSize: 28, marginTop: space.sm },
+  formTitle: { fontSize: 28, lineHeight: 30, marginTop: space.sm, textTransform: 'uppercase', letterSpacing: 0.3 },
 });

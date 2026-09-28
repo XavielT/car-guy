@@ -12,7 +12,7 @@ import { parseDecimal } from '@/lib/domain/economy';
 import { useTheme } from '@/lib/theme/useTheme';
 import { es } from '@/lib/i18n/es';
 import type { FuelType } from '@/lib/types';
-import type { VehicleType } from '@/lib/db/types';
+import type { Drivetrain, Transmission, VehicleOrigin, VehicleStatus, VehicleType } from '@/lib/db/types';
 
 export type VehicleDraft = {
   id?: string;
@@ -34,7 +34,24 @@ export type VehicleDraft = {
   purchasePrice: number | null;
   photoMediaId: string | null;
   notes: string;
+  // schema v2 identity (IMP 28092026)
+  nickname: string | null;
+  status: VehicleStatus;
+  chassisCode: string | null;
+  chassisNumber: string | null;
+  engineCode: string | null;
+  transmission: Transmission | null;
+  drivetrain: Drivetrain | null;
+  origin: VehicleOrigin | null;
+  importedYear: number | null;
+  story: string;
 };
+
+/** "vendido" is not picked here: selling goes through the sale sheet, which closes the ownership period. */
+const STATUSES: VehicleStatus[] = ['activo', 'proyecto', 'guardado'];
+const TRANSMISSIONS: Transmission[] = ['manual', 'automatica', 'cvt', 'otro'];
+const DRIVETRAINS: Drivetrain[] = ['fwd', 'rwd', 'awd'];
+const ORIGINS: VehicleOrigin[] = ['jdm', 'usdm', 'eudm', 'local', 'otro'];
 
 const TYPES: VehicleType[] = ['carro', 'jeepeta', 'camioneta', 'motor', 'camion', 'guagua', 'otro'];
 
@@ -70,6 +87,19 @@ export function VehicleForm({
   );
   const [photoMediaId, setPhotoMediaId] = useState<string | null>(initial?.photoMediaId ?? null);
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [status, setStatus] = useState<VehicleStatus>(initial?.status ?? 'activo');
+  const [nickname, setNickname] = useState(initial?.nickname ?? '');
+  const [chassisCode, setChassisCode] = useState(initial?.chassisCode ?? '');
+  const [chassisNumber, setChassisNumber] = useState(initial?.chassisNumber ?? '');
+  const [engineCode, setEngineCode] = useState(initial?.engineCode ?? '');
+  const [transmission, setTransmission] = useState<Transmission | null>(initial?.transmission ?? null);
+  const [drivetrain, setDrivetrain] = useState<Drivetrain | null>(initial?.drivetrain ?? null);
+  const [origin, setOrigin] = useState<VehicleOrigin | null>(initial?.origin ?? null);
+  const [importedYear, setImportedYear] = useState(initial?.importedYear ? String(initial.importedYear) : '');
+  const [story, setStory] = useState(initial?.story ?? '');
+  const [showIdentity, setShowIdentity] = useState(
+    Boolean(initial?.nickname || initial?.chassisCode || initial?.engineCode || initial?.story),
+  );
   const [error, setError] = useState<string | null>(null);
 
   // A stable owner id so a photo picked before the vehicle is saved still has
@@ -91,6 +121,11 @@ export function VehicleForm({
       return setError(/^\s*-/.test(odometer) ? es.vehicle.odometerNegative : es.common.invalidNumber(es.vehicle.odometer));
     }
 
+    const parsedImported = importedYear.trim() ? Number(importedYear.trim()) : null;
+    if (parsedImported != null && (!Number.isInteger(parsedImported) || parsedImported < MIN_YEAR || parsedImported > CURRENT_YEAR)) {
+      return setError(es.vehicle.yearRange(MIN_YEAR, CURRENT_YEAR));
+    }
+
     setError(null);
     onSubmit({
       id: initial?.id ?? draftId,
@@ -110,6 +145,16 @@ export function VehicleForm({
       purchasePrice: purchasePrice.trim() ? parseDecimal(purchasePrice) : null,
       photoMediaId,
       notes: notes.trim(),
+      nickname: nickname.trim() || null,
+      status,
+      chassisCode: chassisCode.trim().toUpperCase() || null,
+      chassisNumber: chassisNumber.trim().toUpperCase() || null,
+      engineCode: engineCode.trim() || null,
+      transmission,
+      drivetrain,
+      origin,
+      importedYear: parsedImported,
+      story: story.trim(),
     });
   }
 
@@ -126,7 +171,7 @@ export function VehicleForm({
         onChangeText={setName}
       />
 
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
         {es.vehicle.type}
       </T>
       <View style={styles.row}>
@@ -168,7 +213,7 @@ export function VehicleForm({
         </View>
       </View>
 
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
         {es.vehicle.fuel}
       </T>
       <FuelPicker value={fuel} onChange={setFuel} />
@@ -214,7 +259,7 @@ export function VehicleForm({
         </View>
       </Pressable>
 
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
         {es.vehicle.photo}
       </T>
       <PhotoPicker
@@ -246,6 +291,103 @@ export function VehicleForm({
         </>
       ) : null}
 
+      <Pressable
+        onPress={() => setShowIdentity((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: showIdentity }}
+        style={styles.sectionToggle}>
+        <T face="semibold" style={[styles.sectionToggleLabel, { color: theme.accent }]}>
+          {showIdentity ? '−' : '+'}  {es.vehicle.identitySection}
+        </T>
+      </Pressable>
+      {showIdentity ? (
+        <>
+          <Field
+            label={es.vehicle.nickname}
+            placeholder={es.vehicle.nicknamePlaceholder}
+            value={nickname}
+            onChangeText={setNickname}
+          />
+          {/* A sold car keeps its status; changing it back is the profile's "Cambiar estado". */}
+          {status === 'vendido' || status === 'perdido' ? null : (
+            <>
+              <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
+                {es.vehicle.status}
+              </T>
+              <View style={styles.row}>
+                {STATUSES.map((s) => (
+                  <Chip key={s} label={es.vehicleStatus[s]} selected={status === s} onPress={() => setStatus(s)} />
+                ))}
+              </View>
+            </>
+          )}
+          <View style={styles.pair}>
+            <View style={styles.half}>
+              <Field
+                label={es.vehicle.chassisCode}
+                placeholder="AE85"
+                autoCapitalize="characters"
+                value={chassisCode}
+                onChangeText={setChassisCode}
+              />
+            </View>
+            <View style={styles.half}>
+              <Field label={es.vehicle.engineCode} placeholder="4A-GE 20V" value={engineCode} onChangeText={setEngineCode} />
+            </View>
+          </View>
+          <Field
+            label={es.vehicle.chassisNumber}
+            hint={es.vehicle.chassisNumberHint}
+            autoCapitalize="characters"
+            value={chassisNumber}
+            onChangeText={setChassisNumber}
+          />
+          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
+            {es.vehicle.transmission}
+          </T>
+          <View style={styles.row}>
+            {TRANSMISSIONS.map((t) => (
+              <Chip
+                key={t}
+                label={es.transmissions[t]}
+                selected={transmission === t}
+                onPress={() => setTransmission(transmission === t ? null : t)}
+              />
+            ))}
+          </View>
+          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
+            {es.vehicle.drivetrain}
+          </T>
+          <View style={styles.row}>
+            {DRIVETRAINS.map((d) => (
+              <Chip key={d} label={d.toUpperCase()} selected={drivetrain === d} onPress={() => setDrivetrain(drivetrain === d ? null : d)} />
+            ))}
+          </View>
+          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
+            {es.vehicle.origin}
+          </T>
+          <View style={styles.row}>
+            {ORIGINS.map((o) => (
+              <Chip key={o} label={es.origins[o]} selected={origin === o} onPress={() => setOrigin(origin === o ? null : o)} />
+            ))}
+          </View>
+          <Field
+            label={es.vehicle.importedYear}
+            placeholder="2012"
+            keyboardType="number-pad"
+            value={importedYear}
+            onChangeText={setImportedYear}
+          />
+          <Field
+            label={es.vehicle.story}
+            placeholder={es.vehicle.storyPlaceholder}
+            value={story}
+            onChangeText={setStory}
+            multiline
+          />
+        </>
+      ) : null}
+
       <Field label={es.vehicle.notes} value={notes} onChangeText={setNotes} multiline />
 
       {error ? (
@@ -264,7 +406,7 @@ export function VehicleForm({
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 28, marginBottom: space.lg },
+  h: { fontSize: 28, marginBottom: space.lg, textTransform: 'uppercase' },
   label: { fontSize: 13, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
   pair: { flexDirection: 'row', gap: space.md },

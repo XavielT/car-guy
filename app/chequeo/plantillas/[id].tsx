@@ -148,7 +148,7 @@ export default function TemplateEditorScreen() {
 
         <Field label={es.check.editor.name} value={name} onChangeText={setName} />
 
-        <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {es.check.editor.cadence}
         </T>
         <View style={styles.chips}>
@@ -165,11 +165,11 @@ export default function TemplateEditorScreen() {
             value={isEnabled}
             onValueChange={setIsEnabled}
             accessibilityLabel={es.check.editor.enabled}
-            trackColor={{ true: theme.accent, false: theme.line }}
+            trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
           />
         </View>
 
-        <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+        <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
           {es.check.editor.items}
         </T>
 
@@ -180,7 +180,7 @@ export default function TemplateEditorScreen() {
                 value={row.enabled}
                 onValueChange={(v) => patchRow(row.key, { enabled: v })}
                 accessibilityLabel={row.label || es.check.editor.newTitle}
-                trackColor={{ true: theme.accent, false: theme.line }}
+                trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
               />
               <View style={{ flex: 1 }}>
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
@@ -264,10 +264,10 @@ export default function TemplateEditorScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  label: { fontSize: 14, marginBottom: space.sm },
+  label: { fontSize: 12, marginBottom: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.md },
-  section: { fontSize: 20, marginTop: space.lg, marginBottom: space.sm },
+  section: { fontSize: 12, marginTop: space.xl, marginBottom: space.sm },
   itemHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   arrow: { borderWidth: 1, borderRadius: 8, width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
 });

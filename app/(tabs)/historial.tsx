@@ -7,12 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/components/ui';
+import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { radius, space } from '@/constants/theme';
 import { history, mods as modsRepo } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
+import { FEATURE_ALBUM, FEATURE_TRACK } from '@/lib/flags';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -26,6 +28,10 @@ const FILTERS: { key: 'todo' | RecordKind; label: string }[] = [
   { key: 'mejora', label: es.history.kinds.mejora },
   { key: 'chequeo', label: es.history.kinds.chequeo },
   { key: 'gasto', label: es.history.kinds.gasto },
+  // Milestones and track days are in the feed already (schema v2); their chips
+  // appear with the screens that create them. Mods stay under "Mejoras".
+  ...(FEATURE_ALBUM ? [{ key: 'hito' as const, label: es.history.kinds.hito }] : []),
+  ...(FEATURE_TRACK ? [{ key: 'pista' as const, label: es.history.kinds.pista }] : []),
 ];
 
 const PAGE = 50;
@@ -86,13 +92,12 @@ export default function HistorialScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.history.title}
-        </T>
-        <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {activeVehicle.name}
-          {activeVehicle.plate ? ` · ${activeVehicle.plate}` : ''}
-        </T>
+        <ScreenTitle
+          title={es.history.title}
+          kana="記録"
+          size={34}
+          sub={`${activeVehicle.name}${activeVehicle.plate ? ` · ${activeVehicle.plate}` : ''}`}
+        />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters}>
           {FILTERS.map((f) => {
@@ -106,11 +111,16 @@ export default function HistorialScreen() {
                 }}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
+                aria-selected={on}
+                hitSlop={{ top: 4, bottom: 4 }}
                 style={[
                   styles.chip,
-                  { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
+                  {
+                    backgroundColor: on ? theme.accentFill : theme.bg.surface,
+                    borderColor: on ? theme.accentFill : theme.lineStrong,
+                  },
                 ]}>
-                <T face="semibold" style={{ color: on ? theme.accentInk : theme.text.secondary, fontSize: 13 }}>
+                <T face="title" style={[styles.chipLabel, { color: on ? theme.accentFillInk : theme.text.secondary }]}>
                   {f.label}
                 </T>
               </Pressable>
@@ -135,11 +145,11 @@ export default function HistorialScreen() {
         ) : (
           months.map((group) => (
             <View key={group.key}>
-              <View style={styles.monthHeader}>
-                <T face="title" style={{ color: theme.text.primary, fontSize: 17 }}>
+              <View style={[styles.monthHeader, { borderColor: theme.lineStrong }]}>
+                <T face="display" accessibilityRole="header" style={[styles.monthLabel, { color: theme.text.primary }]}>
                   {group.label}
                 </T>
-                <T face="mono" style={{ color: theme.text.muted, fontSize: 13 }}>
+                <T face="mono" style={{ color: theme.text.secondary, fontSize: 13 }}>
                   {money(group.total)}
                 </T>
               </View>
@@ -165,8 +175,8 @@ export default function HistorialScreen() {
         onPress={() => setPickerOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={es.history.addTitle}
-        style={[styles.fab, { backgroundColor: theme.accent }]}>
-        <Ionicons name="add" size={26} color={theme.accentInk} />
+        style={({ pressed }) => [styles.fab, { backgroundColor: pressed ? theme.accentPressed : theme.accentFill }]}>
+        <Ionicons name="add" size={28} color={theme.accentFillInk} />
       </Pressable>
 
       <Sheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={es.history.addTitle}>
@@ -177,7 +187,7 @@ export default function HistorialScreen() {
             [es.history.addRepair, '/servicio/nuevo?kind=reparacion'],
             [es.history.addUpgrade, '/servicio/nuevo?kind=mejora'],
             [es.history.addExpense, '/gasto/nuevo'],
-            [es.history.addInspection, '/(tabs)/chequeo'],
+            [es.history.addInspection, '/chequeo'],
             [es.history.addOdometer, '/odometro'],
           ] as const
         ).map(([label, route]) => (
@@ -269,30 +279,35 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 96 },
-  h: { fontSize: 34 },
-  sub: { fontSize: 13, marginTop: 2, marginBottom: space.lg },
   filters: { marginBottom: space.md },
-  chip: { minHeight: 44, justifyContent: 'center',
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
+  // Filter pill (Build.dc.html's MODS · SPECS chips): Saira 600 tracked.
+  chip: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: space.md + 2,
     borderRadius: radius.chip,
     marginRight: space.sm,
     borderWidth: 1,
   },
+  chipLabel: { fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' },
   monthHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: space.lg,
+    marginTop: space.xl,
     marginBottom: space.sm,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
   },
+  monthLabel: { fontSize: 20, textTransform: 'uppercase', letterSpacing: 0.4 },
+  // Amber rounded square, 56 px — a switch on the dash, not a Material circle.
   fab: {
     position: 'absolute',
     right: space.gutter,
     bottom: space.gutter,
     width: 56,
     height: 56,
-    borderRadius: 999,
+    borderRadius: radius.button + 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

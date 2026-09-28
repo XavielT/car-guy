@@ -23,7 +23,6 @@ import {
   GhostButton,
   KeyValueRow,
   NavRow,
-  OdometerHero,
   PrimaryButton,
   QuickActions,
   RecordRow,
@@ -271,13 +270,6 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
             />
           </View>
         </ClusterHero>
-        <OdometerHero
-          vehicleName="Trueno AE85"
-          odometerKm={null}
-          daysSinceReading={null}
-          telltales={[{ status: 'proximo', label: 'Aceite · faltan 320 km' }]}
-          onPressOdometer={() => {}}
-        />
       </Section>
 
       <Section title="LCD, badges, hanko" theme={theme}>

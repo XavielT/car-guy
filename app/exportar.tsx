@@ -139,12 +139,12 @@ export default function ExportarScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 30 },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { marginTop: 6, lineHeight: 22 },
   firstSection: { marginTop: space.lg },
   cards: { marginTop: space.lg, gap: space.md },
-  cardTitle: { fontSize: 17 },
+  cardTitle: { fontSize: 17, textTransform: 'uppercase', letterSpacing: 0.8 },
   cardBody: { fontSize: 13, marginTop: 4, lineHeight: 19 },
   count: { fontSize: 12, marginTop: space.md, marginBottom: space.md },
-  hint: { fontSize: 12, lineHeight: 18, marginTop: space.lg },
+  hint: { fontSize: 13, lineHeight: 18, marginTop: space.lg },
 });

@@ -38,7 +38,7 @@ export function DateField({
 
   return (
     <View style={styles.wrap}>
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
         {label}
       </T>
       <Pressable
@@ -76,7 +76,7 @@ export function DateField({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md + 2 },
-  label: { fontSize: 13, marginBottom: 6 },
+  label: { fontSize: 12, marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderRadius: radius.input,
@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
   },
-  value: { fontSize: 16, fontFamily: fonts.body },
-  hint: { fontSize: 12, marginTop: 6, lineHeight: 17 },
+  // A date is a number: mono, like every other figure (the placeholder too, so it doesn't jump).
+  value: { fontSize: 16, fontFamily: fonts.mono },
+  hint: { fontSize: 13, marginTop: 6, lineHeight: 17 },
 });

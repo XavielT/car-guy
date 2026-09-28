@@ -78,16 +78,18 @@ export function AlertHost() {
                   style={({ pressed }) => [
                     styles.action,
                     {
-                      backgroundColor: quiet ? 'transparent' : destructive ? theme.danger : theme.accent,
+                      backgroundColor: quiet ? 'transparent' : destructive ? theme.danger : theme.accentFill,
                       borderColor: quiet ? theme.line : 'transparent',
                     },
                     pressed && { opacity: 0.85 },
                   ]}>
                   <T
-                    face="semibold"
+                    face="title"
                     style={{
                       fontSize: 15,
-                      color: quiet ? theme.text.secondary : destructive ? theme.dangerInk : theme.accentInk,
+                      letterSpacing: 1,
+                      textTransform: 'uppercase',
+                      color: quiet ? theme.text.secondary : destructive ? theme.dangerInk : theme.accentFillInk,
                     }}>
                     {button.text}
                   </T>
@@ -125,7 +127,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  title: { fontSize: 19 },
+  title: { fontSize: 20, textTransform: 'uppercase', letterSpacing: 0.6 },
   message: { fontSize: 15, lineHeight: 22, marginTop: space.sm },
   actions: { marginTop: space.xl, gap: space.sm },
   action: {

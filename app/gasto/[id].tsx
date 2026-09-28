@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
-import { categoryColors, radius, space } from '@/constants/theme';
+import { categoryColors, categoryInkLight, radius, space } from '@/constants/theme';
 import { expenses as expenseRepo, media as mediaRepo } from '@/lib/db/repos';
 import { EXPENSE_CATEGORY_LABELS, type Expense } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, money } from '@/lib/format';
@@ -26,7 +26,7 @@ import { useTheme } from '@/lib/theme/useTheme';
 export default function GastoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, scheme } = useTheme();
   const { refresh, data } = useStore();
 
   const [expense, setExpense] = useState<Expense | null | undefined>(undefined);
@@ -63,7 +63,7 @@ export default function GastoDetalleScreen() {
       <ScrollView contentContainerStyle={styles.pad}>
         <View style={[styles.kindPill, { backgroundColor: `${categoryColors.otros}28` }]}>
           <View style={[styles.dot, { backgroundColor: categoryColors.otros }]} />
-          <T face="semibold" style={{ color: categoryColors.otros, fontSize: 12 }}>
+          <T face="eyebrow" style={{ color: scheme === 'light' ? categoryInkLight.otros : categoryColors.otros, fontSize: 11 }}>
             {label}
           </T>
         </View>
@@ -71,17 +71,21 @@ export default function GastoDetalleScreen() {
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
           {expense.description.trim() || label}
         </T>
-        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.lg }}>
+        <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 4, marginBottom: space.lg }}>
           {dateLabel(expense.occurredAt)}
           {expense.odometerKm != null ? ` · ${fmtKm(expense.odometerKm)}` : ''}
-          {expense.vendor ? ` · ${expense.vendor}` : ''}
+          {expense.vendor ? (
+            <T face="body" style={{ fontSize: 13 }}>
+              {` · ${expense.vendor}`}
+            </T>
+          ) : null}
         </T>
 
         {photoUri ? <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" /> : null}
 
         <Surface style={{ marginBottom: space.lg }}>
           <View style={styles.kv}>
-            <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
+            <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
               {es.expense.amount}
             </T>
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 20 }}>
@@ -133,7 +137,7 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   dot: { width: 7, height: 7, borderRadius: 999 },
-  h: { fontSize: 26 },
+  h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3 },
   photo: { width: '100%', height: 180, borderRadius: radius.card, marginBottom: space.md },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingVertical: 4 },
 });

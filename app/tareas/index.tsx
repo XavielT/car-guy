@@ -81,9 +81,13 @@ export default function TareasScreen() {
                   </T>
                   {task.priority === 'critica' ? <StatusPill status="vencido" label={es.tasks.priorities.critica} /> : null}
                 </View>
-                <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
+                <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: 4 }}>
                   {es.service.kinds[task.kind]}
-                  {task.estimatedCostDop != null ? ` · ${money(task.estimatedCostDop)}` : ''}
+                  {task.estimatedCostDop != null ? (
+                    <T face="mono" style={{ fontSize: 12 }}>
+                      {` · ${money(task.estimatedCostDop)}`}
+                    </T>
+                  ) : null}
                   {task.sourceInspectionResultId ? ` · ${es.tasks.fromInspection}` : ''}
                 </T>
               </Surface>
@@ -100,7 +104,7 @@ export default function TareasScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 30 },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { fontSize: 13, marginTop: 2, marginBottom: space.lg, lineHeight: 19 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
   chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },

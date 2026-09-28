@@ -9,6 +9,7 @@ import { EconomyLine } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
+import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
 import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
 import { computeEconomy, latestEconomyInsight } from '@/lib/domain/economy';
@@ -83,12 +84,7 @@ export default function CifrasScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.pad}>
-        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.stats.title}
-        </T>
-        <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.stats.subtitle(activeVehicle.name)}
-        </T>
+        <ScreenTitle title={es.stats.title} size={34} sub={es.stats.subtitle(activeVehicle.name)} />
 
         <Segmented<PeriodKey>
           options={PERIODS.map((key) => ({ key, label: es.stats.periods[key] }))}
@@ -155,10 +151,26 @@ export default function CifrasScreen() {
 
             {insight ? (
               <Surface style={styles.card}>
-                <T face="medium" style={[styles.cardLabel, { color: theme.text.muted }]}>
-                  {es.stats.lastTank.toUpperCase()}
+                <T face="eyebrow" style={[styles.cardLabel, { color: theme.text.muted }]}>
+                  {es.stats.lastTank}
+                  <T face="kana" style={styles.kana}>
+                    {' 燃費'}
+                  </T>
                 </T>
-                <T face="monoBold" style={[styles.cardValue, { color: theme.text.primary }]}>
+                {/* A word, not a number: Saira, in the one status colour this card gets. */}
+                <T
+                  face="display"
+                  style={[
+                    styles.cardValue,
+                    {
+                      color:
+                        insight.status === 'low'
+                          ? theme.statusText.urgente
+                          : insight.status === 'great'
+                            ? theme.statusText.ok
+                            : theme.text.primary,
+                    },
+                  ]}>
                   {es.stats.lastTankValues[insight.status]}
                 </T>
                 <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
@@ -202,7 +214,7 @@ export default function CifrasScreen() {
                         <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
                           {item.title}
                         </T>
-                        <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>
+                        <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
                           {es.stats.upcomingBasis[item.basis]}
                         </T>
                       </View>
@@ -265,8 +277,8 @@ function Kpi({
     !delta || delta.percent == null || delta.direction === 'flat' || invertDelta
       ? theme.text.muted
       : delta.direction === 'up'
-        ? theme.status.urgente
-        : theme.status.ok;
+        ? theme.statusText.urgente
+        : theme.statusText.ok;
 
   const deltaText = !delta
     ? null
@@ -287,8 +299,8 @@ function Kpi({
       accessibilityLabel={`${label}: ${value}`}
       style={({ pressed }) => [styles.kpi, { opacity: pressed ? 0.85 : 1 }]}>
       <Surface>
-        <T face="medium" style={[styles.cardLabel, { color: theme.text.muted }]}>
-          {label.toUpperCase()}
+        <T face="eyebrow" style={[styles.cardLabel, { color: theme.text.muted }]}>
+          {label}
         </T>
         {/* A long amount steps down instead of being cut off ("RD$ 13,500…"). */}
         <T
@@ -300,8 +312,12 @@ function Kpi({
           {value}
         </T>
         {deltaText ? (
-          <T face="body" style={{ color: deltaColor, fontSize: 11, marginTop: 4 }}>
-            {deltaText} {es.stats.vsPrevious}
+          <T face="body" style={{ color: deltaColor, fontSize: 12, marginTop: 4 }}>
+            {/* The figure in mono, the words in the body face. */}
+            <T face={delta?.percent != null ? 'mono' : 'body'} style={{ fontSize: 11 }}>
+              {deltaText}
+            </T>{' '}
+            {es.stats.vsPrevious}
           </T>
         ) : hint ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: 4 }}>
@@ -330,14 +346,13 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 48 },
-  h: { fontSize: 34 },
-  sub: { marginTop: 6, marginBottom: space.lg, lineHeight: 22 },
-  periodHint: { fontSize: 11, marginTop: space.sm, marginBottom: space.lg },
+  periodHint: { fontSize: 13, marginTop: space.sm, marginBottom: space.lg },
   kpis: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginBottom: space.md },
   kpi: { flexGrow: 1, flexBasis: 150 },
   kpiValue: { fontSize: 22, marginTop: 6 },
-  cardLabel: { fontSize: 11, letterSpacing: 0.9 },
-  cardValue: { fontSize: 22, marginTop: 6 },
+  cardLabel: { fontSize: 11 },
+  kana: { fontSize: 10, letterSpacing: 0, textTransform: 'none' },
+  cardValue: { fontSize: 24, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.4 },
   cardHint: { fontSize: 12, marginTop: space.sm, lineHeight: 18 },
   card: { marginBottom: space.md },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },

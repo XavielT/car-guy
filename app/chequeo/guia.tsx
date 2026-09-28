@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
-import { Surface } from '@/components/ui';
+import { HazardDivider, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -39,19 +39,23 @@ export default function GuiaScreen() {
           {es.guide.title}
         </T>
 
+        {/* The one hazard strip on this screen: the lesson the app was built around. */}
         <View
           style={[
             styles.highlight,
             { backgroundColor: theme.statusBg.urgente, borderColor: theme.status.urgente },
           ]}>
-          <T face="title" style={[styles.sectionTitle, { color: theme.status.urgente }]}>
-            {es.guide.overheating.title}
-          </T>
-          <Paragraph
-            segments={es.guide.overheating.body}
-            color={theme.text.primary}
-            emphasis={theme.status.urgente}
-          />
+          <HazardDivider tone="urgente" />
+          <View style={styles.highlightBody}>
+            <T face="title" style={[styles.sectionTitle, { color: theme.statusText.urgente }]}>
+              {es.guide.overheating.title}
+            </T>
+            <Paragraph
+              segments={es.guide.overheating.body}
+              color={theme.text.primary}
+              emphasis={theme.statusText.urgente}
+            />
+          </View>
         </View>
 
         {SECTIONS.map((section) => (
@@ -114,15 +118,16 @@ function Paragraph({
 }
 
 const styles = StyleSheet.create({
+  highlightBody: { padding: space.lg },
   pad: { padding: space.gutter, paddingBottom: 48 },
-  h: { fontSize: 30, marginBottom: space.lg },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.lg },
   section: { marginBottom: space.xl },
-  sectionTitle: { fontSize: 19, marginBottom: space.sm },
+  sectionTitle: { fontSize: 19, marginBottom: space.sm, textTransform: 'uppercase', letterSpacing: 0.6 },
   body: { fontSize: 15, lineHeight: 23 },
   highlight: {
     borderWidth: 1,
     borderRadius: radius.card,
-    padding: space.lg,
+    overflow: 'hidden',
     marginBottom: space.xl,
   },
 });
