@@ -1,0 +1,1714 @@
+{
+ "P0010": {
+  "descEn": "\"A\" Camshaft Position Actuator Circuit (Bank 1)",
+  "descEs": "Actuador de posición del árbol de levas \"A\": falla del circuito (banco 1)"
+ },
+ "P0011": {
+  "descEn": "\"A\" Camshaft Position - Timing Over-Advanced or System Performance (Bank 1)",
+  "descEs": "Árbol de levas \"A\": sincronización demasiado adelantada o falla de desempeño (banco 1)"
+ },
+ "P0012": {
+  "descEn": "\"A\" Camshaft Position - Timing Over-Retarded (Bank 1)",
+  "descEs": "Árbol de levas \"A\": sincronización demasiado atrasada (banco 1)"
+ },
+ "P0013": {
+  "descEn": "\"B\" Camshaft Position - Actuator Circuit (Bank 1)",
+  "descEs": "Actuador de posición del árbol de levas \"B\": falla del circuito (banco 1)"
+ },
+ "P0014": {
+  "descEn": "\"B\" Camshaft Position - Timing Over-Advanced or System Performance (Bank 1)",
+  "descEs": "Árbol de levas \"B\": sincronización demasiado adelantada o falla de desempeño (banco 1)"
+ },
+ "P0015": {
+  "descEn": "\"B\" Camshaft Position - Timing Over-Retarded (Bank 1)",
+  "descEs": "Árbol de levas \"B\": sincronización demasiado atrasada (banco 1)"
+ },
+ "P0016": {
+  "descEn": "Crankshaft Position - Camshaft Position Correlation (Bank 1 Sensor A)",
+  "descEs": "Correlación entre cigüeñal y árbol de levas fuera de rango (banco 1, sensor A)"
+ },
+ "P0017": {
+  "descEn": "Crankshaft Position - Camshaft Position Correlation (Bank 1 Sensor B)",
+  "descEs": "Correlación entre cigüeñal y árbol de levas fuera de rango (banco 1, sensor B)"
+ },
+ "P0018": {
+  "descEn": "Crankshaft Position - Camshaft Position Correlation (Bank 2 Sensor A)",
+  "descEs": "Correlación entre cigüeñal y árbol de levas fuera de rango (banco 2, sensor A)"
+ },
+ "P0019": {
+  "descEn": "Crankshaft Position - Camshaft Position Correlation (Bank 2 Sensor B)",
+  "descEs": "Correlación entre cigüeñal y árbol de levas fuera de rango (banco 2, sensor B)"
+ },
+ "P0020": {
+  "descEn": "\"A\" Camshaft Position Actuator Circuit (Bank 2)",
+  "descEs": "Actuador de posición del árbol de levas \"A\": falla del circuito (banco 2)"
+ },
+ "P0021": {
+  "descEn": "\"A\" Camshaft Position - Timing Over-Advanced or System Performance (Bank 2)",
+  "descEs": "Árbol de levas \"A\": sincronización demasiado adelantada o falla de desempeño (banco 2)"
+ },
+ "P0022": {
+  "descEn": "\"A\" Camshaft Position - Timing Over-Retarded (Bank 2)",
+  "descEs": "Árbol de levas \"A\": sincronización demasiado atrasada (banco 2)"
+ },
+ "P0030": {
+  "descEn": "HO2S Heater Control Circuit (Bank 1 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito de control (banco 1, sensor 1)"
+ },
+ "P0031": {
+  "descEn": "HO2S Heater Control Circuit Low (Bank 1 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control bajo (banco 1, sensor 1)"
+ },
+ "P0032": {
+  "descEn": "HO2S Heater Control Circuit High (Bank 1 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control alto (banco 1, sensor 1)"
+ },
+ "P0033": {
+  "descEn": "Turbo/Super Charger Bypass Valve Control Circuit",
+  "descEs": "Válvula de derivación del turbo/supercargador: falla del circuito de control"
+ },
+ "P0034": {
+  "descEn": "Turbo/Super Charger Bypass Valve Control Circuit Low",
+  "descEs": "Válvula de derivación del turbo/supercargador: circuito de control bajo"
+ },
+ "P0035": {
+  "descEn": "Turbo/Super Charger Bypass Valve Control Circuit High",
+  "descEs": "Válvula de derivación del turbo/supercargador: circuito de control alto"
+ },
+ "P0036": {
+  "descEn": "HO2S Heater Control Circuit (Bank 1 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito de control (banco 1, sensor 2)"
+ },
+ "P0037": {
+  "descEn": "HO2S Heater Control Circuit Low (Bank 1 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control bajo (banco 1, sensor 2)"
+ },
+ "P0038": {
+  "descEn": "HO2S Heater Control Circuit High (Bank 1 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control alto (banco 1, sensor 2)"
+ },
+ "P0040": {
+  "descEn": "O2 Sensor Signals Swapped Bank 1 Sensor 1 / Bank 2 Sensor 1",
+  "descEs": "Señales de los sensores de oxígeno intercambiadas (banco 1 sensor 1 / banco 2 sensor 1)"
+ },
+ "P0041": {
+  "descEn": "O2 Sensor Signals Swapped Bank 1 Sensor 2 / Bank 2 Sensor 2",
+  "descEs": "Señales de los sensores de oxígeno intercambiadas (banco 1 sensor 2 / banco 2 sensor 2)"
+ },
+ "P0042": {
+  "descEn": "HO2S Heater Control Circuit (Bank 1 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito de control (banco 1, sensor 3)"
+ },
+ "P0043": {
+  "descEn": "HO2S Heater Control Circuit Low (Bank 1 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control bajo (banco 1, sensor 3)"
+ },
+ "P0044": {
+  "descEn": "HO2S Heater Control Circuit High (Bank 1 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control alto (banco 1, sensor 3)"
+ },
+ "P0045": {
+  "descEn": "Turbo/Super Charger Boost Control \"A\" Circuit/Open",
+  "descEs": "Control de presión del turbo \"A\": circuito abierto o con falla"
+ },
+ "P0046": {
+  "descEn": "Turbo/Super Charger Boost Control \"A\" Circuit Range/Performance",
+  "descEs": "Control de presión del turbo \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0047": {
+  "descEn": "Turbo/Super Charger Boost Control \"A\" Circuit Low",
+  "descEs": "Control de presión del turbo \"A\": circuito bajo"
+ },
+ "P0048": {
+  "descEn": "Turbo/Super Charger Boost Control \"A\" Circuit High",
+  "descEs": "Control de presión del turbo \"A\": circuito alto"
+ },
+ "P0049": {
+  "descEn": "Turbo/Super Charger Turbine Overspeed",
+  "descEs": "Turbina del turbo/supercargador en sobrevelocidad"
+ },
+ "P0050": {
+  "descEn": "HO2S Heater Control Circuit (Bank 2 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito de control (banco 2, sensor 1)"
+ },
+ "P0051": {
+  "descEn": "HO2S Heater Control Circuit Low (Bank 2 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control bajo (banco 2, sensor 1)"
+ },
+ "P0052": {
+  "descEn": "HO2S Heater Control Circuit High (Bank 2 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control alto (banco 2, sensor 1)"
+ },
+ "P0053": {
+  "descEn": "HO2S Heater Resistance (Bank 1 Sensor 1)",
+  "descEs": "Resistencia del calentador del sensor de oxígeno fuera de rango (banco 1, sensor 1)"
+ },
+ "P0054": {
+  "descEn": "HO2S Heater Resistance (Bank 1 Sensor 2)",
+  "descEs": "Resistencia del calentador del sensor de oxígeno fuera de rango (banco 1, sensor 2)"
+ },
+ "P0055": {
+  "descEn": "HO2S Heater Resistance (Bank 1 Sensor 3)",
+  "descEs": "Resistencia del calentador del sensor de oxígeno fuera de rango (banco 1, sensor 3)"
+ },
+ "P0056": {
+  "descEn": "HO2S Heater Control Circuit (Bank 2 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito de control (banco 2, sensor 2)"
+ },
+ "P0057": {
+  "descEn": "HO2S Heater Control Circuit Low (Bank 2 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control bajo (banco 2, sensor 2)"
+ },
+ "P0058": {
+  "descEn": "HO2S Heater Control Circuit High (Bank 2 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control alto (banco 2, sensor 2)"
+ },
+ "P0059": {
+  "descEn": "HO2S Heater Resistance (Bank 2 Sensor 1)",
+  "descEs": "Resistencia del calentador del sensor de oxígeno fuera de rango (banco 2, sensor 1)"
+ },
+ "P0060": {
+  "descEn": "HO2S Heater Resistance (Bank 2 Sensor 2)",
+  "descEs": "Resistencia del calentador del sensor de oxígeno fuera de rango (banco 2, sensor 2)"
+ },
+ "P0061": {
+  "descEn": "HO2S Heater Resistance (Bank 2 Sensor 3)",
+  "descEs": "Resistencia del calentador del sensor de oxígeno fuera de rango (banco 2, sensor 3)"
+ },
+ "P0062": {
+  "descEn": "HO2S Heater Control Circuit (Bank 2 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito de control (banco 2, sensor 3)"
+ },
+ "P0063": {
+  "descEn": "HO2S Heater Control Circuit Low (Bank 2 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control bajo (banco 2, sensor 3)"
+ },
+ "P0064": {
+  "descEn": "HO2S Heater Control Circuit High (Bank 2 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: circuito de control alto (banco 2, sensor 3)"
+ },
+ "P0100": {
+  "descEn": "Mass or Volume Air Flow \"A\" Circuit",
+  "descEs": "Sensor de flujo de aire (MAF) \"A\": falla del circuito"
+ },
+ "P0101": {
+  "descEn": "Mass or Volume Air Flow \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de flujo de aire (MAF) \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0102": {
+  "descEn": "Mass or Volume Air Flow \"A\" Circuit Low",
+  "descEs": "Sensor de flujo de aire (MAF) \"A\": señal baja en el circuito"
+ },
+ "P0103": {
+  "descEn": "Mass or Volume Air Flow \"A\" Circuit High",
+  "descEs": "Sensor de flujo de aire (MAF) \"A\": señal alta en el circuito"
+ },
+ "P0104": {
+  "descEn": "Mass or Volume Air Flow \"A\" Circuit Intermittent/Erratic",
+  "descEs": "Sensor de flujo de aire (MAF) \"A\": circuito intermitente/errático"
+ },
+ "P0105": {
+  "descEn": "Manifold Absolute Pressure/Barometric Pressure Circuit",
+  "descEs": "Sensor de presión absoluta del múltiple/barométrica (MAP/BARO): falla del circuito"
+ },
+ "P0106": {
+  "descEn": "Manifold Absolute Pressure/Barometric Pressure Circuit Range/Performance",
+  "descEs": "Sensor de presión absoluta del múltiple/barométrica (MAP/BARO): rango/desempeño fuera de lo normal"
+ },
+ "P0107": {
+  "descEn": "Manifold Absolute Pressure/Barometric Pressure Circuit Low",
+  "descEs": "Sensor de presión absoluta del múltiple/barométrica (MAP/BARO): señal baja en el circuito"
+ },
+ "P0108": {
+  "descEn": "Manifold Absolute Pressure/Barometric Pressure Circuit High",
+  "descEs": "Sensor de presión absoluta del múltiple/barométrica (MAP/BARO): señal alta en el circuito"
+ },
+ "P0109": {
+  "descEn": "Manifold Absolute Pressure/Barometric Pressure Circuit Intermittent",
+  "descEs": "Sensor de presión absoluta del múltiple/barométrica (MAP/BARO): circuito intermitente/errático"
+ },
+ "P0110": {
+  "descEn": "Intake Air Temperature Sensor 1 Circuit (Bank 1)",
+  "descEs": "Sensor de temperatura del aire de admisión (IAT) 1: falla del circuito (banco 1)"
+ },
+ "P0111": {
+  "descEn": "Intake Air Temperature Sensor 1 Circuit Range/Performance (Bank 1)",
+  "descEs": "Sensor de temperatura del aire de admisión (IAT) 1: rango/desempeño fuera de lo normal (banco 1)"
+ },
+ "P0112": {
+  "descEn": "Intake Air Temperature Sensor 1 Circuit Low (Bank 1)",
+  "descEs": "Sensor de temperatura del aire de admisión (IAT) 1: señal baja en el circuito (banco 1)"
+ },
+ "P0113": {
+  "descEn": "Intake Air Temperature Sensor 1 Circuit High (Bank 1)",
+  "descEs": "Sensor de temperatura del aire de admisión (IAT) 1: señal alta en el circuito (banco 1)"
+ },
+ "P0114": {
+  "descEn": "Intake Air Temperature Sensor 1 Circuit Intermittent/Erratic (Bank 1)",
+  "descEs": "Sensor de temperatura del aire de admisión (IAT) 1: circuito intermitente/errático (banco 1)"
+ },
+ "P0115": {
+  "descEn": "Engine Coolant Temperature Sensor 1 Circuit",
+  "descEs": "Sensor de temperatura del refrigerante (ECT) 1: falla del circuito"
+ },
+ "P0116": {
+  "descEn": "Engine Coolant Temperature Sensor 1 Circuit Range/Performance",
+  "descEs": "Sensor de temperatura del refrigerante (ECT) 1: rango/desempeño fuera de lo normal"
+ },
+ "P0117": {
+  "descEn": "Engine Coolant Temperature Sensor 1 Circuit Low",
+  "descEs": "Sensor de temperatura del refrigerante (ECT) 1: señal baja en el circuito"
+ },
+ "P0118": {
+  "descEn": "Engine Coolant Temperature Sensor 1 Circuit High",
+  "descEs": "Sensor de temperatura del refrigerante (ECT) 1: señal alta en el circuito"
+ },
+ "P0119": {
+  "descEn": "Engine Coolant Temperature Sensor 1 Circuit Intermittent/Erratic",
+  "descEs": "Sensor de temperatura del refrigerante (ECT) 1: circuito intermitente/errático"
+ },
+ "P0120": {
+  "descEn": "Throttle/Pedal Position Sensor/Switch \"A\" Circuit",
+  "descEs": "Sensor de posición de la mariposa/pedal (TPS) \"A\": falla del circuito"
+ },
+ "P0121": {
+  "descEn": "Throttle/Pedal Position Sensor/Switch \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de posición de la mariposa/pedal (TPS) \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0122": {
+  "descEn": "Throttle/Pedal Position Sensor/Switch \"A\" Circuit Low",
+  "descEs": "Sensor de posición de la mariposa/pedal (TPS) \"A\": señal baja en el circuito"
+ },
+ "P0123": {
+  "descEn": "Throttle/Pedal Position Sensor/Switch \"A\" Circuit High",
+  "descEs": "Sensor de posición de la mariposa/pedal (TPS) \"A\": señal alta en el circuito"
+ },
+ "P0124": {
+  "descEn": "Throttle/Pedal Position Sensor/Switch \"A\" Circuit Intermittent",
+  "descEs": "Sensor de posición de la mariposa/pedal (TPS) \"A\": circuito intermitente/errático"
+ },
+ "P0125": {
+  "descEn": "Insufficient Coolant Temperature for Closed Loop Fuel Control",
+  "descEs": "El refrigerante no alcanza la temperatura para el control de combustible en lazo cerrado"
+ },
+ "P0126": {
+  "descEn": "Insufficient Coolant Temperature for Stable Operation",
+  "descEs": "El refrigerante no alcanza la temperatura para una operación estable"
+ },
+ "P0127": {
+  "descEn": "Intake Air Temperature Too High",
+  "descEs": "Temperatura del aire de admisión demasiado alta"
+ },
+ "P0128": {
+  "descEn": "Coolant Thermostat (Coolant Temperature Below Thermostat Regulating Temperature)",
+  "descEs": "Termostato: el refrigerante se mantiene por debajo de la temperatura de regulación"
+ },
+ "P0129": {
+  "descEn": "Barometric Pressure Too Low",
+  "descEs": "Presión barométrica demasiado baja"
+ },
+ "P0130": {
+  "descEn": "O2 Sensor Circuit (Bank 1 Sensor 1)",
+  "descEs": "Sensor de oxígeno: falla del circuito (banco 1, sensor 1)"
+ },
+ "P0131": {
+  "descEn": "O2 Sensor Circuit Low Voltage (Bank 1 Sensor 1)",
+  "descEs": "Sensor de oxígeno: voltaje bajo (banco 1, sensor 1)"
+ },
+ "P0132": {
+  "descEn": "O2 Sensor Circuit High Voltage (Bank 1 Sensor 1)",
+  "descEs": "Sensor de oxígeno: voltaje alto (banco 1, sensor 1)"
+ },
+ "P0133": {
+  "descEn": "O2 Sensor Circuit Slow Response (Bank 1 Sensor 1)",
+  "descEs": "Sensor de oxígeno: respuesta lenta (banco 1, sensor 1)"
+ },
+ "P0134": {
+  "descEn": "O2 Sensor Circuit No Activity Detected (Bank 1 Sensor 1)",
+  "descEs": "Sensor de oxígeno: sin actividad (banco 1, sensor 1)"
+ },
+ "P0135": {
+  "descEn": "O2 Sensor Heater Circuit (Bank 1 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito (banco 1, sensor 1)"
+ },
+ "P0136": {
+  "descEn": "O2 Sensor Circuit (Bank 1 Sensor 2)",
+  "descEs": "Sensor de oxígeno: falla del circuito (banco 1, sensor 2)"
+ },
+ "P0137": {
+  "descEn": "O2 Sensor Circuit Low Voltage (Bank 1 Sensor 2)",
+  "descEs": "Sensor de oxígeno: voltaje bajo (banco 1, sensor 2)"
+ },
+ "P0138": {
+  "descEn": "O2 Sensor Circuit High Voltage (Bank 1 Sensor 2)",
+  "descEs": "Sensor de oxígeno: voltaje alto (banco 1, sensor 2)"
+ },
+ "P0139": {
+  "descEn": "O2 Sensor Circuit Slow Response (Bank 1 Sensor 2)",
+  "descEs": "Sensor de oxígeno: respuesta lenta (banco 1, sensor 2)"
+ },
+ "P0140": {
+  "descEn": "O2 Sensor Circuit No Activity Detected (Bank 1 Sensor 2)",
+  "descEs": "Sensor de oxígeno: sin actividad (banco 1, sensor 2)"
+ },
+ "P0141": {
+  "descEn": "O2 Sensor Heater Circuit (Bank 1 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito (banco 1, sensor 2)"
+ },
+ "P0142": {
+  "descEn": "O2 Sensor Circuit (Bank 1 Sensor 3)",
+  "descEs": "Sensor de oxígeno: falla del circuito (banco 1, sensor 3)"
+ },
+ "P0143": {
+  "descEn": "O2 Sensor Circuit Low Voltage (Bank 1 Sensor 3)",
+  "descEs": "Sensor de oxígeno: voltaje bajo (banco 1, sensor 3)"
+ },
+ "P0144": {
+  "descEn": "O2 Sensor Circuit High Voltage (Bank 1 Sensor 3)",
+  "descEs": "Sensor de oxígeno: voltaje alto (banco 1, sensor 3)"
+ },
+ "P0145": {
+  "descEn": "O2 Sensor Circuit Slow Response (Bank 1 Sensor 3)",
+  "descEs": "Sensor de oxígeno: respuesta lenta (banco 1, sensor 3)"
+ },
+ "P0146": {
+  "descEn": "O2 Sensor Circuit No Activity Detected (Bank 1 Sensor 3)",
+  "descEs": "Sensor de oxígeno: sin actividad (banco 1, sensor 3)"
+ },
+ "P0147": {
+  "descEn": "O2 Sensor Heater Circuit (Bank 1 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito (banco 1, sensor 3)"
+ },
+ "P0148": {
+  "descEn": "Fuel Delivery Error",
+  "descEs": "Error en el suministro de combustible"
+ },
+ "P0149": {
+  "descEn": "Fuel Timing Error",
+  "descEs": "Error en la sincronización de la inyección de combustible"
+ },
+ "P0150": {
+  "descEn": "O2 Sensor Circuit (Bank 2 Sensor 1)",
+  "descEs": "Sensor de oxígeno: falla del circuito (banco 2, sensor 1)"
+ },
+ "P0151": {
+  "descEn": "O2 Sensor Circuit Low Voltage (Bank 2 Sensor 1)",
+  "descEs": "Sensor de oxígeno: voltaje bajo (banco 2, sensor 1)"
+ },
+ "P0152": {
+  "descEn": "O2 Sensor Circuit High Voltage (Bank 2 Sensor 1)",
+  "descEs": "Sensor de oxígeno: voltaje alto (banco 2, sensor 1)"
+ },
+ "P0153": {
+  "descEn": "O2 Sensor Circuit Slow Response (Bank 2 Sensor 1)",
+  "descEs": "Sensor de oxígeno: respuesta lenta (banco 2, sensor 1)"
+ },
+ "P0154": {
+  "descEn": "O2 Sensor Circuit No Activity Detected (Bank 2 Sensor 1)",
+  "descEs": "Sensor de oxígeno: sin actividad (banco 2, sensor 1)"
+ },
+ "P0155": {
+  "descEn": "O2 Sensor Heater Circuit (Bank 2 Sensor 1)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito (banco 2, sensor 1)"
+ },
+ "P0156": {
+  "descEn": "O2 Sensor Circuit (Bank 2 Sensor 2)",
+  "descEs": "Sensor de oxígeno: falla del circuito (banco 2, sensor 2)"
+ },
+ "P0157": {
+  "descEn": "O2 Sensor Circuit Low Voltage (Bank 2 Sensor 2)",
+  "descEs": "Sensor de oxígeno: voltaje bajo (banco 2, sensor 2)"
+ },
+ "P0158": {
+  "descEn": "O2 Sensor Circuit High Voltage (Bank 2 Sensor 2)",
+  "descEs": "Sensor de oxígeno: voltaje alto (banco 2, sensor 2)"
+ },
+ "P0159": {
+  "descEn": "O2 Sensor Circuit Slow Response (Bank 2 Sensor 2)",
+  "descEs": "Sensor de oxígeno: respuesta lenta (banco 2, sensor 2)"
+ },
+ "P0160": {
+  "descEn": "O2 Sensor Circuit No Activity Detected (Bank 2 Sensor 2)",
+  "descEs": "Sensor de oxígeno: sin actividad (banco 2, sensor 2)"
+ },
+ "P0161": {
+  "descEn": "O2 Sensor Heater Circuit (Bank 2 Sensor 2)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito (banco 2, sensor 2)"
+ },
+ "P0162": {
+  "descEn": "O2 Sensor Circuit (Bank 2 Sensor 3)",
+  "descEs": "Sensor de oxígeno: falla del circuito (banco 2, sensor 3)"
+ },
+ "P0163": {
+  "descEn": "O2 Sensor Circuit Low Voltage (Bank 2 Sensor 3)",
+  "descEs": "Sensor de oxígeno: voltaje bajo (banco 2, sensor 3)"
+ },
+ "P0164": {
+  "descEn": "O2 Sensor Circuit High Voltage (Bank 2 Sensor 3)",
+  "descEs": "Sensor de oxígeno: voltaje alto (banco 2, sensor 3)"
+ },
+ "P0165": {
+  "descEn": "O2 Sensor Circuit Slow Response (Bank 2 Sensor 3)",
+  "descEs": "Sensor de oxígeno: respuesta lenta (banco 2, sensor 3)"
+ },
+ "P0166": {
+  "descEn": "O2 Sensor Circuit No Activity Detected (Bank 2 Sensor 3)",
+  "descEs": "Sensor de oxígeno: sin actividad (banco 2, sensor 3)"
+ },
+ "P0167": {
+  "descEn": "O2 Sensor Heater Circuit (Bank 2 Sensor 3)",
+  "descEs": "Calentador del sensor de oxígeno: falla del circuito (banco 2, sensor 3)"
+ },
+ "P0168": {
+  "descEn": "Fuel Temperature Too High",
+  "descEs": "Temperatura del combustible demasiado alta"
+ },
+ "P0169": {
+  "descEn": "Incorrect Fuel Composition",
+  "descEs": "Composición del combustible incorrecta"
+ },
+ "P0170": {
+  "descEn": "Fuel Trim (Bank 1)",
+  "descEs": "Ajuste de combustible fuera de rango (banco 1)"
+ },
+ "P0171": {
+  "descEn": "System Too Lean (Bank 1)",
+  "descEs": "Mezcla demasiado pobre (banco 1)"
+ },
+ "P0172": {
+  "descEn": "System Too Rich (Bank 1)",
+  "descEs": "Mezcla demasiado rica (banco 1)"
+ },
+ "P0173": {
+  "descEn": "Fuel Trim (Bank 2)",
+  "descEs": "Ajuste de combustible fuera de rango (banco 2)"
+ },
+ "P0174": {
+  "descEn": "System Too Lean (Bank 2)",
+  "descEs": "Mezcla demasiado pobre (banco 2)"
+ },
+ "P0175": {
+  "descEn": "System Too Rich (Bank 2)",
+  "descEs": "Mezcla demasiado rica (banco 2)"
+ },
+ "P0176": {
+  "descEn": "Fuel Composition Sensor Circuit",
+  "descEs": "Sensor de composición del combustible: falla del circuito"
+ },
+ "P0177": {
+  "descEn": "Fuel Composition Sensor Circuit Range/Performance",
+  "descEs": "Sensor de composición del combustible: rango/desempeño fuera de lo normal"
+ },
+ "P0178": {
+  "descEn": "Fuel Composition Sensor Circuit Low",
+  "descEs": "Sensor de composición del combustible: señal baja en el circuito"
+ },
+ "P0179": {
+  "descEn": "Fuel Composition Sensor Circuit High",
+  "descEs": "Sensor de composición del combustible: señal alta en el circuito"
+ },
+ "P0180": {
+  "descEn": "Fuel Temperature Sensor \"A\" Circuit",
+  "descEs": "Sensor de temperatura del combustible \"A\": falla del circuito"
+ },
+ "P0181": {
+  "descEn": "Fuel Temperature Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de temperatura del combustible \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0182": {
+  "descEn": "Fuel Temperature Sensor \"A\" Circuit Low",
+  "descEs": "Sensor de temperatura del combustible \"A\": señal baja en el circuito"
+ },
+ "P0183": {
+  "descEn": "Fuel Temperature Sensor \"A\" Circuit High",
+  "descEs": "Sensor de temperatura del combustible \"A\": señal alta en el circuito"
+ },
+ "P0184": {
+  "descEn": "Fuel Temperature Sensor \"A\" Circuit Intermittent",
+  "descEs": "Sensor de temperatura del combustible \"A\": circuito intermitente/errático"
+ },
+ "P0185": {
+  "descEn": "Fuel Temperature Sensor \"B\" Circuit",
+  "descEs": "Sensor de temperatura del combustible \"B\": falla del circuito"
+ },
+ "P0186": {
+  "descEn": "Fuel Temperature Sensor \"B\" Circuit Range/Performance",
+  "descEs": "Sensor de temperatura del combustible \"B\": rango/desempeño fuera de lo normal"
+ },
+ "P0187": {
+  "descEn": "Fuel Temperature Sensor \"B\" Circuit Low",
+  "descEs": "Sensor de temperatura del combustible \"B\": señal baja en el circuito"
+ },
+ "P0188": {
+  "descEn": "Fuel Temperature Sensor \"B\" Circuit High",
+  "descEs": "Sensor de temperatura del combustible \"B\": señal alta en el circuito"
+ },
+ "P0189": {
+  "descEn": "Fuel Temperature Sensor \"B\" Circuit Intermittent",
+  "descEs": "Sensor de temperatura del combustible \"B\": circuito intermitente/errático"
+ },
+ "P0190": {
+  "descEn": "Fuel Rail Pressure Sensor \"A\" Circuit",
+  "descEs": "Sensor de presión del riel de combustible \"A\": falla del circuito"
+ },
+ "P0191": {
+  "descEn": "Fuel Rail Pressure Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de presión del riel de combustible \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0192": {
+  "descEn": "Fuel Rail Pressure Sensor \"A\" Circuit Low",
+  "descEs": "Sensor de presión del riel de combustible \"A\": señal baja en el circuito"
+ },
+ "P0193": {
+  "descEn": "Fuel Rail Pressure Sensor \"A\" Circuit High",
+  "descEs": "Sensor de presión del riel de combustible \"A\": señal alta en el circuito"
+ },
+ "P0194": {
+  "descEn": "Fuel Rail Pressure Sensor \"A\" Circuit Intermittent",
+  "descEs": "Sensor de presión del riel de combustible \"A\": circuito intermitente/errático"
+ },
+ "P0195": {
+  "descEn": "Engine Oil Temperature Sensor Circuit",
+  "descEs": "Sensor de temperatura del aceite del motor: falla del circuito"
+ },
+ "P0196": {
+  "descEn": "Engine Oil Temperature Sensor Circuit Range/Performance",
+  "descEs": "Sensor de temperatura del aceite del motor: rango/desempeño fuera de lo normal"
+ },
+ "P0197": {
+  "descEn": "Engine Oil Temperature Sensor Circuit Low",
+  "descEs": "Sensor de temperatura del aceite del motor: señal baja en el circuito"
+ },
+ "P0198": {
+  "descEn": "Engine Oil Temperature Sensor Circuit High",
+  "descEs": "Sensor de temperatura del aceite del motor: señal alta en el circuito"
+ },
+ "P0199": {
+  "descEn": "Engine Oil Temperature Sensor Circuit Intermittent",
+  "descEs": "Sensor de temperatura del aceite del motor: circuito intermitente/errático"
+ },
+ "P0200": {
+  "descEn": "Injector Circuit/Open",
+  "descEs": "Inyectores: circuito abierto o con falla"
+ },
+ "P0201": {
+  "descEn": "Injector Circuit/Open - Cylinder 1",
+  "descEs": "Inyector del cilindro 1: circuito abierto o con falla"
+ },
+ "P0202": {
+  "descEn": "Injector Circuit/Open - Cylinder 2",
+  "descEs": "Inyector del cilindro 2: circuito abierto o con falla"
+ },
+ "P0203": {
+  "descEn": "Injector Circuit/Open - Cylinder 3",
+  "descEs": "Inyector del cilindro 3: circuito abierto o con falla"
+ },
+ "P0204": {
+  "descEn": "Injector Circuit/Open - Cylinder 4",
+  "descEs": "Inyector del cilindro 4: circuito abierto o con falla"
+ },
+ "P0205": {
+  "descEn": "Injector Circuit/Open - Cylinder 5",
+  "descEs": "Inyector del cilindro 5: circuito abierto o con falla"
+ },
+ "P0206": {
+  "descEn": "Injector Circuit/Open - Cylinder 6",
+  "descEs": "Inyector del cilindro 6: circuito abierto o con falla"
+ },
+ "P0207": {
+  "descEn": "Injector Circuit/Open - Cylinder 7",
+  "descEs": "Inyector del cilindro 7: circuito abierto o con falla"
+ },
+ "P0208": {
+  "descEn": "Injector Circuit/Open - Cylinder 8",
+  "descEs": "Inyector del cilindro 8: circuito abierto o con falla"
+ },
+ "P0209": {
+  "descEn": "Injector Circuit/Open - Cylinder 9",
+  "descEs": "Inyector del cilindro 9: circuito abierto o con falla"
+ },
+ "P0210": {
+  "descEn": "Injector Circuit/Open - Cylinder 10",
+  "descEs": "Inyector del cilindro 10: circuito abierto o con falla"
+ },
+ "P0211": {
+  "descEn": "Injector Circuit/Open - Cylinder 11",
+  "descEs": "Inyector del cilindro 11: circuito abierto o con falla"
+ },
+ "P0212": {
+  "descEn": "Injector Circuit/Open - Cylinder 12",
+  "descEs": "Inyector del cilindro 12: circuito abierto o con falla"
+ },
+ "P0217": {
+  "descEn": "Engine Coolant Over Temperature Condition",
+  "descEs": "Sobrecalentamiento del refrigerante del motor"
+ },
+ "P0218": {
+  "descEn": "Transmission Fluid Over Temperature Condition",
+  "descEs": "Sobrecalentamiento del fluido de la transmisión"
+ },
+ "P0219": {
+  "descEn": "Engine Overspeed Condition",
+  "descEs": "Motor en sobrevelocidad (exceso de RPM)"
+ },
+ "P0230": {
+  "descEn": "Fuel Pump Primary Circuit",
+  "descEs": "Bomba de combustible: falla del circuito primario"
+ },
+ "P0234": {
+  "descEn": "Turbo/Super Charger Overboost Condition",
+  "descEs": "Turbo/supercargador: presión de sobrealimentación excesiva"
+ },
+ "P0261": {
+  "descEn": "Cylinder 1 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 1: circuito bajo"
+ },
+ "P0262": {
+  "descEn": "Cylinder 1 Injector Circuit High",
+  "descEs": "Inyector del cilindro 1: circuito alto"
+ },
+ "P0263": {
+  "descEn": "Cylinder 1 Contribution/Balance",
+  "descEs": "Cilindro 1: contribución/balance fuera de rango"
+ },
+ "P0264": {
+  "descEn": "Cylinder 2 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 2: circuito bajo"
+ },
+ "P0265": {
+  "descEn": "Cylinder 2 Injector Circuit High",
+  "descEs": "Inyector del cilindro 2: circuito alto"
+ },
+ "P0266": {
+  "descEn": "Cylinder 2 Contribution/Balance",
+  "descEs": "Cilindro 2: contribución/balance fuera de rango"
+ },
+ "P0267": {
+  "descEn": "Cylinder 3 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 3: circuito bajo"
+ },
+ "P0268": {
+  "descEn": "Cylinder 3 Injector Circuit High",
+  "descEs": "Inyector del cilindro 3: circuito alto"
+ },
+ "P0269": {
+  "descEn": "Cylinder 3 Contribution/Balance",
+  "descEs": "Cilindro 3: contribución/balance fuera de rango"
+ },
+ "P0270": {
+  "descEn": "Cylinder 4 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 4: circuito bajo"
+ },
+ "P0271": {
+  "descEn": "Cylinder 4 Injector Circuit High",
+  "descEs": "Inyector del cilindro 4: circuito alto"
+ },
+ "P0272": {
+  "descEn": "Cylinder 4 Contribution/Balance",
+  "descEs": "Cilindro 4: contribución/balance fuera de rango"
+ },
+ "P0273": {
+  "descEn": "Cylinder 5 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 5: circuito bajo"
+ },
+ "P0274": {
+  "descEn": "Cylinder 5 Injector Circuit High",
+  "descEs": "Inyector del cilindro 5: circuito alto"
+ },
+ "P0275": {
+  "descEn": "Cylinder 5 Contribution/Balance",
+  "descEs": "Cilindro 5: contribución/balance fuera de rango"
+ },
+ "P0276": {
+  "descEn": "Cylinder 6 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 6: circuito bajo"
+ },
+ "P0277": {
+  "descEn": "Cylinder 6 Injector Circuit High",
+  "descEs": "Inyector del cilindro 6: circuito alto"
+ },
+ "P0278": {
+  "descEn": "Cylinder 6 Contribution/Balance",
+  "descEs": "Cilindro 6: contribución/balance fuera de rango"
+ },
+ "P0279": {
+  "descEn": "Cylinder 7 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 7: circuito bajo"
+ },
+ "P0280": {
+  "descEn": "Cylinder 7 Injector Circuit High",
+  "descEs": "Inyector del cilindro 7: circuito alto"
+ },
+ "P0281": {
+  "descEn": "Cylinder 7 Contribution/Balance",
+  "descEs": "Cilindro 7: contribución/balance fuera de rango"
+ },
+ "P0282": {
+  "descEn": "Cylinder 8 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 8: circuito bajo"
+ },
+ "P0283": {
+  "descEn": "Cylinder 8 Injector Circuit High",
+  "descEs": "Inyector del cilindro 8: circuito alto"
+ },
+ "P0284": {
+  "descEn": "Cylinder 8 Contribution/Balance",
+  "descEs": "Cilindro 8: contribución/balance fuera de rango"
+ },
+ "P0285": {
+  "descEn": "Cylinder 9 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 9: circuito bajo"
+ },
+ "P0286": {
+  "descEn": "Cylinder 9 Injector Circuit High",
+  "descEs": "Inyector del cilindro 9: circuito alto"
+ },
+ "P0287": {
+  "descEn": "Cylinder 9 Contribution/Balance",
+  "descEs": "Cilindro 9: contribución/balance fuera de rango"
+ },
+ "P0288": {
+  "descEn": "Cylinder 10 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 10: circuito bajo"
+ },
+ "P0289": {
+  "descEn": "Cylinder 10 Injector Circuit High",
+  "descEs": "Inyector del cilindro 10: circuito alto"
+ },
+ "P0290": {
+  "descEn": "Cylinder 10 Contribution/Balance",
+  "descEs": "Cilindro 10: contribución/balance fuera de rango"
+ },
+ "P0291": {
+  "descEn": "Cylinder 11 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 11: circuito bajo"
+ },
+ "P0292": {
+  "descEn": "Cylinder 11 Injector Circuit High",
+  "descEs": "Inyector del cilindro 11: circuito alto"
+ },
+ "P0293": {
+  "descEn": "Cylinder 11 Contribution/Balance",
+  "descEs": "Cilindro 11: contribución/balance fuera de rango"
+ },
+ "P0294": {
+  "descEn": "Cylinder 12 Injector Circuit Low",
+  "descEs": "Inyector del cilindro 12: circuito bajo"
+ },
+ "P0295": {
+  "descEn": "Cylinder 12 Injector Circuit High",
+  "descEs": "Inyector del cilindro 12: circuito alto"
+ },
+ "P0296": {
+  "descEn": "Cylinder 12 Contribution/Balance",
+  "descEs": "Cilindro 12: contribución/balance fuera de rango"
+ },
+ "P0299": {
+  "descEn": "Turbo/Super Charger Underboost",
+  "descEs": "Turbo/supercargador: presión de sobrealimentación insuficiente"
+ },
+ "P0300": {
+  "descEn": "Random/Multiple Cylinder Misfire Detected",
+  "descEs": "Fallo de encendido aleatorio o en varios cilindros"
+ },
+ "P0301": {
+  "descEn": "Cylinder 1 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 1"
+ },
+ "P0302": {
+  "descEn": "Cylinder 2 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 2"
+ },
+ "P0303": {
+  "descEn": "Cylinder 3 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 3"
+ },
+ "P0304": {
+  "descEn": "Cylinder 4 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 4"
+ },
+ "P0305": {
+  "descEn": "Cylinder 5 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 5"
+ },
+ "P0306": {
+  "descEn": "Cylinder 6 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 6"
+ },
+ "P0307": {
+  "descEn": "Cylinder 7 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 7"
+ },
+ "P0308": {
+  "descEn": "Cylinder 8 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 8"
+ },
+ "P0309": {
+  "descEn": "Cylinder 9 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 9"
+ },
+ "P0310": {
+  "descEn": "Cylinder 10 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 10"
+ },
+ "P0311": {
+  "descEn": "Cylinder 11 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 11"
+ },
+ "P0312": {
+  "descEn": "Cylinder 12 Misfire Detected",
+  "descEs": "Fallo de encendido en el cilindro 12"
+ },
+ "P0325": {
+  "descEn": "Knock Sensor 1 Circuit (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de detonación 1: falla del circuito (banco 1 o sensor único)"
+ },
+ "P0326": {
+  "descEn": "Knock Sensor 1 Circuit Range/Performance (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de detonación 1: rango/desempeño fuera de lo normal (banco 1 o sensor único)"
+ },
+ "P0327": {
+  "descEn": "Knock Sensor 1 Circuit Low (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de detonación 1: señal baja en el circuito (banco 1 o sensor único)"
+ },
+ "P0328": {
+  "descEn": "Knock Sensor 1 Circuit High (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de detonación 1: señal alta en el circuito (banco 1 o sensor único)"
+ },
+ "P0329": {
+  "descEn": "Knock Sensor 1 Circuit Intermittent (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de detonación 1: circuito intermitente/errático (banco 1 o sensor único)"
+ },
+ "P0330": {
+  "descEn": "Knock Sensor 2 Circuit (Bank 2)",
+  "descEs": "Sensor de detonación 2: falla del circuito (banco 2)"
+ },
+ "P0331": {
+  "descEn": "Knock Sensor 2 Circuit Range/Performance (Bank 2)",
+  "descEs": "Sensor de detonación 2: rango/desempeño fuera de lo normal (banco 2)"
+ },
+ "P0332": {
+  "descEn": "Knock Sensor 2 Circuit Low (Bank 2)",
+  "descEs": "Sensor de detonación 2: señal baja en el circuito (banco 2)"
+ },
+ "P0333": {
+  "descEn": "Knock Sensor 2 Circuit High (Bank 2)",
+  "descEs": "Sensor de detonación 2: señal alta en el circuito (banco 2)"
+ },
+ "P0334": {
+  "descEn": "Knock Sensor 2 Circuit Intermittent (Bank 2)",
+  "descEs": "Sensor de detonación 2: circuito intermitente/errático (banco 2)"
+ },
+ "P0335": {
+  "descEn": "Crankshaft Position Sensor \"A\" Circuit",
+  "descEs": "Sensor de posición del cigüeñal (CKP) \"A\": falla del circuito"
+ },
+ "P0336": {
+  "descEn": "Crankshaft Position Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de posición del cigüeñal (CKP) \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0337": {
+  "descEn": "Crankshaft Position Sensor \"A\" Circuit Low",
+  "descEs": "Sensor de posición del cigüeñal (CKP) \"A\": señal baja en el circuito"
+ },
+ "P0338": {
+  "descEn": "Crankshaft Position Sensor \"A\" Circuit High",
+  "descEs": "Sensor de posición del cigüeñal (CKP) \"A\": señal alta en el circuito"
+ },
+ "P0339": {
+  "descEn": "Crankshaft Position Sensor \"A\" Circuit Intermittent",
+  "descEs": "Sensor de posición del cigüeñal (CKP) \"A\": circuito intermitente/errático"
+ },
+ "P0340": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": falla del circuito (banco 1 o sensor único)"
+ },
+ "P0341": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit Range/Performance (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": rango/desempeño fuera de lo normal (banco 1 o sensor único)"
+ },
+ "P0342": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit Low (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": señal baja en el circuito (banco 1 o sensor único)"
+ },
+ "P0343": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit High (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": señal alta en el circuito (banco 1 o sensor único)"
+ },
+ "P0344": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit Intermittent (Bank 1 or Single Sensor)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": circuito intermitente/errático (banco 1 o sensor único)"
+ },
+ "P0345": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit (Bank 2)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": falla del circuito (banco 2)"
+ },
+ "P0346": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit Range/Performance (Bank 2)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": rango/desempeño fuera de lo normal (banco 2)"
+ },
+ "P0347": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit Low (Bank 2)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": señal baja en el circuito (banco 2)"
+ },
+ "P0348": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit High (Bank 2)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": señal alta en el circuito (banco 2)"
+ },
+ "P0349": {
+  "descEn": "Camshaft Position Sensor \"A\" Circuit Intermittent (Bank 2)",
+  "descEs": "Sensor de posición del árbol de levas (CMP) \"A\": circuito intermitente/errático (banco 2)"
+ },
+ "P0350": {
+  "descEn": "Ignition Coil Primary/Secondary Circuit",
+  "descEs": "Bobinas de encendido: falla del circuito primario/secundario"
+ },
+ "P0351": {
+  "descEn": "Ignition Coil \"A\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"A\": falla del circuito primario/secundario"
+ },
+ "P0352": {
+  "descEn": "Ignition Coil \"B\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"B\": falla del circuito primario/secundario"
+ },
+ "P0353": {
+  "descEn": "Ignition Coil \"C\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"C\": falla del circuito primario/secundario"
+ },
+ "P0354": {
+  "descEn": "Ignition Coil \"D\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"D\": falla del circuito primario/secundario"
+ },
+ "P0355": {
+  "descEn": "Ignition Coil \"E\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"E\": falla del circuito primario/secundario"
+ },
+ "P0356": {
+  "descEn": "Ignition Coil \"F\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"F\": falla del circuito primario/secundario"
+ },
+ "P0357": {
+  "descEn": "Ignition Coil \"G\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"G\": falla del circuito primario/secundario"
+ },
+ "P0358": {
+  "descEn": "Ignition Coil \"H\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"H\": falla del circuito primario/secundario"
+ },
+ "P0359": {
+  "descEn": "Ignition Coil \"I\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"I\": falla del circuito primario/secundario"
+ },
+ "P0360": {
+  "descEn": "Ignition Coil \"J\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"J\": falla del circuito primario/secundario"
+ },
+ "P0361": {
+  "descEn": "Ignition Coil \"K\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"K\": falla del circuito primario/secundario"
+ },
+ "P0362": {
+  "descEn": "Ignition Coil \"L\" Primary/Secondary Circuit",
+  "descEs": "Bobina de encendido \"L\": falla del circuito primario/secundario"
+ },
+ "P0380": {
+  "descEn": "Glow Plug/Heater Circuit \"A\"",
+  "descEs": "Bujías de precalentamiento \"A\": falla del circuito"
+ },
+ "P0381": {
+  "descEn": "Glow Plug/Heater Indicator Circuit",
+  "descEs": "Indicador de bujías de precalentamiento: falla del circuito"
+ },
+ "P0400": {
+  "descEn": "Exhaust Gas Recirculation Flow",
+  "descEs": "Recirculación de gases de escape (EGR): falla de flujo"
+ },
+ "P0401": {
+  "descEn": "Exhaust Gas Recirculation Flow Insufficient Detected",
+  "descEs": "Recirculación de gases de escape (EGR): flujo insuficiente"
+ },
+ "P0402": {
+  "descEn": "Exhaust Gas Recirculation Flow Excessive Detected",
+  "descEs": "Recirculación de gases de escape (EGR): flujo excesivo"
+ },
+ "P0403": {
+  "descEn": "Exhaust Gas Recirculation Control Circuit",
+  "descEs": "Recirculación de gases de escape (EGR): falla del circuito de control"
+ },
+ "P0404": {
+  "descEn": "Exhaust Gas Recirculation Control Circuit Range/Performance",
+  "descEs": "Recirculación de gases de escape (EGR): rango/desempeño del circuito de control"
+ },
+ "P0405": {
+  "descEn": "Exhaust Gas Recirculation Sensor \"A\" Circuit Low",
+  "descEs": "Sensor EGR \"A\": señal baja en el circuito"
+ },
+ "P0406": {
+  "descEn": "Exhaust Gas Recirculation Sensor \"A\" Circuit High",
+  "descEs": "Sensor EGR \"A\": señal alta en el circuito"
+ },
+ "P0407": {
+  "descEn": "Exhaust Gas Recirculation Sensor \"B\" Circuit Low",
+  "descEs": "Sensor EGR \"B\": señal baja en el circuito"
+ },
+ "P0408": {
+  "descEn": "Exhaust Gas Recirculation Sensor \"B\" Circuit High",
+  "descEs": "Sensor EGR \"B\": señal alta en el circuito"
+ },
+ "P0409": {
+  "descEn": "Exhaust Gas Recirculation Sensor \"A\" Circuit",
+  "descEs": "Sensor EGR \"A\": falla del circuito"
+ },
+ "P0410": {
+  "descEn": "Secondary Air Injection System",
+  "descEs": "Sistema de inyección de aire secundario: falla"
+ },
+ "P0411": {
+  "descEn": "Secondary Air Injection System Incorrect Flow Detected",
+  "descEs": "Sistema de inyección de aire secundario: flujo incorrecto"
+ },
+ "P0412": {
+  "descEn": "Secondary Air Injection System Switching Valve \"A\" Circuit",
+  "descEs": "Válvula de conmutación \"A\" del aire secundario: falla del circuito"
+ },
+ "P0413": {
+  "descEn": "Secondary Air Injection System Switching Valve \"A\" Circuit Open",
+  "descEs": "Válvula de conmutación \"A\" del aire secundario: circuito abierto"
+ },
+ "P0414": {
+  "descEn": "Secondary Air Injection System Switching Valve \"A\" Circuit Shorted",
+  "descEs": "Válvula de conmutación \"A\" del aire secundario: circuito en corto"
+ },
+ "P0415": {
+  "descEn": "Secondary Air Injection System Switching Valve \"B\" Circuit",
+  "descEs": "Válvula de conmutación \"B\" del aire secundario: falla del circuito"
+ },
+ "P0416": {
+  "descEn": "Secondary Air Injection System Switching Valve \"B\" Circuit Open",
+  "descEs": "Válvula de conmutación \"B\" del aire secundario: circuito abierto"
+ },
+ "P0417": {
+  "descEn": "Secondary Air Injection System Switching Valve \"B\" Circuit Shorted",
+  "descEs": "Válvula de conmutación \"B\" del aire secundario: circuito en corto"
+ },
+ "P0418": {
+  "descEn": "Secondary Air Injection System Relay \"A\" Circuit",
+  "descEs": "Relé \"A\" del aire secundario: falla del circuito"
+ },
+ "P0419": {
+  "descEn": "Secondary Air Injection System Relay \"B\" Circuit",
+  "descEs": "Relé \"B\" del aire secundario: falla del circuito"
+ },
+ "P0420": {
+  "descEn": "Catalyst System Efficiency Below Threshold (Bank 1)",
+  "descEs": "Eficiencia del catalizador por debajo del umbral (banco 1)"
+ },
+ "P0421": {
+  "descEn": "Warm Up Catalyst Efficiency Below Threshold (Bank 1)",
+  "descEs": "Eficiencia del precatalizador (calentamiento) por debajo del umbral (banco 1)"
+ },
+ "P0422": {
+  "descEn": "Main Catalyst Efficiency Below Threshold (Bank 1)",
+  "descEs": "Eficiencia del catalizador principal por debajo del umbral (banco 1)"
+ },
+ "P0423": {
+  "descEn": "Heated Catalyst Efficiency Below Threshold (Bank 1)",
+  "descEs": "Eficiencia del catalizador calefaccionado por debajo del umbral (banco 1)"
+ },
+ "P0424": {
+  "descEn": "Heated Catalyst Temperature Below Threshold (Bank 1)",
+  "descEs": "Temperatura del catalizador calefaccionado por debajo del umbral (banco 1)"
+ },
+ "P0425": {
+  "descEn": "Catalyst Temperature Sensor (Bank 1)",
+  "descEs": "Sensor de temperatura del catalizador: falla (banco 1)"
+ },
+ "P0426": {
+  "descEn": "Catalyst Temperature Sensor Range/Performance (Bank 1)",
+  "descEs": "Sensor de temperatura del catalizador: rango/desempeño fuera de lo normal (banco 1)"
+ },
+ "P0427": {
+  "descEn": "Catalyst Temperature Sensor Low (Bank 1)",
+  "descEs": "Sensor de temperatura del catalizador: señal baja (banco 1)"
+ },
+ "P0428": {
+  "descEn": "Catalyst Temperature Sensor High (Bank 1)",
+  "descEs": "Sensor de temperatura del catalizador: señal alta (banco 1)"
+ },
+ "P0429": {
+  "descEn": "Catalyst Heater Control Circuit (Bank 1)",
+  "descEs": "Calentador del catalizador: falla del circuito de control (banco 1)"
+ },
+ "P0430": {
+  "descEn": "Catalyst System Efficiency Below Threshold (Bank 2)",
+  "descEs": "Eficiencia del catalizador por debajo del umbral (banco 2)"
+ },
+ "P0431": {
+  "descEn": "Warm Up Catalyst Efficiency Below Threshold (Bank 2)",
+  "descEs": "Eficiencia del precatalizador (calentamiento) por debajo del umbral (banco 2)"
+ },
+ "P0432": {
+  "descEn": "Main Catalyst Efficiency Below Threshold (Bank 2)",
+  "descEs": "Eficiencia del catalizador principal por debajo del umbral (banco 2)"
+ },
+ "P0433": {
+  "descEn": "Heated Catalyst Efficiency Below Threshold (Bank 2)",
+  "descEs": "Eficiencia del catalizador calefaccionado por debajo del umbral (banco 2)"
+ },
+ "P0434": {
+  "descEn": "Heated Catalyst Temperature Below Threshold (Bank 2)",
+  "descEs": "Temperatura del catalizador calefaccionado por debajo del umbral (banco 2)"
+ },
+ "P0435": {
+  "descEn": "Catalyst Temperature Sensor (Bank 2)",
+  "descEs": "Sensor de temperatura del catalizador: falla (banco 2)"
+ },
+ "P0436": {
+  "descEn": "Catalyst Temperature Sensor Range/Performance (Bank 2)",
+  "descEs": "Sensor de temperatura del catalizador: rango/desempeño fuera de lo normal (banco 2)"
+ },
+ "P0437": {
+  "descEn": "Catalyst Temperature Sensor Low (Bank 2)",
+  "descEs": "Sensor de temperatura del catalizador: señal baja (banco 2)"
+ },
+ "P0438": {
+  "descEn": "Catalyst Temperature Sensor High (Bank 2)",
+  "descEs": "Sensor de temperatura del catalizador: señal alta (banco 2)"
+ },
+ "P0439": {
+  "descEn": "Catalyst Heater Control Circuit (Bank 2)",
+  "descEs": "Calentador del catalizador: falla del circuito de control (banco 2)"
+ },
+ "P0440": {
+  "descEn": "Evaporative Emission System",
+  "descEs": "Sistema de emisiones evaporativas (EVAP): falla"
+ },
+ "P0441": {
+  "descEn": "Evaporative Emission System Incorrect Purge Flow",
+  "descEs": "Sistema EVAP: flujo de purga incorrecto"
+ },
+ "P0442": {
+  "descEn": "Evaporative Emission System Leak Detected (small leak)",
+  "descEs": "Sistema EVAP: fuga pequeña detectada"
+ },
+ "P0443": {
+  "descEn": "Evaporative Emission System Purge Control Valve \"A\" Circuit",
+  "descEs": "Válvula de purga EVAP \"A\": falla del circuito"
+ },
+ "P0444": {
+  "descEn": "Evaporative Emission System Purge Control Valve \"A\" Circuit Open",
+  "descEs": "Válvula de purga EVAP \"A\": circuito abierto"
+ },
+ "P0445": {
+  "descEn": "Evaporative Emission System Purge Control Valve \"A\" Circuit Shorted",
+  "descEs": "Válvula de purga EVAP \"A\": circuito en corto"
+ },
+ "P0446": {
+  "descEn": "Evaporative Emission System Vent Control Circuit",
+  "descEs": "Control de ventilación EVAP: falla del circuito"
+ },
+ "P0447": {
+  "descEn": "Evaporative Emission System Vent Control Circuit Open",
+  "descEs": "Control de ventilación EVAP: circuito abierto"
+ },
+ "P0448": {
+  "descEn": "Evaporative Emission System Vent Control Circuit Shorted",
+  "descEs": "Control de ventilación EVAP: circuito en corto"
+ },
+ "P0449": {
+  "descEn": "Evaporative Emission System Vent Valve/Solenoid Circuit",
+  "descEs": "Válvula/solenoide de ventilación EVAP: falla del circuito"
+ },
+ "P0450": {
+  "descEn": "Evaporative Emission System Pressure Sensor/Switch",
+  "descEs": "Sensor/interruptor de presión EVAP: falla"
+ },
+ "P0451": {
+  "descEn": "Evaporative Emission System Pressure Sensor/Switch Range/Performance",
+  "descEs": "Sensor/interruptor de presión EVAP: rango/desempeño fuera de lo normal"
+ },
+ "P0452": {
+  "descEn": "Evaporative Emission System Pressure Sensor/Switch Low",
+  "descEs": "Sensor/interruptor de presión EVAP: señal baja"
+ },
+ "P0453": {
+  "descEn": "Evaporative Emission System Pressure Sensor/Switch High",
+  "descEs": "Sensor/interruptor de presión EVAP: señal alta"
+ },
+ "P0454": {
+  "descEn": "Evaporative Emission System Pressure Sensor/Switch Intermittent",
+  "descEs": "Sensor/interruptor de presión EVAP: señal intermitente"
+ },
+ "P0455": {
+  "descEn": "Evaporative Emission System Leak Detected (large leak)",
+  "descEs": "Sistema EVAP: fuga grande detectada"
+ },
+ "P0456": {
+  "descEn": "Evaporative Emission System Leak Detected (very small leak)",
+  "descEs": "Sistema EVAP: fuga muy pequeña detectada"
+ },
+ "P0457": {
+  "descEn": "Evaporative Emission System Leak Detected (fuel cap loose/off)",
+  "descEs": "Sistema EVAP: fuga detectada (tapón de combustible flojo o ausente)"
+ },
+ "P0458": {
+  "descEn": "Evaporative Emission System Purge Control Valve \"A\" Circuit Low",
+  "descEs": "Válvula de purga EVAP \"A\": circuito bajo"
+ },
+ "P0459": {
+  "descEn": "Evaporative Emission System Purge Control Valve \"A\" Circuit High",
+  "descEs": "Válvula de purga EVAP \"A\": circuito alto"
+ },
+ "P0460": {
+  "descEn": "Fuel Level Sensor \"A\" Circuit",
+  "descEs": "Sensor de nivel de combustible \"A\": falla del circuito"
+ },
+ "P0461": {
+  "descEn": "Fuel Level Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de nivel de combustible \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0462": {
+  "descEn": "Fuel Level Sensor \"A\" Circuit Low",
+  "descEs": "Sensor de nivel de combustible \"A\": señal baja en el circuito"
+ },
+ "P0463": {
+  "descEn": "Fuel Level Sensor \"A\" Circuit High",
+  "descEs": "Sensor de nivel de combustible \"A\": señal alta en el circuito"
+ },
+ "P0464": {
+  "descEn": "Fuel Level Sensor \"A\" Circuit Intermittent",
+  "descEs": "Sensor de nivel de combustible \"A\": circuito intermitente/errático"
+ },
+ "P0480": {
+  "descEn": "Fan 1 Control Circuit",
+  "descEs": "Abanico de enfriamiento 1: falla del circuito de control"
+ },
+ "P0481": {
+  "descEn": "Fan 2 Control Circuit",
+  "descEs": "Abanico de enfriamiento 2: falla del circuito de control"
+ },
+ "P0482": {
+  "descEn": "Fan 3 Control Circuit",
+  "descEs": "Abanico de enfriamiento 3: falla del circuito de control"
+ },
+ "P0483": {
+  "descEn": "Fan Rationality Check",
+  "descEs": "Abanico de enfriamiento: falla en la verificación de funcionamiento"
+ },
+ "P0500": {
+  "descEn": "Vehicle Speed Sensor \"A\"",
+  "descEs": "Sensor de velocidad del vehículo (VSS) \"A\": falla"
+ },
+ "P0501": {
+  "descEn": "Vehicle Speed Sensor \"A\" Range/Performance",
+  "descEs": "Sensor de velocidad del vehículo (VSS) \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0502": {
+  "descEn": "Vehicle Speed Sensor \"A\" Circuit Low Input",
+  "descEs": "Sensor de velocidad del vehículo (VSS) \"A\": señal baja"
+ },
+ "P0503": {
+  "descEn": "Vehicle Speed Sensor \"A\" Intermittent/Erratic/High",
+  "descEs": "Sensor de velocidad del vehículo (VSS) \"A\": señal intermitente, errática o alta"
+ },
+ "P0505": {
+  "descEn": "Idle Air Control System",
+  "descEs": "Sistema de control de aire de ralentí (IAC): falla"
+ },
+ "P0506": {
+  "descEn": "Idle Air Control System RPM Lower Than Expected",
+  "descEs": "Ralentí: RPM más bajas de lo esperado"
+ },
+ "P0507": {
+  "descEn": "Idle Air Control System RPM Higher Than Expected",
+  "descEs": "Ralentí: RPM más altas de lo esperado"
+ },
+ "P0508": {
+  "descEn": "Idle Air Control System Circuit Low",
+  "descEs": "Sistema de control de aire de ralentí (IAC): circuito bajo"
+ },
+ "P0509": {
+  "descEn": "Idle Air Control System Circuit High",
+  "descEs": "Sistema de control de aire de ralentí (IAC): circuito alto"
+ },
+ "P0520": {
+  "descEn": "Engine Oil Pressure Sensor/Switch Circuit",
+  "descEs": "Sensor/interruptor de presión de aceite: falla del circuito"
+ },
+ "P0521": {
+  "descEn": "Engine Oil Pressure Sensor/Switch Range/Performance",
+  "descEs": "Sensor/interruptor de presión de aceite: rango/desempeño fuera de lo normal"
+ },
+ "P0522": {
+  "descEn": "Engine Oil Pressure Sensor/Switch Low Voltage",
+  "descEs": "Sensor/interruptor de presión de aceite: voltaje bajo"
+ },
+ "P0523": {
+  "descEn": "Engine Oil Pressure Sensor/Switch High Voltage",
+  "descEs": "Sensor/interruptor de presión de aceite: voltaje alto"
+ },
+ "P0524": {
+  "descEn": "Engine Oil Pressure Too Low",
+  "descEs": "Presión de aceite del motor demasiado baja"
+ },
+ "P0530": {
+  "descEn": "A/C Refrigerant Pressure Sensor \"A\" Circuit",
+  "descEs": "Sensor de presión del refrigerante del A/C \"A\": falla del circuito"
+ },
+ "P0531": {
+  "descEn": "A/C Refrigerant Pressure Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de presión del refrigerante del A/C \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0532": {
+  "descEn": "A/C Refrigerant Pressure Sensor \"A\" Circuit Low",
+  "descEs": "Sensor de presión del refrigerante del A/C \"A\": señal baja"
+ },
+ "P0533": {
+  "descEn": "A/C Refrigerant Pressure Sensor \"A\" Circuit High",
+  "descEs": "Sensor de presión del refrigerante del A/C \"A\": señal alta"
+ },
+ "P0534": {
+  "descEn": "Air Conditioner Refrigerant Charge Loss",
+  "descEs": "Aire acondicionado: pérdida de carga de refrigerante"
+ },
+ "P0560": {
+  "descEn": "System Voltage",
+  "descEs": "Voltaje del sistema: falla"
+ },
+ "P0561": {
+  "descEn": "System Voltage Unstable",
+  "descEs": "Voltaje del sistema inestable"
+ },
+ "P0562": {
+  "descEn": "System Voltage Low",
+  "descEs": "Voltaje del sistema bajo"
+ },
+ "P0563": {
+  "descEn": "System Voltage High",
+  "descEs": "Voltaje del sistema alto"
+ },
+ "P0600": {
+  "descEn": "Serial Communication Link",
+  "descEs": "Falla en el enlace de comunicación serie"
+ },
+ "P0601": {
+  "descEn": "Internal Control Module Memory Check Sum Error",
+  "descEs": "Módulo de control: error de suma de verificación de la memoria"
+ },
+ "P0602": {
+  "descEn": "Control Module Programming Error",
+  "descEs": "Módulo de control: error de programación"
+ },
+ "P0603": {
+  "descEn": "Internal Control Module Keep Alive Memory (KAM) Error",
+  "descEs": "Módulo de control: error de la memoria de mantenimiento (KAM)"
+ },
+ "P0604": {
+  "descEn": "Internal Control Module Random Access Memory (RAM) Error",
+  "descEs": "Módulo de control: error de la memoria RAM"
+ },
+ "P0605": {
+  "descEn": "Internal Control Module Read Only Memory (ROM) Error",
+  "descEs": "Módulo de control: error de la memoria ROM"
+ },
+ "P0606": {
+  "descEn": "Control Module Processor",
+  "descEs": "Módulo de control: falla del procesador"
+ },
+ "P0700": {
+  "descEn": "Transmission Control System (MIL Request)",
+  "descEs": "Sistema de control de la transmisión: falla (el módulo de la transmisión tiene un código guardado)"
+ },
+ "P0701": {
+  "descEn": "Transmission Control System Range/Performance",
+  "descEs": "Sistema de control de la transmisión: rango/desempeño fuera de lo normal"
+ },
+ "P0702": {
+  "descEn": "Transmission Control System Electrical",
+  "descEs": "Sistema de control de la transmisión: falla eléctrica"
+ },
+ "P0703": {
+  "descEn": "Brake Switch \"B\" Circuit",
+  "descEs": "Interruptor de freno \"B\": falla del circuito"
+ },
+ "P0704": {
+  "descEn": "Clutch Switch Input Circuit",
+  "descEs": "Interruptor del embrague: falla del circuito de entrada"
+ },
+ "P0705": {
+  "descEn": "Transmission Range Sensor \"A\" Circuit",
+  "descEs": "Sensor de rango de la transmisión \"A\" (PRNDL): falla del circuito"
+ },
+ "P0706": {
+  "descEn": "Transmission Range Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de rango de la transmisión \"A\" (PRNDL): rango/desempeño fuera de lo normal"
+ },
+ "P0707": {
+  "descEn": "Transmission Range Sensor \"A\" Circuit Low",
+  "descEs": "Sensor de rango de la transmisión \"A\" (PRNDL): señal baja en el circuito"
+ },
+ "P0708": {
+  "descEn": "Transmission Range Sensor \"A\" Circuit High",
+  "descEs": "Sensor de rango de la transmisión \"A\" (PRNDL): señal alta en el circuito"
+ },
+ "P0709": {
+  "descEn": "Transmission Range Sensor \"A\" Circuit Intermittent",
+  "descEs": "Sensor de rango de la transmisión \"A\" (PRNDL): circuito intermitente/errático"
+ },
+ "P0710": {
+  "descEn": "Transmission Fluid Temperature Sensor \"A\" Circuit",
+  "descEs": "Sensor de temperatura del fluido de la transmisión \"A\": falla del circuito"
+ },
+ "P0711": {
+  "descEn": "Transmission Fluid Temperature Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de temperatura del fluido de la transmisión \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0712": {
+  "descEn": "Transmission Fluid Temperature Sensor \"A\" Circuit Low",
+  "descEs": "Sensor de temperatura del fluido de la transmisión \"A\": señal baja en el circuito"
+ },
+ "P0713": {
+  "descEn": "Transmission Fluid Temperature Sensor \"A\" Circuit High",
+  "descEs": "Sensor de temperatura del fluido de la transmisión \"A\": señal alta en el circuito"
+ },
+ "P0714": {
+  "descEn": "Transmission Fluid Temperature Sensor \"A\" Circuit Intermittent",
+  "descEs": "Sensor de temperatura del fluido de la transmisión \"A\": circuito intermitente/errático"
+ },
+ "P0715": {
+  "descEn": "Input/Turbine Speed Sensor \"A\" Circuit",
+  "descEs": "Sensor de velocidad de entrada/turbina \"A\": falla del circuito"
+ },
+ "P0716": {
+  "descEn": "Input/Turbine Speed Sensor \"A\" Circuit Range/Performance",
+  "descEs": "Sensor de velocidad de entrada/turbina \"A\": rango/desempeño fuera de lo normal"
+ },
+ "P0717": {
+  "descEn": "Input/Turbine Speed Sensor \"A\" Circuit No Signal",
+  "descEs": "Sensor de velocidad de entrada/turbina \"A\": sin señal"
+ },
+ "P0718": {
+  "descEn": "Input/Turbine Speed Sensor \"A\" Circuit Intermittent",
+  "descEs": "Sensor de velocidad de entrada/turbina \"A\": señal intermitente"
+ },
+ "P0720": {
+  "descEn": "Output Speed Sensor Circuit",
+  "descEs": "Sensor de velocidad de salida: falla del circuito"
+ },
+ "P0721": {
+  "descEn": "Output Speed Sensor Circuit Range/Performance",
+  "descEs": "Sensor de velocidad de salida: rango/desempeño fuera de lo normal"
+ },
+ "P0722": {
+  "descEn": "Output Speed Sensor Circuit No Signal",
+  "descEs": "Sensor de velocidad de salida: sin señal"
+ },
+ "P0723": {
+  "descEn": "Output Speed Sensor Circuit Intermittent",
+  "descEs": "Sensor de velocidad de salida: señal intermitente"
+ },
+ "P0725": {
+  "descEn": "Engine Speed Input Circuit",
+  "descEs": "Señal de velocidad del motor: falla del circuito"
+ },
+ "P0726": {
+  "descEn": "Engine Speed Input Circuit Range/Performance",
+  "descEs": "Señal de velocidad del motor: rango/desempeño fuera de lo normal"
+ },
+ "P0727": {
+  "descEn": "Engine Speed Input Circuit No Signal",
+  "descEs": "Señal de velocidad del motor: sin señal"
+ },
+ "P0728": {
+  "descEn": "Engine Speed Input Circuit Intermittent",
+  "descEs": "Señal de velocidad del motor: señal intermitente"
+ },
+ "P0730": {
+  "descEn": "Incorrect Gear Ratio",
+  "descEs": "Relación de marcha incorrecta en la transmisión"
+ },
+ "P0731": {
+  "descEn": "Gear 1 Incorrect Ratio",
+  "descEs": "Relación incorrecta en 1ª marcha"
+ },
+ "P0732": {
+  "descEn": "Gear 2 Incorrect Ratio",
+  "descEs": "Relación incorrecta en 2ª marcha"
+ },
+ "P0733": {
+  "descEn": "Gear 3 Incorrect Ratio",
+  "descEs": "Relación incorrecta en 3ª marcha"
+ },
+ "P0734": {
+  "descEn": "Gear 4 Incorrect Ratio",
+  "descEs": "Relación incorrecta en 4ª marcha"
+ },
+ "P0735": {
+  "descEn": "Gear 5 Incorrect Ratio",
+  "descEs": "Relación incorrecta en 5ª marcha"
+ },
+ "P0736": {
+  "descEn": "Reverse Incorrect Ratio",
+  "descEs": "Relación incorrecta en reversa"
+ },
+ "P0740": {
+  "descEn": "Torque Converter Clutch Solenoid Circuit/Open",
+  "descEs": "Solenoide del embrague del convertidor de par (TCC): circuito abierto o con falla"
+ },
+ "P0741": {
+  "descEn": "Torque Converter Clutch Solenoid Circuit Performance/Stuck Off",
+  "descEs": "Solenoide del embrague del convertidor de par (TCC): desempeño deficiente o pegado desactivado"
+ },
+ "P0742": {
+  "descEn": "Torque Converter Clutch Solenoid Circuit Stuck On",
+  "descEs": "Solenoide del embrague del convertidor de par (TCC): pegado activado"
+ },
+ "P0743": {
+  "descEn": "Torque Converter Clutch Solenoid Circuit Electrical",
+  "descEs": "Solenoide del embrague del convertidor de par (TCC): falla eléctrica"
+ },
+ "P0744": {
+  "descEn": "Torque Converter Clutch Solenoid Circuit Intermittent",
+  "descEs": "Solenoide del embrague del convertidor de par (TCC): circuito intermitente"
+ },
+ "P0745": {
+  "descEn": "Pressure Control Solenoid \"A\"",
+  "descEs": "Solenoide de control de presión \"A\": falla"
+ },
+ "P0746": {
+  "descEn": "Pressure Control Solenoid \"A\" Performance/Stuck Off",
+  "descEs": "Solenoide de control de presión \"A\": desempeño deficiente o pegado desactivado"
+ },
+ "P0747": {
+  "descEn": "Pressure Control Solenoid \"A\" Stuck On",
+  "descEs": "Solenoide de control de presión \"A\": pegado activado"
+ },
+ "P0748": {
+  "descEn": "Pressure Control Solenoid \"A\" Electrical",
+  "descEs": "Solenoide de control de presión \"A\": falla eléctrica"
+ },
+ "P0749": {
+  "descEn": "Pressure Control Solenoid \"A\" Intermittent",
+  "descEs": "Solenoide de control de presión \"A\": falla intermitente"
+ },
+ "P0750": {
+  "descEn": "Shift Solenoid \"A\"",
+  "descEs": "Solenoide de cambios \"A\": falla"
+ },
+ "P0751": {
+  "descEn": "Shift Solenoid \"A\" Performance/Stuck Off",
+  "descEs": "Solenoide de cambios \"A\": desempeño deficiente o pegado desactivado"
+ },
+ "P0752": {
+  "descEn": "Shift Solenoid \"A\" Stuck On",
+  "descEs": "Solenoide de cambios \"A\": pegado activado"
+ },
+ "P0753": {
+  "descEn": "Shift Solenoid \"A\" Electrical",
+  "descEs": "Solenoide de cambios \"A\": falla eléctrica"
+ },
+ "P0754": {
+  "descEn": "Shift Solenoid \"A\" Intermittent",
+  "descEs": "Solenoide de cambios \"A\": falla intermitente"
+ },
+ "P0755": {
+  "descEn": "Shift Solenoid \"B\"",
+  "descEs": "Solenoide de cambios \"B\": falla"
+ },
+ "P0756": {
+  "descEn": "Shift Solenoid \"B\" Performance/Stuck Off",
+  "descEs": "Solenoide de cambios \"B\": desempeño deficiente o pegado desactivado"
+ },
+ "P0757": {
+  "descEn": "Shift Solenoid \"B\" Stuck On",
+  "descEs": "Solenoide de cambios \"B\": pegado activado"
+ },
+ "P0758": {
+  "descEn": "Shift Solenoid \"B\" Electrical",
+  "descEs": "Solenoide de cambios \"B\": falla eléctrica"
+ },
+ "P0759": {
+  "descEn": "Shift Solenoid \"B\" Intermittent",
+  "descEs": "Solenoide de cambios \"B\": falla intermitente"
+ },
+ "P0760": {
+  "descEn": "Shift Solenoid \"C\"",
+  "descEs": "Solenoide de cambios \"C\": falla"
+ },
+ "P0761": {
+  "descEn": "Shift Solenoid \"C\" Performance/Stuck Off",
+  "descEs": "Solenoide de cambios \"C\": desempeño deficiente o pegado desactivado"
+ },
+ "P0762": {
+  "descEn": "Shift Solenoid \"C\" Stuck On",
+  "descEs": "Solenoide de cambios \"C\": pegado activado"
+ },
+ "P0763": {
+  "descEn": "Shift Solenoid \"C\" Electrical",
+  "descEs": "Solenoide de cambios \"C\": falla eléctrica"
+ },
+ "P0764": {
+  "descEn": "Shift Solenoid \"C\" Intermittent",
+  "descEs": "Solenoide de cambios \"C\": falla intermitente"
+ },
+ "P0765": {
+  "descEn": "Shift Solenoid \"D\"",
+  "descEs": "Solenoide de cambios \"D\": falla"
+ },
+ "P0766": {
+  "descEn": "Shift Solenoid \"D\" Performance/Stuck Off",
+  "descEs": "Solenoide de cambios \"D\": desempeño deficiente o pegado desactivado"
+ },
+ "P0767": {
+  "descEn": "Shift Solenoid \"D\" Stuck On",
+  "descEs": "Solenoide de cambios \"D\": pegado activado"
+ },
+ "P0768": {
+  "descEn": "Shift Solenoid \"D\" Electrical",
+  "descEs": "Solenoide de cambios \"D\": falla eléctrica"
+ },
+ "P0769": {
+  "descEn": "Shift Solenoid \"D\" Intermittent",
+  "descEs": "Solenoide de cambios \"D\": falla intermitente"
+ },
+ "P0770": {
+  "descEn": "Shift Solenoid \"E\"",
+  "descEs": "Solenoide de cambios \"E\": falla"
+ },
+ "P0771": {
+  "descEn": "Shift Solenoid \"E\" Performance/Stuck Off",
+  "descEs": "Solenoide de cambios \"E\": desempeño deficiente o pegado desactivado"
+ },
+ "P0772": {
+  "descEn": "Shift Solenoid \"E\" Stuck On",
+  "descEs": "Solenoide de cambios \"E\": pegado activado"
+ },
+ "P0773": {
+  "descEn": "Shift Solenoid \"E\" Electrical",
+  "descEs": "Solenoide de cambios \"E\": falla eléctrica"
+ },
+ "P0774": {
+  "descEn": "Shift Solenoid \"E\" Intermittent",
+  "descEs": "Solenoide de cambios \"E\": falla intermitente"
+ },
+ "P0780": {
+  "descEn": "Shift Error",
+  "descEs": "Error de cambio de marcha"
+ },
+ "P0781": {
+  "descEn": "1-2 Shift",
+  "descEs": "Falla en el cambio de 1ª a 2ª"
+ },
+ "P0782": {
+  "descEn": "2-3 Shift",
+  "descEs": "Falla en el cambio de 2ª a 3ª"
+ },
+ "P0783": {
+  "descEn": "3-4 Shift",
+  "descEs": "Falla en el cambio de 3ª a 4ª"
+ },
+ "P0784": {
+  "descEn": "4-5 Shift",
+  "descEs": "Falla en el cambio de 4ª a 5ª"
+ }
+}

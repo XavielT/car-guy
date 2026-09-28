@@ -35,6 +35,12 @@ export type SyncTable = {
    * - `user_key`: (user_id, key) — only `setting`, which has no id.
    */
   keyedBy?: 'id' | 'user_id' | 'user_key';
+  /**
+   * Pulled, never pushed. `vehicle_member` is written by the server (invite
+   * RPCs, PROMPT-07); its `user_id` is the *member*, so pushing it the way every
+   * other table is pushed would stamp the pusher's id onto someone else's row.
+   */
+  pullOnly?: boolean;
 };
 
 /** The `onConflict` columns for an upsert into `table`. */
@@ -60,7 +66,35 @@ export const SYNC_TABLES: SyncTable[] = [
   { name: 'inspection_item', localOnly: ['syncedAt'], keyedBy: 'user_id' },
 
   // The root of everything else.
-  { name: 'vehicle', localOnly: ['syncedAt'] },
+  // `garageRole` is this device's mirror of *my* role on a shared vehicle.
+  { name: 'vehicle', localOnly: ['syncedAt', 'garageRole'] },
+
+  // Schema v2, in 01-data-model-v2.md §3 order. Local foreign keys: vehicle ←
+  // every vehicle_id, mod ← mod_media, track_event ← track_session ←
+  // setup_sheet — each parent is above its children here.
+  { name: 'vehicle_ownership', localOnly: ['syncedAt'] },
+  { name: 'milestone', localOnly: ['syncedAt'] },
+  { name: 'album_item', localOnly: ['syncedAt'] },
+  { name: 'mod_category', localOnly: ['syncedAt'], keyedBy: 'user_id' },
+  { name: 'mod', localOnly: ['syncedAt'] },
+  { name: 'mod_media', localOnly: ['syncedAt'] },
+  { name: 'vehicle_specsheet', localOnly: ['syncedAt'] },
+  { name: 'spec_snapshot', localOnly: ['syncedAt'] },
+  { name: 'torque_spec', localOnly: ['syncedAt'] },
+  { name: 'wishlist_item', localOnly: ['syncedAt'] },
+  { name: 'inventory_item', localOnly: ['syncedAt'] },
+  { name: 'wheel_set', localOnly: ['syncedAt'] },
+  { name: 'tire', localOnly: ['syncedAt'] },
+  { name: 'contact', localOnly: ['syncedAt'] },
+  { name: 'vehicle_dtc_event', localOnly: ['syncedAt'] },
+  { name: 'fluid_guide_item', localOnly: ['syncedAt'] },
+  { name: 'venue', localOnly: ['syncedAt'], keyedBy: 'user_id' },
+  { name: 'track_event', localOnly: ['syncedAt'] },
+  { name: 'track_session', localOnly: ['syncedAt'] },
+  { name: 'setup_sheet', localOnly: ['syncedAt'] },
+  { name: 'consumable_usage', localOnly: ['syncedAt'] },
+  { name: 'vehicle_share', localOnly: ['syncedAt'] },
+  { name: 'vehicle_member', localOnly: ['syncedAt'], pullOnly: true },
 
   // Direct children of vehicle.
   { name: 'vehicle_spec', localOnly: ['syncedAt'] },
@@ -79,7 +113,7 @@ export const SYNC_TABLES: SyncTable[] = [
   { name: 'inspection_result', localOnly: ['syncedAt'] },
 
   // Metadata only — the bytes go to Storage, never through PostgREST.
-  { name: 'media', localOnly: ['syncedAt', 'blob'] },
+  { name: 'media', localOnly: ['syncedAt', 'blob', 'thumbBlob'] },
 
   // Last, and filtered: see SYNCED_SETTING_KEYS.
   { name: 'setting', localOnly: [], keyedBy: 'user_key' },
@@ -122,6 +156,26 @@ export const BOOLEAN_COLUMNS: Record<string, string[]> = {
   reminder: ['is_recurring', 'fixed_interval', 'is_enabled'],
   inspection_template: ['is_seeded', 'is_enabled'],
   inspection_item: ['requires_cold_engine'],
+  // schema v2 (sql/009)
+  media: ['is_favorite'],
+  vehicle_ownership: ['is_current'],
+  mod_category: ['is_seeded'],
+  mod: ['affects_specs'],
+  venue: ['is_seeded'],
+  track_session: ['passenger'],
+  setup_sheet: ['hydro'],
+  vehicle_share: [
+    'show_plate',
+    'show_vin',
+    'show_costs',
+    'show_location',
+    'show_odometer',
+    'show_maintenance',
+    'show_mods',
+    'show_track',
+    'show_docs',
+    'show_story',
+  ],
 };
 
 /** Push batch size, per 02-supabase-carguy.md §5. */

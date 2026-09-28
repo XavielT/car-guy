@@ -12,44 +12,84 @@
  *   assets/images/*.png       native icons, splash and adaptive layers
  *   public/icons/*.png        PWA icons
  *   public/favicon.png        web favicon
+ *   assets/images/carbon*.png the CarbonFrame tile
  */
 import sharp from 'sharp';
 import { writeFile } from 'node:fs/promises';
 
 const PANEL = '#121212';
 const ACCENT = '#FFB300';
-const OK = '#34D399';
+const NEEDLE = '#FF5F00';
+const REDLINE = '#E10600';
+const TRACK = '#2A2A2A';
+const DIGIT = '#EDEDED';
 
 /**
- * The mark, drawn in a 64 unit box: an instrument-cluster gauge. A 270° sweep
- * with a gap at the bottom, a needle resting at about 2 o'clock, and a green dot
- * at its tip — a cluster that reads "everything is fine". No letters.
+ * The mark (IMP 28092026, 05-design-jdm.md "Icon and splash"), in a 64 unit
+ * box: a 240° tach from 8 to 4 o'clock (same geometry as ClusterHero) — amber
+ * to about 3 o'clock, a solid red wedge over the last 40° — an orange needle
+ * into the red, a dark hub with an amber
+ * ring, and a tiny 7-segment "085" under it: the hachi-gō nod. No letters.
  *
- * Geometry, all from the centre (32, 32) with the arc at radius 20:
- *   the sweep runs from 135° to 405° measured clockwise from the +x axis with y
- *   pointing down, i.e. bottom-left → left → top → right → bottom-right.
- *   The needle points at 330° (2 o'clock) and stops at radius 14, so its dot
- *   (r 3) ends at 17 and never touches the arc's inner edge at 18.
+ * Angles are clockwise from +x with y pointing down, centre (32, 31), arc
+ * radius 20. The sweep's round caps reach radius 22 at 8 and 4 o'clock.
  */
-const ARC_START = '17.86 46.14';
-const ARC_END = '46.14 46.14';
-const NEEDLE_TIP = { x: 44.12, y: 25.0 };
+const C = { x: 32, y: 31 };
+const R = 20;
+const at = (deg, r = R) => {
+  const a = (deg * Math.PI) / 180;
+  return `${(C.x + r * Math.cos(a)).toFixed(2)} ${(C.y + r * Math.sin(a)).toFixed(2)}`;
+};
+const arc = (from, to, color, width = 4, cap = 'round') =>
+  `<path d="M${at(from)} A${R} ${R} 0 ${to - from > 180 ? 1 : 0} 1 ${at(to)}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="${cap}"/>`;
+
+// 7-segment digits, the same geometry as components/ui/LcdDigits.tsx.
+const SEG = {
+  a: '4,1 18,1 15.5,3.5 6.5,3.5',
+  b: '19,2 19,17 16.5,15.5 16.5,4.5',
+  c: '19,19 19,34 16.5,31.5 16.5,20.5',
+  d: '4,35 18,35 15.5,32.5 6.5,32.5',
+  e: '3,19 3,34 5.5,31.5 5.5,20.5',
+  f: '3,2 3,17 5.5,15.5 5.5,4.5',
+  g: '4.5,18 6.5,16.7 15.5,16.7 17.5,18 15.5,19.3 6.5,19.3',
+};
+const LIT = { 0: 'abcdef', 8: 'abcdefg', 5: 'afgcd' };
+function digits085() {
+  const scale = 0.16; // 22×36 box → 3.5×5.8
+  return ['0', '8', '5']
+    .map((d, i) => {
+      const color = i === 2 ? NEEDLE : DIGIT;
+      const polys = [...LIT[d]].map((s) => `<polygon points="${SEG[s]}" fill="${color}"/>`).join('');
+      return `<g transform="translate(${26.4 + i * 3.9} 41.2) scale(${scale})">${polys}</g>`;
+    })
+    .join('');
+}
+
+/** A 2×2 twill, faint, for the lower half of the tile. */
+const TWILL = `<pattern id="twill" width="4" height="4" patternUnits="userSpaceOnUse">
+    <rect width="4" height="4" fill="#161616"/>
+    <rect x="0" y="0" width="2" height="1" fill="#262626"/><rect x="1" y="1" width="2" height="1" fill="#262626"/>
+    <rect x="2" y="2" width="2" height="1" fill="#262626"/><rect x="3" y="3" width="1" height="1" fill="#262626"/>
+    <rect x="0" y="3" width="1" height="1" fill="#262626"/>
+  </pattern>`;
 
 /** @param {{mono?: boolean}} [opts] */
 function mark({ mono = false } = {}) {
-  const stroke = mono ? '#FFFFFF' : ACCENT;
-  const tip = mono ? '#FFFFFF' : OK;
-  // Nudged down 2.5 so the mark sits optically centred: the sweep's gap is at
-  // the bottom, which makes a geometrically centred gauge read high.
+  if (mono) {
+    // Themed-icon silhouette: the arc and the needle, nothing else.
+    return `
+  ${arc(150, 390, '#FFFFFF')}
+  <polygon points="${at(102, 1.8)} ${at(12, 17)} ${at(282, 1.8)} ${at(192, 4.5)}" fill="#FFFFFF"/>
+  <circle cx="${C.x}" cy="${C.y}" r="3.2" fill="#FFFFFF"/>`;
+  }
   return `
-  <g transform="translate(0,2.5)">
-    <path d="M${ARC_START} A20 20 0 1 1 ${ARC_END}" fill="none" stroke="${stroke}"
-          stroke-width="4" stroke-linecap="round"/>
-    <path d="M32 32 L${NEEDLE_TIP.x} ${NEEDLE_TIP.y}" fill="none" stroke="${stroke}"
-          stroke-width="2.8" stroke-linecap="round"/>
-    <circle cx="32" cy="32" r="1.9" fill="${stroke}"/>
-    <circle cx="${NEEDLE_TIP.x}" cy="${NEEDLE_TIP.y}" r="3" fill="${tip}"/>
-  </g>`;
+  ${arc(150, 390, TRACK)}
+  ${arc(150, 345, ACCENT)}
+  ${arc(350, 390, REDLINE, 4, 'butt')}
+  <path d="M${at(390 - 0.01)} L${at(390)}" stroke="${REDLINE}" stroke-width="4" stroke-linecap="round"/>
+  <polygon points="${at(102, 1.5)} ${at(12, 17)} ${at(282, 1.5)} ${at(192, 4.5)}" fill="${NEEDLE}"/>
+  <circle cx="${C.x}" cy="${C.y}" r="3" fill="#0E0E0E" stroke="${ACCENT}" stroke-width="1.2"/>
+  ${digits085()}`;
 }
 
 /** @param {{bg?: string|null, rx?: number, scale?: number, mono?: boolean}} opts */
@@ -58,12 +98,32 @@ function icon({ bg = PANEL, rx = 0, scale = 1, mono = false }) {
     scale === 1
       ? mark({ mono })
       : `<g transform="translate(32,32) scale(${scale}) translate(-32,-32)">${mark({ mono })}</g>`;
+  // The twill is trim: only on the tile's lower half, only when there is a tile.
+  const tile = bg
+    ? `<defs>${TWILL}<clipPath id="tile"><rect width="64" height="64"${rx ? ` rx="${rx}"` : ''}/></clipPath></defs>
+  <rect width="64" height="64"${rx ? ` rx="${rx}"` : ''} fill="${bg}"/>
+  <rect y="32" width="64" height="32" fill="url(#twill)" opacity="0.35" clip-path="url(#tile)"/>`
+    : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Car Guy">
-  ${bg ? `<rect width="64" height="64"${rx ? ` rx="${rx}"` : ''} fill="${bg}"/>` : ''}
+  ${tile}
   ${body}
 </svg>
 `;
 }
+
+/**
+ * The carbon tile CarbonFrame repeats (05-design-jdm.md §7): a 2×2 twill,
+ * drawn at full contrast — the component sets the opacity (carbonOpacity).
+ */
+const CARBON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" width="8" height="8">
+  <rect width="8" height="8" fill="#000"/>
+  ${[0, 1, 2, 3, 4, 5, 6, 7]
+    .map((y) => [0, 4].map((x0) => `<rect x="${(x0 + y) % 8}" y="${y}" width="2" height="1" fill="#FFF"/>`).join(''))
+    .join('')}
+  ${[0, 1, 2, 3, 4, 5, 6, 7]
+    .map((y) => [2, 6].map((x0) => `<rect x="${(x0 + 8 - y) % 8}" y="${y}" width="1" height="1" fill="#777"/>`).join(''))
+    .join('')}
+</svg>`;
 
 // The composed sources, committed so the artwork is reviewable as text.
 const sources = {
@@ -114,6 +174,10 @@ await Promise.all([
   sharp({ create: { width: 1024, height: 1024, channels: 4, background: PANEL } })
     .png()
     .toFile('assets/images/android-icon-background.png'),
+
+  // Carbon tile for CarbonFrame, 1× and 2× (Metro picks the density).
+  sharp(Buffer.from(CARBON), { density: 900 }).resize(8, 8, { kernel: 'nearest' }).png().toFile('assets/images/carbon.png'),
+  sharp(Buffer.from(CARBON), { density: 900 }).resize(16, 16, { kernel: 'nearest' }).png().toFile('assets/images/carbon@2x.png'),
 ]);
 
-console.log('icons: 12 files written');
+console.log('icons: 14 files written');

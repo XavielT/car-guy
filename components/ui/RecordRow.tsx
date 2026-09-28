@@ -11,7 +11,10 @@ export type RecordKind =
   | 'reparacion'
   | 'mejora'
   | 'gasto'
-  | 'chequeo';
+  | 'chequeo'
+  | 'mod'
+  | 'hito'
+  | 'pista';
 
 const ICON: Record<RecordKind, keyof typeof Ionicons.glyphMap> = {
   combustible: 'flash-outline',
@@ -20,6 +23,9 @@ const ICON: Record<RecordKind, keyof typeof Ionicons.glyphMap> = {
   mejora: 'trending-up-outline',
   gasto: 'cash-outline',
   chequeo: 'clipboard-outline',
+  mod: 'trending-up-outline',
+  hito: 'flag-outline',
+  pista: 'speedometer-outline',
 };
 
 const CATEGORY: Record<RecordKind, CategoryKey> = {
@@ -29,6 +35,9 @@ const CATEGORY: Record<RecordKind, CategoryKey> = {
   mejora: 'mejora',
   gasto: 'otros',
   chequeo: 'inspeccion',
+  mod: 'mejora',
+  hito: 'album',
+  pista: 'track',
 };
 
 /**

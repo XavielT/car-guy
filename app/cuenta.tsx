@@ -156,7 +156,7 @@ export default function CuentaScreen() {
                 <T
                   face="body"
                   accessibilityRole="alert"
-                  style={[styles.syncError, { color: theme.danger, backgroundColor: theme.statusBg.vencido }]}>
+                  style={[styles.syncError, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>
                   {status.message}
                 </T>
               ) : null}
@@ -270,7 +270,7 @@ export default function CuentaScreen() {
               <T
                 face="body"
                 accessibilityRole="alert"
-                style={[styles.error, { color: theme.danger, backgroundColor: theme.statusBg.vencido }]}>
+                style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>
                 {error}
               </T>
             ) : null}

@@ -278,7 +278,7 @@ export function ReminderForm({
       />
 
       {error ? (
-        <T face="body" style={{ color: theme.danger, fontSize: 13, marginBottom: space.md }}>
+        <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>
           {error}
         </T>
       ) : null}

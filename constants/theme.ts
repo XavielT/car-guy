@@ -1,82 +1,135 @@
 /**
- * Car Guy — "Tablero nocturno", on Xaviel's house palette.
+ * Car Guy — "Cluster JDM 90s" (IMP 28092026, ADR-16), on Xaviel's house palette.
  *
- * The identity is an instrument cluster at night: dark panel, crisp numbers in a
- * monospaced face, one accent for actions, and four status colours that mean the
- * same thing on every screen.
- *
- * The colours are the ones Music Hub, X AutoHub and xaviel-web already share, so
- * Car Guy reads as part of the same family rather than a stranger:
+ * An instrument cluster from a 90s Japanese performance car: black matte panel,
+ * white condensed numerals, an orange needle and a solid red redline wedge.
+ * The house amber stays the one saturated action colour; JDM red `#E10600` is
+ * for *fills* only (redline, badges, the vencido lamp) — as text on dark it
+ * fails AA, so red text is `redlineText` / `statusText.vencido` / `dangerText`
+ * (`#FF4D45`, 5.7:1).
  *
  *   --Hub      #FFB300   the signature amber (identical in X AutoHub and the portfolio)
  *   --HubDark  #FF8F00
- *   --primary  #FF5F00   the shared orange
+ *   --primary  #FF5F00   the shared orange — now the needle
  *   --main     #121212   near-black page
- *   --secondary#212121   raised surface
- *   --text-strong/soft   #FFFFFF / #B8B8B8
  *
- * Dark is the default; light follows the system setting.
+ * Values: docs/imp-28092026/00-context/05-design-jdm.md "Tokens". Dark is the
+ * default; light follows the system setting. The cluster hero and the price
+ * board stay dark panels in light mode — they are instruments.
  */
 
 export type Scheme = 'dark' | 'light';
 
+type StatusSet = { ok: string; proximo: string; urgente: string; vencido: string };
+
 export type Palette = {
-  bg: { base: string; surface: string; raised: string };
+  bg: { base: string; surface: string; raised: string; /** LCD inset. */ well: string };
   line: string;
-  text: { primary: string; secondary: string; muted: string };
+  /** Hairline that has to be seen: gauge tracks, dividers between instruments. */
+  lineStrong: string;
+  text: { primary: string; secondary: string; muted: string; disabled: string };
+  /** Action colour as ink/text (light: the dark amber that passes 4.5:1). */
   accent: string;
   accentPressed: string;
   accentInk: string;
-  status: { ok: string; proximo: string; urgente: string; vencido: string };
-  statusBg: { ok: string; proximo: string; urgente: string; vencido: string };
+  /** Amber as a *fill* — always #FFB300, with dark ink, in both schemes. */
+  accentFill: string;
+  accentFillInk: string;
+  needle: string;
+  /** Red for fills: the redline wedge, badges, the vencido lamp. */
+  redline: string;
+  /** Red when it is text. */
+  redlineText: string;
+  status: StatusSet;
+  statusBg: StatusSet;
+  /** Status as text on the page background — only vencido differs from `status`. */
+  statusText: StatusSet;
   danger: string;
-  /** Text on a `danger` fill — dark on the dark scheme's bright red, white on the light one's deep red. */
+  /** Text on a `danger` fill. */
   dangerInk: string;
+  /** Danger as text (error lines, destructive labels). */
+  dangerText: string;
+  /** An unlit telltale: icon on its lamp. */
+  telltaleOff: { icon: string; lamp: string };
+  glow: { amber: string; red: string };
+  /** Arc stops for the cluster; the last 10 % is a solid `redline` wedge. */
+  gaugeGradient: { color: string; offset: number }[];
+  carbonOpacity: number;
   /** Cards get a shadow in light only; in dark, depth comes from base → surface → raised. */
   cardShadow: boolean;
 };
 
+const GAUGE_GRADIENT = [
+  { color: '#3DDC84', offset: 0 },
+  { color: '#FFB300', offset: 0.55 },
+  { color: '#FF5F00', offset: 0.78 },
+  { color: '#FF5F00', offset: 0.9 },
+];
+
 const dark: Palette = {
-  bg: { base: '#121212', surface: '#1B1B1B', raised: '#212121' },
+  bg: { base: '#121212', surface: '#1B1B1B', raised: '#212121', well: '#0E0E0E' },
   line: 'rgba(255, 255, 255, 0.09)',
-  text: { primary: '#FFFFFF', secondary: '#B8B8B8', muted: '#929090' },
+  lineStrong: '#2A2A2A',
+  text: { primary: '#EDEDED', secondary: '#B3B3B3', muted: '#8C8C8C', disabled: '#6E6E6E' },
   accent: '#FFB300',
   accentPressed: '#FF8F00',
   accentInk: '#121212',
-  // The accent is amber, so "próximo" cannot also be amber or a warning becomes
-  // indistinguishable from a button. The ladder runs green → pale yellow →
-  // the house orange → red, and every pill carries a dot *and* a label.
-  status: { ok: '#34D399', proximo: '#FFD166', urgente: '#FF5F00', vencido: '#F0483E' },
+  accentFill: '#FFB300',
+  accentFillInk: '#121212',
+  needle: '#FF5F00',
+  redline: '#E10600',
+  redlineText: '#FF4D45',
+  // próximo is amber now (it was #FFD166 in v2.0 to keep clear of the accent):
+  // on a cluster a lit amber lamp *is* "attention", and every pill carries a label.
+  status: { ok: '#3DDC84', proximo: '#FFB300', urgente: '#FF5F00', vencido: '#E10600' },
   statusBg: {
-    ok: 'rgba(52, 211, 153, 0.16)',
-    proximo: 'rgba(255, 209, 102, 0.16)',
-    urgente: 'rgba(255, 95, 0, 0.18)',
-    vencido: 'rgba(240, 72, 62, 0.18)',
+    ok: 'rgba(61, 220, 132, 0.16)',
+    proximo: 'rgba(255, 179, 0, 0.16)',
+    urgente: 'rgba(255, 95, 0, 0.16)',
+    vencido: 'rgba(225, 6, 0, 0.16)',
   },
-  danger: '#F0483E',
-  dangerInk: '#121212', // 5.09:1 (white would be 3.68)
+  statusText: { ok: '#3DDC84', proximo: '#FFB300', urgente: '#FF5F00', vencido: '#FF4D45' },
+  danger: '#E10600',
+  dangerInk: '#FFFFFF', // 4.97:1
+  dangerText: '#FF4D45',
+  telltaleOff: { icon: '#3F3F3F', lamp: '#161616' },
+  glow: { amber: 'rgba(255, 179, 0, 0.35)', red: 'rgba(225, 6, 0, 0.45)' },
+  gaugeGradient: GAUGE_GRADIENT,
+  carbonOpacity: 0.08,
   cardShadow: false,
 };
 
 const light: Palette = {
-  bg: { base: '#F7F7F8', surface: '#FFFFFF', raised: '#EFEFF1' },
+  bg: { base: '#F5F4F0', surface: '#FFFFFF', raised: '#EFEFF1', well: '#E6E4DE' },
   line: 'rgba(18, 18, 18, 0.10)',
-  text: { primary: '#121212', secondary: '#4A4A4A', muted: '#8A8A8A' },
-  // #FFB300 on white is about 1.9:1 — unreadable as text or as a button label
-  // background. Light mode uses the house palette's --primary-dark instead,
-  // which is the same hue family and passes 4.5:1.
-  accent: '#CF4C00',
-  accentPressed: '#A63C00',
+  lineStrong: '#D9D6CE',
+  text: { primary: '#121212', secondary: '#4A4A4A', muted: '#616161', disabled: '#9A9A9A' },
+  // #FFB300 on white is ~1.9:1 — never text. Ink is the dark amber; fills keep
+  // the house amber with dark ink (accentFill).
+  accent: '#8F5A00',
+  accentPressed: '#6E4500',
   accentInk: '#FFFFFF',
-  status: { ok: '#047857', proximo: '#B45309', urgente: '#C2410C', vencido: '#B91C1C' },
+  accentFill: '#FFB300',
+  accentFillInk: '#121212',
+  needle: '#B84300',
+  redline: '#C2000A',
+  redlineText: '#C2000A',
+  status: { ok: '#1F7A3E', proximo: '#8F5A00', urgente: '#B84300', vencido: '#C2000A' },
   statusBg: {
-    ok: 'rgba(4, 120, 87, 0.12)',
-    proximo: 'rgba(180, 83, 9, 0.12)',
-    urgente: 'rgba(194, 65, 12, 0.12)',
-    vencido: 'rgba(185, 28, 28, 0.12)',
+    ok: 'rgba(31, 122, 62, 0.12)',
+    proximo: 'rgba(143, 90, 0, 0.12)',
+    urgente: 'rgba(184, 67, 0, 0.12)',
+    vencido: 'rgba(194, 0, 10, 0.12)',
   },
-  danger: '#B91C1C',
-  dangerInk: '#FFFFFF', // 6.47:1
+  statusText: { ok: '#1F7A3E', proximo: '#8F5A00', urgente: '#B84300', vencido: '#C2000A' },
+  danger: '#C2000A',
+  dangerInk: '#FFFFFF',
+  dangerText: '#C2000A',
+  // Instruments stay dark panels in light mode, lamps included.
+  telltaleOff: { icon: '#3F3F3F', lamp: '#161616' },
+  glow: { amber: 'rgba(255, 179, 0, 0.35)', red: 'rgba(225, 6, 0, 0.45)' },
+  gaugeGradient: GAUGE_GRADIENT,
+  carbonOpacity: 0.06,
   cardShadow: true,
 };
 
@@ -90,13 +143,15 @@ export const palette: Record<Scheme, Palette> = { dark, light };
  * which is a functional requirement rather than a brand one.
  */
 export const categoryColors = {
-  combustible: '#FFB300',
-  mantenimiento: '#7C9EFF',
-  reparacion: '#F0483E',
-  mejora: '#34D399',
-  legal: '#B58AFF',
-  inspeccion: '#FF8C5C',
-  otros: '#929090',
+  combustible: '#22D3EE',
+  mantenimiento: '#A78BFA',
+  reparacion: '#FF4D45',
+  mejora: '#3DDC84',
+  legal: '#60A5FA',
+  inspeccion: '#FFB300',
+  track: '#FF5F00',
+  album: '#E10600',
+  otros: '#9AA4B2',
 } as const;
 
 export type CategoryKey = keyof typeof categoryColors;
@@ -105,49 +160,58 @@ export type CategoryKey = keyof typeof categoryColors;
  * The category colours as an icon ink on a light surface.
  *
  * The bright hues read well on dark, but on white each one sits on a 16 % tint
- * of itself and falls to 1.6–2.7:1 — under the 3:1 a graphic needs. These are
- * the same hues darkened only as far as ~3.5:1 against that tint, so a fuel row
- * is still amber and a repair still red.
+ * of itself and falls under the 3:1 a graphic needs. These are the same hues
+ * darkened only as far as ~3.5:1 against that tint (computed, not eyeballed),
+ * so a fuel row is still cyan and a repair still red.
  */
 export const categoryInkLight: Record<CategoryKey, string> = {
-  combustible: '#AB7800',
-  mantenimiento: '#617BC7',
-  reparacion: '#DA4238',
-  mejora: '#238F68',
-  legal: '#8F6DC9',
-  inspeccion: '#BD6844',
-  otros: '#7F7D7D',
+  combustible: '#168B9D',
+  mantenimiento: '#866FC8',
+  reparacion: '#DB423B',
+  mejora: '#289157',
+  legal: '#4B81C3',
+  inspeccion: '#A87600',
+  track: '#D14E00',
+  album: '#E10600',
+  otros: '#78808B',
 };
 
 /**
- * Space Grotesk for titles and Manrope for UI — the same pairing X AutoHub uses —
- * and JetBrains Mono for every number so columns line up.
+ * Type (ADR-16): Saira Condensed for display and gauge numerals, Rajdhani for
+ * UI, JetBrains Mono for every number that must line up, Michroma for the
+ * wordmark and badges, Noto Sans JP for the few kanji accents.
  *
- * The `bold` compatibility face that stood in for Tu Combustible RD's heaviest
- * weight is gone with PROMPT-06: `semibold` is the heaviest UI weight the
- * identity actually uses, and two names for one file invited the wrong one.
+ * Saira Condensed has no tabular figures — never use it for a money column;
+ * the odometer draws its own fixed-width digits (LcdDigits).
  *
  * Every family named here must also be passed to useFonts in app/_layout.tsx:
  * a missing weight falls back to the system font on web with no warning.
  */
 export const fonts = {
-  display: 'SpaceGrotesk_700Bold',
-  title: 'SpaceGrotesk_500Medium',
-  body: 'Manrope_400Regular',
-  medium: 'Manrope_500Medium',
-  semibold: 'Manrope_600SemiBold',
-  // JetBrains Mono stays: the odometer, money and km/gal are tabular figures, and
-  // proportional digits make those columns shift as the numbers change. It is the
-  // one face Car Guy needs that the other projects have no use for.
+  display: 'SairaCondensed_800ExtraBold',
+  title: 'SairaCondensed_600SemiBold',
+  eyebrow: 'SairaCondensed_400Regular',
+  body: 'Rajdhani_500Medium',
+  medium: 'Rajdhani_600SemiBold',
+  semibold: 'Rajdhani_700Bold',
   mono: 'JetBrainsMono_500Medium',
   monoBold: 'JetBrainsMono_700Bold',
+  badge: 'Michroma_400Regular',
+  kana: 'NotoSansJP_500Medium',
+  kanaBold: 'NotoSansJP_700Bold',
 };
 
+/**
+ * Card 16 / button 12 (JDM: tighter, more technical). `chip` stays a pill for
+ * filters; `tag` is the rounded-rect "technical" chip the spec draws.
+ */
 export const radius = {
-  card: 20,
-  input: 14,
-  button: 14,
+  card: 16,
+  input: 12,
+  button: 12,
   chip: 999,
+  tag: 6,
+  lamp: 4,
   sheet: 24,
 } as const;
 

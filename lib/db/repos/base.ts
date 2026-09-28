@@ -12,8 +12,11 @@ import { enqueue, getDb, now } from '../client';
  * SQL lives here and in the sibling files — never in a screen (ADR-02).
  */
 
-const snake = (key: string) => key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-const camel = (key: string) => key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+// Digits count as a word of their own, so `zero_100_ms` ↔ `zero100Ms` round-trips
+// (track_session, schema v2). No v1 column has a digit.
+const snake = (key: string) =>
+  key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`).replace(/([a-z])(\d)/g, '$1_$2');
+const camel = (key: string) => key.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
 
 /** Columns that are 0/1 in SQLite and boolean in TypeScript. */
 export type RepoConfig = {

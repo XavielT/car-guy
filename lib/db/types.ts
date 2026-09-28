@@ -40,7 +40,27 @@ export type Vehicle = Syncable & {
   notes: string;
   isArchived: boolean;
   sortOrder: number;
+  // v2 (IMP 28092026)
+  nickname: string | null;
+  status: VehicleStatus;
+  chassisCode: string | null;
+  chassisNumber: string | null;
+  engineCode: string | null;
+  transmission: Transmission | null;
+  drivetrain: Drivetrain | null;
+  origin: VehicleOrigin | null;
+  importedYear: number | null;
+  story: string;
+  heroMediaId: string | null;
+  /** My role when the vehicle is shared with me; null = it is mine. */
+  garageRole: GarageRole | null;
 };
+
+export type VehicleStatus = 'activo' | 'proyecto' | 'guardado' | 'vendido' | 'perdido';
+export type Transmission = 'manual' | 'automatica' | 'cvt' | 'otro';
+export type Drivetrain = 'fwd' | 'rwd' | 'awd';
+export type VehicleOrigin = 'jdm' | 'usdm' | 'eudm' | 'local' | 'otro';
+export type GarageRole = 'owner' | 'editor' | 'viewer';
 
 export type VehicleSpec = Syncable & {
   vehicleId: string;
@@ -107,6 +127,8 @@ export type ServiceRecord = Syncable & {
   warrantyUntilKm: number | null;
   sourceInspectionId: string | null;
   sourceTaskId: string | null;
+  /** v2: the taller/contact that did the job. */
+  contactId: string | null;
 };
 
 export type ServiceRecordItem = Syncable & {
@@ -262,16 +284,454 @@ export type Media = Syncable & {
   height: number | null;
   sizeBytes: number | null;
   remotePath: string | null;
+  // v2 (IMP 28092026)
+  takenAt: string | null;
+  datePrecision: 'day' | 'month' | 'year';
+  source: 'camera' | 'library' | 'import' | 'web';
+  remoteThumbPath: string | null;
+  thumbRelPath: string | null;
+  /** Web only, never synced. */
+  thumbBlob: Uint8Array | null;
+  blurhash: string | null;
+  caption: string;
+  isFavorite: boolean;
 };
 
 /** One row of the history_feed view. */
 export type HistoryEntry = {
   id: string;
   vehicleId: string;
-  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo';
+  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo' | 'mod' | 'hito' | 'pista';
   occurredAt: string;
+  /** Tie-breaker for same-day entries (v2 view). */
+  createdAt?: string | null;
   odometerKm: number | null;
   title: string;
   subtitle: string | null;
   amountDop: number | null;
+};
+
+// ---------------------------------------------------------------------------
+// Schema v2 (IMP 28092026) — docs/imp-28092026/02-specs/01-data-model-v2.md.
+// JSON columns are kept as their raw TEXT; lib/domain parses them.
+// ---------------------------------------------------------------------------
+
+export type VehicleOwnership = Syncable & {
+  vehicleId: string;
+  acquiredAt: string | null;
+  acquiredKm: number | null;
+  acquiredPrice: number | null;
+  acquiredFrom: string | null;
+  soldAt: string | null;
+  soldKm: number | null;
+  soldPrice: number | null;
+  soldTo: string | null;
+  reason: string | null;
+  isCurrent: boolean;
+};
+
+export type AlbumItem = Syncable & {
+  vehicleId: string;
+  mediaId: string;
+  milestoneId: string | null;
+  modId: string | null;
+  trackEventId: string | null;
+  sortOrder: number;
+};
+
+export type MilestoneKind =
+  | 'compra'
+  | 'swap'
+  | 'restauracion'
+  | 'primer_track'
+  | 'accidente'
+  | 'venta'
+  | 'pintura'
+  | 'otro';
+
+export type Milestone = Syncable & {
+  vehicleId: string;
+  kind: MilestoneKind;
+  occurredAt: string;
+  odometerKm: number | null;
+  title: string;
+  story: string;
+  coverMediaId: string | null;
+};
+
+export type ModCategory = Syncable & {
+  name: string;
+  icon: string | null;
+  sortOrder: number;
+  isSeeded: boolean;
+};
+
+export type ModStatus = 'planeado' | 'pedido' | 'instalado' | 'quitado' | 'vendido' | 'danado';
+
+export type Mod = Syncable & {
+  vehicleId: string;
+  categoryId: string;
+  name: string;
+  brand: string | null;
+  partNumber: string | null;
+  variant: string | null;
+  status: ModStatus;
+  installedAt: string | null;
+  installedKm: number | null;
+  removedAt: string | null;
+  removedKm: number | null;
+  installerType: 'yo' | 'taller' | 'amigo';
+  contactId: string | null;
+  costPartDop: number;
+  costLaborDop: number;
+  costShippingDop: number;
+  costCustomsDop: number;
+  priceForeign: number | null;
+  currency: string | null;
+  fxRateToDop: number | null;
+  vendor: string | null;
+  vendorUrl: string | null;
+  replacesModId: string | null;
+  affectsSpecs: boolean;
+  /** JSON object — see SpecEffects in lib/domain. */
+  specEffects: string;
+  serviceRecordId: string | null;
+  soldPriceDop: number | null;
+  soldTo: string | null;
+  /** JSON array of strings. */
+  tags: string;
+  notes: string;
+};
+
+export type ModMedia = Syncable & {
+  modId: string;
+  mediaId: string;
+  role: 'antes' | 'despues' | 'instalacion' | 'recibo' | 'dyno' | 'foto';
+};
+
+export type VehicleSpecsheet = Syncable & {
+  vehicleId: string;
+  presetId: string | null;
+  stock: string;
+  overrides: string;
+  fieldSources: string;
+  verifiedFields: string;
+  oilCapacityL: number | null;
+  oilCapacityFilterL: number | null;
+  oilGrade: string | null;
+  oilSpec: string | null;
+  oilFilterPn: string | null;
+  coolantCapacityL: number | null;
+  coolantType: string | null;
+  transOilL: number | null;
+  transOilSpec: string | null;
+  diffOilL: number | null;
+  diffOilSpec: string | null;
+  brakeFluid: string | null;
+  psFluid: string | null;
+  sparkPlugPn: string | null;
+  plugGapMm: number | null;
+  batterySpec: string | null;
+  tireSizeOemF: string | null;
+  tireSizeOemR: string | null;
+  psiOemF: number | null;
+  psiOemR: number | null;
+  boltPattern: string | null;
+  centerBoreMm: number | null;
+  lugTorqueNm: number | null;
+  lugThread: string | null;
+  fuelTankL: number | null;
+  fuelOctane: number | null;
+};
+
+export type SpecSnapshot = Syncable & {
+  vehicleId: string;
+  label: string;
+  asOf: string;
+  specs: string;
+  coverMediaId: string | null;
+};
+
+export type TorqueSpec = Syncable & {
+  vehicleId: string;
+  item: string;
+  valueNm: number;
+  stage: string | null;
+  source: string | null;
+  mediaId: string | null;
+  notes: string;
+};
+
+export type WishlistItem = Syncable & {
+  vehicleId: string;
+  categoryId: string | null;
+  name: string;
+  brand: string | null;
+  partNumber: string | null;
+  /** 1 próximo, 2 pronto, 3 algún día. */
+  priority: 1 | 2 | 3;
+  estPriceForeign: number | null;
+  currency: string | null;
+  estShippingDop: number | null;
+  estCustomsDop: number | null;
+  estTotalDop: number | null;
+  url: string | null;
+  vendor: string | null;
+  targetDate: string | null;
+  status: 'idea' | 'ahorrando' | 'pedido' | 'convertido' | 'descartado';
+  convertedModId: string | null;
+  notes: string;
+};
+
+export type InventoryItem = Syncable & {
+  /** null = garage stock, not on any car. */
+  ownerVehicleId: string | null;
+  kind: 'pieza' | 'aro' | 'goma' | 'fluido' | 'herramienta' | 'consumible';
+  name: string;
+  brand: string | null;
+  partNumber: string | null;
+  qty: number;
+  unit: string | null;
+  condition: 'nuevo' | 'usado' | 'core';
+  location: string | null;
+  costDop: number | null;
+  acquiredAt: string | null;
+  /** JSON array of vehicle ids. */
+  fitsVehicleIds: string;
+  mediaId: string | null;
+  notes: string;
+};
+
+export type WheelSet = Syncable & {
+  vehicleId: string;
+  name: string;
+  brand: string | null;
+  model: string | null;
+  widthIn: number | null;
+  diamIn: number | null;
+  offsetMm: number | null;
+  boltPattern: string | null;
+  centerBoreMm: number | null;
+  qty: number;
+  positionPref: string;
+  status: 'montado' | 'guardado' | 'vendido';
+  mediaId: string | null;
+  notes: string;
+};
+
+export type TirePosition = 'fl' | 'fr' | 'rl' | 'rr' | 'spare' | 'unmounted';
+
+export type Tire = Syncable & {
+  vehicleId: string;
+  wheelSetId: string | null;
+  brand: string | null;
+  model: string | null;
+  size: string | null;
+  widthMm: number | null;
+  aspect: number | null;
+  rimIn: number | null;
+  loadIndex: string | null;
+  speedRating: string | null;
+  dotCode: string | null;
+  dotWeek: number | null;
+  dotYear: number | null;
+  compound: string | null;
+  treadwear: number | null;
+  position: TirePosition;
+  treadMmNew: number | null;
+  treadMmCurrent: number | null;
+  heatCycles: number;
+  purchasedAt: string | null;
+  costDop: number | null;
+  status: 'nueva' | 'en_uso' | 'guardada' | 'quemada' | 'vendida';
+};
+
+/** Local-only, bundled — not Syncable. */
+export type DtcCode = {
+  code: string;
+  system: string;
+  descEn: string;
+  descEs: string;
+  isGeneric: boolean;
+};
+
+export type VehicleDtcEvent = Syncable & {
+  vehicleId: string;
+  code: string;
+  seenAt: string;
+  odometerKm: number | null;
+  clearedAt: string | null;
+  repairRecordId: string | null;
+  notes: string;
+};
+
+export type ContactKind = 'mecanico' | 'gomera' | 'dealer' | 'pintor' | 'grua' | 'electrico' | 'otro';
+
+export type Contact = Syncable & {
+  name: string;
+  kind: ContactKind;
+  phone: string | null;
+  whatsapp: string | null;
+  address: string | null;
+  notes: string;
+  rating: number | null;
+};
+
+export type FluidGuideItem = Syncable & {
+  vehicleId: string;
+  kind: 'aceite' | 'coolant' | 'frenos' | 'direccion' | 'atf' | 'washer' | 'bateria' | 'filtro_aire' | 'otro';
+  mediaId: string | null;
+  how: string;
+  notes: string;
+  sortOrder: number;
+};
+
+export type Venue = Syncable & {
+  name: string;
+  city: string | null;
+  type: 'circuito' | 'drift' | 'drag' | 'autocross' | 'calle' | 'otro';
+  layout: string | null;
+  lengthM: number | null;
+  lat: number | null;
+  lng: number | null;
+  isSeeded: boolean;
+  notes: string;
+};
+
+export type TrackDiscipline = 'track_day' | 'drift' | 'drag' | 'autocross' | 'junte' | 'prueba';
+
+export type TrackEvent = Syncable & {
+  vehicleId: string;
+  venueId: string | null;
+  occurredAt: string;
+  title: string;
+  organizer: string | null;
+  discipline: TrackDiscipline;
+  weather: string | null;
+  ambientC: number | null;
+  trackTempC: number | null;
+  trackCondition: string | null;
+  odometerStartKm: number | null;
+  odometerEndKm: number | null;
+  entryFeeDop: number | null;
+  fuelCostDop: number | null;
+  otherCostDop: number | null;
+  notes: string;
+};
+
+export type TrackSession = Syncable & {
+  eventId: string;
+  seq: number;
+  kind: 'practica' | 'clasificacion' | 'batalla' | 'cronometrada' | 'prueba' | 'pasada_drag';
+  startedAt: string | null;
+  durationMin: number | null;
+  laps: number | null;
+  runs: number | null;
+  bestLapMs: number | null;
+  secondBestMs: number | null;
+  /** JSON array of ms. */
+  sectorsMs: string;
+  zero100Ms: number | null;
+  quarterMileMs: number | null;
+  quarterMileTrapKmh: number | null;
+  sixtyFootMs: number | null;
+  fuelLoadL: number | null;
+  ballastKg: number | null;
+  driver: string | null;
+  passenger: boolean;
+  carFeel: string | null;
+  rating: number | null;
+  notes: string;
+  incident: string | null;
+  videoUrl: string | null;
+};
+
+export type SetupSheet = Syncable & {
+  sessionId: string;
+  tireSetFId: string | null;
+  tireSetRId: string | null;
+  psiColdFl: number | null;
+  psiColdFr: number | null;
+  psiColdRl: number | null;
+  psiColdRr: number | null;
+  psiHotFl: number | null;
+  psiHotFr: number | null;
+  psiHotRl: number | null;
+  psiHotRr: number | null;
+  camberFl: number | null;
+  camberFr: number | null;
+  camberRl: number | null;
+  camberRr: number | null;
+  toeFMm: number | null;
+  toeRMm: number | null;
+  casterL: number | null;
+  casterR: number | null;
+  rhFlMm: number | null;
+  rhFrMm: number | null;
+  rhRlMm: number | null;
+  rhRrMm: number | null;
+  springF: number | null;
+  springR: number | null;
+  springUnit: string;
+  bumpF: number | null;
+  reboundF: number | null;
+  bumpR: number | null;
+  reboundR: number | null;
+  clicksTotal: number | null;
+  swaybarF: string | null;
+  swaybarR: string | null;
+  padF: string | null;
+  padR: string | null;
+  brakeBias: string | null;
+  steeringAngleDeg: number | null;
+  hydro: boolean;
+  lsdType: string | null;
+  lsdPreload: string | null;
+  tireSizeF: string | null;
+  tireSizeR: string | null;
+  compoundF: string | null;
+  compoundR: string | null;
+  twoStepRpm: number | null;
+  revLimitRpm: number | null;
+  /** JSON array of field names. */
+  changedFromPrevious: string;
+};
+
+export type ConsumableUsage = Syncable & {
+  eventId: string;
+  sessionId: string | null;
+  tireId: string | null;
+  wheelSetId: string | null;
+  kind: 'ciclo_goma' | 'goma_quemada' | 'medida_pastilla' | 'fluido' | 'combustible';
+  qty: number | null;
+  unit: string | null;
+  padThicknessMm: number | null;
+  treadMm: number | null;
+  notes: string;
+};
+
+export type VehicleShare = Syncable & {
+  vehicleId: string;
+  slug: string | null;
+  visibility: 'private' | 'link' | 'public';
+  showPlate: boolean;
+  showVin: boolean;
+  showCosts: boolean;
+  showLocation: boolean;
+  showOdometer: boolean;
+  showMaintenance: boolean;
+  showMods: boolean;
+  showTrack: boolean;
+  showDocs: boolean;
+  showStory: boolean;
+  ogMediaId: string | null;
+  publishedAt: string | null;
+  revokedAt: string | null;
+};
+
+export type VehicleMember = Syncable & {
+  vehicleId: string;
+  userId: string;
+  role: GarageRole;
+  displayName: string | null;
 };

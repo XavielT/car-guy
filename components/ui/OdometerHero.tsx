@@ -1,26 +1,28 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { radius, space } from '@/constants/theme';
+import { palette, space } from '@/constants/theme';
+import type { ClusterReading } from '@/lib/domain/cluster';
 import { es } from '@/lib/i18n/es';
-import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
+import { CarbonFrame } from './CarbonFrame';
+import { ClusterHero } from './ClusterHero';
 import { StatusPill, type Status } from './StatusPill';
 
 export type Telltale = { status: Status; label: string; onPress?: () => void };
 
 /**
- * The home screen's hero: what the car currently reads, and what it needs.
+ * The v2.0 home hero's API over the new ClusterHero (IMP 28092026).
  *
- * It replaces the fuel price board because the odometer is the number every
- * other number in Car Guy hangs off — the next oil change, the predicted due
- * dates, cost per km. Digits are grouped in threes and set in the mono face so
- * they line up like a real instrument cluster and do not jump as they change.
+ * A thin wrapper so app/(tabs)/index.tsx keeps compiling while Phase 2 rebuilds
+ * Inicio around ClusterHero + TelltaleRow; delete it with its last call site.
+ * The pills stay under the dial until then.
  */
 export function OdometerHero({
   vehicleName,
   odometerKm,
   daysSinceReading,
   telltales,
+  reading = null,
   onPressOdometer,
   onPressTelltales,
 }: {
@@ -28,10 +30,12 @@ export function OdometerHero({
   odometerKm: number | null;
   daysSinceReading: number | null;
   telltales: Telltale[];
+  reading?: ClusterReading | null;
   onPressOdometer: () => void;
   onPressTelltales?: () => void;
 }) {
-  const { theme } = useTheme();
+  const { width } = useWindowDimensions();
+  const ink = palette.dark;
 
   const caption =
     daysSinceReading == null
@@ -43,28 +47,23 @@ export function OdometerHero({
           : es.home.updatedDaysAgo(daysSinceReading);
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.line }]}>
-      <T face="medium" style={[styles.vehicle, { color: theme.text.secondary }]}>
-        {vehicleName}
-      </T>
-
-      <Pressable
-        onPress={onPressOdometer}
-        accessibilityRole="button"
-        accessibilityLabel={es.odometerSheet.title}
-        style={styles.odoRow}>
-        <T face="monoBold" style={[styles.odo, { color: theme.text.primary }]}>
-          {odometerKm == null ? '—' : groupDigits(Math.round(odometerKm))}
-        </T>
-        <T face="mono" style={[styles.unit, { color: theme.text.secondary }]}>
-          {odometerKm == null ? es.home.odometerEmpty : es.home.odometerUnit}
-        </T>
-      </Pressable>
-
-      <T face="body" style={[styles.caption, { color: theme.text.muted }]}>
-        {caption}
-      </T>
-
+    <ClusterHero
+      odometerKm={odometerKm}
+      reading={reading}
+      caption={caption}
+      // Gutter 20 + card padding 16, each side; capped for desktop.
+      size={Math.min(340, Math.max(240, width - 72))}
+      onPress={onPressTelltales}
+      onPressOdometer={onPressOdometer}
+      header={
+        <CarbonFrame style={styles.header}>
+          <View style={[styles.namePlate, { backgroundColor: ink.bg.surface }]}>
+            <T face="title" style={{ color: ink.text.secondary, fontSize: 15, textTransform: 'uppercase', letterSpacing: 1 }}>
+              {vehicleName}
+            </T>
+          </View>
+        </CarbonFrame>
+      }>
       {/*
         Each pill is its own tap target rather than one strip-wide button: a
         task goes to the task, a reminder to the reminder list, and nesting one
@@ -86,26 +85,13 @@ export function OdometerHero({
           })
         )}
       </View>
-    </View>
+    </ClusterHero>
   );
 }
 
-/** Thin separators every three digits: 51 676 rather than 51676. */
-function groupDigits(value: number): string {
-  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
-
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: radius.card,
-    padding: space.xl,
-    marginBottom: space.lg,
-  },
-  vehicle: { fontSize: 14, marginBottom: space.sm },
-  odoRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm },
-  odo: { fontSize: 44, letterSpacing: -0.5 },
-  unit: { fontSize: 15 },
-  caption: { fontSize: 12, marginTop: 4 },
-  telltales: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.lg },
+  // Carbon is trim: it frames the name plate, the text sits on its own panel.
+  header: { marginHorizontal: -space.lg, marginTop: -space.lg, marginBottom: space.md, padding: 6, paddingHorizontal: space.lg },
+  namePlate: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  telltales: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.lg, justifyContent: 'center' },
 });

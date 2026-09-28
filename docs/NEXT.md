@@ -14,7 +14,7 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 | Old web app | <https://tu-combustible-rd.vercel.app> — still up, still git-connected to this repo, so it also serves Car Guy. Delete the project when you are ready |
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
 | Android | **2.0.0 released** — GitHub release `v2.0.0` with the APK; EAS project `@xavieldev/car-guy`, EAS-managed keystore; production AAB built for the Play Store |
-| Cloud | Supabase `x-core`, schema `carguy`, 19 tables, 76 RLS policies, private `carguy-media` bucket |
+| Cloud | Supabase `x-core`, schema `carguy`: v1 tables (19, incl. cloud-only `profiles`) + **schema v2** (`sql/009`–`010`, 23 more, applied 2026-09-28), private `carguy-media` bucket. **A 2.0.0 install signed in to sync cannot pull `vehicle`/`media`/`service_record` any more** (new columns) — ship 2.1 before anyone syncs on 2.0.0 |
 | Local folder | `~/dev2/car-guy`. **Rename pending** (2026-09-28): on this laptop it is still `~/dev2/tu-gasolina-rd` — run `mv ~/dev2/tu-gasolina-rd ~/dev2/car-guy` with no Claude session open there |
 
 ## 1. Done for 2.0.0 (2026-09-25)

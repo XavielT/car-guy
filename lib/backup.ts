@@ -47,7 +47,8 @@ export async function buildBackup(): Promise<BackupV2> {
     // Tombstones included: a restore that dropped them would resurrect rows the
     // user deleted, which is the classic sync bug this schema exists to avoid.
     const rows = await db.getAllAsync<Record<string, unknown>>(`SELECT * FROM ${table}`);
-    tables[table] = table === 'media' ? rows.map(({ blob: _blob, ...rest }) => rest) : rows;
+    tables[table] =
+      table === 'media' ? rows.map(({ blob: _blob, thumb_blob: _thumb, ...rest }) => rest) : rows;
   }
 
   return {

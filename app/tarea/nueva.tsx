@@ -76,7 +76,7 @@ export default function NuevaTareaScreen() {
         <Field label={es.tasks.notes} value={notes} onChangeText={setNotes} multiline />
 
         {error ? (
-          <T face="body" style={{ color: theme.danger, fontSize: 13, marginBottom: space.md }}>
+          <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>
             {error}
           </T>
         ) : null}

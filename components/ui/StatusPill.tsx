@@ -36,8 +36,13 @@ export function StatusPill({
 }) {
   const { theme } = useTheme();
 
-  const background = status === 'neutral' ? theme.bg.raised : theme.statusBg[status];
-  const foreground = status === 'neutral' ? theme.text.secondary : theme.status[status];
+  // Vencido is the one lit-red lamp: a solid redline fill with white text
+  // (4.97:1). Every other state is its hue at 16 % with the hue as text.
+  const solid = status === 'vencido';
+  const background =
+    status === 'neutral' ? theme.bg.raised : solid ? theme.redline : theme.statusBg[status];
+  const foreground =
+    status === 'neutral' ? theme.text.secondary : solid ? '#FFFFFF' : theme.statusText[status];
 
   return (
     <View style={[styles.pill, { backgroundColor: background }, style]}>
@@ -60,5 +65,5 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dot: { width: 7, height: 7, borderRadius: 999 },
-  label: { fontSize: 13 },
+  label: { fontSize: 13, letterSpacing: 0.3 },
 });

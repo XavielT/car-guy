@@ -252,7 +252,7 @@ export function VehicleForm({
         <T
           face="body"
           accessibilityRole="alert"
-          style={[styles.error, { color: theme.danger, backgroundColor: theme.statusBg.vencido }]}>
+          style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>
           {error}
         </T>
       ) : null}

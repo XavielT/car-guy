@@ -354,3 +354,46 @@ export function templateIdsForVehicle(vehicleType: string, fuelType: string): st
   }
   return ['carro_diario', 'carro_semanal', 'carro_mensual'];
 }
+
+/**
+ * Build-log systems (ADR-19). Slugs are ids in user data from migration v2 on —
+ * never rename one. `icon` is an Ionicons name. User-created categories get a
+ * uuid and live beside these.
+ */
+export type ModCategorySeed = { id: string; name: string; icon: string };
+
+export const MOD_CATEGORIES: ModCategorySeed[] = [
+  { id: 'motor', name: 'Motor', icon: 'cog-outline' },
+  { id: 'admision', name: 'Admisión', icon: 'funnel-outline' },
+  { id: 'escape', name: 'Escape', icon: 'cloud-outline' },
+  { id: 'forzada', name: 'Inducción forzada', icon: 'speedometer-outline' },
+  { id: 'ecu', name: 'ECU / tune', icon: 'hardware-chip-outline' },
+  { id: 'combustible', name: 'Combustible', icon: 'water-outline' },
+  { id: 'enfriamiento', name: 'Enfriamiento', icon: 'snow-outline' },
+  { id: 'transmision', name: 'Transmisión', icon: 'git-branch-outline' },
+  { id: 'diferencial', name: 'Diferencial', icon: 'git-merge-outline' },
+  { id: 'suspension', name: 'Suspensión', icon: 'swap-vertical-outline' },
+  { id: 'frenos', name: 'Frenos', icon: 'disc-outline' },
+  { id: 'ruedas', name: 'Ruedas / aros', icon: 'ellipse-outline' },
+  { id: 'gomas', name: 'Gomas', icon: 'radio-button-off-outline' },
+  { id: 'exterior', name: 'Exterior / body kit', icon: 'car-sport-outline' },
+  { id: 'aero', name: 'Aero', icon: 'paper-plane-outline' },
+  { id: 'interior', name: 'Interior', icon: 'person-outline' },
+  { id: 'seguridad', name: 'Seguridad', icon: 'shield-checkmark-outline' },
+  { id: 'iluminacion', name: 'Iluminación', icon: 'bulb-outline' },
+  { id: 'audio_electrico', name: 'Audio / eléctrico', icon: 'flash-outline' },
+  { id: 'fabricacion', name: 'Fabricación', icon: 'construct-outline' },
+  { id: 'otro', name: 'Otro', icon: 'ellipsis-horizontal' },
+];
+
+/** Seeded venues (ADR-21). Same slug rule as above. */
+export type VenueSeed = { id: string; name: string; city: string; type: 'circuito' | 'drift' | 'drag' | 'autocross' | 'calle' | 'otro' };
+
+export const VENUES: VenueSeed[] = [
+  {
+    id: 'autodromo_americas',
+    name: 'Autódromo de las Américas (Sunix)',
+    city: 'Santo Domingo Este',
+    type: 'circuito',
+  },
+];

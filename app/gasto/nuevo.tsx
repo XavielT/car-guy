@@ -173,7 +173,7 @@ export default function NuevoGastoScreen() {
         />
 
         {error ? (
-          <T face="body" style={[styles.error, { color: theme.danger }]}>
+          <T face="body" style={[styles.error, { color: theme.dangerText }]}>
             {error}
           </T>
         ) : null}

@@ -7,6 +7,7 @@ import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import { OdometerHero, QuickActions, Surface, type Telltale } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
 import { FEATURE_SYNC } from '@/lib/flags';
 import {
@@ -206,6 +207,7 @@ export default function HomeScreen() {
           odometerKm={odometerKm}
           daysSinceReading={daysSince}
           telltales={telltales}
+          reading={clusterReading(attention)}
           onPressOdometer={() => router.push('/odometro')}
           onPressTelltales={() => router.push('/recordatorios')}
         />
