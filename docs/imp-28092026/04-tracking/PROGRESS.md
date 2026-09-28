@@ -10,7 +10,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
 | 0 | Kickoff | ✅ | `imp-28092026/phase-0-kickoff` | folder rename still pending (manual) |
-| 1 | Schema v2 + JDM tokens | ✅ | `imp-28092026/phase-1-schema-tokens` | cloud 009/010 applied; Android not run on a device |
+| 1 | Schema v2 + JDM tokens | ✅ | `imp-28092026/phase-1-schema-tokens` | cloud 009/010 applied; Android verified on the Redmi 2026-09-28 |
 | 2 | JDM screens + Garaje | ⬜ | | |
 | 3 | Álbum / memoria | ⬜ | | |
 | 4 | Build log | ⬜ | | |
@@ -313,3 +313,27 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 - Web dev server: do **not** start it with `CI=1` — it disables Metro's file watching and serves a stale bundle.
   The PWA service worker also caches in dev; the Playwright helpers unregister it first.
 - Types regen: `SUPABASE_ACCESS_TOKEN=<ACCESS_TOKEN from .env.supabase> npm run types:gen`.
+
+### Addendum — Android on the phone (2026-09-28, branch `imp-28092026/phase-1-android-check`)
+
+- **Build:** `eas build --local --profile preview` (EAS key, cert SHA-256 `a16450a0…`, the same as the installed
+  2.0.0 — checked with `apksigner` before installing). A `gradlew assembleRelease` build is signed with the RN debug
+  key (`fac61745…`) and would have needed an uninstall, wiping the real garage; it was built and **not** installed.
+  The first EAS attempt died with the disk full (13 MB free): freed ~10 GB (the failed build's own 5 GB workdir,
+  regenerable build outputs, `npm cache verify`).
+- **Backup:** Xaviel made one himself before the install (`adb backup`'s on-phone confirm is not a button Claude may
+  press, and the in-app export only offers messaging apps on this phone).
+- **Migration on the real data:** installed with `adb install -r` over 2.0.0; first launch ran v2 with no JS error;
+  the DS3, its 51,900 km and its history are intact (September's RD$ 12,499.96 matches the pre-upgrade home screen).
+- **Identity:** Saira/Rajdhani/Michroma render; ClusterHero, LCD and the carbon tile (tiled via `resizeMode="repeat"`)
+  look right natively.
+- **Canaries, on a throwaway vehicle "Prueba QA borrar" (removed afterwards):** two fill-ups → review sheet 400 km,
+  **36.4 km/gal**, RD$ 8.39/km ✓; weekly check 9/9 OK → "Todo al día" with the BoostRing ✓.
+- **Bug found and fixed:** the needle was fed only *due* reminders (`attentionReminders`), so an all-green car read
+  "Nada pendiente". Home now passes every evaluated reminder to `clusterReading()`. JS-only; it ships with the next build.
+- **Observed:** the check runner's elapsed timer re-renders every second, so `uiautomator dump` never reaches idle on
+  that screen (pre-existing since 2.0; not an animation of this phase). The home screen does go idle.
+- **Incident, no harm done:** during the fill-up, taps made on a stale screen dump landed in Telegram (the chat where
+  the backup had just been sent) and typed "305" into its message box. It was cleared without sending; nothing was
+  sent. The phone helper now refuses any input unless Car Guy is the foreground app, and fails loudly on a stale dump.
+

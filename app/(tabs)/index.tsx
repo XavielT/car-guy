@@ -17,7 +17,7 @@ import {
   tasks as taskRepo,
   vehicles as vehicleRepo,
 } from '@/lib/db/repos';
-import { attentionReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
+import { attentionReminders, evaluatedReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import type { Task } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
@@ -49,6 +49,9 @@ export default function HomeScreen() {
   const [daysSince, setDaysSince] = useState<number | null>(null);
   const [monthKm, setMonthKm] = useState<number>(0);
   const [attention, setAttention] = useState<EvaluatedReminder[]>([]);
+  // Every reminder, not just the due ones: the cluster's needle reads the
+  // nearest interval even when the car is all green.
+  const [allReminders, setAllReminders] = useState<EvaluatedReminder[]>([]);
   const [openTasks, setOpenTasks] = useState<Task[]>([]);
   const [modelYear, setModelYear] = useState<number | null>(null);
 
@@ -104,6 +107,12 @@ export default function HomeScreen() {
     // The telltales now come from the real engine rather than the simple date
     // comparison Phase 3 used as a placeholder. Asked for more than four so
     // the merge with tasks below has something to rank.
+    evaluatedReminders(vehicleId)
+      .then((rows) => {
+        if (!cancelled) setAllReminders(rows);
+      })
+      .catch(() => {});
+
     attentionReminders(vehicleId, 8)
       .then((rows) => {
         if (!cancelled) setAttention(rows);
@@ -207,7 +216,7 @@ export default function HomeScreen() {
           odometerKm={odometerKm}
           daysSinceReading={daysSince}
           telltales={telltales}
-          reading={clusterReading(attention)}
+          reading={clusterReading(allReminders)}
           onPressOdometer={() => router.push('/odometro')}
           onPressTelltales={() => router.push('/recordatorios')}
         />
