@@ -8,7 +8,7 @@ import { Field } from '@/components/Field';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { history } from '@/lib/db/repos';
+import { history, mods as modsRepo } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
@@ -60,7 +60,8 @@ export default function HistorialScreen() {
       // One row over the limit tells us whether a "Cargar más" is worth showing
       // without a second COUNT query.
       const rows = await history.feed(vehicleId, {
-        kinds: filter === 'todo' ? undefined : [filter],
+        // Migrated improvements are mods now (schema v2); the Mejoras chip still finds them.
+        kinds: filter === 'todo' ? undefined : filter === 'mejora' ? ['mejora', 'mod'] : [filter],
         q: query.trim() || undefined,
         limit: limit + 1,
       });
@@ -252,6 +253,16 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
     router.push({ pathname: '/gasto/[id]', params: { id: entry.id } });
     return;
   }
+  if (entry.kind === 'mod') {
+    // Until the build log has its own screen (PROMPT-04), a mod opens the v2.0
+    // "mejora" record it was migrated from; one without a record opens nothing.
+    void modsRepo.getById(entry.id).then((mod) => {
+      if (mod?.serviceRecordId) router.push({ pathname: '/servicio/[id]', params: { id: mod.serviceRecordId } });
+    });
+    return;
+  }
+  // Milestones and track days get their screens in PROMPT-03 / PROMPT-06.
+  if (entry.kind === 'hito' || entry.kind === 'pista') return;
   router.push({ pathname: '/inspeccion/[id]', params: { id: entry.id } });
 }
 

@@ -5,10 +5,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { T } from '@/components/T';
 import {
+  Badge,
+  BoostRing,
+  CarbonFrame,
   Card,
   Chip,
+  ClusterHero,
+  CornerGrid,
   EmptyState,
   GaugeRing,
+  Hanko,
+  HazardDivider,
+  LcdDigits,
+  TelltaleRow,
+  Timeline,
+  type CornerValues,
   GhostButton,
   KeyValueRow,
   NavRow,
@@ -27,6 +38,8 @@ import { Field } from '@/components/Field';
 import { categoryColors, fonts, palette, radius, space, type Scheme } from '@/constants/theme';
 import { dayKey, setSimulatedToday, simulatedTodayIso } from '@/lib/domain/dates';
 import { dateLabel, isoFromDateInput } from '@/lib/format';
+import { replayGaugeSweep } from '@/lib/motion/gaugeSweep';
+import { contrast, textPairs } from '@/lib/theme/contrast';
 import { useStore } from '@/lib/store';
 import { ThemeScope, useTheme } from '@/lib/theme/useTheme';
 
@@ -53,11 +66,14 @@ export default function TokensScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.dark.bg.base }}>
       <ScrollView contentContainerStyle={{ paddingBottom: space.xxxl }}>
         <T face="display" style={styles.h1}>
-          Tablero nocturno
+          Cluster JDM 90s
         </T>
         <T face="body" style={styles.sub}>
-          Tokens de Car Guy. Izquierda oscuro (predeterminado), derecha claro.
+          Tokens de Car Guy 2.1. Izquierda oscuro (predeterminado), derecha claro.
         </T>
+        <View style={{ paddingHorizontal: space.gutter, marginBottom: space.lg }}>
+          <PrimaryButton label="Repetir el barrido" onPress={replayGaugeSweep} />
+        </View>
         <SimulatedDate />
         <View style={styles.columns}>
           {(['dark', 'light'] as Scheme[]).map((scheme) => (
@@ -148,9 +164,16 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
           <Swatch label="bg.base" color={theme.bg.base} theme={theme} />
           <Swatch label="bg.surface" color={theme.bg.surface} theme={theme} />
           <Swatch label="bg.raised" color={theme.bg.raised} theme={theme} />
+          <Swatch label="bg.well" color={theme.bg.well} theme={theme} />
+          <Swatch label="lineStrong" color={theme.lineStrong} theme={theme} />
           <Swatch label="accent" color={theme.accent} theme={theme} />
+          <Swatch label="accentFill" color={theme.accentFill} theme={theme} />
           <Swatch label="accent.pressed" color={theme.accentPressed} theme={theme} />
+          <Swatch label="needle" color={theme.needle} theme={theme} />
+          <Swatch label="redline" color={theme.redline} theme={theme} />
+          <Swatch label="redlineText" color={theme.redlineText} theme={theme} />
           <Swatch label="danger" color={theme.danger} theme={theme} />
+          <Swatch label="telltaleOff" color={theme.telltaleOff.lamp} theme={theme} />
         </View>
       </Section>
 
@@ -171,15 +194,35 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
       </Section>
 
       <Section title="Tipografía" theme={theme}>
-        <T face="display" style={{ color: theme.text.primary, fontSize: 30 }}>
+        <T face="display" style={{ color: theme.text.primary, fontSize: 32, textTransform: 'uppercase' }}>
           Tablero
         </T>
         <T face="title" style={{ color: theme.text.primary, fontSize: 21 }}>
           Próximos mantenimientos
         </T>
-        <T face="body" style={{ color: theme.text.secondary, fontSize: 15 }}>
-          Texto de cuerpo en Manrope. Explica lo que significa el número.
+        <T face="eyebrow" style={{ color: theme.text.muted }}>
+          Sección · eyebrow
         </T>
+        <T face="body" style={{ color: theme.text.secondary, fontSize: 15 }}>
+          Texto de cuerpo en Rajdhani. Explica lo que significa el número.
+        </T>
+        <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
+          Título de tarjeta en Rajdhani 700
+        </T>
+        <T face="badge" style={{ color: theme.text.primary, fontSize: 13 }}>
+          Car Guy
+        </T>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+          <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+            Registro
+          </T>
+          <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
+            記録
+          </T>
+          <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
+            ハチゴー
+          </T>
+        </View>
         <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
           Captión y texto deshabilitado
         </T>
@@ -196,22 +239,111 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
 
       <Section title="Medidor" theme={theme}>
         <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
-          <GaugeRing progress={0.72} size={104} value="72%" label="chequeo" />
-          <GaugeRing progress={1} size={104} value="3" label="semanas" color={theme.status.ok} />
+          <BoostRing progress={0.72} size={120} value="72%" label="chequeo" peak={0.86} animate />
+          <GaugeRing progress={1} size={88} value="3" label="semanas" color={theme.status.ok} />
         </View>
       </Section>
 
-      <Section title="Tablero" theme={theme}>
+      <Section title="Cluster (ClusterHero)" theme={theme}>
+        <ClusterHero
+          odometerKm={52400}
+          size={300}
+          reading={{ progress: 0.82, title: 'Aceite', remaining: { km: 1250 }, predictedDueDate: '2026-10-12' }}
+          caption="Actualizado hace 3 días"
+          header={
+            <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.sm }}>
+              <Badge label="4AGE 20V" />
+              <Badge label="Drift" tone="amber" />
+            </View>
+          }>
+          <View style={{ marginTop: space.md }}>
+            <TelltaleRow
+              lamps={[
+                { icon: 'oil', status: 'proximo', label: 'Aceite' },
+                { icon: 'coolant', status: 'vencido', label: 'Refrigerante' },
+                { icon: 'tire', status: 'off', label: 'Gomas' },
+                { icon: 'battery', status: 'off', label: 'Batería' },
+                { icon: 'brake', status: 'urgente', label: 'Frenos' },
+                { icon: 'document', status: 'off', label: 'Documentos' },
+                { icon: 'fuel', status: 'off', label: 'Combustible' },
+                { icon: 'checklist', status: 'ok', label: 'Chequeo' },
+              ]}
+            />
+          </View>
+        </ClusterHero>
         <OdometerHero
-          vehicleName="Corolla 2016"
-          odometerKm={52000}
-          daysSinceReading={3}
-          telltales={[
-            { status: 'vencido', label: 'Revisar refrigerante' },
-            { status: 'proximo', label: 'Aceite · faltan 320 km' },
-          ]}
+          vehicleName="Trueno AE85"
+          odometerKm={null}
+          daysSinceReading={null}
+          telltales={[{ status: 'proximo', label: 'Aceite · faltan 320 km' }]}
           onPressOdometer={() => {}}
         />
+      </Section>
+
+      <Section title="LCD, badges, hanko" theme={theme}>
+        <View style={{ gap: space.md }}>
+          <View style={{ backgroundColor: theme.bg.well, padding: space.md, borderRadius: radius.input, alignSelf: 'flex-start' }}>
+            <LcdDigits value={52400} height={32} />
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+            <Badge label="4AGE 20V" />
+            <Badge label="Swap" />
+            <Badge label="Daily" tone="amber" />
+            <Badge label="Stock" tone="green" />
+            <Badge label="Proyecto" tone="outline" />
+            <Badge label="Ex" tone="outline" />
+          </View>
+          <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
+            <Hanko char="X" />
+            <Hanko char="車" />
+            <Hanko char="改" shape="square" size={40} />
+          </View>
+        </View>
+      </Section>
+
+      <Section title="Divisores y carbono" theme={theme}>
+        <HazardDivider />
+        <HazardDivider tone="vencido" style={{ marginTop: space.md }} />
+        <CarbonFrame style={{ marginTop: space.md, borderRadius: radius.card, padding: space.md }}>
+          <View style={{ backgroundColor: theme.bg.surface, padding: space.md, borderRadius: radius.input }}>
+            <T face="body" style={{ color: theme.text.secondary }}>
+              El carbono es marco: el texto va en su propio panel.
+            </T>
+          </View>
+        </CarbonFrame>
+      </Section>
+
+      <Section title="Presiones (CornerGrid)" theme={theme}>
+        <CornerDemo />
+      </Section>
+
+      <Section title="Línea de tiempo" theme={theme}>
+        <Timeline
+          items={TIMELINE}
+          getDate={(i) => i.at}
+          keyExtractor={(i) => i.id}
+          dotColor={(i) => i.color}
+          monthAside={(key) => (key === '2025-08' ? '48 900 km' : null)}
+          renderItem={(i) => (
+            <Card style={{ padding: space.md }}>
+              <T face="semibold" style={{ color: theme.text.primary }}>
+                {i.title}
+              </T>
+            </Card>
+          )}
+          scrollEnabled={false}
+        />
+      </Section>
+
+      <Section title="Contraste (texto ≥ 4.5:1)" theme={theme}>
+        {textPairs(theme).map((pair) => {
+          const ratio = contrast(pair.fg, pair.bg, pair.under);
+          return (
+            <T key={pair.name} face="mono" style={{ color: ratio >= 4.5 ? theme.text.secondary : theme.dangerText, fontSize: 10 }}>
+              {ratio.toFixed(2)} · {pair.name}
+            </T>
+          );
+        })}
       </Section>
 
       <Section title="Acciones rápidas" theme={theme}>
@@ -321,6 +453,23 @@ function SchemePanel({ scheme }: { scheme: Scheme }) {
   );
 }
 
+const TIMELINE = [
+  { id: '1', at: '2025-08-15T12:00:00.000Z', title: 'Swap 4A-GE 20V', color: categoryColors.album },
+  { id: '2', at: '2025-08-02T12:00:00.000Z', title: 'Aros 15x8 ET0', color: categoryColors.mejora },
+  { id: '3', at: '2025-06-20T12:00:00.000Z', title: 'Aceite y filtro', color: categoryColors.mantenimiento },
+];
+
+function CornerDemo() {
+  const [cold, setCold] = useState<CornerValues>({ fl: 30, fr: 30, rl: 28, rr: 28 });
+  const hot: CornerValues = { fl: 34, fr: 34, rl: 37, rr: 38 };
+  return (
+    <View style={{ gap: space.md }}>
+      <CornerGrid values={cold} onChange={(c, v) => setCold((p) => ({ ...p, [c]: v }))} />
+      <CornerGrid values={hot} compare={cold} flagDelta={8} editable={false} />
+    </View>
+  );
+}
+
 function Section({
   title,
   theme,
@@ -332,8 +481,8 @@ function Section({
 }) {
   return (
     <View style={{ marginBottom: space.xxl }}>
-      <T face="medium" style={[styles.eyebrow, { color: theme.text.muted }]}>
-        {title.toUpperCase()}
+      <T face="eyebrow" style={[styles.eyebrow, { color: theme.text.muted }]}>
+        {title}
       </T>
       {children}
     </View>

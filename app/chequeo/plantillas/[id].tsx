@@ -250,7 +250,7 @@ export default function TemplateEditorScreen() {
         <GhostButton label={es.check.editor.add} onPress={addRow} />
 
         {error ? (
-          <T face="body" style={{ color: theme.danger, fontSize: 13, marginTop: space.md }}>
+          <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginTop: space.md }}>
             {error}
           </T>
         ) : null}

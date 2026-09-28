@@ -5,8 +5,18 @@ import { radius, space } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
+export { Badge, type BadgeTone } from './Badge';
+export { BoostRing } from './BoostRing';
+export { CarbonFrame } from './CarbonFrame';
+export { ClusterHero } from './ClusterHero';
+export { CornerGrid, type Corner, type CornerValues } from './CornerGrid';
 export { EmptyState } from './EmptyState';
 export { GaugeRing } from './GaugeRing';
+export { Hanko } from './Hanko';
+export { HazardDivider } from './HazardDivider';
+export { LcdDigits } from './LcdDigits';
+export { TelltaleRow, type Lamp, type LampIcon } from './TelltaleRow';
+export { Timeline } from './Timeline';
 export { OdometerHero, type Telltale } from './OdometerHero';
 export { QuickActions, type QuickAction } from './QuickActions';
 export { RecordRow, type RecordKind } from './RecordRow';
@@ -55,11 +65,13 @@ export function PrimaryButton({
       aria-disabled={Boolean(disabled)}
       style={({ pressed }) => [
         styles.primary,
-        { backgroundColor: pressed && !disabled ? theme.accentPressed : theme.accent },
+        // accentFill, not accent: in light mode `accent` is the dark amber ink,
+        // and the button stays the house amber with dark ink (05-design-jdm.md).
+        { backgroundColor: pressed && !disabled ? theme.accentPressed : theme.accentFill },
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
       ]}>
-      <T face="semibold" style={[styles.primaryLabel, { color: theme.accentInk }]}>
+      <T face="title" style={[styles.primaryLabel, { color: theme.accentFillInk }]}>
         {label}
       </T>
     </Pressable>
@@ -87,7 +99,7 @@ export function GhostButton({
       accessibilityState={{ disabled: Boolean(disabled) }}
       aria-disabled={Boolean(disabled)}
       style={({ pressed }) => [styles.ghost, pressed && styles.pressed, disabled && { opacity: 0.4 }]}>
-      <T face="semibold" style={[styles.ghostLabel, { color: danger ? theme.danger : theme.text.secondary }]}>
+      <T face="semibold" style={[styles.ghostLabel, { color: danger ? theme.dangerText : theme.text.secondary }]}>
         {label}
       </T>
     </Pressable>
@@ -115,13 +127,13 @@ export function Chip({
       style={[
         styles.chip,
         {
-          backgroundColor: selected ? theme.accent : theme.bg.raised,
-          borderColor: selected ? theme.accent : theme.line,
+          backgroundColor: selected ? theme.accentFill : theme.bg.raised,
+          borderColor: selected ? theme.accentFill : theme.line,
         },
       ]}>
       <T
         face="semibold"
-        style={[styles.chipLabel, { color: selected ? theme.accentInk : theme.text.secondary }]}>
+        style={[styles.chipLabel, { color: selected ? theme.accentFillInk : theme.text.secondary }]}>
         {label}
       </T>
     </Pressable>
@@ -276,7 +288,7 @@ export function NavRow({
         pressed && { opacity: 0.85 },
       ]}>
       <View style={{ flex: 1 }}>
-        <T face="semibold" style={{ color: danger ? theme.danger : theme.text.primary, fontSize: 15 }}>
+        <T face="semibold" style={{ color: danger ? theme.dangerText : theme.text.primary, fontSize: 15 }}>
           {label}
         </T>
         {caption ? (
@@ -298,7 +310,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryLabel: { fontSize: 16, letterSpacing: 0.3 },
+  // Saira Condensed, uppercase and tracked: a label on a switch, not a sentence.
+  primaryLabel: { fontSize: 17, letterSpacing: 1.2, textTransform: 'uppercase' },
   disabled: { opacity: 0.45 },
   pressed: { transform: [{ translateY: 1 }], opacity: 0.92 },
   ghost: {
@@ -319,7 +332,7 @@ const styles = StyleSheet.create({
     marginRight: space.sm,
     marginBottom: space.sm,
   },
-  chipLabel: { fontSize: 13 },
+  chipLabel: { fontSize: 14, letterSpacing: 0.3 },
   sectionHeader: { marginTop: space.xxl + 4, marginBottom: space.md },
   sectionEyebrow: { fontSize: 11, letterSpacing: 0.9, marginBottom: 4 },
   sectionTitle: { fontSize: 21 },

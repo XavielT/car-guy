@@ -1,13 +1,12 @@
-// Per-weight subpaths, never the package root: importing '@expo-google-fonts/manrope'
-// pulls every weight *and* every italic into the bundle — that alone put 8 MB of
+// Per-weight subpaths, never the package root: importing a package root pulls
+// every weight *and* every italic into the bundle — that once put 8 MB of
 // unused .ttf into dist/.
-import { Manrope_400Regular } from '@expo-google-fonts/manrope/400Regular';
-import { Manrope_500Medium } from '@expo-google-fonts/manrope/500Medium';
-import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
 import { JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono/500Medium';
 import { JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono/700Bold';
-import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medium';
-import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
+import { Michroma_400Regular } from '@expo-google-fonts/michroma/400Regular';
+import { SairaCondensed_400Regular } from '@expo-google-fonts/saira-condensed/400Regular';
+import { SairaCondensed_600SemiBold } from '@expo-google-fonts/saira-condensed/600SemiBold';
+import { SairaCondensed_800ExtraBold } from '@expo-google-fonts/saira-condensed/800ExtraBold';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -61,13 +60,19 @@ export default function RootLayout() {
   // that is referenced but not loaded falls back to the system font on web
   // without warning.
   const [loaded, error] = useFonts({
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_700Bold,
-    Manrope_400Regular,
-    Manrope_500Medium,
-    Manrope_600SemiBold,
+    SairaCondensed_400Regular,
+    SairaCondensed_600SemiBold,
+    SairaCondensed_800ExtraBold,
+    // Rajdhani and Noto Sans JP are subset (tools/subset-fonts.sh): the
+    // packages carry Devanagari / every kanji, which no screen can show.
+    Rajdhani_500Medium: require('../assets/fonts/Rajdhani-Latin_500Medium.ttf'),
+    Rajdhani_600SemiBold: require('../assets/fonts/Rajdhani-Latin_600SemiBold.ttf'),
+    Rajdhani_700Bold: require('../assets/fonts/Rajdhani-Latin_700Bold.ttf'),
     JetBrainsMono_500Medium,
     JetBrainsMono_700Bold,
+    Michroma_400Regular,
+    NotoSansJP_500Medium: require('../assets/fonts/NotoSansJP-CarGuy_500Medium.ttf'),
+    NotoSansJP_700Bold: require('../assets/fonts/NotoSansJP-CarGuy_700Bold.ttf'),
   });
 
   useEffect(() => {

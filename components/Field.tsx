@@ -33,7 +33,7 @@ export function Field({
         {...rest}
       />
       {error ? (
-        <T face="body" style={[styles.hint, { color: theme.danger }]}>
+        <T face="body" style={[styles.hint, { color: theme.dangerText }]}>
           {error}
         </T>
       ) : hint ? (

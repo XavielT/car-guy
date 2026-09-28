@@ -194,7 +194,7 @@ export default function RunScreen() {
                     {(['ok', 'falla', 'na'] as Verdict[]).map((v) => {
                       const on = verdict === v;
                       const color =
-                        v === 'ok' ? theme.status.ok : v === 'falla' ? theme.status.vencido : theme.text.muted;
+                        v === 'ok' ? theme.status.ok : v === 'falla' ? theme.statusText.vencido : theme.text.muted;
                       return (
                         <Pressable
                           key={v}
@@ -257,7 +257,7 @@ export default function RunScreen() {
         />
 
         {error ? (
-          <T face="body" style={{ color: theme.danger, fontSize: 13, marginBottom: space.md }}>
+          <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>
             {error}
           </T>
         ) : null}
