@@ -59,7 +59,7 @@ export function FirstSyncBanner() {
       ]}>
       {running ? <ActivityIndicator color={theme.accent} /> : null}
       <View style={{ flex: 1 }}>
-        <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
+        <T face="title" style={{ color: theme.text.primary, fontSize: 14, letterSpacing: 0.8, textTransform: 'uppercase' }}>
           {title}
         </T>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 2, lineHeight: 17 }}>

@@ -4,6 +4,9 @@ import { fonts, radius, space } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
+/** Numeric keyboards get the mono face: every number in JetBrains Mono. */
+const NUMERIC = new Set(['number-pad', 'decimal-pad', 'numeric', 'phone-pad']);
+
 export function Field({
   label,
   hint,
@@ -12,10 +15,11 @@ export function Field({
   ...rest
 }: TextInputProps & { label: string; hint?: string; error?: string }) {
   const { theme } = useTheme();
+  const numeric = rest.keyboardType != null && NUMERIC.has(rest.keyboardType);
 
   return (
     <View style={styles.wrap}>
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
         {label}
       </T>
       <TextInput
@@ -28,6 +32,7 @@ export function Field({
             borderColor: error ? theme.danger : theme.line,
             color: theme.text.primary,
           },
+          numeric && styles.numeric,
           style,
         ]}
         {...rest}
@@ -47,7 +52,7 @@ export function Field({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md + 2 },
-  label: { fontSize: 13, marginBottom: 6 },
+  label: { fontSize: 12, marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderRadius: radius.input,
@@ -57,5 +62,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: fonts.body,
   },
-  hint: { fontSize: 12, marginTop: 6, lineHeight: 17 },
+  numeric: { fontFamily: fonts.mono, fontSize: 16 },
+  hint: { fontSize: 13, marginTop: 6, lineHeight: 17 },
 });

@@ -30,6 +30,11 @@ export type Vehicle = {
   createdAt: string;
   /** Hidden from the selector but kept with its history. Absent on legacy rows. */
   isArchived?: boolean;
+  /**
+   * The full schema-v2 row (IMP 28092026), for the screens that need identity:
+   * nickname, status, engine, story. Absent on legacy/imported shapes.
+   */
+  detail?: import('./db/types').Vehicle;
 };
 
 export type FillUp = {

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, space } from '@/constants/theme';
 import { es } from '@/lib/i18n/es';
@@ -27,6 +28,9 @@ export function Sheet({
   children: ReactNode;
 }) {
   const { theme } = useTheme();
+  // Android draws edge-to-edge: without the inset the last button sits on the
+  // system navigation bar.
+  const insets = useSafeAreaInsets();
   // useState, not useRef: the value is read during render to build the
   // transform, and reading a ref there is exactly what react-hooks/refs forbids.
   const [slide] = useState(() => new Animated.Value(0));
@@ -52,7 +56,7 @@ export function Sheet({
       <Animated.View
         style={[
           styles.sheet,
-          { backgroundColor: theme.bg.surface, borderColor: theme.line, transform: [{ translateY }] },
+          { backgroundColor: theme.bg.surface, borderColor: theme.line, paddingBottom: space.xxxl + insets.bottom, transform: [{ translateY }] },
         ]}>
         <View style={[styles.grabber, { backgroundColor: theme.text.muted }]} />
         {title ? (
@@ -97,5 +101,5 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     marginBottom: space.lg,
   },
-  title: { fontSize: 20, marginBottom: space.lg },
+  title: { fontSize: 20, marginBottom: space.lg, textTransform: 'uppercase', letterSpacing: 0.6 },
 });

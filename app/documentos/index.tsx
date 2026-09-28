@@ -89,7 +89,7 @@ export default function DocumentosScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 30 },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { fontSize: 13, marginTop: 2, marginBottom: space.lg, lineHeight: 19 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
 });

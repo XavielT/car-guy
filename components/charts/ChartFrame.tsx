@@ -80,7 +80,7 @@ export function ChartFrame({
 const styles = StyleSheet.create({
   card: { marginBottom: space.md },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md, marginBottom: space.lg },
-  title: { fontSize: 17 },
+  title: { fontSize: 17, textTransform: 'uppercase', letterSpacing: 0.8 },
   caption: { fontSize: 13, marginTop: 3, lineHeight: 18 },
   body: { width: '100%' },
   plot: { alignSelf: 'center', width: '100%', maxWidth: MAX_PLOT_WIDTH },

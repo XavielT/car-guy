@@ -1,7 +1,7 @@
 import { LineChart } from 'react-native-gifted-charts';
 import { StyleSheet, View } from 'react-native';
 
-import { categoryColors, fonts, space } from '@/constants/theme';
+import { categoryColors, categoryInkLight, fonts, space } from '@/constants/theme';
 import type { EconomyPoint, FuelType } from '@/lib/types';
 import { economyLabel } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
@@ -25,7 +25,8 @@ export function EconomyLine({
   points: EconomyPoint[];
   fuelType: FuelType;
 }) {
-  const { theme } = useTheme();
+  const { theme, scheme } = useTheme();
+  const line = scheme === 'light' ? categoryInkLight.combustible : categoryColors.combustible;
 
   const unit = economyLabel(fuelType);
   const average =
@@ -53,7 +54,7 @@ export function EconomyLine({
       trailing={
         enough ? (
           <View style={styles.average}>
-            <T face="body" style={{ color: theme.text.muted, fontSize: 11 }}>
+            <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
               {es.stats.average}
             </T>
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
@@ -68,9 +69,9 @@ export function EconomyLine({
           width={width - 56}
           height={150}
           adjustToWidth
-          color={categoryColors.combustible}
+          color={line}
           thickness={2}
-          dataPointsColor={categoryColors.combustible}
+          dataPointsColor={line}
           dataPointsRadius={3}
           // gifted-charts subtracts the offset from every value and adds it
           // back when it writes the label, so `maxValue` is the range above the
@@ -87,7 +88,7 @@ export function EconomyLine({
           rulesColor={theme.line}
           rulesType="dashed"
           yAxisTextStyle={{ color: theme.text.muted, fontSize: 9, fontFamily: fonts.mono }}
-          xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 10, fontFamily: fonts.medium }}
+          xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 11, fontFamily: fonts.title }}
           yAxisLabelWidth={46}
           initialSpacing={12}
           endSpacing={12}

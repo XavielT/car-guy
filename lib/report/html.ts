@@ -8,13 +8,17 @@ import { historyKindLabel, historyTitle } from '../domain/history';
 /**
  * The vehicle report as a self-contained HTML string.
  *
- * Dark-on-white, not the app's palette: this is printed or saved as a PDF, and
- * "Tablero nocturno" on paper is a page of toner and an unreadable photocopy.
- * The identity survives in the type and the accent rule, not in the background.
+ * "Cluster JDM 90s" (05-design-jdm.md) only where it costs no toner: a dark
+ * header band like the instrument panel — Saira Condensed title, amber
+ * eyebrow, Type R-style badges for the engine and chassis codes, a 4 px amber
+ * rule under it — and then text pages that stay dark-on-white, printable and
+ * photocopiable. Numbers stay in a mono face.
  *
  * All CSS is inline in one `<style>` block and there are no external requests —
  * `expo-print` renders the string in an offline WebView on Android, so a linked
- * font or a remote image would simply not arrive.
+ * font or a remote image would simply not arrive. The identity faces are named
+ * first in each stack (they are used when the device has them) and fall back
+ * to condensed/system faces otherwise.
  */
 
 export type ReportInput = {
@@ -32,16 +36,33 @@ export type ReportInput = {
   generatedAt: string;
 };
 
-const ACCENT = '#CF4C00';
+/** Amber as ink on white (the light token `accent`, 4.5:1+). */
+const ACCENT = '#8F5A00';
+/** Amber as a fill / as text on the dark band (the dark token). */
+const AMBER = '#FFB300';
+const PANEL = '#121212';
+const PANEL_TEXT = '#EDEDED';
+const PANEL_SOFT = '#B3B3B3';
+const REDLINE = '#E10600';
 const INK = '#121212';
-const SOFT = '#5A5A5A';
+const SOFT = '#4A4A4A';
 const LINE = '#E2E2E5';
+
+const DISPLAY = `"Saira Condensed", "SairaCondensed_800ExtraBold", "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif`;
+const BODY = `"Rajdhani", "Rajdhani_500Medium", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+const MONO = `"JetBrains Mono", "JetBrainsMono_500Medium", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace`;
+const BADGE = `"Michroma", "Michroma_400Regular", "Arial Black", Arial, sans-serif`;
 
 export function reportHtml(input: ReportInput): string {
   const { stats, history, economy, photoDataUri, generatedAt } = input;
   const { vehicle, kpis, byCategory, ownership, upcoming, period } = stats;
 
   const subtitle = [vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(' ');
+  // Derived badges, one red max (05-design-jdm.md §5): the engine code, then the chassis code in outline.
+  const badges = [
+    vehicle.engineCode ? `<span class="badge">${escape(vehicle.engineCode)}</span>` : '',
+    vehicle.chassisCode ? `<span class="badge outline">${escape(vehicle.chassisCode)}</span>` : '',
+  ].join('');
   const average = economy.length
     ? economy.reduce((sum, point) => sum + point.kmPerUnit, 0) / economy.length
     : null;
@@ -55,32 +76,62 @@ export function reportHtml(input: ReportInput): string {
 <style>
   @page { margin: 16mm 14mm; }
   * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: ${BODY};
     color: ${INK};
     font-size: 11pt;
     line-height: 1.45;
   }
-  .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
-  header { display: flex; gap: 16px; align-items: flex-start; border-bottom: 2px solid ${INK}; padding-bottom: 12px; }
-  header img { width: 96px; height: 72px; object-fit: cover; border-radius: 6px; }
-  h1 { font-size: 20pt; margin: 0; letter-spacing: -0.3px; }
-  h2 { font-size: 12pt; margin: 22px 0 8px; text-transform: uppercase; letter-spacing: 0.06em; color: ${SOFT}; }
+  .mono { font-family: ${MONO}; }
+  /* The instrument panel: the only dark block, so the rest prints on white. */
+  header {
+    display: flex; gap: 16px; align-items: center;
+    background: ${PANEL}; color: ${PANEL_TEXT};
+    border-radius: 10px; padding: 14px 16px 16px;
+    border-bottom: 4px solid ${AMBER};
+  }
+  header img { width: 96px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid #2A2A2A; }
+  header .eyebrow { color: ${AMBER}; }
+  header .sub { color: ${PANEL_SOFT}; }
+  h1 {
+    font-family: ${DISPLAY}; font-weight: 800; font-size: 24pt; line-height: 1.02;
+    margin: 2px 0 0; text-transform: uppercase; letter-spacing: 0.01em; color: ${PANEL_TEXT};
+  }
+  h2 {
+    font-family: ${DISPLAY}; font-weight: 600; font-size: 12pt; margin: 22px 0 8px;
+    text-transform: uppercase; letter-spacing: 0.12em; color: ${INK};
+    border-left: 3px solid ${AMBER}; padding-left: 8px;
+  }
   .sub { color: ${SOFT}; margin: 2px 0 0; font-size: 10pt; }
-  .eyebrow { color: ${ACCENT}; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+  .eyebrow {
+    font-family: ${DISPLAY}; color: ${ACCENT}; font-size: 8.5pt;
+    text-transform: uppercase; letter-spacing: 0.16em; font-weight: 400;
+  }
+  .brand { font-family: ${BADGE}; letter-spacing: 0.12em; }
+  .badges { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; font-family: ${BADGE}; font-size: 7.5pt; line-height: 1;
+    text-transform: uppercase; letter-spacing: 0.12em; color: #FFFFFF;
+    background: ${REDLINE}; border: 1px solid rgba(255, 77, 69, 0.4); border-radius: 3px; padding: 4px 6px;
+  }
+  .badge.outline { background: transparent; color: ${PANEL_SOFT}; border-color: #3F3F3F; }
   .kpis { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
   .kpi { flex: 1 1 130px; border: 1px solid ${LINE}; border-radius: 8px; padding: 10px 12px; }
-  .kpi .label { color: ${SOFT}; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.06em; }
+  .kpi .label {
+    font-family: ${DISPLAY}; color: ${SOFT}; font-size: 8.5pt;
+    text-transform: uppercase; letter-spacing: 0.16em;
+  }
   .kpi .value { font-size: 15pt; font-weight: 700; margin-top: 3px; }
   table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  th { text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.06em; color: ${SOFT}; border-bottom: 1px solid ${INK}; padding: 5px 6px; }
+  th { text-align: left; font-family: ${DISPLAY}; font-weight: 600; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.1em; color: ${SOFT}; border-bottom: 1px solid ${INK}; padding: 5px 6px; }
   td { padding: 5px 6px; border-bottom: 1px solid ${LINE}; font-size: 10pt; vertical-align: top; }
   td.num, th.num { text-align: right; white-space: nowrap; }
   tr { page-break-inside: avoid; }
   .bartrack { width: 34%; }
   .bartrack > span { display: block; height: 7px; border-radius: 4px; background: ${LINE}; }
-  .bar { height: 7px; border-radius: 4px; background: ${ACCENT}; display: block; }
+  .bar { height: 7px; border-radius: 4px; background: ${AMBER}; display: block; }
   .muted { color: ${SOFT}; }
   footer { margin-top: 26px; border-top: 1px solid ${LINE}; padding-top: 8px; color: ${SOFT}; font-size: 8.5pt; display: flex; justify-content: space-between; }
 </style>
@@ -90,9 +141,10 @@ export function reportHtml(input: ReportInput): string {
 <header>
   ${photoDataUri ? `<img src="${photoDataUri}" alt="" />` : ''}
   <div style="flex:1">
-    <div class="eyebrow">${escape(es.app.name)}</div>
+    <div class="eyebrow brand">${escape(es.app.name)}</div>
     <h1>${escape(vehicle.name)}</h1>
     <p class="sub">${escape([subtitle, vehicle.plate].filter(Boolean).join(' · ') || '—')}</p>
+    ${badges ? `<div class="badges">${badges}</div>` : ''}
   </div>
   <div style="text-align:right">
     <div class="eyebrow">${escape(es.report.period)}</div>

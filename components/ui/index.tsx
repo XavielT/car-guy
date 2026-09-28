@@ -17,7 +17,6 @@ export { HazardDivider } from './HazardDivider';
 export { LcdDigits } from './LcdDigits';
 export { TelltaleRow, type Lamp, type LampIcon } from './TelltaleRow';
 export { Timeline } from './Timeline';
-export { OdometerHero, type Telltale } from './OdometerHero';
 export { QuickActions, type QuickAction } from './QuickActions';
 export { RecordRow, type RecordKind } from './RecordRow';
 export { Sheet } from './Sheet';
@@ -132,7 +131,7 @@ export function Chip({
         },
       ]}>
       <T
-        face="semibold"
+        face="title"
         style={[styles.chipLabel, { color: selected ? theme.accentFillInk : theme.text.secondary }]}>
         {label}
       </T>
@@ -161,8 +160,8 @@ export function SectionHeader({
   return (
     <View style={[styles.sectionHeader, style]}>
       {eyebrow ? (
-        <T face="medium" style={[styles.sectionEyebrow, { color: theme.text.muted }]}>
-          {eyebrow.toUpperCase()}
+        <T face="eyebrow" style={[styles.sectionEyebrow, { color: theme.text.muted }]}>
+          {eyebrow}
         </T>
       ) : null}
       <T face="title" style={[styles.sectionTitle, { color: theme.text.primary }]}>
@@ -250,9 +249,9 @@ export function Segmented<K extends string>({
               <View style={[styles.segmentDot, { backgroundColor: option.color, opacity: on ? 1 : 0.5 }]} />
             ) : null}
             <T
-              face="semibold"
+              face="title"
               numberOfLines={1}
-              style={{ color: on ? theme.text.primary : theme.text.muted, fontSize: 13 }}>
+              style={[styles.segmentLabel, { color: on ? theme.text.primary : theme.text.muted }]}>
               {option.label}
             </T>
           </Pressable>
@@ -332,10 +331,13 @@ const styles = StyleSheet.create({
     marginRight: space.sm,
     marginBottom: space.sm,
   },
-  chipLabel: { fontSize: 14, letterSpacing: 0.3 },
+  // Saira 600, uppercase, tracked +0.08em (05-design-jdm.md: chips 12–14).
+  chipLabel: { fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' },
+  segmentLabel: { fontSize: 13, letterSpacing: 0.9, textTransform: 'uppercase' },
   sectionHeader: { marginTop: space.xxl + 4, marginBottom: space.md },
-  sectionEyebrow: { fontSize: 11, letterSpacing: 0.9, marginBottom: 4 },
-  sectionTitle: { fontSize: 21 },
+  sectionEyebrow: { fontSize: 11, marginBottom: 4 },
+  // Saira 600 uppercase, tracked like a chip: a label on the panel, not a headline.
+  sectionTitle: { fontSize: 19, textTransform: 'uppercase', letterSpacing: 0.8 },
   sectionCaption: { fontSize: 13, marginTop: 4, lineHeight: 19 },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
   segmented: {

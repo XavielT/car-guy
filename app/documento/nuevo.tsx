@@ -62,7 +62,7 @@ export default function NuevoDocumentoScreen() {
           {es.documents.new}
         </T>
 
-        <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {es.documents.kind}
         </T>
         <View style={styles.row}>
@@ -79,9 +79,9 @@ export default function NuevoDocumentoScreen() {
                 accessibilityState={{ selected: on }}
                 style={[
                   styles.chip,
-                  { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
+                  { backgroundColor: on ? theme.accentFill : theme.bg.raised, borderColor: on ? theme.accentFill : theme.line },
                 ]}>
-                <T face="semibold" style={{ color: on ? theme.accentInk : theme.text.secondary, fontSize: 12 }}>
+                <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
                   {es.documents.kinds[k]}
                 </T>
               </Pressable>
@@ -98,7 +98,7 @@ export default function NuevoDocumentoScreen() {
           hint={es.documents.expiresHint}
         />
 
-        <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {es.documents.file}
         </T>
         <PhotoPicker
@@ -124,8 +124,8 @@ export default function NuevoDocumentoScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 28, marginBottom: space.lg },
-  label: { fontSize: 13, marginBottom: 6 },
+  h: { fontSize: 28, lineHeight: 30, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.lg },
+  label: { fontSize: 12, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
   chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
 });

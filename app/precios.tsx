@@ -38,7 +38,7 @@ export default function PreciosScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
           {es.prices.title}
@@ -88,6 +88,6 @@ export default function PreciosScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 34 },
+  h: { fontSize: 32, lineHeight: 35, textTransform: 'uppercase', letterSpacing: 0.3 },
   p: { marginVertical: space.md, lineHeight: 22 },
 });

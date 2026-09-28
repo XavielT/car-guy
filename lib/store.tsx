@@ -169,6 +169,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         tankVolume: v.tankVolume,
         createdAt: v.createdAt,
         isArchived: v.isArchived,
+        detail: v,
       })),
       fillups: fuelRows.map((f) => ({
         id: f.id,

@@ -1,13 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
-import { PrimaryButton } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { LcdDigits, PrimaryButton } from '@/components/ui';
+import { radius, space } from '@/constants/theme';
 import { currentOdometer as currentOdometerQuery, odometer as odometerRepo } from '@/lib/db/repos';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { isoFromDateInput, km as fmtKm, todayIsoDate } from '@/lib/format';
@@ -54,6 +54,11 @@ export default function OdometroScreen() {
           {es.odometerSheet.hint}
         </T>
 
+        {/* The LCD readout: the last reading, then what you type as you type it. */}
+        <View style={[styles.well, { backgroundColor: theme.bg.well, borderColor: theme.lineStrong }]}>
+          <LcdDigits value={parsed ?? (current != null ? Math.round(current) : null)} height={40} />
+        </View>
+
         <Field
           label={es.odometerSheet.value}
           placeholder={current != null ? String(Math.round(current)) : '51676'}
@@ -65,7 +70,7 @@ export default function OdometroScreen() {
         <DateField label={es.odometerSheet.date} value={date} onChange={setDate} noFuture />
 
         {warning ? (
-          <T face="body" style={[styles.warning, { color: theme.status.proximo }]}>
+          <T face="body" style={[styles.warning, { color: theme.statusText.proximo }]}>
             {warning}
           </T>
         ) : null}
@@ -94,7 +99,14 @@ export default function OdometroScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 28, marginBottom: space.sm },
+  h: { fontSize: 28, lineHeight: 30, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.sm },
   hint: { fontSize: 13, lineHeight: 19, marginBottom: space.xl },
+  well: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: radius.input,
+    paddingVertical: space.lg,
+    marginBottom: space.xl,
+  },
   warning: { fontSize: 13, lineHeight: 19, marginBottom: space.md },
 });

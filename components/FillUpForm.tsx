@@ -106,8 +106,11 @@ export function FillUpForm({
 
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-      <T face="title" style={[styles.h, { color: theme.text.primary }]}>
+      <T face="display" style={[styles.h, { color: theme.text.primary }]}>
         {initial ? es.fuel.editTitle : es.fuel.newTitle}
+        <T face="kana" style={[styles.kana, { color: theme.text.muted }]}>
+          {' 給油'}
+        </T>
       </T>
       <T face="body" style={[styles.p, { color: theme.text.secondary }]}>
         {es.fuel.intro(es.fuel.unitWord(FUEL_CATALOG[fuel].unit))}
@@ -123,7 +126,7 @@ export function FillUpForm({
         hint={lastOdo != null ? es.fuel.odometerHint(`${lastOdo.toLocaleString('es-DO')} km`) : undefined}
       />
 
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
         {es.fuel.type}
       </T>
       <FuelPicker value={fuel} onChange={setFuel} />
@@ -162,7 +165,7 @@ export function FillUpForm({
         </T>
       )}
 
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
         {es.fuel.loadKind}
       </T>
       <Segmented
@@ -189,8 +192,8 @@ export function FillUpForm({
           style={[
             styles.checkbox,
             {
-              borderColor: missedPrevious ? theme.accent : theme.line,
-              backgroundColor: missedPrevious ? theme.accent : theme.bg.raised,
+              borderColor: missedPrevious ? theme.accentFill : theme.lineStrong,
+              backgroundColor: missedPrevious ? theme.accentFill : theme.bg.raised,
             },
           ]}
         />
@@ -204,7 +207,7 @@ export function FillUpForm({
         </View>
       </Pressable>
 
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
         {es.fuel.station}
       </T>
       <View style={styles.chips}>
@@ -231,10 +234,11 @@ export function FillUpForm({
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 56 },
-  h: { fontSize: 26, marginBottom: space.sm },
+  h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.sm },
   p: { marginBottom: 18, fontSize: 15, lineHeight: 22 },
-  label: { fontSize: 13, marginBottom: space.sm, marginTop: 6 },
-  hint: { fontSize: 12, marginBottom: space.md, lineHeight: 18 },
+  label: { fontSize: 12, marginBottom: space.sm, marginTop: 6 },
+  kana: { fontSize: 10, letterSpacing: 0, textTransform: 'none' },
+  hint: { fontSize: 13, marginBottom: space.md, lineHeight: 18 },
   chips: { flexDirection: 'row', flexWrap: 'wrap' },
   calc: {
     borderWidth: 1,
@@ -251,5 +255,5 @@ const styles = StyleSheet.create({
     marginBottom: space.lg,
     minHeight: 44,
   },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, marginTop: 2 },
+  checkbox: { width: 22, height: 22, borderRadius: radius.lamp, borderWidth: 1, marginTop: 2 },
 });

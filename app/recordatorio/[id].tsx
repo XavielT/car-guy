@@ -78,8 +78,8 @@ export default function RecordatorioScreen() {
 
         <Surface style={{ marginBottom: space.lg }}>
           <View style={styles.statusRow}>
-            <T face="medium" style={{ color: theme.text.muted, fontSize: 11, letterSpacing: 0.9, flex: 1 }}>
-              {es.reminders.status.toUpperCase()}
+            <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, flex: 1 }}>
+              {es.reminders.status}
             </T>
             {reminder.isEnabled ? (
               <StatusPill
@@ -90,7 +90,7 @@ export default function RecordatorioScreen() {
               <StatusPill status="neutral" label={es.reminders.disabledLabel} />
             )}
           </View>
-          <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginTop: space.sm, lineHeight: 20 }}>
+          <T face="mono" style={{ color: theme.text.secondary, fontSize: 13, marginTop: space.sm, lineHeight: 20 }}>
             {[
               reminder.dueDate ? es.reminders.dueOn(dateLabel(reminder.dueDate)) : null,
               reminder.dueKm != null ? fmtKm(reminder.dueKm) : null,
@@ -180,6 +180,6 @@ export default function RecordatorioScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 26, marginBottom: space.md },
+  h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.md },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

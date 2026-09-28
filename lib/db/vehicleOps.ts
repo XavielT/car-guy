@@ -1,8 +1,16 @@
 import type { VehicleDraft } from '@/components/VehicleForm';
 
 import { addMonths, todayIso } from '../domain/dates';
+import { isArchivedFor } from '../domain/garage';
+import type { VehicleStatus } from './types';
 import { enqueue, now } from './client';
-import { odometer as odometerRepo, reminders as reminderRepo, vehicles as vehicleRepo } from './repos';
+import {
+  odometer as odometerRepo,
+  reminders as reminderRepo,
+  specsheets as specsheetRepo,
+  vehicleOwnership as ownershipRepo,
+  vehicles as vehicleRepo,
+} from './repos';
 import { seedVehicleDefaults } from './seed';
 
 /** Synthetic oil stretches the interval; the catalog default assumes mineral. */
@@ -39,9 +47,41 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         purchasePrice: draft.purchasePrice,
         photoMediaId: draft.photoMediaId,
         notes: draft.notes,
+        nickname: draft.nickname,
+        status: draft.status,
+        // Status and is_archived say the same thing until a later schema drops the flag.
+        isArchived: isArchivedFor(draft.status),
+        chassisCode: draft.chassisCode,
+        chassisNumber: draft.chassisNumber,
+        engineCode: draft.engineCode,
+        transmission: draft.transmission,
+        drivetrain: draft.drivetrain,
+        origin: draft.origin,
+        importedYear: draft.importedYear,
+        story: draft.story,
       },
       db,
     );
+
+    // The ownership period mirrors the purchase fields, with migration v2's id
+    // (own_<vehicle>) so a device that migrated and one that created converge.
+    const own = await ownershipRepo.getById(`own_${vehicle.id}`);
+    if (!own) {
+      await ownershipRepo.upsert(
+        {
+          id: `own_${vehicle.id}`,
+          vehicleId: vehicle.id,
+          acquiredAt: draft.purchaseDate,
+          acquiredPrice: draft.purchasePrice,
+          isCurrent: true,
+          deletedAt: null,
+        },
+        db,
+      );
+      await specsheetRepo.upsertForVehicle(vehicle.id, {}, db);
+    } else if (own.acquiredAt !== draft.purchaseDate || own.acquiredPrice !== draft.purchasePrice) {
+      await ownershipRepo.upsert({ id: own.id, acquiredAt: draft.purchaseDate, acquiredPrice: draft.purchasePrice }, db);
+    }
 
     if (draft.odometerKm != null) {
       // One reading per vehicle from this source, so editing the vehicle
@@ -144,5 +184,61 @@ export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
       await tomb(table, 'vehicle_id = ?3');
     }
     await tomb('vehicle', 'id = ?3');
+  });
+}
+
+/**
+ * Moves a vehicle between activo / proyecto / guardado (vendido has its own
+ * path, `sellVehicle`). Coming back from vendido reopens the ownership period
+ * — "lo compré otra vez" — but keeps the sale on record in the row's history
+ * by leaving `sold_*` to the user's edit.
+ */
+export async function setVehicleStatus(vehicleId: string, status: Exclude<VehicleStatus, 'vendido'>): Promise<void> {
+  await vehicleRepo.upsertRaw({ id: vehicleId, status, isArchived: isArchivedFor(status) });
+}
+
+export type SaleDraft = {
+  soldAt: string;
+  soldKm: number | null;
+  soldPrice: number | null;
+  soldTo: string | null;
+  reason: string | null;
+};
+
+/**
+ * Sells the car (ADR-18): closes the ownership period, marks it vendido and
+ * archived, and mirrors the sale onto the v1 columns the reports read. The
+ * car and its whole history stay — it becomes an Ex.
+ */
+export async function sellVehicle(vehicleId: string, sale: SaleDraft): Promise<void> {
+  await enqueue(async (db) => {
+    const vehicle = await vehicleRepo.getById(vehicleId);
+    if (!vehicle) return;
+    const ownId = `own_${vehicleId}`;
+    const own = await ownershipRepo.getById(ownId);
+    await ownershipRepo.upsert(
+      {
+        id: ownId,
+        vehicleId,
+        ...(own ? {} : { acquiredAt: vehicle.purchaseDate, acquiredPrice: vehicle.purchasePrice, isCurrent: true }),
+        soldAt: sale.soldAt,
+        soldKm: sale.soldKm,
+        soldPrice: sale.soldPrice,
+        soldTo: sale.soldTo,
+        reason: sale.reason,
+        deletedAt: null,
+      },
+      db,
+    );
+    await vehicleRepo.upsertRaw(
+      { id: vehicleId, status: 'vendido', isArchived: true, soldDate: sale.soldAt, soldPrice: sale.soldPrice },
+      db,
+    );
+    if (sale.soldKm != null) {
+      await odometerRepo.upsert(
+        { id: `odo_sale_${vehicleId}`, vehicleId, occurredAt: sale.soldAt, valueKm: sale.soldKm, source: 'manual', sourceId: ownId, deletedAt: null },
+        db,
+      );
+    }
   });
 }

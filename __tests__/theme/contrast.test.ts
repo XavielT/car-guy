@@ -1,4 +1,4 @@
-import { palette } from '@/constants/theme';
+import { categoryColors, categoryInkLight, palette } from '@/constants/theme';
 import { contrast, textPairs } from '@/lib/theme/contrast';
 
 describe('contrast()', () => {
@@ -16,6 +16,33 @@ for (const scheme of ['dark', 'light'] as const) {
       it(pair.name, () => {
         expect(contrast(pair.fg, pair.bg, pair.under)).toBeGreaterThanOrEqual(4.5);
       });
+    }
+  });
+}
+
+// Phase 2: chart marks and the category icons on Historial rows are graphics,
+// held to 3:1 (WCAG 1.4.11) against the card they sit on — bright tokens on
+// dark, the computed inks on light.
+describe('category marks are ≥ 3:1 on their card', () => {
+  for (const key of Object.keys(categoryColors) as (keyof typeof categoryColors)[]) {
+    it(`dark ${key}`, () => expect(contrast(categoryColors[key], palette.dark.bg.surface)).toBeGreaterThanOrEqual(3));
+    it(`light ${key}`, () => expect(contrast(categoryInkLight[key], palette.light.bg.surface)).toBeGreaterThanOrEqual(3));
+  }
+});
+
+// `PRINT_CONTRAST=1 npx jest __tests__/theme/contrast.test.ts` prints the list for the phase report.
+if (process.env.PRINT_CONTRAST) {
+  it('prints the lowest pairs', () => {
+    for (const scheme of ['dark', 'light'] as const) {
+      const rows = textPairs(palette[scheme])
+        .map((p) => ({ name: p.name, ratio: contrast(p.fg, p.bg, p.under) }))
+        .sort((a, b) => a.ratio - b.ratio)
+        .slice(0, 8);
+      const marks = (Object.keys(categoryColors) as (keyof typeof categoryColors)[])
+        .map((k) => ({ name: `mark ${k}`, ratio: contrast(scheme === 'dark' ? categoryColors[k] : categoryInkLight[k], palette[scheme].bg.surface) }))
+        .sort((a, b) => a.ratio - b.ratio)
+        .slice(0, 3);
+      console.log(scheme, [...rows, ...marks].map((r) => `${r.name} ${r.ratio.toFixed(2)}`).join(' | '));
     }
   });
 }

@@ -89,8 +89,8 @@ export default function RecordatoriosScreen() {
             if (members.length === 0) return null;
             return (
               <View key={group}>
-                <T face="medium" style={[styles.group, { color: theme.text.muted }]}>
-                  {`${es.reminders.groups[group]} · ${members.length}`.toUpperCase()}
+                <T face="eyebrow" style={[styles.group, { color: theme.text.muted }]}>
+                  {`${es.reminders.groups[group]} · ${members.length}`}
                 </T>
                 {members.map(({ reminder, status }) => (
                   <Surface
@@ -110,12 +110,13 @@ export default function RecordatoriosScreen() {
                       )}
                     </View>
 
-                    <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 6 }}>
+                    {/* The countdown: km and dates line up in mono (Main.dc.html's "1 250 km"). */}
+                    <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 6 }}>
                       {describe(status)}
                     </T>
 
                     {status.status !== 'sin_datos' && status.confidence === 'baja' && status.dueKm != null ? (
-                      <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: 4 }}>
+                      <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
                         {es.reminders.lowConfidence}
                       </T>
                     ) : null}
@@ -222,9 +223,9 @@ function shortDate(iso: string): string {
 
 const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
-  h: { fontSize: 30 },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { fontSize: 13, marginTop: 2, marginBottom: space.lg, lineHeight: 19 },
-  group: { fontSize: 11, letterSpacing: 0.9, marginTop: space.xl, marginBottom: space.sm },
+  group: { fontSize: 11, marginTop: space.xl, marginBottom: space.sm },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.lg, marginTop: space.sm },
 });

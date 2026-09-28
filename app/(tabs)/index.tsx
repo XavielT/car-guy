@@ -1,15 +1,27 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
-import { OdometerHero, QuickActions, Surface, type Telltale } from '@/components/ui';
-import { radius, space } from '@/constants/theme';
+import {
+  Badge,
+  ClusterHero,
+  Hanko,
+  QuickActions,
+  Surface,
+  TelltaleRow,
+  type BadgeTone,
+  type Lamp,
+  type Status,
+} from '@/components/ui';
+import { palette, radius, space } from '@/constants/theme';
 import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
-import { FEATURE_SYNC } from '@/lib/flags';
+import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
+import { garageFacts, lastWeeklyCheck, type GarageFacts } from '@/lib/db/garageQueries';
+import { lampStates, toKatakana, vehicleBadges } from '@/lib/domain/garage';
 import {
   currentOdometer as currentOdometerQuery,
   odometer as odometerRepo,
@@ -30,7 +42,8 @@ import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
- * Inicio — what the car reads and what it needs, then the four things you came
+ * Inicio — the cluster (IMP 28092026, Main.dc.html): what the car reads, which
+ * lamps are lit, the two things it is waiting on, then the four things you came
  * to do.
  *
  * The MICM price board that used to be the hero moved to Más → Precios: it is
@@ -54,6 +67,9 @@ export default function HomeScreen() {
   const [allReminders, setAllReminders] = useState<EvaluatedReminder[]>([]);
   const [openTasks, setOpenTasks] = useState<Task[]>([]);
   const [modelYear, setModelYear] = useState<number | null>(null);
+  const [weekly, setWeekly] = useState<{ lastAt: string | null; lastHadFailures: boolean } | null>(null);
+  const [facts, setFacts] = useState<GarageFacts | null>(null);
+  const { width } = useWindowDimensions();
 
   // The account nudge: shown once the garage has something worth protecting,
   // dismissible for good. `null` means "not read from storage yet", which keeps
@@ -113,6 +129,18 @@ export default function HomeScreen() {
       })
       .catch(() => {});
 
+    lastWeeklyCheck(vehicleId)
+      .then((w) => {
+        if (!cancelled) setWeekly(w);
+      })
+      .catch(() => {});
+
+    garageFacts(vehicleId)
+      .then((f) => {
+        if (!cancelled) setFacts(f);
+      })
+      .catch(() => {});
+
     attentionReminders(vehicleId, 8)
       .then((rows) => {
         if (!cancelled) setAttention(rows);
@@ -148,56 +176,100 @@ export default function HomeScreen() {
   const insight = latestEconomyInsight(vehicleFillups);
   const avg = economy.length ? economy.reduce((a, p) => a + p.kmPerUnit, 0) / economy.length : null;
 
-  // One strip, worst first across both kinds (see `mergeAttention`): a critical
-  // task from a failed check outranks an overdue oil change.
-  const telltales: Telltale[] = mergeAttention(attention, openTasks, 4).map((entry) =>
+  // Pendientes: one list, worst first across reminders and tasks (see
+  // `mergeAttention`) — a critical task from a failed check outranks an
+  // overdue oil change. Two rows on Inicio; the rest is a tap away.
+  const pending: Pending[] = mergeAttention(attention, openTasks, 2).map((entry) =>
     entry.kind === 'reminder'
       ? {
-          status: entry.item.status.status === 'sin_datos' ? ('proximo' as const) : entry.item.status.status,
-          label: telltaleLabel(entry.item.reminder.title, entry.item.status),
-          onPress: () =>
-            router.push({ pathname: '/recordatorio/[id]', params: { id: entry.item.reminder.id } }),
+          key: entry.item.reminder.id,
+          status: entry.item.status.status === 'sin_datos' ? 'proximo' : entry.item.status.status,
+          title: entry.item.reminder.title,
+          countdown: countdown(entry.item.status),
+          onPress: () => router.push({ pathname: '/recordatorio/[id]', params: { id: entry.item.reminder.id } }),
         }
       : {
+          key: entry.item.id,
           status: TASK_STATUS[entry.item.priority],
-          label: entry.item.title,
+          title: entry.item.title,
+          countdown: es.home.taskCountdown,
           onPress: () => router.push({ pathname: '/tarea/[id]', params: { id: entry.item.id } }),
         },
   );
 
+  const lamps: Lamp[] = lampStates(allReminders, weekly).map((l) => ({
+    icon: l.icon,
+    status: l.state,
+    label: l.label,
+    onPress: l.icon === 'checklist' ? () => router.push('/chequeo') : () => router.push('/recordatorios'),
+  }));
+
+  const detail = activeVehicle.detail;
+  const badges = detail ? vehicleBadges(detail, facts ?? { installedMods: 0 }) : [];
+
   const marbeteNotice = currentMarbeteNudge(todayIso());
   const marbeteTier = marbeteNotice ? marbeteTierLabel(modelYear, todayIso()) : null;
+  const monthEconomy = economy.filter((p) => inMonth(p.occurredAt, now.getFullYear(), now.getMonth()));
+  const monthAvg = monthEconomy.length ? monthEconomy.reduce((a, p) => a + p.kmPerUnit, 0) / monthEconomy.length : avg;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <T face="medium" style={[styles.kicker, { color: theme.accent }]}>
-          {es.home.eyebrow}
-        </T>
         <View style={styles.titleRow}>
-          <T face="display" style={[styles.brand, { color: theme.text.primary }]}>
-            {es.home.title}
-          </T>
+          <View style={{ flex: 1 }}>
+            <View style={styles.brandRow}>
+              <T face="eyebrow" style={{ color: theme.accent, fontSize: 12 }}>
+                {es.home.eyebrow}
+              </T>
+              <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
+                車
+              </T>
+            </View>
+            <T face="display" style={[styles.brand, { color: theme.text.primary }]}>
+              {es.home.title}
+            </T>
+          </View>
           {/* Signed in only: without an account there is nothing to be in step with. */}
           {FEATURE_SYNC && session ? <SyncPill /> : null}
+          <Pressable
+            onPress={() => router.push('/cuenta')}
+            accessibilityRole="button"
+            accessibilityLabel={es.routes.account}
+            hitSlop={8}>
+            <Hanko char="改" size={42} accessibilityLabel={es.routes.account} />
+          </Pressable>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcher}>
           {data.vehicles.filter((v) => !v.isArchived).map((v) => {
             const on = v.id === activeVehicle.id;
+            const kana = toKatakana(v.detail?.nickname);
+            const proyecto = v.detail?.status === 'proyecto';
             return (
               <Pressable
                 key={v.id}
                 onPress={() => setActiveVehicle(v.id)}
                 accessibilityRole="button"
-                accessibilityState={{ selected: v.id === activeVehicle.id }}
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={[v.name, v.detail?.nickname, proyecto ? es.vehicleStatus.proyecto : null].filter(Boolean).join(', ')}
                 style={[
                   styles.chip,
-                  { backgroundColor: on ? theme.accent : theme.bg.raised, borderColor: on ? theme.accent : theme.line },
+                  { backgroundColor: on ? theme.accentFill : theme.bg.surface, borderColor: on ? theme.accentFill : theme.lineStrong },
                 ]}>
-                <T face="semibold" style={{ color: on ? theme.accentInk : theme.text.primary, fontSize: 13 }}>
-                  {v.name}
+                <T face="title" style={[styles.chipLabel, { color: on ? theme.accentFillInk : theme.text.secondary }]}>
+                  {v.name.toUpperCase()}
                 </T>
+                {kana ? (
+                  <T face="kana" style={{ color: on ? theme.accentFillInk : theme.text.muted, fontSize: 10, marginLeft: 6 }}>
+                    {kana}
+                  </T>
+                ) : null}
+                {proyecto ? (
+                  <T face="title" style={[styles.chipLabel, { color: on ? theme.accentFillInk : theme.statusText.urgente }]}>
+                    {' · '}
+                    {es.vehicleStatus.proyecto.toUpperCase()}
+                  </T>
+                ) : null}
               </Pressable>
             );
           })}
@@ -205,21 +277,54 @@ export default function HomeScreen() {
             onPress={() => router.push('/vehiculo/nuevo')}
             accessibilityRole="button"
             style={[styles.chip, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
-            <T face="semibold" style={{ color: theme.text.secondary, fontSize: 13 }}>
+            <T face="title" style={[styles.chipLabel, { color: theme.text.secondary }]}>
               {es.home.addVehicle}
             </T>
           </Pressable>
         </ScrollView>
 
-        <OdometerHero
-          vehicleName={activeVehicle.name}
+        <ClusterHero
           odometerKm={odometerKm}
-          daysSinceReading={daysSince}
-          telltales={telltales}
           reading={clusterReading(allReminders)}
+          caption={odometerCaption(daysSince)}
+          size={Math.min(340, Math.max(240, width - 72))}
+          onPress={() => router.push('/recordatorios')}
           onPressOdometer={() => router.push('/odometro')}
-          onPressTelltales={() => router.push('/recordatorios')}
-        />
+          header={
+            <View style={styles.heroHeader}>
+              <T face="title" numberOfLines={1} style={{ color: palette.dark.text.secondary, fontSize: 15, letterSpacing: 1, flexShrink: 1 }}>
+                {activeVehicle.name.toUpperCase()}
+              </T>
+              {badges.slice(0, 2).map((b) => (
+                <Badge key={b.label} label={b.label} tone={b.tone} />
+              ))}
+            </View>
+          }>
+          <View style={{ marginTop: space.md }}>
+            <TelltaleRow lamps={lamps} />
+          </View>
+        </ClusterHero>
+
+        {pending.length ? (
+          <View style={styles.pending}>
+            {pending.map((p) => (
+              <Pressable
+                key={p.key}
+                onPress={p.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={`${STATUS_LABEL[p.status]}: ${p.title}, ${p.countdown}`}
+                style={[styles.pendingRow, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, borderLeftColor: theme.status[p.status] }]}>
+                <Badge label={STATUS_LABEL[p.status].toUpperCase()} tone={BADGE_TONE[p.status]} />
+                <T face="medium" numberOfLines={1} style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
+                  {p.title}
+                </T>
+                <T face="mono" style={{ color: theme.statusText[p.status], fontSize: 12 }}>
+                  {p.countdown}
+                </T>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         {marbeteNotice ? (
           <Pressable
@@ -227,7 +332,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${es.documents.kinds.marbete}: ${marbeteNotice.message}`}
             style={[styles.banner, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
-            <T face="semibold" style={{ color: theme.status.proximo, fontSize: 13 }}>
+            <T face="semibold" style={{ color: theme.statusText.proximo, fontSize: 13 }}>
               {es.documents.kinds.marbete}
             </T>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
@@ -255,8 +360,8 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() => router.push('/cuenta')}
                 accessibilityRole="button"
-                style={[styles.accountPrimary, { backgroundColor: theme.accent }]}>
-                <T face="semibold" style={{ color: theme.accentInk, fontSize: 13 }}>
+                style={[styles.accountPrimary, { backgroundColor: theme.accentFill }]}>
+                <T face="semibold" style={{ color: theme.accentFillInk, fontSize: 13 }}>
                   {es.account.onboardingAction}
                 </T>
               </Pressable>
@@ -278,26 +383,42 @@ export default function HomeScreen() {
         <QuickActions
           actions={[
             { label: es.quickActions.fuel, icon: 'flash-outline', onPress: () => router.push('/carga/nueva') },
-            { label: es.quickActions.check, icon: 'clipboard-outline', onPress: () => router.push('/(tabs)/chequeo') },
-            { label: es.quickActions.service, icon: 'construct-outline', onPress: () => router.push('/servicio/nuevo') },
-            { label: es.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
+            { label: es.quickActions.check, icon: 'clipboard-outline', onPress: () => router.push('/chequeo') },
+            // BUILD and PISTA take these slots once their phases ship (ADR-24).
+            FEATURE_BUILD
+              ? { label: es.quickActions.build, icon: 'construct-outline', onPress: () => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id, tab: 'build' } }) }
+              : { label: es.quickActions.service, icon: 'construct-outline', onPress: () => router.push('/servicio/nuevo') },
+            FEATURE_TRACK
+              ? { label: es.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id, tab: 'pista' } }) }
+              : { label: es.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
           ]}
         />
 
-        <View style={[styles.monthStrip, { backgroundColor: theme.bg.surface, borderColor: theme.line }]}>
-          <T face="medium" style={[styles.eyebrow, { color: theme.text.muted }]}>
-            {es.home.monthStrip.toUpperCase()}
-          </T>
-          <View style={styles.monthRow}>
-            <MonthStat label={es.home.monthSpend} value={money(monthSpend)} />
-            <MonthStat label={es.home.monthFillups} value={String(monthLogs.length)} />
-            <MonthStat label={es.home.monthKm} value={fmtKm(Math.round(monthKm))} />
+        <View style={[styles.monthStrip, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
+          <View style={styles.brandRow}>
+            <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+              {es.home.monthStrip}
+            </T>
+            <T face="kana" style={{ color: theme.text.muted, fontSize: 9 }}>
+              記録
+            </T>
           </View>
+          <View style={styles.monthRow}>
+            <MonthStat label={es.home.monthSpend} value={money(monthSpend)} wide />
+            <MonthStat label={es.home.monthKm} value={fmtKm(Math.round(monthKm))} />
+            <MonthStat
+              label={es.home.monthEconomy}
+              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType) : '—'}
+            />
+          </View>
+          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
+            {es.home.monthFillupsLine(monthLogs.length)}
+          </T>
         </View>
 
         {insight ? (
           <Surface style={{ marginBottom: space.md }}>
-            <T face="medium" style={{ color: theme.accent, fontSize: 15 }}>
+            <T face="semibold" style={{ color: theme.accent, fontSize: 15 }}>
               {insight.status === 'low'
                 ? es.home.insightLow
                 : insight.status === 'great'
@@ -314,47 +435,35 @@ export default function HomeScreen() {
           </Surface>
         ) : null}
 
-        <View style={styles.grid}>
-          <Surface>
-            <T face="medium" style={[styles.statLabel, { color: theme.text.muted }]}>
-              {es.home.lastTank}
-            </T>
-            <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
-              {last ? kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType) : '—'}
-            </T>
-            <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
-              {last
-                ? es.home.lastTankHint(
-                    fmtKm(last.distanceKm),
-                    `${last.volume} ${FUEL_CATALOG[activeVehicle.defaultFuelType].unitLabel}`,
-                  )
+        <Surface>
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+            {es.home.lastTank}
+          </T>
+          <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
+            {last ? kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType) : '—'}
+          </T>
+          <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
+            {last
+              ? es.home.lastTankHint(
+                  fmtKm(last.distanceKm),
+                  `${last.volume} ${FUEL_CATALOG[activeVehicle.defaultFuelType].unitLabel}`,
+                )
+              : avg == null
+                ? es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType))
                 : es.home.lastTankEmpty}
-            </T>
-          </Surface>
-          <Surface>
-            <T face="medium" style={[styles.statLabel, { color: theme.text.muted }]}>
-              {es.home.averageTank}
-            </T>
-            <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
-              {avg != null ? kmPerUnit(avg, activeVehicle.defaultFuelType) : '—'}
-            </T>
-            <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
-              {economy.length
-                ? es.home.averageHint(economy.length)
-                : es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType))}
-            </T>
-          </Surface>
-        </View>
+          </T>
+        </Surface>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function MonthStat({ label, value }: { label: string; value: string }) {
+/** `wide` for the money column: "RD$ 3,806.40" should not wrap under its currency. */
+function MonthStat({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   const { theme } = useTheme();
   return (
-    <View style={styles.monthStat}>
-      <T face="monoBold" style={{ color: theme.text.primary, fontSize: 17 }}>
+    <View style={[styles.monthStat, wide && { flex: 1.4 }]}>
+      <T face="monoBold" numberOfLines={1} style={{ color: theme.text.primary, fontSize: value.length > 12 ? 14 : 16 }}>
         {value}
       </T>
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
@@ -364,31 +473,38 @@ function MonthStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** "Aceite de motor · faltan 320 km" — short enough for a pill. */
 /** Critical first, then normal, then the nice-to-haves. */
 function byPriority(a: Task, b: Task): number {
   const rank = { critica: 0, normal: 1, baja: 2 };
   return rank[a.priority] - rank[b.priority];
 }
 
-function telltaleLabel(title: string, status: EvaluatedReminder['status']): string {
-  const t = es.home.telltale;
-  if (status.status === 'sin_datos') return t.noData(title);
-  if (status.dueKm != null && status.dueKm < 0) return t.kmOver(title, fmtKm(Math.abs(Math.round(status.dueKm))));
-  if (status.dueDays != null && status.dueDays < 0) return t.overdue(title);
-  if (status.dueKm != null && (status.dueDays == null || status.dueKm / 50 < status.dueDays)) {
-    return t.kmLeft(title, fmtKm(Math.round(status.dueKm)));
-  }
-  if (status.dueDays != null) return t.daysLeft(title, status.dueDays);
-  return `${title} · ${STATUS_LABEL[status.status]}`;
+type Pending = { key: string; status: Status; title: string; countdown: string; onPress: () => void };
+
+/** The mono countdown on a Pendientes row: "1,250 km", "−320 km", "12 d", "−3 d". */
+function countdown(status: EvaluatedReminder['status']): string {
+  if (status.status === 'sin_datos') return es.home.noDataShort;
+  const byKm = status.dueKm != null && (status.dueDays == null || status.dueKm / 50 < status.dueDays);
+  if (byKm) return `${status.dueKm! < 0 ? '−' : ''}${fmtKm(Math.abs(Math.round(status.dueKm!)))}`;
+  if (status.dueDays != null) return `${status.dueDays < 0 ? '−' : ''}${Math.abs(status.dueDays)} d`;
+  return STATUS_LABEL[status.status];
 }
 
-/** Priority reads as urgency on the strip, same vocabulary as the reminders. */
-const TASK_STATUS: Record<Task['priority'], Telltale['status']> = {
+function odometerCaption(daysSince: number | null): string {
+  if (daysSince == null) return es.home.odometerTapHint;
+  if (daysSince <= 0) return es.home.updatedToday;
+  if (daysSince === 1) return es.home.updatedYesterday;
+  return es.home.updatedDaysAgo(daysSince);
+}
+
+/** Priority reads as urgency, same vocabulary as the reminders. */
+const TASK_STATUS: Record<Task['priority'], Status> = {
   critica: 'vencido',
   normal: 'proximo',
   baja: 'ok',
 };
+
+const BADGE_TONE: Record<Status, BadgeTone> = { vencido: 'red', urgente: 'amber', proximo: 'amber', ok: 'green' };
 
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
@@ -409,15 +525,32 @@ const styles = StyleSheet.create({
   },
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 40 },
-  kicker: { letterSpacing: 2, fontSize: 12 },
-  brand: { fontSize: 34, marginTop: 4, marginBottom: space.md },
+  brandRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  brand: { fontSize: 34, marginTop: 2, marginBottom: space.md, textTransform: 'uppercase' },
   switcher: { marginBottom: space.lg },
-  chip: { minHeight: 44, justifyContent: 'center',
+  chip: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: space.md + 2,
     paddingVertical: space.sm,
-    borderRadius: radius.chip,
+    borderRadius: radius.tag,
     marginRight: space.sm,
     borderWidth: 1,
+  },
+  chipLabel: { fontSize: 14, letterSpacing: 0.8 },
+  heroHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.sm },
+  pending: { gap: space.sm, marginBottom: space.lg },
+  pendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: 10,
+    paddingHorizontal: space.md,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderRadius: radius.input,
+    minHeight: 48,
   },
   monthStrip: {
     borderWidth: 1,
@@ -426,13 +559,10 @@ const styles = StyleSheet.create({
     marginTop: space.lg,
     marginBottom: space.md,
   },
-  eyebrow: { fontSize: 11, letterSpacing: 0.9, marginBottom: space.md },
-  monthRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  monthRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.md },
   monthStat: { flex: 1 },
   banner: { borderWidth: 1, borderRadius: radius.input, padding: space.md, marginBottom: space.lg },
   alertText: { fontSize: 13, lineHeight: 19, marginTop: 5 },
-  grid: { gap: space.md },
-  statLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
   statVal: { fontSize: 22, marginTop: space.sm },
   statHint: { fontSize: 12, marginTop: 6 },
 });

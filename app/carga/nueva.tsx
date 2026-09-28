@@ -30,7 +30,7 @@ export default function CargarScreen() {
   if (!activeVehicle) return null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <View style={{ flex: 1 }}>
         <FillUpForm
           key={`${activeVehicle.id}-${formKey}`}

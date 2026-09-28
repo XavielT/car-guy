@@ -31,7 +31,7 @@ export function DateField({
 
   return (
     <View style={styles.wrap}>
-      <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
         {label}
       </T>
       <input
@@ -50,7 +50,8 @@ export function DateField({
           minHeight: 48,
           fontSize: 16,
           color: theme.text.primary,
-          fontFamily: fonts.body,
+          // A date is a number: mono, like every other figure.
+          fontFamily: fonts.mono,
           // Tells the browser which way round to paint its own calendar glyph
           // and picker chrome. Hard-coded to dark it was a black icon on a dark
           // field in light mode, and vice versa.
@@ -70,6 +71,6 @@ export function DateField({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md + 2 },
-  label: { fontSize: 13, marginBottom: 6 },
-  hint: { fontSize: 12, marginTop: 6, lineHeight: 17 },
+  label: { fontSize: 12, marginBottom: 6 },
+  hint: { fontSize: 13, marginTop: 6, lineHeight: 17 },
 });

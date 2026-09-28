@@ -36,9 +36,9 @@ export function EmptyState({
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.action,
-            { backgroundColor: pressed ? theme.accentPressed : theme.accent },
+            { backgroundColor: pressed ? theme.accentPressed : theme.accentFill },
           ]}>
-          <T face="semibold" style={[styles.actionLabel, { color: theme.accentInk }]}>
+          <T face="title" style={[styles.actionLabel, { color: theme.accentFillInk }]}>
             {actionLabel}
           </T>
         </Pressable>
@@ -64,5 +64,5 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     borderRadius: radius.button,
   },
-  actionLabel: { fontSize: 15 },
+  actionLabel: { fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' },
 });

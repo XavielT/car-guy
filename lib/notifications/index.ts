@@ -269,7 +269,10 @@ export async function offerAfterFirstInspection(): Promise<void> {
 /** Follows a notification's `data.route`, from a tap now or one that launched the app. */
 export function routeOf(response: { notification: { request: { content: { data?: unknown } } } }) {
   const data = response.notification.request.content.data as { route?: unknown } | undefined;
-  return typeof data?.route === 'string' ? data.route : null;
+  if (typeof data?.route !== 'string') return null;
+  // Scheduled before 2.1, when Chequeo was a tab: those notifications are still
+  // on people's phones and carry the old route.
+  return data.route === '/(tabs)/chequeo' ? '/chequeo' : data.route;
 }
 
 function triggerFor(
@@ -322,7 +325,7 @@ export async function sendTest(): Promise<void> {
     content: {
       title: 'Car Guy',
       body: 'Así te voy a avisar cuando toque un chequeo o un mantenimiento.',
-      data: { route: '/(tabs)/chequeo' },
+      data: { route: '/chequeo' },
     },
     trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL_ID },
   });

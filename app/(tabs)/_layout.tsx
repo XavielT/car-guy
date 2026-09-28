@@ -9,9 +9,10 @@ import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
- * Car Guy's five tabs (03-screens-ia.md). "Cargar" is deliberately not one of
- * them any more: fuel is one kind of care among several, so it moved to
- * `carga/nueva` and is reached from the home screen's QuickActions.
+ * Car Guy's five tabs (IMP 28092026, 03-screens.md): Inicio · Garaje ·
+ * Historial · Cifras · Más. Chequeo left the bar for the Garaje; it lives at
+ * `chequeo/index` and is reached from Inicio's QuickActions and telltale, from
+ * Más and from its notification. Fuel is `carga/nueva`, from QuickActions.
  */
 export default function TabLayout() {
   const { ready, data } = useStore();
@@ -44,13 +45,14 @@ export default function TabLayout() {
         tabBarInactiveTintColor: theme.text.muted,
         tabBarStyle: {
           backgroundColor: theme.bg.surface,
-          borderTopColor: theme.line,
-          height: 64 + insets.bottom,
-          paddingBottom: 8 + insets.bottom,
+          borderTopColor: theme.lineStrong,
+          height: 68 + insets.bottom,
+          paddingBottom: 10 + insets.bottom,
           paddingTop: 8,
         },
         tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: { fontFamily: fonts.semibold, fontSize: 11 },
+        // Saira's tall caps clip at the default line height on web; give them room.
+        tabBarLabelStyle: { fontFamily: fonts.title, fontSize: 11, lineHeight: 15, letterSpacing: 0.9, textTransform: 'uppercase' },
       }}>
       <Tabs.Screen
         name="index"
@@ -62,12 +64,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="chequeo"
+        name="garaje"
         options={{
-          title: es.tabs.chequeo,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="clipboard-outline" size={size} color={color} />
-          ),
+          title: es.tabs.garaje,
+          tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

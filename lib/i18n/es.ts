@@ -60,12 +60,72 @@ export const es = {
 
   tabs: {
     inicio: 'Inicio',
+    garaje: 'Garaje',
     chequeo: 'Chequeo',
     historial: 'Historial',
     cifras: 'Cifras',
     mas: 'Más',
   },
 
+  vehicleStatus: {
+    activo: 'Activo',
+    proyecto: 'Proyecto',
+    guardado: 'Guardado',
+    vendido: 'Vendido',
+    perdido: 'Perdido',
+  },
+  transmissions: { manual: 'Manual', automatica: 'Automática', cvt: 'CVT', otro: 'Otra' },
+  origins: { jdm: 'JDM', usdm: 'USDM', eudm: 'EUDM', local: 'Local', otro: 'Otro' },
+  hub: {
+    tabs: { resumen: 'Resumen', album: 'Álbum', build: 'Build', ficha: 'Ficha', pista: 'Pista', docs: 'Docs' },
+    soon: (tab: string) => `${tab}: próximamente. Lo estamos armando.`,
+    story: 'La historia',
+    storyEmpty: 'Todavía no le has escrito la historia a este carro.',
+    writeStory: 'Escribir la historia',
+    editStory: 'Editar la historia',
+    storyTitle: 'La historia del carro',
+    storyPrompt: 'Cómo llegó, qué le has hecho, qué viene. Esto es lo que vas a querer leer en diez años.',
+    storyPromptSold: 'Escribe la historia del carro antes de que se te olvide. Ya no está, pero aquí sigue.',
+    storySave: 'Guardar historia',
+    changeStatus: 'Cambiar estado',
+    statusHint: {
+      activo: 'En uso: aparece en Inicio y en los recordatorios.',
+      proyecto: 'En restauración o en build. Sigue en Inicio.',
+      guardado: 'Parado o guardado: sale del selector, conserva todo.',
+      vendido: 'Cierra el período de dueño y lo pasa a Ex.',
+    },
+    saleTitle: 'Vendí el carro',
+    saleBody: 'Se queda con toda su historia en Garaje → Ex. Nada se borra.',
+    saleDate: 'Fecha de venta',
+    saleKm: 'Kilometraje al venderlo',
+    saleKmBelow: (km: string) => `El kilometraje no puede ser menor que la última lectura (${km}).`,
+    salePrice: 'Precio de venta (RD$)',
+    saleTo: '¿A quién?',
+    saleReason: 'Razón',
+    saleSave: 'Registrar venta',
+    share: 'Compartir ficha',
+    book: 'Libro del carro (PDF)',
+    docsEmpty: 'Sin documentos para este vehículo.',
+    docsAll: 'Ver todos los documentos',
+    docExpires: (date: string) => `Vence ${date}`,
+    expired: 'Vencido',
+  },
+  garage: {
+    eyebrow: 'Mi garaje',
+    title: 'Garaje',
+    counts: (active: number, ex: number) =>
+      `${active} en el garaje${ex ? ` · ${ex} ex` : ''}`,
+    filters: { activos: 'Activos', proyecto: 'Proyecto', ex: 'Ex' },
+    exSection: 'Ex · Los que ya no están',
+    exCaption: 'Ya no está, pero aquí sigue.',
+    emptyFilter: 'Nada con ese filtro.',
+    add: '+ Agregar vehículo',
+    mods: (n: number) => (n === 1 ? '1 mod' : `${n} mods`),
+    overdue: (n: number) => (n === 1 ? '1 vencido' : `${n} vencidos`),
+    allGood: 'Todo al día',
+    projectLine: (tasks: number) => (tasks ? `Restauración · ${tasks} ${tasks === 1 ? 'tarea' : 'tareas'}` : 'En proyecto'),
+    photos: (n: number) => (n === 1 ? '1 foto' : `${n} fotos`),
+  },
   telltale: {
     off: 'sin pendientes',
     ok: 'al día',
@@ -94,6 +154,10 @@ export const es = {
     a11y: (odo: string, next: string) => `Odómetro ${odo}. ${next}`,
   },
   home: {
+    taskCountdown: 'tarea',
+    noDataShort: 'sin datos',
+    monthEconomy: 'Rendimiento',
+    monthFillupsLine: (n: number) => (n === 0 ? 'Sin cargas este mes' : n === 1 ? '1 carga este mes' : `${n} cargas este mes`),
     telltale: {
       noData: (title: string) => `${title} · sin datos`,
       kmOver: (title: string, km: string) => `${title} · ${km} pasado`,
@@ -136,9 +200,25 @@ export const es = {
     check: 'Chequeo',
     service: 'Mantenimiento',
     expense: 'Gasto',
+    build: 'Build',
+    track: 'Pista',
   },
 
   vehicle: {
+    identitySection: 'Identidad del carro (apodo, chasis, motor, historia)',
+    nickname: 'Apodo',
+    nicknamePlaceholder: 'hachi-gō, el daily, la jeepeta…',
+    status: 'Estado',
+    chassisCode: 'Código de chasis',
+    engineCode: 'Motor',
+    chassisNumber: 'Número de chasis',
+    chassisNumberHint: 'Para carros JDM sin VIN (ej. AE85-0012345).',
+    transmission: 'Transmisión',
+    drivetrain: 'Tracción',
+    origin: 'Origen',
+    importedYear: 'Año en que se importó',
+    story: 'La historia del carro',
+    storyPlaceholder: 'Cómo llegó, qué le has hecho, qué viene…',
     newTitle: 'Nuevo vehículo',
     editTitle: 'Editar vehículo',
     name: 'Nombre',
@@ -740,6 +820,16 @@ export const es = {
   },
 
   more: {
+    garageOpen: 'Ver el garaje',
+    garageOpenCaption: (active: number, archived: number) =>
+      `${active} ${active === 1 ? 'vehículo' : 'vehículos'}${archived ? ` · ${archived} guardados o ex` : ''}`,
+    activeVehicle: (name: string) => `Perfil de ${name}`,
+    activeVehicleCaption: 'Resumen, historia, documentos y estado.',
+    checksSection: 'Chequeos',
+    checks: 'Chequeos y plantillas',
+    checksCaption: 'Diario, semanal y mensual. Edita qué revisas.',
+    checkGuide: 'Guía de chequeo',
+    checkGuideCaption: 'Cómo revisar cada cosa, paso a paso.',
     title: 'Más',
     subtitle: 'Tu garaje, tus papeles y los datos que viven en este teléfono.',
 
@@ -1189,5 +1279,30 @@ export const es = {
     missingAction: 'Ir al inicio',
     invalidNumber: (field: string) => `Revisa «${field}»: tiene que ser un número mayor o igual a cero.`,
     minutes: (n: number) => `${n} min`,
+  },
+
+  /** IMP 28092026 Phase 2 — the JDM identity pass on the legacy screens. */
+  identity: {
+    /** The hanko on a finished inspection or service (a11y label). */
+    stamped: 'Registrado',
+  },
+  /**
+   * 05-design-jdm.md "Voice additions" — the copy the later blocks (álbum,
+   * build, pista, compartir) speak with, kept here so they arrive written.
+   */
+  voice: {
+    albumEmpty: 'Aquí va la historia del carro. Sube las fotos viejas antes de que se pierdan.',
+    exCaption: 'Ya no está, pero aquí sigue.',
+    feel: {
+      subvira: 'Subvira',
+      neutral: 'Neutral',
+      sobrevira: 'Sobrevira',
+      nervioso: 'Nervioso',
+      lento: 'Lento',
+    },
+    driftNoteHint: '¿Cómo se sintió de lao\'?',
+    specUpdated: (from: string, to: string) => `Ficha actualizada: ${from} → ${to}.`,
+    wishlistInstalled: 'Instalado. Eso ta\' clean.',
+    publicLinkReady: 'Link listo. Lo que no marcaste no se ve.',
   },
 } as const;

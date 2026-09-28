@@ -3,7 +3,7 @@
 Claude Code appends a report per phase (block in `00-context/04-conventions.md`, plus *Design
 check* and *Flags flipped*). "Notes for the next phase" carry context between sessions.
 
-**Started:** 2026-09-28 · **Status:** Phase 1 done
+**Started:** 2026-09-28 · **Status:** Phase 2 done
 
 ## Phase status
 
@@ -11,7 +11,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 |---|---|---|---|---|
 | 0 | Kickoff | ✅ | `imp-28092026/phase-0-kickoff` | folder rename still pending (manual) |
 | 1 | Schema v2 + JDM tokens | ✅ | `imp-28092026/phase-1-schema-tokens` | cloud 009/010 applied; Android verified on the Redmi 2026-09-28 |
-| 2 | JDM screens + Garaje | ⬜ | | |
+| 2 | JDM screens + Garaje | ✅ | `imp-28092026/phase-2-jdm-screens` | web + Android (Redmi) verified 2026-09-28 |
 | 3 | Álbum / memoria | ⬜ | | |
 | 4 | Build log | ⬜ | | |
 | 5 | DIY | ⬜ | | |
@@ -73,6 +73,8 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | 1 | Web console: RN-web deprecation warnings for `shadow*` style props and `props.pointerEvents` (pre-existing `shadow*` in Surface) | low | cosmetic, dev only |
 | 1 | `expo` 57.0.14 → 57.0.25 and 14 packages behind (Metro banner; same as NEXT.md's expo-doctor note) | low | one `npx expo install --check` pass |
 | 1 | `dist` 6.6 → 7.3 MB: the bundled DTC table (546 KB JSON) is in the JS entry | low | could move to a lazily fetched asset if first load matters |
+| 2 | Web console on Cifras: `Unknown event handler property onStartShouldSetResponder…` (7 warnings) from `react-native-gifted-charts`' bar touchables on react-native-web | low | dev only; charts pass `disablePress`, the library still forwards the responder props |
+| 2 | The Garaje's hero cover has only the v2.0 vehicle photo or a favourite album photo to show; the seeded garage has neither, so every card shows the carbon placeholder until Phase 3 | low | by design until FEATURE_ALBUM |
 
 ## Blockers
 
@@ -337,3 +339,136 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
   the backup had just been sent) and typed "305" into its message box. It was cleared without sending; nothing was
   sent. The phone helper now refuses any input unless Car Guy is the foreground app, and fails loudly on a stale dump.
 
+
+
+## Phase 2 — JDM screens + Garaje + vehicle hub   (branch `imp-28092026/phase-2-jdm-screens`)
+
+**Status:** complete
+**Commits:** `feat(ui): JDM identity on every screen, Garaje tab, vehicle hub …`, `chore(i18n): voice additions …`,
+`docs(imp-28092026): phase 2 report`
+
+### Changed
+- **Navigation** — `app/(tabs)/_layout.tsx`: Inicio · Garaje · Historial · Cifras · Más (Ionicons speedometer /
+  car-sport / time / stats-chart / ellipsis; labels Saira uppercase). `app/(tabs)/chequeo.tsx` → `app/chequeo/index.tsx`
+  (stack), reached from Inicio's CHEQUEO action, the checklist telltale, Más → Chequeos and notifications.
+  `routeOf()` maps the pre-2.1 `/(tabs)/chequeo` route still carried by scheduled notifications. `unstable_settings.anchor`
+  kept. Stack headers draw their title in Saira uppercase through `headerTitle` (the `title` option stays sentence case —
+  it is also the browser tab title).
+- **Inicio** (`app/(tabs)/index.tsx`) per Main.dc.html: CAR GUY 車 · TABLERO header with the hanko → Cuenta; vehicle chips
+  (active amber, katakana nick via `toKatakana`, `· PROYECTO` suffix); `ClusterHero` fed by `clusterReading()` over every
+  evaluated reminder (PRÓX. SERVICIO line with km and ~date); `TelltaleRow` inside the cluster from `lampStates()` —
+  aceite, refrigerante, gomas, batería, marbete/seguro from reminders, chequeo semanal from the last weekly inspection;
+  Pendientes top-2 (reminders + tasks merged, Badge + mono countdown); QuickActions GASOLINA · CHEQUEO · MANTENIMIENTO ·
+  GASTO (BUILD/PISTA take slots 3–4 when their flags are on); ESTE MES 記録 strip; marbete banner; economy insight.
+  `OdometerHero` deleted.
+- **Garaje** (`app/(tabs)/garaje.tsx`, new): ACTIVOS · PROYECTO · EX filter chips (toggle; none = all), hero card for the
+  active vehicle, 2-up cards, EX · LOS QUE YA NO ESTÁN with dashed cards (ownership line, photo count, 記憶), + Agregar
+  vehículo. Cover = `hero_media_id` → first favourite album photo → v2.0 vehicle photo.
+  `lib/domain/garage.ts` (new, pure): derived badges (engine code red when the car has installed mods, discipline amber
+  from the last track event or mod tags, DAILY/PROYECTO/GUARDADO/EX), `isArchivedFor`, `ownershipLine`, `toKatakana`,
+  `lampStates`. `lib/db/garageQueries.ts` (new): `garageFacts()` (mods, tags, discipline, photos, open tasks, ownership,
+  favourite cover) and `lastWeeklyCheck()`.
+- **Vehicle hub** (`app/vehiculo/[id].tsx`): cover, name + katakana + nick + badges, status pill, ownership line, `LcdDigits`
+  odometer; segmented in-page tabs Resumen · Álbum · Build · Ficha · Pista · Docs (tablist/tab roles; `?tab=` deep link) —
+  Resumen (story, totals, specs, vida útil) and Docs work, the rest show "Próximamente" unless their flag is on. Actions
+  Editar · Cambiar estado (sheet) → Vendido opens the sale sheet (fecha, km ≥ current odometer, precio, a quién, razón)
+  → `sellVehicle()` closes `vehicle_ownership`, sets `vendido` + `is_archived`, writes the sale odometer reading
+  (`odo_sale_<id>`), then the "Escribe la historia del carro" sheet. Compartir/Libro hidden behind `FEATURE_SHARE`.
+  `lib/db/vehicleOps.ts`: `setVehicleStatus()` (guardado ⇔ archived), `sellVehicle()`, `saveVehicleDraft()` writes the
+  identity fields and mirrors purchase data into `own_<id>`.
+- **VehicleForm**: nickname, chassis code/number, engine code, transmission, drivetrain, origin, imported year, story
+  (multiline), status — in a collapsible "Identidad" section.
+- **Identity pass**: Historial (month header Saira 800 + mono subtotal, category colours, 56 px amber square FAB), Cifras
+  (mono KPIs, chart colours from tokens with the light inks on light), Más (eyebrow section headers, `ScreenTitle`),
+  chequeo list/runner/result (BoostRing progress, "Todo al día" green, hanko), PriceBoard as a dark instrument with amber
+  mono price boxes, reminders, tasks, documents, onboarding (mark + hanko), cuenta, precios, notificaciones, reporte,
+  exportar, +not-found, BootError, AlertHost, Sheet, Field/DateField labels as eyebrows. `components/ui/ScreenTitle.tsx`
+  (new). Light mode: ClusterHero and PriceBoard stay dark panels.
+- **PDF report** (`lib/report/html.ts`): dark header band, Saira title, derived badges; body pages stay printable on white.
+- **Strings**: `es.garage`, `es.hub`, `es.vehicleStatus`, `es.cluster`, `es.voice` (all of 05-design-jdm.md "Voice
+  additions").
+- **Tests** (679 → 697 … 455 at Phase 0): `__tests__/domain/garage.test.ts` (badges, katakana, ownership line incl. no
+  purchase date, lamps), `__tests__/db/vehicle-status.test.ts` (status ⇔ archived, sale closes ownership, favourite
+  cover), `__tests__/notifications/route.test.ts` (legacy chequeo route), chart marks ≥ 3:1 in `contrast.test.ts`.
+
+### Dependencies added / removed
+- none
+
+### Acceptance criteria
+- [x] Five tabs; Chequeo reachable from QuickActions, telltale, Más and notifications; old route mapped — verified on web
+  (tabs screenshot, `/chequeo`, runner via the list) and by `route.test.ts`; on the Redmi `am start -d carguy://chequeo` opens the moved Chequeo screen.
+- [x] Inicio matches Main.dc.html structurally — header, chips, ClusterHero, TelltaleRow, Pendientes, QuickActions, month
+  strip (`imp-28092026-phase-2-inicio-*.png`).
+- [x] Garaje with hero card, 2-up cards, EX section; the Jetta seed shows as Ex ("2018 → vendido 2021 · 0 fotos").
+- [x] Vehicle hub with in-page tabs; status change incl. the sale sheet → ownership closed, story prompt — web run on the
+  seeded C3: sale sheet → story prompt → Garaje shows it under EX; `vehicle-status.test.ts` checks the rows.
+- [x] Every legacy screen restyled; light mode verified (screenshots in both schemes); contrast list below.
+- [x] Sweep once per cold start (module flag in `gaugeSweep.ts`, unchanged since Phase 1); reduced motion respected.
+- [x] Fuel flow + weekly check on web: fill-up 52,400 → 52,800 km → review sheet **400 km, 38.1 km/gal** → Historial;
+  weekly check 9/9 OK → "TODO AL DÍA" with the BoostRing and hanko. Android (Redmi, throwaway "Prueba QA borrar", deleted after): two fill-ups 10,100 → 10,500 km → review
+  **400 km, 36.4 km/gal, RD$ 8.25/km** → Historial; weekly check 9/9 OK → "TODO AL DÍA"; the chequeo telltale went
+  próximo → al día; status → Proyecto from the hub sheet shows on the Garaje card.
+- [x] tsc, lint, 697/697 tests, `npm run build` (46/46 pages titled) green.
+
+### Contrast (WCAG, lowest first)
+- Dark text pairs: pill urgente 4.59 · text.muted/raised 4.79 · redlineText/raised 4.91 · dangerText/raised 4.91 ·
+  white/redline (pill vencido, red badge) 4.97 · dangerInk/danger 4.97 · text.muted/surface 5.12. Chart/category marks
+  (3:1 floor): album 3.47 · reparación 5.25 · track 5.65.
+- Light text pairs: pill ok 4.55 · pill urgente 4.57 · pill próximo 4.89 · accent ink/raised 5.04 · accent ink/base 5.26 ·
+  statusText.ok/surface 5.37 · text.muted/raised 5.39. Marks: mejora 3.98 · otros 3.99 · inspección 4.00.
+- Every pair ≥ 4.5 (text) / ≥ 3 (marks) is enforced by `__tests__/theme/contrast.test.ts`;
+  `PRINT_CONTRAST=1 npx jest __tests__/theme/contrast.test.ts` prints the list.
+- a11y: each telltale is a button labelled "<fuente>: <estado>"; the cluster is `summary`; hub tabs and Segmented are
+  `tablist`/`tab` with `selected`; vehicle chips announce name, nick and PROYECTO.
+
+### Decisions made (defaults applied)
+- Screenshots are `docs/qa/imp-28092026-phase-2-*.png`: `docs/qa/phase-2-*.png` already holds IMP 17092026's Phase 2 set.
+- The engine badge shows only on a modified car (a stock engine code is spec, not a badge); an active stock car is DAILY.
+- Garaje filters toggle; with none selected every group shows (the artboard shows all three).
+- Pendientes merges reminders and open tasks worst-first (a critical task from a failed check outranks an oil change).
+- Ex with no purchase date reads "Vendido 2026", not "¿? → vendido 2026".
+- The sale's km may be empty, but never below the current odometer.
+- Más' "Build / Pista / DIY / Compartir" sections stay out until their flags turn on; "Datos" keeps backup/restore.
+
+### Deviations from the package
+- Tab icons are Ionicons equivalents of Main.dc.html's hand-drawn set (car-sport for the garage).
+- The status sheet offers activo/proyecto/guardado/vendido; `perdido` (in the data model) is not offered in the UI yet.
+
+### Observed, deferred
+- See the table above (gifted-charts responder warnings on web; placeholder covers until the album).
+
+### Design check
+- **Inicio · Cluster** — structure matches: header, chips with katakana/PROYECTO, dial with gradient + redline wedge,
+  LCD odometer with the needle-coloured last digit, PRÓX. SERVICIO line, six lamps, Pendientes, 2×2 actions, ESTE MES
+  strip. Deviation: slots 3–4 are MANTENIMIENTO · GASTO until FEATURE_BUILD/TRACK (as the prompt says); the account
+  card still sits between the cluster and the actions for signed-out users.
+- **Garaje** — filters, hero, 2-up, dashed EX with 記憶, add button: match. Covers are the carbon placeholder (no photos
+  in the seed; Phase 3).
+- **Álbum / Build / Pista** — hub tabs exist and say "Próximamente"; their artboards are Phases 3/4/6.
+- **Tokens** — unchanged from Phase 1; chart marks now use the light inks on light.
+
+### Flags flipped
+- none
+
+### Android (Redmi Note 10 Pro, 2026-09-28)
+- **Build:** `eas build --local --profile preview` (needs `ANDROID_HOME=~/Android/Sdk` in the environment — the first
+  attempt failed at Gradle without it). 23 min: every run compiles all 644 tasks in a fresh temp dir, native code for
+  four ABIs. Cert SHA-256 `a16450a0…` on both the new APK and the installed one (checked with `apksigner`) →
+  `adb install -r`, data kept. No schema change this phase.
+- **Real data:** cold start with no JS error; the DS3, 51,900 km and its reminders read correctly on the new Inicio.
+- **Canaries:** see the acceptance criteria (fuel, weekly check, deep link, status change), all on a throwaway
+  vehicle that was then removed; the DS3 is the only vehicle again.
+- Screenshots `docs/qa/imp-28092026-phase-2-android-*.png` (status bar cropped off — it carries notification icons).
+- **Found and fixed:** `Sheet` ignored the bottom safe-area inset, so on edge-to-edge Android the last button
+  ("Listo" on the fill-up review) sat on the navigation bar and reported zero bounds to accessibility. Pre-existing
+  since 2.0; `paddingBottom` now adds `insets.bottom`. JS-only — it reaches the phone with the next build (not
+  re-verified on the device).
+- Not measured on the device: the sweep timing and reduced motion (same code as Phase 1); light mode was checked on web.
+- The check runner still never lets `uiautomator dump` go idle (timer re-render, noted in Phase 1); driven by
+  screenshot coordinates instead.
+
+### Notes for the next phase
+- Phase 3 (Álbum): the hub's `album` tab and `garageFacts().favoriteMediaId` / `photos` are ready to read album rows;
+  the Garaje and hub covers already fall back to the first favourite. `es.voice.albumEmpty` is the empty state.
+- `vehicleBadges()` takes `lastDiscipline`/`tags` — Phase 6's track events light the amber badge with no UI change.
+- The phone helper (scratchpad `phone.py` pattern): refuse input unless `mCurrentFocus` is Car Guy, fresh dump per tap.

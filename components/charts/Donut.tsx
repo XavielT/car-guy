@@ -8,7 +8,7 @@ import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 import { ChartFrame } from './ChartFrame';
-import { CATEGORY_COLOR } from './StackedBars';
+import { useCategoryColor } from './StackedBars';
 
 /**
  * Spend by category as a donut with the total in the hole and a legend that
@@ -21,10 +21,11 @@ import { CATEGORY_COLOR } from './StackedBars';
  */
 export function Donut({ totals, total }: { totals: CategoryTotal[]; total: number }) {
   const { theme } = useTheme();
+  const colorOf = useCategoryColor();
 
   const data = totals.map((entry) => ({
     value: entry.total,
-    color: CATEGORY_COLOR[entry.category],
+    color: colorOf(entry.category),
   }));
 
   return (
@@ -44,7 +45,7 @@ export function Donut({ totals, total }: { totals: CategoryTotal[]; total: numbe
             strokeColor={theme.bg.surface}
             centerLabelComponent={() => (
               <View style={{ alignItems: 'center' }}>
-                <T face="body" style={{ color: theme.text.muted, fontSize: 10 }}>
+                <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
                   {es.stats.total}
                 </T>
                 <T face="monoBold" style={{ color: theme.text.primary, fontSize: 13 }}>
@@ -57,7 +58,7 @@ export function Donut({ totals, total }: { totals: CategoryTotal[]; total: numbe
           <View style={styles.legend}>
             {totals.map((entry) => (
               <View key={entry.category} style={styles.legendRow}>
-                <View style={[styles.swatch, { backgroundColor: CATEGORY_COLOR[entry.category] }]} />
+                <View style={[styles.swatch, { backgroundColor: colorOf(entry.category) }]} />
                 <T
                   face="body"
                   numberOfLines={1}
@@ -68,7 +69,7 @@ export function Donut({ totals, total }: { totals: CategoryTotal[]; total: numbe
                   <T face="mono" style={{ color: theme.text.primary, fontSize: 12 }}>
                     {money(entry.total)}
                   </T>
-                  <T face="body" style={{ color: theme.text.muted, fontSize: 10 }}>
+                  <T face="mono" style={{ color: theme.text.muted, fontSize: 10 }}>
                     {Math.round(entry.share * 100)} %
                   </T>
                 </View>

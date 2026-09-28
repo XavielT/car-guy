@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
-import { GaugeRing, GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
+import { BoostRing, GhostButton, Hanko, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { baseTemplateId } from '@/lib/db/inspectionOps';
 import {
@@ -113,7 +113,8 @@ export default function InspeccionScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <View style={styles.hero}>
-          <GaugeRing
+          {/* The one sweep on this screen: it runs once, on arrival. */}
+          <BoostRing
             progress={results.length ? answered / results.length : 1}
             size={132}
             animate
@@ -123,17 +124,33 @@ export default function InspeccionScreen() {
           />
         </View>
 
-        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {failures.length === 0 ? es.check.resultAllGood : es.check.resultWithFails(failures.length)}
-        </T>
-        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.lg }}>
-          {templateName} · {dateLabel(run.occurredAt)}
-          {run.odometerKm != null ? ` · ${fmtKm(run.odometerKm)}` : ''}
-          {run.durationSec ? ` · ${es.common.minutes(Math.max(1, Math.round(run.durationSec / 60)))}` : ''}
-        </T>
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            {/* "Todo al día" is the green telltale; failures read in the red text ink. */}
+            <T
+              face="display"
+              accessibilityRole="header"
+              style={[
+                styles.h,
+                { color: failures.length === 0 ? theme.statusText.ok : theme.statusText.vencido },
+              ]}>
+              {failures.length === 0 ? es.check.resultAllGood : es.check.resultWithFails(failures.length)}
+            </T>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, marginTop: 2 }}>
+              {templateName}
+            </T>
+            <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 2 }}>
+              {dateLabel(run.occurredAt)}
+              {run.odometerKm != null ? ` · ${fmtKm(run.odometerKm)}` : ''}
+              {run.durationSec ? ` · ${es.common.minutes(Math.max(1, Math.round(run.durationSec / 60)))}` : ''}
+            </T>
+          </View>
+          {/* The "registrado" stamp (05-design-jdm.md §8). */}
+          <Hanko char="車" size={44} shape="square" accessibilityLabel={es.identity.stamped} />
+        </View>
 
         {failures.length === 0 && streak > 1 ? (
-          <T face="title" style={{ color: theme.status.ok, fontSize: 18, marginBottom: space.lg }}>
+          <T face="title" style={{ color: theme.statusText.ok, fontSize: 18, marginBottom: space.lg }}>
             {streak} {es.check.streakLabel(streak)}. {es.check.celebrate}
           </T>
         ) : null}
@@ -144,7 +161,7 @@ export default function InspeccionScreen() {
 
         {openTasks.length ? (
           <>
-            <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+            <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.check.resultTasks}
             </T>
             {openTasks.map((task) => (
@@ -159,7 +176,7 @@ export default function InspeccionScreen() {
 
         {createdReminders.length ? (
           <>
-            <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+            <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.check.resultReminders}
             </T>
             {createdReminders.map((title) => (
@@ -170,7 +187,7 @@ export default function InspeccionScreen() {
 
         {rest.length ? (
           <>
-            <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+            <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.check.resultChecked}
             </T>
             {rest.map((result) => (
@@ -180,7 +197,7 @@ export default function InspeccionScreen() {
         ) : null}
 
         <View style={{ height: space.lg }} />
-        <PrimaryButton label={es.common.back} onPress={() => router.replace('/(tabs)/chequeo')} />
+        <PrimaryButton label={es.common.back} onPress={() => router.replace('/chequeo')} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -225,7 +242,8 @@ const styles = StyleSheet.create({
   photo: { height: 180, borderRadius: radius.input, borderWidth: 1, marginTop: space.md },
   pad: { padding: space.gutter, paddingBottom: 40 },
   hero: { alignItems: 'center', marginBottom: space.lg },
-  h: { fontSize: 28 },
-  section: { fontSize: 18, marginTop: space.lg, marginBottom: space.sm },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.lg },
+  h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
+  section: { fontSize: 12, marginTop: space.xl, marginBottom: space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

@@ -22,7 +22,7 @@ export default function EditCargaScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <FillUpForm
         vehicleId={fill.vehicleId}
         defaultFuel={fill.fuelType}

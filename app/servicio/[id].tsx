@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
-import { categoryColors, radius, space } from '@/constants/theme';
+import { GhostButton, Hanko, PrimaryButton, Surface } from '@/components/ui';
+import { categoryColors, categoryInkLight, radius, space } from '@/constants/theme';
 import {
   inspections as inspectionRepo,
   media as mediaRepo,
@@ -45,7 +45,9 @@ const KIND_COLOR: Record<ServiceKind, string> = {
 export default function ServicioDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, scheme } = useTheme();
+  // The bright hue on dark; its computed ink on light, where the bright one fails as text.
+  const inkOf = (k: ServiceKind) => (scheme === 'light' ? categoryInkLight[k] : KIND_COLOR[k]);
   const { refresh, data } = useStore();
 
   const [record, setRecord] = useState<ServiceRecord | null | undefined>(undefined);
@@ -90,20 +92,35 @@ export default function ServicioDetalleScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <View style={[styles.kindPill, { backgroundColor: `${KIND_COLOR[record.kind]}28` }]}>
-          <View style={[styles.dot, { backgroundColor: KIND_COLOR[record.kind] }]} />
-          <T face="semibold" style={{ color: KIND_COLOR[record.kind], fontSize: 12 }}>
-            {es.service.kinds[record.kind]}
-          </T>
-        </View>
+        <View style={styles.titleRow}>
+          <View style={{ flex: 1 }}>
+            <View style={[styles.kindPill, { backgroundColor: `${KIND_COLOR[record.kind]}24` }]}>
+              <View style={[styles.dot, { backgroundColor: inkOf(record.kind) }]} />
+              <T face="eyebrow" style={{ color: inkOf(record.kind), fontSize: 11 }}>
+                {es.service.kinds[record.kind]}
+                {record.kind === 'mantenimiento' ? (
+                  <T face="kana" style={styles.kana}>
+                    {' 整備'}
+                  </T>
+                ) : null}
+              </T>
+            </View>
 
-        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {record.title}
-        </T>
-        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.lg }}>
+            <T face="display" accessibilityRole="header" style={[styles.h, { color: theme.text.primary }]}>
+              {record.title}
+            </T>
+          </View>
+          {/* The "registrado" stamp on finished work (05-design-jdm.md §8). */}
+          <Hanko char="車" size={44} shape="square" accessibilityLabel={es.identity.stamped} />
+        </View>
+        <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 4, marginBottom: space.lg }}>
           {dateLabel(record.occurredAt)}
           {record.odometerKm != null ? ` · ${fmtKm(record.odometerKm)}` : ''}
-          {record.shop ? ` · ${record.shop}` : ''}
+          {record.shop ? (
+            <T face="body" style={{ fontSize: 13 }}>
+              {` · ${record.shop}`}
+            </T>
+          ) : null}
         </T>
 
         {origin ? (
@@ -137,7 +154,7 @@ export default function ServicioDetalleScreen() {
 
         {itemNames.length ? (
           <>
-            <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+            <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.service.items}
             </T>
             {itemNames.map((name) => (
@@ -150,26 +167,37 @@ export default function ServicioDetalleScreen() {
 
         {parts.length ? (
           <>
-            <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+            <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.service.parts}
             </T>
             {parts.map((part) => (
               <T key={part.id} face="body" style={{ color: theme.text.secondary, marginBottom: 4 }}>
-                · {part.quantity}× {part.name}
-                {part.unitCostDop != null ? ` — ${money(part.unitCostDop)}` : ''}
+                ·{' '}
+                <T face="mono" style={{ fontSize: 13 }}>
+                  {part.quantity}×
+                </T>{' '}
+                {part.name}
+                {part.unitCostDop != null ? (
+                  <T face="mono" style={{ fontSize: 13 }}>
+                    {` — ${money(part.unitCostDop)}`}
+                  </T>
+                ) : null}
               </T>
             ))}
           </>
         ) : null}
 
         {record.warrantyUntilDate || record.warrantyUntilKm != null ? (
-          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.md }}>
-            {es.service.warranty}: {record.warrantyUntilDate ? dateLabel(record.warrantyUntilDate) : ''}
-            {record.warrantyUntilKm != null ? ` · ${fmtKm(record.warrantyUntilKm)}` : ''}
+          <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: space.md }}>
+            {es.service.warranty}:{' '}
+            <T face="mono" style={{ fontSize: 12 }}>
+              {record.warrantyUntilDate ? dateLabel(record.warrantyUntilDate) : ''}
+              {record.warrantyUntilKm != null ? ` · ${fmtKm(record.warrantyUntilKm)}` : ''}
+            </T>
           </T>
         ) : null}
 
-        <T face="title" style={[styles.section, { color: theme.text.primary }]}>
+        <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
           {es.service.reclassify}
         </T>
         <View style={styles.row}>
@@ -190,9 +218,9 @@ export default function ServicioDetalleScreen() {
                 accessibilityState={{ selected: on }}
                 style={[
                   styles.kindChip,
-                  { borderColor: on ? KIND_COLOR[k] : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
+                  { borderColor: on ? inkOf(k) : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
                 ]}>
-                <T face="semibold" style={{ color: on ? theme.text.primary : theme.text.secondary, fontSize: 13 }}>
+                <T face="title" style={[styles.chipLabel, { color: on ? theme.text.primary : theme.text.secondary }]}>
                   {es.service.kinds[k]}
                 </T>
               </Pressable>
@@ -285,9 +313,12 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   dot: { width: 7, height: 7, borderRadius: 999 },
-  h: { fontSize: 26 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  kana: { fontSize: 10, letterSpacing: 0, textTransform: 'none' },
+  chipLabel: { fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' },
+  h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3 },
   photo: { width: '100%', height: 180, borderRadius: radius.card, marginBottom: space.md },
-  section: { fontSize: 18, marginTop: space.lg, marginBottom: space.sm },
+  section: { fontSize: 12, marginTop: space.xl, marginBottom: space.sm },
   kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingVertical: 4 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   kindChip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: space.sm },

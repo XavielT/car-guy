@@ -116,10 +116,13 @@ export function BootError({
   return (
     <View style={styles.fill}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <T face="title" style={styles.brand}>
+        {/* A lit redline strip — a plain View, no SVG or theme hook: this screen
+            renders when the providers above it have already failed. */}
+        <View style={styles.redline} />
+        <T face="badge" style={styles.brand}>
           {es.boot.brand}
         </T>
-        <T face="title" style={styles.title}>
+        <T face="display" style={styles.title}>
           {locked ? es.boot.lockedTitle : es.boot.crashTitle}
         </T>
         <T face="body" style={styles.body}>
@@ -130,7 +133,7 @@ export function BootError({
           onPress={() => void retry()}
           accessibilityRole="button"
           style={({ pressed }) => [styles.button, pressed && { opacity: 0.85 }]}>
-          <T face="semibold" style={styles.buttonLabel}>
+          <T face="title" style={styles.buttonLabel}>
             {es.boot.retry}
           </T>
         </Pressable>
@@ -216,15 +219,19 @@ const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: palette.dark.bg.base },
   blank: { flex: 1, backgroundColor: palette.dark.bg.base },
   pad: { padding: space.gutter, paddingTop: 96, maxWidth: 560, alignSelf: 'center', width: '100%' },
+  redline: { height: 4, width: 48, borderRadius: 1, backgroundColor: palette.dark.redline, marginBottom: space.lg },
+  // The wordmark in Michroma; T's badge face adds the uppercase and tracking.
   brand: {
-    fontFamily: fonts.title,
+    fontFamily: fonts.badge,
     fontSize: 11,
-    letterSpacing: 1.5,
     color: palette.dark.accent,
   },
   title: {
-    fontFamily: fonts.title,
-    fontSize: 26,
+    fontFamily: fonts.display,
+    fontSize: 30,
+    lineHeight: 32,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
     color: palette.dark.text.primary,
     marginTop: space.md,
   },
@@ -236,12 +243,18 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: space.xl,
-    backgroundColor: palette.dark.accent,
-    borderRadius: radius.card,
+    backgroundColor: palette.dark.accentFill,
+    borderRadius: radius.button,
     paddingVertical: 16,
+    minHeight: 52,
     alignItems: 'center',
   },
-  buttonLabel: { color: palette.dark.accentInk, fontSize: 15 },
+  buttonLabel: {
+    color: palette.dark.accentFillInk,
+    fontSize: 17,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
   detail: {
     marginTop: space.xl,
     fontSize: 11,

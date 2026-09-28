@@ -39,7 +39,7 @@ export function QuickActions({ actions }: { actions: QuickAction[] }) {
             },
           ]}>
           <Ionicons name={action.icon} size={22} color={theme.accent} />
-          <T face="semibold" style={[styles.label, { color: theme.text.primary }]}>
+          <T face="title" style={[styles.label, { color: theme.text.primary }]}>
             {action.label}
           </T>
         </Pressable>
@@ -64,5 +64,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     gap: space.sm,
   },
-  label: { fontSize: 15 },
+  // Saira 600 uppercase, tracked like the mockup's tiles (GASOLINA · CHEQUEO …).
+  label: { fontSize: 14, letterSpacing: 1.1, textTransform: 'uppercase' },
 });

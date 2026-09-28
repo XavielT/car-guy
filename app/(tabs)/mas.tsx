@@ -1,15 +1,15 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
+import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import {
   GhostButton,
   NavRow,
   PrimaryButton,
-  SectionHeader,
   Segmented,
   StatusPill,
   Surface,
@@ -18,7 +18,6 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { useSession } from '@/lib/cloud/auth';
 import { exportBackup, importBackup } from '@/lib/backup';
-import { FUEL_CATALOG } from '@/lib/fuel';
 import { FEATURE_SYNC } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { describeCounts } from '@/lib/import/tucombustible';
@@ -33,7 +32,7 @@ import { useTheme, type ThemePreference } from '@/lib/theme/useTheme';
 export default function MasScreen() {
   const router = useRouter();
   const { theme, preference, setPreference } = useTheme();
-  const { data, activeVehicle, setActiveVehicle, resetAll, refresh } = useStore();
+  const { data, activeVehicle, resetAll, refresh } = useStore();
   const archived = data.vehicles.filter((v) => v.isArchived);
   const { session } = useSession();
 
@@ -78,74 +77,29 @@ export default function MasScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.more.title}
-        </T>
-        <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.more.subtitle}
-        </T>
+        <ScreenTitle title={es.more.title} size={34} sub={es.more.subtitle} />
 
-        <SectionHeader title={es.more.garage} caption={es.more.garageCaption} style={styles.firstSection} />
-        {data.vehicles.filter((v) => !v.isArchived).map((v) => {
-          const active = v.id === activeVehicle?.id;
-          return (
-            // The row and "Activar" are siblings, not one inside the other: a
-            // button nested in a button is invalid HTML on web.
-            <View
-              key={v.id}
-              style={[
-                styles.vehicle,
-                {
-                  backgroundColor: theme.bg.surface,
-                  borderColor: active ? theme.accent : theme.line,
-                },
-              ]}>
-              <Pressable
-                onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
-                accessibilityRole="button"
-                style={{ flex: 1 }}>
-                <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
-                  {v.name}
-                </T>
-                <T face="body" style={[styles.meta, { color: theme.text.secondary }]}>
-                  {v.plate ? `${v.plate} · ` : ''}
-                  {FUEL_CATALOG[v.defaultFuelType].label}
-                </T>
-              </Pressable>
-              {active ? (
-                <StatusPill status="ok" label={es.more.active} />
-              ) : (
-                <GhostButton label={es.more.activate} onPress={() => setActiveVehicle(v.id)} />
-              )}
-            </View>
-          );
-        })}
-        {archived.length ? (
-          <T face="medium" style={[styles.archivedLabel, { color: theme.text.muted }]}>
-            {es.more.archivedGroup.toUpperCase()}
-          </T>
+        <MoreSection title={es.more.garage} caption={es.more.garageCaption} style={styles.firstSection} />
+        <NavRow
+          label={es.more.garageOpen}
+          caption={es.more.garageOpenCaption(data.vehicles.filter((v) => !v.isArchived).length, archived.length)}
+          onPress={() => router.push('/(tabs)/garaje')}
+        />
+        {activeVehicle ? (
+          <NavRow
+            label={es.more.activeVehicle(activeVehicle.name)}
+            caption={es.more.activeVehicleCaption}
+            onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id } })}
+          />
         ) : null}
-        {archived.map((v) => (
-          <Pressable
-            key={v.id}
-            onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: v.id } })}
-            accessibilityRole="button"
-            style={[styles.vehicle, { backgroundColor: theme.bg.surface, borderColor: theme.line, opacity: 0.7 }]}>
-            <View style={{ flex: 1 }}>
-              <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
-                {v.name}
-              </T>
-              <T face="body" style={[styles.meta, { color: theme.text.secondary }]}>
-                {v.plate ? `${v.plate} · ` : ''}
-                {FUEL_CATALOG[v.defaultFuelType].label}
-              </T>
-            </View>
-            <StatusPill status="neutral" label={es.profile.archived} />
-          </Pressable>
-        ))}
         <PrimaryButton label={es.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
 
-        <SectionHeader title={es.more.maintenance} />
+        {/* Chequeo left the tab bar for the Garaje (IMP 28092026); this is one of its four doors. */}
+        <MoreSection title={es.more.checksSection} />
+        <NavRow label={es.more.checks} caption={es.more.checksCaption} onPress={() => router.push('/chequeo')} />
+        <NavRow label={es.more.checkGuide} caption={es.more.checkGuideCaption} onPress={() => router.push('/chequeo/guia')} />
+
+        <MoreSection title={es.more.maintenance} />
         <NavRow
           label={es.more.service}
           caption={es.more.serviceCaption}
@@ -172,7 +126,7 @@ export default function MasScreen() {
           onPress={() => router.push('/tareas')}
         />
 
-        <SectionHeader title={es.more.fuelSection} />
+        <MoreSection title={es.more.fuelSection} />
         <NavRow
           label={es.more.newFillUp}
           caption={es.more.newFillUpCaption}
@@ -189,14 +143,14 @@ export default function MasScreen() {
           onPress={() => router.push('/gasto/nuevo')}
         />
 
-        <SectionHeader title={es.more.documents} />
+        <MoreSection title={es.more.documents} />
         <NavRow
           label={es.more.documents}
           caption={es.more.documentsCaption}
           onPress={() => router.push('/documentos')}
         />
 
-        <SectionHeader title={es.more.account} />
+        <MoreSection title={es.more.account} />
         <NavRow
           label={session ? es.account.signedInAs : es.account.signIn}
           caption={session?.user.email ?? es.more.accountBody}
@@ -212,7 +166,7 @@ export default function MasScreen() {
           }
         />
 
-        <SectionHeader
+        <MoreSection
           title={es.more.data}
           caption={
             FEATURE_SYNC && session ? es.more.dataCaptionSynced : es.more.dataCaption
@@ -234,7 +188,7 @@ export default function MasScreen() {
           }
         />
 
-        <SectionHeader title={es.more.appearance} caption={es.more.appearanceCaption} />
+        <MoreSection title={es.more.appearance} caption={es.more.appearanceCaption} />
         <Segmented<ThemePreference>
           options={[
             { key: 'system', label: es.more.themes.system },
@@ -245,14 +199,14 @@ export default function MasScreen() {
           onChange={setPreference}
         />
 
-        <SectionHeader title={es.more.notifications} />
+        <MoreSection title={es.more.notifications} />
         <NavRow
           label={es.more.notifications}
           caption={es.more.notificationsCaption}
           onPress={() => router.push('/notificaciones')}
         />
 
-        <SectionHeader title={es.more.about} />
+        <MoreSection title={es.more.about} />
         <Surface>
           <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
             {es.more.version(version)}
@@ -292,3 +246,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
+
+/**
+ * Más's section headers are eyebrows (IMP 28092026, 05-design-jdm.md): Saira
+ * 400 tracked, muted, so the rows — not the headers — carry the weight.
+ */
+function MoreSection({ title, caption, style }: { title: string; caption?: string; style?: StyleProp<ViewStyle> }) {
+  const { theme } = useTheme();
+  return (
+    <View style={[{ marginTop: space.xl, marginBottom: space.sm }, style]}>
+      <T face="eyebrow" accessibilityRole="header" style={{ color: theme.accent, fontSize: 12 }}>
+        {title}
+      </T>
+      {caption ? (
+        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4 }}>
+          {caption}
+        </T>
+      ) : null}
+    </View>
+  );
+}
