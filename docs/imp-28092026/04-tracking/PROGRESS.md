@@ -3,14 +3,14 @@
 Claude Code appends a report per phase (block in `00-context/04-conventions.md`, plus *Design
 check* and *Flags flipped*). "Notes for the next phase" carry context between sessions.
 
-**Started:** 2026-09-28 · **Status:** Phase 0 done
+**Started:** 2026-09-28 · **Status:** Phase 1 done
 
 ## Phase status
 
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
 | 0 | Kickoff | ✅ | `imp-28092026/phase-0-kickoff` | folder rename still pending (manual) |
-| 1 | Schema v2 + JDM tokens | ⬜ | | |
+| 1 | Schema v2 + JDM tokens | ✅ | `imp-28092026/phase-1-schema-tokens` | cloud 009/010 applied; Android not run on a device |
 | 2 | JDM screens + Garaje | ⬜ | | |
 | 3 | Álbum / memoria | ⬜ | | |
 | 4 | Build log | ⬜ | | |
@@ -67,6 +67,12 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | Found in | Issue | Severity | Notes |
 |---|---|---|---|
 | 0 | `adb` is not on `PATH` | low | use `~/Android/Sdk/platform-tools/adb` |
+| 1 | A **2.0.0 install signed in to sync** can no longer pull `vehicle`, `media` or `service_record`: it pulls `select *`, and 009 added columns it cannot store, so those rows park until it updates to 2.1. Push still works; nothing is lost. Other v1 tables (fuel_log included) are unaffected — `updated_by` on them was deferred to PROMPT-07 for this reason. 2.1 drops unknown cloud columns on pull, so it will not recur | medium | Xaviel's phone has no account yet (NEXT.md "Still yours" 3); ship 2.1 before anyone syncs on 2.0.0 |
+| 1 | DTC table: 126 generic P0 rows whose CSV text is off-by-one and that have no hand-written override show "descripción sin verificar"; the 428 overrides were written from SAE J2012 knowledge by an agent, spot-checked (30 codes) but not reviewed line by line by a person | low | `tools/data/dtc-overrides.json` is the file to review; PROMPT-05 surfaces it |
+| 1 | `seedCatalog()` does not refresh `mod_category` / `venue` names — migration v2 seeds them once (INSERT OR IGNORE). A renamed category needs a migration | low | fine until a label changes |
+| 1 | Web console: RN-web deprecation warnings for `shadow*` style props and `props.pointerEvents` (pre-existing `shadow*` in Surface) | low | cosmetic, dev only |
+| 1 | `expo` 57.0.14 → 57.0.25 and 14 packages behind (Metro banner; same as NEXT.md's expo-doctor note) | low | one `npx expo install --check` pass |
+| 1 | `dist` 6.6 → 7.3 MB: the bundled DTC table (546 KB JSON) is in the JS entry | low | could move to a lazily fetched asset if first load matters |
 
 ## Blockers
 
@@ -157,3 +163,153 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 - The Jetta is `sold_date` + `is_archived = 1`; the v2 data migration rule in 01-data-model-v2.md
   ("status `vendido` when `sold_date` is set") takes precedence over "archived → guardado" for it.
 - Local tables are 18 (+ cloud-only `profiles`); count accordingly in parity tests.
+
+
+## Phase 1 — Schema v2 + JDM tokens   (branch `imp-28092026/phase-1-schema-tokens`)
+
+**Status:** complete (Android verified by bundle only — no device or emulator attached)
+**Commits:** `feat(db): schema v2 …`, `feat(ui): JDM identity …`, `docs(imp-28092026): phase 1 report`
+
+### Changed
+**Part A — schema v2**
+- `lib/db/migrationV2.ts` (new), `lib/db/migrations.ts` — `{ version: 2 }`: the §1 DDL verbatim (v1 untouched), the
+  seeded `mod_category` (21) and `venue` (Autódromo de las Américas / Sunix), the bundled `dtc_code` table, and the data
+  steps: status from `sold_date`/`is_archived`, one `vehicle_ownership` per vehicle, every `mejora` → a `mod`
+  (category `otro`, record kept), an empty `vehicle_specsheet` per vehicle. Derived rows use **deterministic ids**
+  (`own_<vehicle>`, `mod_<record>`, specsheet id = vehicle id), so two devices migrating the same synced garage
+  converge instead of duplicating; rows it changes are left dirty so the next sync uploads them.
+- `lib/db/types.ts`, `lib/db/repos/index.ts` — types and a repo for every new table; `specsheets.getForVehicle`,
+  `setupSheets.getForSession` (1:1), read-only `dtcCodes`; `media` repo gains `isFavorite`; `history.feed` orders by
+  `occurred_at, created_at` (fixes the same-day order backlog item) and returns `createdAt`. `ALL_TABLES` (backup,
+  reset) gains the v2 tables, `dtc_code` excluded. `repos/base.ts` snake/camel now treat digits as a word
+  (`zero_100_ms` ↔ `zero100Ms`).
+- `lib/domain/catalog.ts` — `MOD_CATEGORIES`, `VENUES`. `lib/domain/history.ts`, `components/ui/RecordRow.tsx`,
+  `app/(tabs)/historial.tsx` — feed kinds `mod` / `hito` / `pista`; a migrated mod opens its v2.0 record; the Mejoras
+  chip also finds mods.
+- DTC (delegated to a sub-agent, reviewed): `tools/build-dtc-es.mjs` + `tools/data/obd-trouble-codes.csv` (mytrile,
+  MIT, `lib/domain/LICENSE-mytrile.txt`) + `tools/data/dtc-overrides.json` → `lib/domain/dtc.es.json` (3,142 rows);
+  `lib/domain/dtc.ts` (`normalizeCode`, `lookup`, `isManufacturerSpecific`, `describe`). **The source CSV is shifted by
+  one to three codes from P0126 onward** (its P0301 is P0300's text, its P0420 is secondary air…). The generator
+  replaces 357 rows and adds 71 with hand-written SAE definitions, and gives the 126 generic rows it cannot fix the
+  text "Código genérico — descripción sin verificar (consulta un manual)". Glossary translation for the rest,
+  deterministic, no API.
+- Sync: `lib/sync/tables.ts` — the 23 synced v2 tables in §3 order, `mod_category`/`venue` keyed by `user_id`,
+  `media.thumbBlob` and `vehicle.garageRole` local-only, `vehicle_member` **pull-only** (new `pullOnly` flag; the
+  engine skips its push and its pending count); `BOOLEAN_COLUMNS` for every v2 boolean. `lib/db/syncOps.ts` —
+  `applyRemoteRows` now drops any cloud column the local table lacks (PRAGMA table_info), and `updated_by`, so a
+  future cloud column cannot park a whole table again (see Observed, deferred).
+- Cloud: `sql/009_schema_v2.sql` (mirror, generated from the local DDL; `updated_by` on the new vehicle-scoped
+  tables; `vehicle_member` in §5's shape plus a generated `id`) and `sql/010_rls_v2.sql` (own-rows template;
+  `vehicle_member` select-only with writes revoked; `profiles.media_quota_bytes` 300 MB;
+  `carguy.storage_usage_bytes()`). **Applied** to x-core with `tools/apply-sql.mjs` (no `--shared`).
+  `lib/cloud/database.types.ts` regenerated (needs `SUPABASE_ACCESS_TOKEN` = the `ACCESS_TOKEN` in `.env.supabase`).
+  `tools/verify-x-core.mjs` checks 8–12 added.
+- Seed: `lib/dev/garage.ts` — the TODO(v2) block is gone: identity/status/story on the four cars, ownership periods,
+  AE85 build (swap 4A-GE 20V `{engine_code, hp: 160}` — an estimate —, ECU, the radiator mod linked to its v2.0-style
+  record, aros 15x8 ET0, gomas 195/50R15), wishlist "Coilovers BC Racing BR" USD 1,050, a wheel set + 4 tires DOT 2323,
+  fichas (AE85 stock 3A-U / 13x5; DS3 4x108, 50 L, EP6 — only values I am sure of), milestones (swap Aug 2025, C3
+  choque), contact "Taller de Tony". AE85 economy made realistic (~37 km/gal).
+- Tests: `__tests__/db/migrate-v2.test.ts` (0→2; v1 + Phase 0 fixture → 2 with ownership, mejora→mod, counts
+  preserved, feed kinds, idempotency, same ids on two devices), `__tests__/db/backup-v2.test.ts` (export → wipe →
+  restore, every table), `__tests__/domain/dtc.test.ts`, `__tests__/domain/cluster.test.ts`,
+  `__tests__/theme/contrast.test.ts`, `__tests__/dev/garage.test.ts` (v2 half), `__tests__/sync/schema-parity.test.ts`
+  now parses **002 + 009** including `ALTER … ADD COLUMN` on both sides, inline per-user keys and inline cascades.
+
+**Part B — JDM identity**
+- `constants/theme.ts` — the 05-design-jdm.md token tables for dark and light; `Palette` keeps its shape and adds
+  `bg.well, lineStrong, text.disabled, accentFill/accentFillInk, needle, redline, redlineText, statusText,
+  dangerText, telltaleOff, glow, gaugeGradient, carbonOpacity`; category colours per spec plus `track`, `album` with
+  computed light inks; `radius` card 16 / button 12 / `tag` 6 / `lamp` 4 (`chip` stays 999 for filters).
+  Every red-as-text call site moved to `dangerText` / `statusText.vencido`.
+- Fonts: Saira Condensed 400/600/800, Michroma 400 (`@expo-google-fonts/*`), JetBrains Mono kept; **Rajdhani and
+  Noto Sans JP are subset** into `assets/fonts/` by `tools/subset-fonts.sh` (Rajdhani 360 → 39 KB per weight — the
+  package carries Devanagari; Noto JP 5.4 MB → 70 KB, ADR-16 kanji + kana). Space Grotesk and Manrope removed.
+  `components/T.tsx` faces: display/title/eyebrow/body/medium/semibold/mono/monoBold/badge/kana.
+- `components/ui/`: `ClusterHero`, `TelltaleRow` (9 hand-drawn 24 px icons), `BoostRing` (`GaugeRing` is now an alias,
+  same API), `LcdDigits` (7-segment SVG, ghost segments, fixed boxes), `Badge`, `HazardDivider`, `CarbonFrame`,
+  `Hanko`, `CornerGrid`, `Timeline`; `OdometerHero` is a thin wrapper over `ClusterHero` until Phase 2.
+  `StatusPill` vencido = solid red + white; buttons/chips use `accentFill`, labels in Saira uppercase.
+  `lib/domain/cluster.ts` — what the needle reads (fraction of the nearest interval used). Home passes it, so the
+  gauge is live now.
+- `lib/motion/gaugeSweep.ts` — sweep once per cold start (module flag), 500 ms lamp test, vencido blink 1 Hz × 10 s,
+  80 ms LCD flicker; all honour reduced motion, nothing loops idle.
+- `app/dev/tokens.tsx` — every token and component in both schemes, "Repetir el barrido", a live contrast list.
+  Screenshots `docs/qa/imp-28092026-phase-1-tokens-{dark,light}.png` (the `phase-1-*` names belong to IMP 17092026).
+- Icon + splash: `tools/make-icons.mjs` redraws the mark (240° tach, amber → red wedge, needle into the red, hub,
+  "085"; twill on the lower half) and generates the carbon tile; all icons regenerated. Native assets refresh at the
+  next EAS build.
+- `lib/flags.ts` — `FEATURE_ALBUM/BUILD/DIY/TRACK/SHARE = false`.
+
+### Dependencies added / removed
+- added `@expo-google-fonts/saira-condensed@^0.4.1`, `@expo-google-fonts/michroma@^0.4.2` — the display and badge faces
+- added `expo-asset@~57.0.18` — resolve the carbon tile's URL on web (it was only a transitive dependency)
+- removed `@expo-google-fonts/space-grotesk`, `@expo-google-fonts/manrope` — replaced
+- not added: `@expo-google-fonts/rajdhani`, `@expo-google-fonts/noto-sans-jp` — subset files ship instead
+  (`npm i --no-save` both before re-running `tools/subset-fonts.sh`)
+
+### Acceptance criteria
+- [x] Migration v2 exactly per spec; v1 untouched; data migration idempotent; tests for 0→2 and 1→2 with the fixture —
+  `migrate-v2.test.ts` (one deliberate difference in the view, see Deviations).
+- [x] All new repos and types; `history_feed` v2 with `created_at` ordering.
+- [x] DTC table bundled (MIT notice), Spanish for 100 % of rows, generator committed — 3,142 rows; 126 of them honestly
+  "sin verificar" rather than a wrong translation.
+- [x] `sql/009` + `sql/010` applied; types regenerated; `SYNC_TABLES`/`BOOLEAN_COLUMNS` updated; parity test covers
+  002 + 009; `verify-x-core` **12/12**, `verify-sync` **14/14**. Plus an end-to-end run: the real engine on web pushed
+  the seeded v2 garage to a throwaway account (all 15 checked tables present, nickname/status/chassis intact, 0 parked)
+  and a second browser profile pulled it back (0 parked). Test users removed with `999` (`leftover_profiles = 0`).
+- [x] Backup v2 includes the new tables; import round-trips — `backup-v2.test.ts`.
+- [x] Fonts swapped; Space Grotesk and Manrope gone (no reference left in app/components/lib/constants/tools).
+- [x] Tokens per spec in both schemes; every text pair on the tokens page ≥ 4.5:1 — 31 pairs × 2 schemes in
+  `contrast.test.ts`. Lowest: dark — pill urgente 4.59, text.muted/raised 4.79, redlineText/raised 4.91, white/redline
+  4.97; light — pill ok 4.55, pill urgente 4.57, pill próximo 4.89, accent ink/raised 5.04. Full list on the page.
+- [x] Components: all ten previewed in `dev/tokens` (dark + light screenshots).
+- [x] Gauge sweep once per cold start; reduced motion respected; nothing loops idle — by construction in
+  `gaugeSweep.ts` (module flag, finite sequences); seen sweeping on web. Not measured on a device.
+- [~] Icon/splash regenerated and flags added — yes. **Fuel flow + weekly check verified on web** (Playwright: fill-up
+  52,950 km → review sheet 50.0 km/gal → Historial; weekly check 9/9 OK → "Todo al día" with the new BoostRing).
+  **Android: not verified on a device** — none attached and no AVD on this machine; `npx expo export -p android`
+  compiles the Hermes bundle cleanly. Needs a phone run (Expo Go or a preview build).
+
+### Decisions made (defaults applied)
+- **240° = 8 → 4 o'clock.** The spec says "240° (7 → 5 o'clock)", which is 300°; the mockup's arc is ~230° and
+  symmetric, so the dial and the icon use 240° symmetric about the top.
+- Deterministic ids for every derived row (see Part A) — not in the spec, needed so two devices converge.
+- `vehicle.garage_role` is local-only (not in the cloud): it is *my* role and would be wrong for other members.
+- `vehicle_member`: §5's cloud shape now (PK vehicle + user, generated `id`), select-only for clients, pull-only in the
+  engine. Nobody can write it until PROMPT-07's RPCs.
+- `updated_by` only on the new tables; the v1 tables get it in PROMPT-07 (protects 2.0.0 pulls of fuel_log & co.).
+- Carbon: one tiled PNG everywhere (CSS background on web, `resizeMode="repeat"` natively) instead of an SVG pattern.
+- Telltales and the cluster are always dark panels, also in light mode (spec: instruments stay dark).
+- Fonts subset for size (Rajdhani, Noto JP) — ~1.8 MB less on first load than installing the packages.
+- The Phase 0 fixture is frozen (v2.0 shape); `garage.test.ts` no longer rewrites it.
+- The cluster's reading is live on Inicio now (nearest km interval, else days), rather than waiting for Phase 2.
+
+### Deviations from the package
+- `history_feed`: a `mejora` record is hidden **only when a live mod stands for it** (spec hides all of them). Until
+  PROMPT-04 makes "Mejora" create a mod, the v2.0 form still writes plain mejora records, and the spec's view would
+  make each new one vanish from Historial. Tested both ways.
+- `CornerGrid` labels DI/DD/TI/TD per the spec; the setup-sheet wiring is PROMPT-06.
+- Screens were not restyled beyond what the tokens do on their own (Phase 2 is the identity pass).
+
+### Observed, deferred
+- See the table above (2.0.0 pull parking, DTC review, catalogue names, web warnings, expo patches, bundle size).
+
+### Design check
+- Tokens artboard: palette, type, pills, telltales, dividers, carbon, hanko, LCD all present on `dev/tokens`.
+- Inicio artboard (partial — Phase 2 rebuilds the screen): ClusterHero matches the mockup's arc, gradient, red wedge,
+  numerals and LCD; the header/chips/QuickActions are still v2.0 layout. Pills still sit under the dial (TelltaleRow
+  not wired to reminders yet).
+- Deviation: 240° symmetric vs the spec's "7 → 5" wording (above).
+
+### Flags flipped
+- none (all five added as `false`)
+
+### Notes for the next phase
+- Home: replace `OdometerHero` with `ClusterHero` + `TelltaleRow` and delete the wrapper; `clusterReading()` already
+  feeds the needle. Map reminders to lamps by service type (oil/coolant/tire/battery/brake/document/fuel/checklist).
+- `T face="eyebrow"`/`"badge"` apply uppercase + tracking themselves; pass a `fontSize`, the tracking scales with it.
+- Use `theme.accentFill` for amber *fills* (light mode's `accent` is the dark ink); red text is always
+  `redlineText`/`dangerText`/`statusText.vencido`.
+- Web dev server: do **not** start it with `CI=1` — it disables Metro's file watching and serves a stale bundle.
+  The PWA service worker also caches in dev; the Playwright helpers unregister it first.
+- Types regen: `SUPABASE_ACCESS_TOKEN=<ACCESS_TOKEN from .env.supabase> npm run types:gen`.
