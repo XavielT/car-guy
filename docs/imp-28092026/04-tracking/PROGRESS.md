@@ -3,7 +3,7 @@
 Claude Code appends a report per phase (block in `00-context/04-conventions.md`, plus *Design
 check* and *Flags flipped*). "Notes for the next phase" carry context between sessions.
 
-**Started:** 2026-09-28 · **Status:** Phase 2 done
+**Started:** 2026-09-28 · **Status:** Phase 3 done
 
 ## Phase status
 
@@ -12,7 +12,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 0 | Kickoff | ✅ | `imp-28092026/phase-0-kickoff` | folder rename still pending (manual) |
 | 1 | Schema v2 + JDM tokens | ✅ | `imp-28092026/phase-1-schema-tokens` | cloud 009/010 applied; Android verified on the Redmi 2026-09-28 |
 | 2 | JDM screens + Garaje | ✅ | `imp-28092026/phase-2-jdm-screens` | web + Android (Redmi) verified 2026-09-28 |
-| 3 | Álbum / memoria | ⬜ | | |
+| 3 | Álbum / memoria | ✅ | `imp-28092026/phase-3-album` | web + Android (Redmi) verified 2026-09-28; sql/011 applied |
 | 4 | Build log | ⬜ | | |
 | 5 | DIY | ⬜ | | |
 | 6 | Pista | ⬜ | | |
@@ -75,6 +75,9 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | 1 | `dist` 6.6 → 7.3 MB: the bundled DTC table (546 KB JSON) is in the JS entry | low | could move to a lazily fetched asset if first load matters |
 | 2 | Web console on Cifras: `Unknown event handler property onStartShouldSetResponder…` (7 warnings) from `react-native-gifted-charts`' bar touchables on react-native-web | low | dev only; charts pass `disablePress`, the library still forwards the responder props |
 | 2 | The Garaje's hero cover has only the v2.0 vehicle photo or a favourite album photo to show; the seeded garage has neither, so every card shows the carbon placeholder until Phase 3 | low | by design until FEATURE_ALBUM |
+| 3 | Web thumbs have no blurhash: `Image.generateBlurhashAsync` is Android/iOS only. Web cells show the well colour until the (local, fast) thumb loads | low | a JS blurhash encoder would add ~5 KB if it matters |
+| 3 | "Guardar original en Google Fotos/Drive" opens the share sheet once per photo (expo-sharing shares one file). In the viewer it shares the stored 1600 px copy — the untouched original only exists at import time, so the viewer's label says "copia" | low | a multi-file share needs a native module |
+| 3 | Over-quota refusal verified live against Storage with a 1-byte quota on a throwaway user; the 90 % / 100 % meter states verified in unit tests only (no account holds 270 MB) | low | — |
 
 ## Blockers
 
@@ -475,3 +478,149 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
   the Garaje and hub covers already fall back to the first favourite. `es.voice.albumEmpty` is the empty state.
 - `vehicleBadges()` takes `lastDiscipline`/`tags` — Phase 6's track events light the amber badge with no UI change.
 - The phone helper (scratchpad `phone.py` pattern): refuse input unless `mCurrentFocus` is Car Guy, fresh dump per tap.
+
+
+## Phase 3 — Álbum, fotos viejas, hitos, "así estaba", Ex   (branch `imp-28092026/phase-3-album`)
+
+**Status:** complete
+**Commits:** `feat(album): álbum, importar fotos viejas, visor, hitos, así estaba, Ex …`, `docs(imp-28092026): phase 3 report`
+
+### Changed
+- **Media pipeline v2** (`lib/media/index.ts`): one `ingest()` for every photo — the date is read **before**
+  compressing (the manipulator strips EXIF): EXIF `DateTimeOriginal` → MediaStore creation time / `File.lastModified`
+  → the user; then a 1600 px / q0.75 copy and a 400 px / q0.6 thumb (Android `media/<vehicle>/<id>.jpg` +
+  `.thumb.jpg`; web `blob` + `thumb_blob`), a blurhash on native, `media` with `taken_at` / `date_precision` / `source`
+  / size, and an `album_item`. Duplicates skipped by `(width, height, taken_at, size)` per vehicle (also within one
+  batch). `pickCandidates()` (picker, EXIF from the picker natively, exifr on web), `importCandidates()` with progress
+  and cancel, `saveOriginal()`; `pickPhoto()` keeps its API and now makes thumbs too. `useMediaUri(id, { thumb })`.
+  `lib/media/exif(.web).ts` (exifr **lite**, static import on web only), `lib/media/library(.web).ts` (Android gallery:
+  permission `['photo']`, limited access + `presentPermissionsPicker`, years, month counts from one
+  `exeForMetadata()`, month photos, candidates; web stubs).
+- **Sync** (`lib/sync/mediaBytes.ts`, `lib/db/syncOps.ts`): uploads the thumb first, then the full copy
+  (`<user>/<id>.thumb.jpg` / `.jpg`), records `remote_thumb_path`; pre-2.1 rows get their thumb uploaded once a 2.1
+  device made it. Downloads stay lazy — thumb for grids, full copy only in the viewer — cached as local bytes (not
+  signed URLs: the bytes are then offline too). Deleting a photo removes both objects. **Quota**: the client stops
+  before a photo that cannot fit the last reading, and a Storage refusal (403 / RLS) sets `paused`; nothing uploads
+  while paused; `refreshStorageMeter()` after every sync reads `storage_usage_bytes()` + the profile quota into a
+  local setting and un-pauses when there is room (`lib/sync/storageMeter.ts`).
+- **Cloud** (`sql/011_storage_v2.sql`, applied): the `carguy-media` insert policy gains the quota check; a trigger
+  pins `profiles.media_quota_bytes` against client writes (003's table-level UPDATE grant would otherwise let a user
+  raise their own quota — found while writing the check). `verify-x-core` 12 → **14/14** (13: thumb path allowed for
+  the owner, refused for another user; 14: a user cannot raise its quota). Live probe: at a 1-byte quota Storage
+  answers `403 new row violates row-level security policy`, which is exactly what the app reads as "full".
+- **Screens**: `app/vehiculo/[id]/album/index.tsx` (Línea de tiempo | Cuadrícula, year scrubber, month headers with
+  the odometer then, HITO / MEJORA (ANTES/DESPUÉS pair) / PISTA / MANTENIMIENTO (services with photos) / FOTOS cards,
+  "+N", the one hazard divider on this month, storage meter; grid rows fixed-height with `getItemLayout`),
+  `app/album/importar.tsx` (Android year → month grid with counts → month photos with checkboxes, "Seleccionar mes",
+  selection across months; web file input; confirmation sheet with where each date came from, a date for the
+  undated ones or "todas", precision DÍA/MES/AÑO, target vehicle (Ex included), originals; progress + cancel;
+  "N importadas · M repetidas"), `app/foto/[id].tsx` (dark pager, pinch/pan/double-tap zoom on gesture-handler +
+  reanimated, real date + precision, caption, favourite, save/download copy, soft delete; only the page on screen loads its full copy),
+  `app/hito/nuevo|[id].tsx` + `components/album/MilestoneForm.tsx` (kind chips, date, km, title, story, photos from
+  the album or new, cover), `app/vehiculo/[id]/album/estado.tsx` (date track + month steps, `stateAt()` → odometer,
+  mods on the car, ficha with the mod that set each value, photos then, "Fijar como snapshot" → `spec_snapshot`).
+  Components `PhotoThumb` (expo-image, blurhash, `recyclingKey`), `StorageMeter`, `ZoomableImage`, `AlbumTab`.
+- **Hub / Ex**: the Álbum tab shows the latest photos + the ways in; an Ex opens **read-only** (no edit/status/remove,
+  no spec edits, banner) with "Editar historia" to unlock for the visit; its ownership line carries the photo count
+  ("2018 → vendido 2021 · 22 fotos"). The album and the importer work for Ex vehicles. Garaje / hub covers already
+  fell back to the first favourite (Phase 2).
+- **Elsewhere**: Historial opens `hito` rows; its FAB picker gains Hito · Foto al álbum; Cuenta shows the meter;
+  `vercel.json` rewrites for the new dynamic routes; stack titles for every new screen; `es.album/importer/viewer/
+  hito/estado`; `GhostButton` takes `style`.
+- `lib/domain/album.ts` (pure): `parseExifDate` (local wall clock), `resolveTakenAt`, `dateAtPrecision`, `dupKey` /
+  `isDuplicate`, `buildTimeline` (precision-aware sections, event-linked photos, service photos, orphans stay in),
+  `odometerNear`, `gridSections` / `flattenGrid` / `gridLayout`, `albumYears`, `stateAt`, `storageLevel` /
+  `fitsQuota` / `formatBytes`. `lib/db/albumQueries.ts` feeds it.
+- `FEATURE_ALBUM = true`.
+- **Tests** 697 → **732**: `__tests__/domain/album.test.ts` (26: EXIF parse incl. local time and the unset clock,
+  fallbacks, precision dates, duplicates, timeline grouping by precision, pairs, orphans, odometer, grid offsets, years,
+  `stateAt` before/after a swap and a removal, meter thresholds), `__tests__/db/album.test.ts` (9, real SQLite: the delete cascade, album
+  + service photos, milestone link/unlink, date fix pushes, thumb-before-full upload, quota refusal pauses, early stop
+  on a full reading, delete removes both objects).
+
+### Dependencies added / removed
+- added `expo-media-library ~57.0.5` (Android month browser; plugin with `granularPermissions: ['photo']`,
+  `savePhotosPermission: false`, no media location), `expo-image ~57.0.5` (blurhash, recycling), `exifr ^7.1.3`
+  (web EXIF, lite build), `react-native-gesture-handler ~2.32.0` (was only transitive; the viewer's zoom)
+- removed: none
+
+### Acceptance criteria
+- [x] Media rows carry `taken_at` (+ precision), `source`, thumbs, blurhash (native); sync uploads both and downloads
+  thumb-first — `album.test.ts`, web run (22 rows with thumbs).
+- [x] Android month browser import with dates — 23 test photos picked across 15 months (2018-01 … 2021-03): "23 de la cámara", 22 imported · 1 repeated. Limited-access banner: code path only (the Redmi is Android 13, which has no partial access). Web multi-file import with EXIF —
+  web: 23 files → 19 dated "de la cámara", 4 "del archivo" (no EXIF), 22 imported · 1 repeated.
+- [x] Album grid/timeline per spec; year scrubber; before/after pairs (unit-tested; the seed has no mod_media yet —
+  Phase 4 creates them); storage chip.
+- [x] Photo viewer with zoom, caption, real date, favourite, original/copy save, soft delete — web; on the Redmi: double-tap zooms 2×, a swipe while zoomed pans (stays 13/22), un-zoomed it pages (14/22). Pinch itself not exercised (adb input is single-touch)
+- [x] Milestones create/edit; appear on the timeline (web) and in Historial (feed kind since Phase 1; row now opens).
+- [x] "Así estaba" + snapshot pin.
+- [x] Ex read-only hub + album import for Ex (the Jetta: 22 photos, "2018 → vendido 2021 · 22 fotos").
+- [x] Quota policy applied, meter thresholds, upload pause at 100 % (live refusal probe + unit tests).
+- [x] `FEATURE_ALBUM` on; tests added; `verify-x-core` 14/14, `verify-sync` 14/14; tsc, lint, 732/732, build
+  (52/52 pages titled, `dist` 8.0 MB).
+
+### Decisions made (defaults applied)
+- Downloaded bytes are kept locally instead of caching signed URLs in memory: same egress on first view, zero after,
+  and photos work offline. Signed URLs arrive with the public page (PROMPT-07).
+- The date typed in the confirmation sheet fills only the undated photos; "Todas son de otra fecha" applies it to all.
+  Photos keeping their own date keep day precision.
+- A photo linked to a record the timeline does not draw (deleted hito, a mod kind it skips) stays in the album as a
+  loose photo rather than vanishing.
+- Service records' own photos appear on MANTENIMIENTO cards without becoming album items (no duplicate rows).
+- The "así estaba" range runs to the later of the sale date and the newest record, so a year-only sale ("2021") does
+  not cut off that year's photos; date-only strings are read as local noon.
+- Screenshot names `imp-28092026-phase-3-*` (IMP 17092026 already owns `phase-3-*`).
+- `sql/011` also pins the quota (trigger) — not in the spec, needed for the quota to mean anything.
+
+### Deviations from the package
+- Signed-URL memory cache → local byte cache (above).
+- The viewer's "Guardar original…" saves the stored copy (the original exists only at import time, where the
+  confirmation sheet offers it).
+
+### Design check
+- **Álbum artboard**: eyebrow "<NICK> · ÁLBUM 記録", LÍNEA DE TIEMPO, amber 44 px import button, year scrubber, month
+  headers in Saira 800 with the mono odometer and the hazard stripe on the current month, rail + coloured dots,
+  HITO red / MEJORA green / JUNTE amber badges, 3-up thumbs with "+N", ANTES/DESPUÉS tags, the storage card at the
+  bottom — all present. Deviation: the scrubber is a row of year buttons (tap to jump) rather than a filled progress
+  rail; the "Grid" mode and the action row (Agregar hito · Así estaba) are additions.
+
+### Flags flipped
+- `FEATURE_ALBUM` → true
+
+### Verification runs
+- **Web** (Playwright, fresh profile, seeded garage): 23 generated JPEGs (19 with EXIF 2018–2021, 4 without, one exact
+  copy) into the Jetta → confirmation "20 ene 2018 → 28 sept 2026 · 19 de la cámara · 4 del archivo" + the WhatsApp
+  warning → "22 importadas · 1 repetida" → timeline Sept 2026 (the 4 file-dated) then Mar 2021 … Jan 2018; grid + jump to
+  2019; viewer 1/22; the Jetta hub read-only with "2018 → vendido 2021 · 22 fotos"; a VENTA hito on the timeline;
+  "así estaba"; 0 page errors.
+- **Sync, web → web** (throwaway account `carguy-ui-…`, removed with 999): the importing profile signed up and pushed;
+  Cuenta's meter read **665 KB de 300 MB**. A fresh profile signed in and pulled; opening the album downloaded
+  **22 thumbs, 0 full copies**; opening one photo downloaded **1** full copy. (First run: 12 — the pager rendered ten
+  pages, each fetching its full image; fixed before the report.)
+- **Android** (Redmi Note 10 Pro, Android 13, arm64 preview build, same EAS cert `a16450a0…`, `adb install -r`, data
+  kept): 26 generated test JPEGs pushed to `Pictures/CarGuyQA` (a folder of their own; file mtimes set to the EXIF
+  dates so MediaStore's DATE_TAKEN is right), a throwaway vehicle "Prueba QA borrar". After Xaviel tapped ALLOW
+  (a system dialog — not Claude's to press): year chips 2026 → 2018, month counts, month grids, 23 selected →
+  "IMPORTAR 23 FOTOS · 20 ene 2018 → 05 mar 2021 · 23 de la cámara" → "22 importadas · 1 repetida" → timeline Mar 2021
+  … Jan 2018, grid jump to Dec 2019, viewer 13/22 with zoom (above). Then the throwaway was removed (dialog checked to
+  name it), the test photos deleted from storage and MediaStore (0 rows left), and the DS3 is the only vehicle again,
+  51,900 km intact. Screenshots `docs/qa/imp-28092026-phase-3-android-*` show only the test photos; the month grids,
+  which show Xaviel's own gallery, were not saved.
+- **Found and fixed on the phone:** the year list stopped at 2026 (undated gallery photos sort first ascending —
+  `libraryYears` now skips them); the importer's "N seleccionadas · REVISAR" footer sat on the navigation bar with a
+  squeezed button (absolute positioning ignores the safe area); grid cells were labelled "1 / 1" for TalkBack (now the
+  photo's date).
+- **Found and fixed while cleaning up:** `deleteVehicleCascade` tombstoned the photos but none of the v2 rows (album
+  items, hitos, ownership, mods, specsheet, snapshots, tires, track events…), which would have been pushed as live
+  orphans. The cascade now covers every vehicle-scoped v2 table (inventory stays; `vehicle_member` is the server's);
+  test added.
+- **Phone connection:** the USB link kept dropping (MIUI's "Use USB for" dialog on every reconnect — dismissed with
+  Back, no choice made). The run finished over `adb tcpip`; afterwards adb went back to USB mode and the temporary
+  "stay awake on USB" (`svc power stayon usb`) was turned off (`stay_on_while_plugged_in = 0`).
+
+### Notes for the next phase
+- Phase 4 (Build): `mod_media` with roles `antes`/`despues` lights the timeline's pairs (`modPairs()`); mod photos
+  should go through `ingest(…, { vehicleId, modId })` so they land in the album too. `stateAt()` already applies
+  `spec_effects` in install order — the Specs tab can reuse it for "ACTUAL".
+- `albumPhotos()` is the one query for "every photo of this car"; the public page (PROMPT-07) should read favourites
+  from it.

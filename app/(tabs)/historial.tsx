@@ -189,6 +189,12 @@ export default function HistorialScreen() {
             [es.history.addExpense, '/gasto/nuevo'],
             [es.history.addInspection, '/chequeo'],
             [es.history.addOdometer, '/odometro'],
+            ...(FEATURE_ALBUM
+              ? ([
+                  [es.history.addMilestone, '/hito/nuevo'],
+                  [es.history.addPhotos, '/album/importar'],
+                ] as const)
+              : []),
           ] as const
         ).map(([label, route]) => (
           <Pressable
@@ -271,8 +277,12 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
     });
     return;
   }
-  // Milestones and track days get their screens in PROMPT-03 / PROMPT-06.
-  if (entry.kind === 'hito' || entry.kind === 'pista') return;
+  if (entry.kind === 'hito') {
+    router.push({ pathname: '/hito/[id]', params: { id: entry.id } });
+    return;
+  }
+  // Track days get their screen in PROMPT-06.
+  if (entry.kind === 'pista') return;
   router.push({ pathname: '/inspeccion/[id]', params: { id: entry.id } });
 }
 

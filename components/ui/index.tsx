@@ -82,11 +82,13 @@ export function GhostButton({
   onPress,
   danger,
   disabled,
+  style,
 }: {
   label: string;
   onPress: () => void;
   danger?: boolean;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { theme } = useTheme();
 
@@ -97,7 +99,7 @@ export function GhostButton({
       accessibilityRole="button"
       accessibilityState={{ disabled: Boolean(disabled) }}
       aria-disabled={Boolean(disabled)}
-      style={({ pressed }) => [styles.ghost, pressed && styles.pressed, disabled && { opacity: 0.4 }]}>
+      style={({ pressed }) => [styles.ghost, pressed && styles.pressed, disabled && { opacity: 0.4 }, style]}>
       <T face="semibold" style={[styles.ghostLabel, { color: danger ? theme.dangerText : theme.text.secondary }]}>
         {label}
       </T>

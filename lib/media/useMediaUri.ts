@@ -10,8 +10,12 @@ import { getMedia, mediaUri } from './index';
  * mints an object URL, and an object URL that is never revoked pins its blob in
  * memory for the lifetime of the page — a garage screen scrolling through
  * vehicle photos would leak a few megabytes per pass.
+ *
+ * `{ thumb: true }` for grids and cards: the 400 px copy, downloaded on its own,
+ * so a timeline never pulls full-size photos over the network.
  */
-export function useMediaUri(mediaId: string | null | undefined): string | null {
+export function useMediaUri(mediaId: string | null | undefined, opts: { thumb?: boolean } = {}): string | null {
+  const thumb = Boolean(opts.thumb);
   const [uri, setUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,7 +24,7 @@ export function useMediaUri(mediaId: string | null | undefined): string | null {
 
     (async () => {
       const item = await getMedia(mediaId);
-      const resolved = await mediaUri(item);
+      const resolved = await mediaUri(item, { thumb });
       if (cancelled) {
         // Resolved after unmount: revoke immediately, nothing will render it.
         if (resolved && Platform.OS === 'web') URL.revokeObjectURL(resolved);
@@ -36,7 +40,7 @@ export function useMediaUri(mediaId: string | null | undefined): string | null {
       cancelled = true;
       if (created && Platform.OS === 'web') URL.revokeObjectURL(created);
     };
-  }, [mediaId]);
+  }, [mediaId, thumb]);
 
   return uri;
 }

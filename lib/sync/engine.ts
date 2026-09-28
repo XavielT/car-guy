@@ -14,6 +14,7 @@ import {
 } from '../db/syncOps';
 import { es } from '../i18n/es';
 import { removeDeletedMediaBytes, uploadMediaBytes } from './mediaBytes';
+import { refreshStorageMeter } from './storageMeter';
 import {
   afterCursorFilter,
   batch,
@@ -195,6 +196,10 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
 
     // No download step: bytes come down lazily, on the first attempt to display
     // the photo (see lib/sync/mediaBytes.ts).
+
+    // The quota meter, after the uploads and removals: this reading is what
+    // un-pauses uploads once there is room again. Best-effort.
+    await refreshStorageMeter(supabase as never, userId);
 
     const finishedAt = now();
     await settingsRepo.set(LAST_SYNC_KEY, finishedAt);

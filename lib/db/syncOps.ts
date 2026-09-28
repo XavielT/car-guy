@@ -241,7 +241,7 @@ export async function markAllUnsynced(tables: string[]): Promise<void> {
     for (const table of tables) {
       await handle.runAsync(`UPDATE ${table} SET synced_at = NULL`);
     }
-    await handle.runAsync('UPDATE media SET remote_path = NULL');
+    await handle.runAsync('UPDATE media SET remote_path = NULL, remote_thumb_path = NULL');
   });
 }
 
@@ -271,9 +271,35 @@ export { now, camel };
  */
 export async function mediaNeedingUpload(): Promise<LocalRow[]> {
   const db = await getDb();
+  // A row with a full copy uploaded but no thumb in the cloud (every pre-2.1
+  // photo, once a 2.1 device has made its thumb) needs the thumb alone.
   return db.getAllAsync<LocalRow>(
-    `SELECT * FROM media WHERE remote_path IS NULL AND deleted_at IS NULL`,
+    `SELECT * FROM media WHERE deleted_at IS NULL
+       AND (remote_path IS NULL
+         OR (remote_thumb_path IS NULL AND (thumb_rel_path IS NOT NULL OR thumb_blob IS NOT NULL)))
+     ORDER BY created_at`,
   );
+}
+
+/** Records where the thumb landed in Storage (same rules as setMediaRemotePath). */
+export async function setMediaRemoteThumbPath(id: string, remotePath: string): Promise<void> {
+  await enqueue(async (handle) => {
+    await handle.runAsync(`UPDATE media SET remote_thumb_path = ?, synced_at = NULL WHERE id = ?`, [
+      remotePath,
+      id,
+    ] as never);
+  });
+}
+
+/** Stores a downloaded thumb without dirtying the row (thumb_blob is local-only). */
+export async function saveMediaThumbBytes(id: string, bytes: Uint8Array | null, relPath: string | null): Promise<void> {
+  await enqueue(async (handle) => {
+    await handle.runAsync(`UPDATE media SET thumb_blob = ?, thumb_rel_path = COALESCE(?, thumb_rel_path) WHERE id = ?`, [
+      bytes,
+      relPath,
+      id,
+    ] as never);
+  });
 }
 
 /** Vehicles on this phone, for the first sign-in's "Se agregaron N vehículos". */
@@ -284,10 +310,11 @@ export async function liveVehicleCount(): Promise<number> {
 }
 
 /** Deleted photos whose bytes are still in Storage. */
-export async function deletedMediaInStorage(): Promise<{ id: string; remote_path: string }[]> {
+export async function deletedMediaInStorage(): Promise<{ id: string; remote_path: string | null; remote_thumb_path: string | null }[]> {
   const db = await getDb();
-  return db.getAllAsync<{ id: string; remote_path: string }>(
-    `SELECT id, remote_path FROM media WHERE deleted_at IS NOT NULL AND remote_path IS NOT NULL`,
+  return db.getAllAsync<{ id: string; remote_path: string | null; remote_thumb_path: string | null }>(
+    `SELECT id, remote_path, remote_thumb_path FROM media
+     WHERE deleted_at IS NOT NULL AND (remote_path IS NOT NULL OR remote_thumb_path IS NOT NULL)`,
   );
 }
 
@@ -297,7 +324,7 @@ export async function deletedMediaInStorage(): Promise<{ id: string; remote_path
  */
 export async function clearMediaRemotePath(id: string): Promise<void> {
   await enqueue(async (handle) => {
-    await handle.runAsync(`UPDATE media SET remote_path = NULL WHERE id = ?`, [id] as never);
+    await handle.runAsync(`UPDATE media SET remote_path = NULL, remote_thumb_path = NULL WHERE id = ?`, [id] as never);
   });
 }
 

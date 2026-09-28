@@ -7,6 +7,10 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/vehiculo/:id/editar", "destination": "/vehiculo/[id]/editar" },
+    { "source": "/vehiculo/:id/album/estado", "destination": "/vehiculo/[id]/album/estado" },
+    { "source": "/vehiculo/:id/album", "destination": "/vehiculo/[id]/album" },
+    { "source": "/foto/:id", "destination": "/foto/[id]" },
+    { "source": "/hito/:id", "destination": "/hito/[id]" },
     { "source": "/chequeo/:templateId/run", "destination": "/chequeo/[templateId]/run" },
     { "source": "/carga/:id", "destination": "/carga/[id]" },
     { "source": "/gasto/:id", "destination": "/gasto/[id]" },
