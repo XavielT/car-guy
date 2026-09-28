@@ -32,6 +32,8 @@ export type ServiceDraft = {
   costLaborDop: number;
   totalDop: number;
   shop: string;
+  /** The contact that did it (IMP 28092026 Phase 5); `shop` keeps its name as text. */
+  contactId?: string | null;
   warrantyUntilDate: string | null;
   warrantyUntilKm: number | null;
   sourceTaskId?: string | null;
@@ -72,6 +74,7 @@ export async function saveServiceRecord(draft: ServiceDraft): Promise<SaveResult
         costLaborDop: draft.costLaborDop,
         totalDop: draft.totalDop,
         shop: draft.shop,
+        ...(draft.contactId !== undefined ? { contactId: draft.contactId } : {}),
         warrantyUntilDate: draft.warrantyUntilDate,
         warrantyUntilKm: draft.warrantyUntilKm,
         sourceTaskId: draft.sourceTaskId ?? null,

@@ -314,6 +314,20 @@ export function historyFeedV3(): string[] {
   );
 }
 
+/**
+ * v4 (IMP 28092026 Phase 5): v3 plus OBD codes as a subtle 'obd' row — title
+ * the code, subtitle abierto/resuelto. Still local-only.
+ */
+export function historyFeedV4(): string[] {
+  return historyFeedV3().map((sql) =>
+    sql.includes('CREATE VIEW history_feed')
+      ? `${sql}
+    UNION ALL SELECT id, vehicle_id, 'obd', seen_at, created_at, odometer_km, code,
+                     CASE WHEN cleared_at IS NULL THEN 'abierto' ELSE 'resuelto' END, NULL FROM vehicle_dtc_event WHERE deleted_at IS NULL`
+      : sql,
+  );
+}
+
 const HISTORY_FEED_V2 = [
   `DROP VIEW IF EXISTS history_feed`,
   `CREATE VIEW history_feed AS

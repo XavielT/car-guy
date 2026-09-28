@@ -18,7 +18,7 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { useSession } from '@/lib/cloud/auth';
 import { exportBackup, importBackup } from '@/lib/backup';
-import { FEATURE_SYNC } from '@/lib/flags';
+import { FEATURE_DIY, FEATURE_SYNC } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
@@ -142,6 +142,14 @@ export default function MasScreen() {
           caption={es.more.expenseCaption}
           onPress={() => router.push('/gasto/nuevo')}
         />
+
+        {FEATURE_DIY ? (
+          <>
+            <MoreSection title={es.diyMore.section} />
+            <NavRow label={es.diyMore.contacts} caption={es.diyMore.contactsCaption} onPress={() => router.push('/contactos')} />
+            <NavRow label={es.diyMore.obd} caption={es.diyMore.obdCaption} onPress={() => router.push('/obd')} />
+          </>
+        ) : null}
 
         <MoreSection title={es.more.documents} />
         <NavRow

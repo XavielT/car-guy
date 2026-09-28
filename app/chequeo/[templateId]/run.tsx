@@ -14,7 +14,11 @@ import {
   inspectionTemplates as templateRepo,
 } from '@/lib/db/repos';
 import { resultIdFor, saveInspection, type Answer } from '@/lib/db/inspectionOps';
-import type { InspectionItem, InspectionTemplate, OnFail } from '@/lib/db/types';
+import type { FluidGuideItem, InspectionItem, InspectionTemplate, OnFail } from '@/lib/db/types';
+import { listFluids, readFicha } from '@/lib/db/diyQueries';
+import { fluidForItem, fluidInfo, isTirePressureItem } from '@/lib/domain/fluids';
+import { FEATURE_DIY } from '@/lib/flags';
+import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { id as newId } from '@/lib/format';
 import { todayIso } from '@/lib/domain/dates';
 import { es } from '@/lib/i18n/es';
@@ -51,6 +55,9 @@ export default function RunScreen() {
   const [saving, setSaving] = useState(false);
   const [odometer, setOdometer] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // The DIY block (IMP 28092026 Phase 5): the owner's fluid photos and the OEM pressures.
+  const [fluidCards, setFluidCards] = useState<Record<string, FluidGuideItem>>({});
+  const [psi, setPsi] = useState<{ f: number | null; r: number | null }>({ f: null, r: null });
   // Lazy initialiser, not a bare Date.now() in the render body: the clock is
   // impure and the lint rightly refuses to have it read on every render.
   const [startedAt] = useState(() => Date.now());
@@ -63,6 +70,19 @@ export default function RunScreen() {
   }, [startedAt]);
 
   const vehicleId = activeVehicle?.id;
+
+  useEffect(() => {
+    if (!FEATURE_DIY || !vehicleId) return;
+    let cancelled = false;
+    void Promise.all([listFluids(vehicleId), readFicha(vehicleId)]).then(([cards, ficha]) => {
+      if (cancelled) return;
+      setFluidCards(Object.fromEntries(cards.filter((c) => c.mediaId || c.notes).map((c) => [c.kind, c])));
+      setPsi({ f: (ficha.values.psi_oem_f as number | null) ?? null, r: (ficha.values.psi_oem_r as number | null) ?? null });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId]);
 
   useEffect(() => {
     if (!templateId || !vehicleId) return;
@@ -198,6 +218,29 @@ export default function RunScreen() {
                       {item.warning ? `\n\n${item.warning}` : ''}
                     </T>
                   ) : null}
+                  {FEATURE_DIY && isTirePressureItem(item.label) && (psi.f != null || psi.r != null) ? (
+                    <T face="mono" style={{ color: theme.accent, fontSize: 12, marginTop: 6 }}>
+                      {es.fluids.oem(psi.f != null ? String(psi.f) : '—', psi.r != null ? String(psi.r) : '—')}
+                    </T>
+                  ) : null}
+                  {(() => {
+                    const kind = FEATURE_DIY ? fluidForItem(item.label) : null;
+                    const card = kind ? fluidCards[kind] : null;
+                    if (!card) return null;
+                    return (
+                      <View style={[styles.fluid, { borderColor: theme.accentFill, backgroundColor: theme.bg.raised }]}>
+                        <T face="eyebrow" style={{ color: theme.accent, fontSize: 10 }}>
+                          {es.fluids.inCheck(fluidInfo(card.kind)?.label ?? item.label, activeVehicle?.name ?? '')}
+                        </T>
+                        {card.mediaId ? <PhotoThumb mediaId={card.mediaId} height={150} /> : null}
+                        {card.notes ? (
+                          <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
+                            {card.notes}
+                          </T>
+                        ) : null}
+                      </View>
+                    );
+                  })()}
 
                   <View style={styles.verdicts}>
                     {(['ok', 'falla', 'na'] as Verdict[]).map((v) => {
@@ -282,6 +325,7 @@ export default function RunScreen() {
 }
 
 const styles = StyleSheet.create({
+  fluid: { borderWidth: 1, borderRadius: radius.input, padding: space.sm, gap: 6, marginTop: space.sm },
   pad: { padding: space.gutter, paddingBottom: 40 },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.lg },
   cold: { borderWidth: 1, borderRadius: radius.input, padding: space.md, marginBottom: space.lg },

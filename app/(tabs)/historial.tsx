@@ -14,7 +14,7 @@ import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
-import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK } from '@/lib/flags';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -196,6 +196,7 @@ export default function HistorialScreen() {
                   [es.history.addPhotos, '/album/importar'],
                 ] as const)
               : []),
+            ...(FEATURE_DIY ? ([[es.history.addObd, '/obd?add=1']] as const) : []),
           ] as const
         ).map(([label, route]) => (
           <Pressable
@@ -276,6 +277,10 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
   }
   if (entry.kind === 'hito') {
     router.push({ pathname: '/hito/[id]', params: { id: entry.id } });
+    return;
+  }
+  if (entry.kind === 'obd') {
+    router.push({ pathname: '/obd/[code]', params: { code: entry.title, vehicleId: entry.vehicleId } });
     return;
   }
   // Track days get their screen in PROMPT-06.

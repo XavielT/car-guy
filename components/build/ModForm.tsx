@@ -28,6 +28,7 @@ import { dateInputFromIso, id as newId, isoFromDateInput, money, todayIsoDate } 
 import { es } from '@/lib/i18n/es';
 import { importCandidates, pickCandidates } from '@/lib/media';
 import { useTheme } from '@/lib/theme/useTheme';
+import { ContactPicker } from '@/components/diy/ContactPieces';
 
 const STATUSES: Mod['status'][] = ['instalado', 'planeado', 'pedido', 'quitado', 'vendido', 'danado'];
 const INSTALLERS: Mod['installerType'][] = ['yo', 'taller', 'amigo'];
@@ -279,12 +280,12 @@ export function ModForm({
           <Chip key={i} label={es.build.installers[i]} selected={installer === i} onPress={() => setInstaller(i)} />
         ))}
       </View>
-      {installer !== 'yo' && contacts.length ? (
-        <View style={styles.chips}>
-          {contacts.map((c) => (
-            <Chip key={c.id} label={c.name} selected={contactId === c.id} onPress={() => setContactId(contactId === c.id ? null : c.id)} />
-          ))}
-        </View>
+      {installer !== 'yo' ? (
+        <ContactPicker
+          contactId={contactId}
+          text={contactId ? contacts.find((c) => c.id === contactId)?.name ?? '' : vendor}
+          onChange={({ contactId: c }) => setContactId(c)}
+        />
       ) : null}
 
       {eyebrow(es.modForm.costs)}

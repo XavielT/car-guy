@@ -237,6 +237,13 @@ function Shell() {
         <Stack.Screen name="inventario/[id]" options={{ headerShown: true, title: es.routes.inventory }} />
         <Stack.Screen name="ruedas/[setId]" options={{ headerShown: true, title: es.routes.wheelSet }} />
         <Stack.Screen name="goma/[id]" options={{ headerShown: true, title: es.routes.tire }} />
+        <Stack.Screen name="vehiculo/[id]/ficha" options={{ headerShown: true, title: es.routes.ficha }} />
+        <Stack.Screen name="vehiculo/[id]/fluidos" options={{ headerShown: true, title: es.routes.fluids }} />
+        <Stack.Screen name="obd/index" options={{ headerShown: true, title: es.routes.obd }} />
+        <Stack.Screen name="obd/[code]" options={{ headerShown: true, title: es.routes.obdCode }} />
+        <Stack.Screen name="contactos/index" options={{ headerShown: true, title: es.routes.contacts }} />
+        <Stack.Screen name="contactos/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newContact }} />
+        <Stack.Screen name="contactos/[id]" options={{ headerShown: true, title: es.routes.contact }} />
         <Stack.Screen
           name="odometro"
           options={{ presentation: 'modal', headerShown: true, title: es.routes.odometer }}
