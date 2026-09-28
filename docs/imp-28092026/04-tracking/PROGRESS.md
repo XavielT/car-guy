@@ -461,8 +461,11 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 - Screenshots `docs/qa/imp-28092026-phase-2-android-*.png` (status bar cropped off — it carries notification icons).
 - **Found and fixed:** `Sheet` ignored the bottom safe-area inset, so on edge-to-edge Android the last button
   ("Listo" on the fill-up review) sat on the navigation bar and reported zero bounds to accessibility. Pre-existing
-  since 2.0; `paddingBottom` now adds `insets.bottom`. JS-only — it reaches the phone with the next build (not
-  re-verified on the device).
+  since 2.0; `paddingBottom` now adds `insets.bottom`. **Verified on the Redmi** with the arm64 preview build
+  (2026-09-28 16:16): the DS3's "Cambiar estado" sheet ends with padding above the navigation bar; sheet closed with
+  Back, nothing picked, status still Activo.
+- **Preview builds are arm64-only** since `chore(eas)` (`gradleCommand … -PreactNativeArchitectures=arm64-v8a` in
+  `eas.json`): Gradle 23m 25s → 5m 42s, APK 117 → 50 MB, same cert. Production still builds all four ABIs.
 - Not measured on the device: the sweep timing and reduced motion (same code as Phase 1); light mode was checked on web.
 - The check runner still never lets `uiautomator dump` go idle (timer re-render, noted in Phase 1); driven by
   screenshot coordinates instead.
