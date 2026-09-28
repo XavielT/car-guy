@@ -18,7 +18,8 @@ import {
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { resetPassword, signIn, signOut, signUp, useSession } from '@/lib/cloud/auth';
-import { FEATURE_SYNC } from '@/lib/flags';
+import { FEATURE_ALBUM, FEATURE_SYNC } from '@/lib/flags';
+import { StorageMeter } from '@/components/album/StorageMeter';
 import { dateLabel } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useSync } from '@/lib/sync/useSync';
@@ -178,6 +179,9 @@ export default function CuentaScreen() {
                 </View>
               ) : null}
             </Surface>
+
+            {/* The photo quota (IMP 28092026 Phase 3): used / 300 MB, warns at 90 %. */}
+            {FEATURE_ALBUM ? <StorageMeter style={{ marginBottom: space.md }} /> : null}
 
             <GhostButton label={es.account.signOut} onPress={handleSignOut} />
 

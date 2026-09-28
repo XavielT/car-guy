@@ -41,6 +41,7 @@ import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_SHARE, FEATURE_TRACK
 import { dateLabel, isoFromDateInput, km as fmtKm, money, todayIsoDate } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
+import { AlbumTab } from '@/components/album/AlbumTab';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -93,6 +94,9 @@ export default function VehicleHubScreen() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
+  // An Ex opens read-only (its story is written); "Editar historia" unlocks it
+  // for this visit. The album stays open to imports — that is the Jetta case.
+  const [unlocked, setUnlocked] = useState(false);
 
   const coverUri = useMediaUri(vehicle?.heroMediaId ?? facts?.favoriteMediaId ?? vehicle?.photoMediaId);
 
@@ -146,7 +150,10 @@ export default function VehicleHubScreen() {
 
   const badges = facts ? vehicleBadges(vehicle, facts) : [];
   const kana = toKatakana(vehicle.nickname);
-  const owned = ownershipLine(facts?.ownership ?? null);
+  const readOnly = isEx(vehicle.status) && !unlocked;
+  const ownedLine = ownershipLine(facts?.ownership ?? null);
+  // An Ex carries its photo count: "2018 → vendido 2021 · 12 fotos".
+  const owned = ownedLine && isEx(vehicle.status) && FEATURE_ALBUM ? `${ownedLine} · ${es.album.photos(facts?.photos ?? 0)}` : ownedLine;
   const subtitle = [es.vehicleTypes[vehicle.type], vehicle.year, vehicle.make, vehicle.model]
     .filter(Boolean)
     .join(' · ');
@@ -249,6 +256,14 @@ export default function VehicleHubScreen() {
 
         {/* 2 — the tab's content */}
         <View>
+          {readOnly ? (
+            <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
+              <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
+                {es.album.readOnly}
+              </T>
+              <GhostButton label={es.album.unlock} onPress={() => setUnlocked(true)} />
+            </View>
+          ) : null}
           {tab === 'resumen' ? (
             <Resumen
               vehicle={vehicle}
@@ -261,7 +276,10 @@ export default function VehicleHubScreen() {
               setSpecValue={setSpecValue}
               onSpecsChanged={reload}
               onWriteStory={() => setStoryOpen(true)}
+              readOnly={readOnly}
             />
+          ) : tab === 'album' && FEATURE_ALBUM ? (
+            <AlbumTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'docs' ? (
             <Docs docs={docs} onOpen={(docId) => router.push({ pathname: '/documento/[id]', params: { id: docId } })} onAll={() => router.push('/documentos')} />
           ) : (
@@ -269,11 +287,15 @@ export default function VehicleHubScreen() {
           )}
 
           <View style={{ height: space.xl }} />
-          <PrimaryButton
-            label={es.profile.edit}
-            onPress={() => router.push({ pathname: '/vehiculo/[id]/editar', params: { id: vehicle.id } })}
-          />
-          <GhostButton label={es.hub.changeStatus} onPress={() => setStatusOpen(true)} />
+          {readOnly ? null : (
+            <>
+              <PrimaryButton
+                label={es.profile.edit}
+                onPress={() => router.push({ pathname: '/vehiculo/[id]/editar', params: { id: vehicle.id } })}
+              />
+              <GhostButton label={es.hub.changeStatus} onPress={() => setStatusOpen(true)} />
+            </>
+          )}
           {FEATURE_SHARE ? (
             <>
               <GhostButton label={es.hub.share} onPress={() => {}} />
@@ -283,7 +305,7 @@ export default function VehicleHubScreen() {
           {activeVehicle?.id === vehicle.id || vehicle.isArchived ? null : (
             <GhostButton label={es.profile.makeActive} onPress={() => setActiveVehicle(vehicle.id)} />
           )}
-          <GhostButton
+          {readOnly ? null : <GhostButton
             danger
             label={es.profile.remove}
             onPress={() =>
@@ -301,7 +323,7 @@ export default function VehicleHubScreen() {
                 },
               ])
             }
-          />
+          />}
         </View>
       </ScrollView>
 
@@ -357,6 +379,7 @@ function Resumen({
   setSpecValue,
   onSpecsChanged,
   onWriteStory,
+  readOnly,
 }: {
   vehicle: Vehicle;
   totals: { spend: number; fillups: number; services: number };
@@ -368,6 +391,7 @@ function Resumen({
   setSpecValue: (s: string) => void;
   onSpecsChanged: () => void;
   onWriteStory: () => void;
+  readOnly?: boolean;
 }) {
   const { theme } = useTheme();
   // Ley 63-17 art. 41. Informational: nothing enforces it until INTRANT's
@@ -397,7 +421,7 @@ function Resumen({
             {es.hub.storyEmpty}
           </T>
         )}
-        <GhostButton label={vehicle.story ? es.hub.editStory : es.hub.writeStory} onPress={onWriteStory} />
+        {readOnly ? null : <GhostButton label={vehicle.story ? es.hub.editStory : es.hub.writeStory} onPress={onWriteStory} />}
       </Surface>
 
       <View style={styles.tiles}>
@@ -438,7 +462,7 @@ function Resumen({
             <T face="mono" style={{ color: theme.text.primary }}>
               {spec.value}
             </T>
-            <Pressable
+            {readOnly ? null : <Pressable
               onPress={() => void specRepo.softDelete(spec.id).then(onSpecsChanged)}
               accessibilityRole="button"
               accessibilityLabel={es.common.removeItem(spec.name)}
@@ -446,11 +470,13 @@ function Resumen({
               <T face="body" style={{ color: theme.text.muted }}>
                 ×
               </T>
-            </Pressable>
+            </Pressable>}
           </View>
         ))
       )}
 
+      {readOnly ? null : (
+        <>
       <View style={styles.suggestions}>
         {es.specSuggestions.filter((s) => !specs.some((x) => x.name === s)).map((s) => (
           <Pressable
@@ -474,6 +500,8 @@ function Resumen({
         </View>
       </View>
       <GhostButton label={es.profile.addSpec} onPress={() => void addSpec()} />
+        </>
+      )}
     </View>
   );
 }
@@ -642,6 +670,7 @@ function Tile({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  readOnly: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderWidth: 1, borderRadius: radius.input, padding: space.md, marginBottom: space.md },
   pad: { padding: space.gutter, paddingBottom: 40 },
   cover: { width: '100%', height: 180, borderRadius: radius.card, borderWidth: 1, marginBottom: space.lg },
   coverEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },

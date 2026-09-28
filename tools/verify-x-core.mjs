@@ -21,6 +21,8 @@
  *  10. storage_usage_bytes() answers.                           (sql/010)
  *  11. The media quota column defaults to 300 MB.               (sql/010)
  *  12. A client cannot write vehicle_member.                    (sql/010)
+ *  13. A uploads a thumb to its own folder; B cannot write there. (sql/004, 011)
+ *  14. A cannot raise its own media quota.                      (sql/011)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -282,6 +284,44 @@ async function main() {
       "12. a client cannot make itself a member of A's vehicle (sql/010)",
       selfMember.status === 401 || selfMember.status === 403 || selfMember.body?.code === '42501',
       `status ${selfMember.status} · ${JSON.stringify(selfMember.body?.code ?? selfMember.body)}`,
+    );
+
+    // 13 — thumbs: the `<user>/<id>.thumb.jpg` shape passes the insert policy
+    // (with 011's quota check) for the owner and fails for anyone else.
+    const thumbPath = `${userIdA}/verify_${stamp}.thumb.jpg`;
+    const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+    const upA = await fetch(`${URL_BASE}/storage/v1/object/carguy-media/${thumbPath}`, {
+      method: 'POST',
+      headers: { apikey: ANON, ...authA, 'Content-Type': 'image/jpeg' },
+      body: bytes,
+    });
+    const upB = await fetch(`${URL_BASE}/storage/v1/object/carguy-media/${userIdA}/verify_${stamp}_b.thumb.jpg`, {
+      method: 'POST',
+      headers: { apikey: ANON, ...authB, 'Content-Type': 'image/jpeg' },
+      body: bytes,
+    });
+    // Leave nothing behind in the bucket.
+    await fetch(`${URL_BASE}/storage/v1/object/carguy-media`, {
+      method: 'DELETE',
+      headers: { apikey: ANON, ...authA, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefixes: [thumbPath] }),
+    });
+    record(
+      "13. A uploads a thumb to its folder; B cannot write into A's (sql/004, 011)",
+      upA.status === 200 && upB.status >= 400,
+      `A ${upA.status} · B ${upB.status}`,
+    );
+
+    const raise = await call(`/rest/v1/profiles?user_id=eq.${userIdA}`, {
+      method: 'PATCH',
+      headers: { ...authA, Prefer: 'return=representation' },
+      body: JSON.stringify({ media_quota_bytes: 1099511627776 }),
+    });
+    const after = await call('/rest/v1/profiles?select=media_quota_bytes', { headers: authA });
+    record(
+      '14. A cannot raise its own media quota (sql/011)',
+      Array.isArray(after.body) && after.body[0]?.media_quota_bytes === 314572800,
+      `patch ${raise.status} · now ${JSON.stringify(after.body)}`,
     );
   }
 

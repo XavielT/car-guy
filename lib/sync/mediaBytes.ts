@@ -8,16 +8,22 @@ import {
   deletedMediaInStorage,
   mediaNeedingUpload,
   saveMediaBytes,
+  saveMediaThumbBytes,
   setMediaRemotePath,
+  setMediaRemoteThumbPath,
   type LocalRow,
 } from '../db/syncOps';
+import { fitsQuota } from '../domain/album';
+import { readStorageMeter, writeStorageMeter } from './storageMeter';
 
 /**
  * The half of media sync that PostgREST cannot carry.
  *
  * `carguy.media` holds the metadata; the bytes go to the private
- * `carguy-media` bucket under `<user_id>/<media_id>.<ext>`, which is the one
- * path shape the four Storage policies in `sql/004` allow (ADR-10).
+ * `carguy-media` bucket under `<user_id>/<media_id>.<ext>` and, since 2.1, the
+ * 400 px thumb beside it as `<user_id>/<media_id>.thumb.jpg` — the path shape
+ * the Storage policies in `sql/004` allow (ADR-10). `sql/011` adds the quota to
+ * the insert policy; a refused upload pauses uploads (see storageMeter.ts).
  *
  * The two directions are deliberately asymmetric. Uploads are **eager**, inside
  * the sync: bytes this device is the only copy of are the ones worth hurrying.
@@ -66,13 +72,13 @@ function localPathFor(row: LocalRow): string {
   return `media/${row.owner_id as string}/${row.id as string}.${extensionFor(row.mime as string)}`;
 }
 
-async function readLocalBytes(row: LocalRow): Promise<Uint8Array | null> {
+async function readLocalBytes(row: LocalRow, thumb = false): Promise<Uint8Array | null> {
   if (Platform.OS === 'web') {
-    const blob = row.blob as Uint8Array | null;
+    const blob = (thumb ? row.thumb_blob : row.blob) as Uint8Array | null;
     return blob ? new Uint8Array(blob) : null;
   }
 
-  const relPath = row.rel_path as string | null;
+  const relPath = (thumb ? row.thumb_rel_path : row.rel_path) as string | null;
   if (!relPath) return null;
 
   const { File, Paths } = await import('expo-file-system');
@@ -81,42 +87,95 @@ async function readLocalBytes(row: LocalRow): Promise<Uint8Array | null> {
   return new Uint8Array(await file.bytes());
 }
 
+/** A Storage refusal that means "over quota" (the insert policy said no), not a network blip. */
+function isQuotaRefusal(error: unknown): boolean {
+  const e = error as { statusCode?: string | number; status?: number; message?: string } | null;
+  const code = String(e?.statusCode ?? e?.status ?? '');
+  return code === '403' || /row-level security|policy/i.test(e?.message ?? '');
+}
+
 /**
- * Uploads every photo Storage has never seen, then records the object key.
+ * Uploads every photo Storage has never seen — thumb first, so another device's
+ * grid fills before its full copies — then records the object keys.
  *
- * Runs **before** the media rows are pushed, so the `remote_path` the other
- * device receives already points at bytes it can fetch. The other order would
- * publish a row advertising a file that is not there yet.
+ * Runs **before** the media rows are pushed, so the paths the other device
+ * receives already point at bytes it can fetch. The other order would publish
+ * a row advertising a file that is not there yet.
+ *
+ * Quota: the client stops early when its last reading says the next photo will
+ * not fit, and stops for good (`paused`) when the server refuses one. Either
+ * way the photos stay on the phone and go up once there is room.
  */
 export async function uploadMediaBytes(supabase: StorageClient, userId: string): Promise<number> {
   const rows = await mediaNeedingUpload();
+  if (!rows.length) return 0;
+  const meter = await readStorageMeter();
+  // Paused by a refusal: wait for the post-sync reading to say there is room.
+  if (meter.paused) return 0;
+  let used = meter.usedBytes;
   let uploaded = 0;
+
+  const put = async (path: string, bytes: Uint8Array, mime: string) => {
+    // `upsert` because a crash between the upload and recording the path leaves
+    // the object in place with the row still claiming nothing was sent; the
+    // retry must be allowed to overwrite it.
+    const copy = new Uint8Array(bytes.length);
+    copy.set(bytes);
+    return supabase.storage.from(BUCKET).upload(path, new Blob([copy], { type: mime }), { contentType: mime, upsert: true });
+  };
 
   for (const row of rows) {
     try {
-      const bytes = await readLocalBytes(row);
-      if (!bytes) continue;
-
+      const id = row.id as string;
       const mime = (row.mime as string) || 'image/jpeg';
-      const path = `${userId}/${row.id as string}.${extensionFor(mime)}`;
 
-      // `upsert` because a crash between the upload and `setMediaRemotePath`
-      // leaves the object in place with the row still claiming nothing was
-      // sent; the retry must be allowed to overwrite it.
-      const copy = new Uint8Array(bytes.length);
-      copy.set(bytes);
-      const { error } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, new Blob([copy], { type: mime }), { contentType: mime, upsert: true });
-      if (error) continue;
+      if (!row.remote_thumb_path) {
+        const thumb = await readLocalBytes(row, true);
+        if (thumb) {
+          if (!fitsQuota(used, meter.quotaBytes, thumb.byteLength)) {
+            await writeStorageMeter({ paused: true });
+            break;
+          }
+          const path = `${userId}/${id}.thumb.jpg`;
+          const { error } = await put(path, thumb, 'image/jpeg');
+          if (error) {
+            if (isQuotaRefusal(error)) {
+              await writeStorageMeter({ paused: true });
+              break;
+            }
+            continue;
+          }
+          used += thumb.byteLength;
+          await setMediaRemoteThumbPath(id, path);
+        }
+      }
 
-      await setMediaRemotePath(row.id as string, path);
-      uploaded += 1;
+      if (!row.remote_path) {
+        const bytes = await readLocalBytes(row);
+        if (!bytes) continue;
+        if (!fitsQuota(used, meter.quotaBytes, bytes.byteLength)) {
+          await writeStorageMeter({ paused: true });
+          break;
+        }
+        const path = `${userId}/${id}.${extensionFor(mime)}`;
+        const { error } = await put(path, bytes, mime);
+        if (error) {
+          if (isQuotaRefusal(error)) {
+            await writeStorageMeter({ paused: true });
+            break;
+          }
+          continue;
+        }
+        used += bytes.byteLength;
+        await setMediaRemotePath(id, path);
+        uploaded += 1;
+      }
     } catch {
       // Next sync. A photo is not worth stopping a run of maintenance records.
     }
   }
 
+  if (used !== meter.usedBytes) await writeStorageMeter({ usedBytes: used });
   return uploaded;
 }
 
@@ -130,7 +189,8 @@ export async function uploadMediaBytes(supabase: StorageClient, userId: string):
 export async function removeDeletedMediaBytes(supabase: StorageClient): Promise<number> {
   const rows = await deletedMediaInStorage();
   if (!rows.length) return 0;
-  const { error } = await supabase.storage.from(BUCKET).remove(rows.map((row) => row.remote_path));
+  const paths = rows.flatMap((row) => [row.remote_path, row.remote_thumb_path]).filter((p): p is string => Boolean(p));
+  const { error } = await supabase.storage.from(BUCKET).remove(paths);
   // Next sync; a leftover file costs storage, not correctness.
   if (error) return 0;
   for (const row of rows) await clearMediaRemotePath(row.id);
@@ -151,25 +211,31 @@ export async function removeDeletedMediaBytes(supabase: StorageClient): Promise<
  */
 export type BytesState = 'present' | 'downloaded' | 'missing';
 
-export async function ensureMediaBytes(row: LocalRow): Promise<BytesState> {
-  const remotePath = row.remote_path as string | null;
+/** Where a native device keeps this row's thumb, honouring a synced path. */
+function localThumbPathFor(row: LocalRow): string {
+  const existing = row.thumb_rel_path as string | null;
+  if (existing) return existing;
+  return `media/${row.owner_id as string}/${row.id as string}.thumb.jpg`;
+}
+
+export async function ensureMediaBytes(row: LocalRow, opts: { thumb?: boolean } = {}): Promise<BytesState> {
+  const thumb = Boolean(opts.thumb);
+  const remotePath = (thumb ? row.remote_thumb_path : row.remote_path) as string | null;
   if (!remotePath) return 'missing';
 
   const supabase = getSupabase();
   if (!supabase) return 'missing';
 
   const web = Platform.OS === 'web';
-  const relPath = localPathFor(row);
+  const relPath = thumb ? localThumbPathFor(row) : localPathFor(row);
   const fs = web ? null : await import('expo-file-system');
 
   try {
-    // On web the SQL row already says whether the blob is there; on native only
-    // the filesystem can answer.
-    // On native a pulled row carries `rel_path` — it is a cloud column, so it
-    // names where the *other* device kept the file. Only a stat can say whether
-    // this device has it.
+    // On web the SQL row already says whether the blob is there; on native a
+    // pulled row carries the path columns — cloud columns naming where the
+    // *other* device kept the file — so only a stat can say whether this one has it.
     if (web) {
-      if (row.blob) return 'present';
+      if (thumb ? row.thumb_blob : row.blob) return 'present';
     } else if (fs) {
       if (new fs.File(fs.Paths.document, relPath).exists) return 'present';
     }
@@ -180,14 +246,16 @@ export async function ensureMediaBytes(row: LocalRow): Promise<BytesState> {
     const bytes = new Uint8Array(await data.arrayBuffer());
 
     if (web) {
-      await saveMediaBytes(row.id as string, bytes, null);
+      if (thumb) await saveMediaThumbBytes(row.id as string, bytes, null);
+      else await saveMediaBytes(row.id as string, bytes, null);
     } else if (fs) {
       const file = new fs.File(fs.Paths.document, relPath);
       // `intermediates` covers the per-vehicle folder, which will not exist on
       // a device that has never held a photo for that vehicle.
       file.create({ intermediates: true, overwrite: true });
       file.write(bytes);
-      await saveMediaBytes(row.id as string, null, relPath);
+      if (thumb) await saveMediaThumbBytes(row.id as string, null, relPath);
+      else await saveMediaBytes(row.id as string, null, relPath);
     }
 
     return 'downloaded';
@@ -197,16 +265,22 @@ export async function ensureMediaBytes(row: LocalRow): Promise<BytesState> {
 }
 
 /** `ensureMediaBytes` by id, for callers holding only the id. */
-export async function ensureMediaBytesById(mediaId: string): Promise<BytesState> {
+export async function ensureMediaBytesById(mediaId: string, opts: { thumb?: boolean } = {}): Promise<BytesState> {
   const row = await mediaRepo.getById(mediaId);
   if (!row) return 'missing';
   // The repo hands back camelCase; the byte helpers read the column names.
-  return ensureMediaBytes({
-    id: row.id,
-    owner_id: row.ownerId,
-    mime: row.mime,
-    rel_path: row.relPath ?? null,
-    remote_path: row.remotePath ?? null,
-    blob: row.blob ?? null,
-  });
+  return ensureMediaBytes(
+    {
+      id: row.id,
+      owner_id: row.ownerId,
+      mime: row.mime,
+      rel_path: row.relPath ?? null,
+      remote_path: row.remotePath ?? null,
+      blob: row.blob ?? null,
+      thumb_rel_path: row.thumbRelPath ?? null,
+      remote_thumb_path: row.remoteThumbPath ?? null,
+      thumb_blob: row.thumbBlob ?? null,
+    },
+    opts,
+  );
 }

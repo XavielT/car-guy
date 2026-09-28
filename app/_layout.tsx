@@ -221,6 +221,13 @@ function Shell() {
         />
         <Stack.Screen name="vehiculo/[id]" options={{ headerShown: true, title: es.routes.vehicle }} />
         <Stack.Screen name="vehiculo/[id]/editar" options={{ headerShown: true, title: es.routes.editVehicle }} />
+        <Stack.Screen name="vehiculo/[id]/album/index" options={{ headerShown: true, title: es.routes.album }} />
+        <Stack.Screen name="vehiculo/[id]/album/estado" options={{ headerShown: true, title: es.routes.albumState }} />
+        <Stack.Screen name="album/importar" options={{ headerShown: true, title: es.routes.importPhotos }} />
+        {/* Always dark and edge to edge: a photo reads best on black. */}
+        <Stack.Screen name="foto/[id]" options={{ presentation: 'fullScreenModal', headerShown: false, title: es.routes.photo, contentStyle: { backgroundColor: '#000000' } }} />
+        <Stack.Screen name="hito/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newMilestone }} />
+        <Stack.Screen name="hito/[id]" options={{ headerShown: true, title: es.routes.milestone }} />
         <Stack.Screen
           name="odometro"
           options={{ presentation: 'modal', headerShown: true, title: es.routes.odometer }}

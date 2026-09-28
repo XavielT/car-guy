@@ -21,7 +21,7 @@ export const FEATURE_SYNC = true;
  * navigation; the schema they need already exists (migration v2).
  */
 /** Álbum, memoria, Ex vehicles — PROMPT-03. */
-export const FEATURE_ALBUM = false;
+export const FEATURE_ALBUM = true;
 /** Build log: mods, specs, wishlist, inventario — PROMPT-04. */
 export const FEATURE_BUILD = false;
 /** Ficha técnica, fluidos, OBD, contactos — PROMPT-05. */
