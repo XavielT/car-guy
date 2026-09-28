@@ -146,7 +146,7 @@ export default function ImportScreen() {
     });
     stop.current = false;
     setRunning(true);
-    setProgress({ done: 0, total: batch.length, imported: 0, duplicates: 0, failed: 0 });
+    setProgress({ done: 0, total: batch.length, imported: 0, duplicates: 0, failed: 0, mediaIds: [] });
     // Originals first, while the untouched files are still in hand.
     if (keepOriginals) {
       for (const c of batch) {

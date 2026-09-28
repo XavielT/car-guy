@@ -3,7 +3,7 @@
 Claude Code appends a report per phase (block in `00-context/04-conventions.md`, plus *Design
 check* and *Flags flipped*). "Notes for the next phase" carry context between sessions.
 
-**Started:** 2026-09-28 · **Status:** Phase 3 done
+**Started:** 2026-09-28 · **Status:** Phase 4 done
 
 ## Phase status
 
@@ -13,7 +13,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 1 | Schema v2 + JDM tokens | ✅ | `imp-28092026/phase-1-schema-tokens` | cloud 009/010 applied; Android verified on the Redmi 2026-09-28 |
 | 2 | JDM screens + Garaje | ✅ | `imp-28092026/phase-2-jdm-screens` | web + Android (Redmi) verified 2026-09-28 |
 | 3 | Álbum / memoria | ✅ | `imp-28092026/phase-3-album` | web + Android (Redmi) verified 2026-09-28; sql/011 applied |
-| 4 | Build log | ⬜ | | |
+| 4 | Build log | ✅ | `imp-28092026/phase-4-build` | web verified 2026-09-28; Android device check pending (phone not connected) |
 | 5 | DIY | ⬜ | | |
 | 6 | Pista | ⬜ | | |
 | 7 | Compartir | ⬜ | | |
@@ -78,6 +78,9 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | 3 | Web thumbs have no blurhash: `Image.generateBlurhashAsync` is Android/iOS only. Web cells show the well colour until the (local, fast) thumb loads | low | a JS blurhash encoder would add ~5 KB if it matters |
 | 3 | "Guardar original en Google Fotos/Drive" opens the share sheet once per photo (expo-sharing shares one file). In the viewer it shares the stored 1600 px copy — the untouched original only exists at import time, so the viewer's label says "copia" | low | a multi-file share needs a native module |
 | 3 | Over-quota refusal verified live against Storage with a 1-byte quota on a throwaway user; the 90 % / 100 % meter states verified in unit tests only (no account holds 270 MB) | low | — |
+| 4 | Phase 4 not yet run on the Redmi (phone not connected at merge time) | medium | install `carguy-phase4.apk` or the next build; check share-as-image and long-press natively |
+| 4 | `inventory_item` has no column linking an item to the mod that used it; "Usar en un mod" prefills the mod form and appends "Usado en: <mod>" to the item's notes | low | a `used_in_mod_id` column needs migration v4 + cloud SQL; not worth it until someone filters by it |
+| 4 | The ficha image on web is html2canvas's rendering (fonts and the dark card come through; a long value is clipped at the card edge, as on screen) | low | — |
 
 ## Blockers
 
@@ -624,3 +627,125 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
   `spec_effects` in install order — the Specs tab can reuse it for "ACTUAL".
 - `albumPhotos()` is the one query for "every photo of this car"; the public page (PROMPT-07) should read favourites
   from it.
+
+
+## Phase 4 — Build log   (branch `imp-28092026/phase-4-build`)
+
+**Status:** complete
+**Commits:** `feat(build): build log — mods, specs stock → actual, wishlist, inventario, gomas …`, `docs(imp-28092026): phase 4 report`
+
+### Changed
+- **Domain** — `lib/domain/build.ts`: `SPEC_FIELDS` is the one contract for `spec_effects`, `stock` and `overrides`
+  (18 keys in Motor · Chasis · Ruedas · Dimensiones; 4 headline fields), `cleanSpecs()` validates on every save (unknown
+  keys dropped, numbers coerced, "mucho" is not 0); `currentSpecs()` = stock ⊕ installed mods in `installed_at` order ⊕
+  overrides, with `{ value, stock, source: stock | mod:<id,name> | override }` per field — derived, never stored;
+  `modTotalDop`, `investedByCategory` / `investedTotal` (installed + removed) / `netInvested` (− `sold_price_dop`),
+  `foreignToDop`, `wishlistTotalDop`, `wishlistToModDraft`, tag badges (SWAP, TUNE, DRIFT, TURBO, OEM+, JDM, DIY), and the
+  category → reminder map (gomas → cambio_gomas, frenos → pastillas_frenos, enfriamiento → refrigerante).
+  `lib/domain/tires.ts`: `parseTireSize` (195/50R15 82V, ZR, 185/60-14, 165SR13 with the assumed 82 %, partial input
+  never throws), `tireDiameterMm` / `circumferenceMm` / `revsPerKm`, `compareSizes` (diff % and speedo error),
+  `dotAge` (WWYY, ≥ 6 years flagged, pre-2000 three-digit codes flagged old), `offsetDelta` (poke / inset mm),
+  `parseWheelSpec` ("15x8 ET0", "7Jx17 ET42", "15x9 -5").
+- **DB** — `lib/db/buildQueries.ts`: `buildData()` (mods, categories, row thumbs from `mod_media`, wishlist, specsheet,
+  snapshots, wheel sets, tires, the car's + the garage's inventory), `saveMod()` (clean effects, an odometer reading
+  `odo_mod_<id>` with the new source **`mod`**, closes the wishlist item, remembers `last_fx_rate_usd`), `modAction()`
+  (quitar / vender with price / dañado / reinstalar / reclasificar — nothing deleted), mod photos with roles,
+  `reminderResetFor()` / `applyReminderReset()`, stock + overrides, snapshots, wishlist, inventory, `mountWheelSet()`
+  (the other set comes off, this set's tires take the corners), tires. `OdometerSource` gains `'mod'`.
+  **Migration v3**: `history_feed` only — a mod row's subtitle is `<status>|<brand>` so Historial can say
+  Instalado / Quitado (the view is local; no cloud or data change). `importCandidates()` now returns the new media ids.
+- **Screens** — `app/vehiculo/[id]/build.tsx` per Build.dc.html: eyebrow "<NICK> · BUILD 改", MODS / SPECS / WISHLIST /
+  INVENTARIO chips, invested total + installed count, STOCK → ACTUAL card (tap → SPECS), mods grouped by system with
+  subtotals, rows with thumb or system icon, tag badge, mono meta (date · km · who/where · USD · "+ aduana RD$"), total,
+  status dot; long-press (native) / "⋯" (web — a mouse has no long-press) → Quitar / Vender / Se dañó / Reinstalar /
+  Cambiar categoría / Editar; the open wishlist inline at the end, dashed with the AHORRANDO outline pill; "+ AGREGAR MOD".
+  `components/build/SpecsTab.tsx` (grouped Stock | Actual with the source chip, tap → override / clear, stock editor,
+  "Fijar snapshot", snapshot list, share as image — native share sheet, PNG download on web). `ModForm` (`app/mod/nuevo|[id]`:
+  searchable systems, name/brand/part/variant, status, install date + km with the odometer warning, installer + contact,
+  foreign price × tasa = RD$ helper with "Usar como precio", parts/labour/shipping/customs, vendor + link, "Afecta la ficha"
+  mini-form, photos with roles (tap cycles DESPUÉS → ANTES → …, long-press removes), replaces, tags, notes; saving a new
+  gomas/frenos/refrigerante mod offers to reset its reminder). `WishlistForm` (`app/wishlist/nuevo|[id]`: priority,
+  foreign price + currency + envío + aduana → estimate, vendor, link, target, status, "Convertir a mod"). Inventory:
+  `app/inventario/nuevo|[id]` (kind, qty, unit, condition, location, cost, garage-level; "Usar en un mod"),
+  `app/ruedas/[setId]` (spec parsed as typed, bolt pattern, bore, status, its tires, "Montar en <vehículo>"),
+  `app/goma/[id]` (size parsed, DOT decoded live and flagged at 6 years, compound, treadwear, tread, heat cycles, set,
+  position, status).
+- **Integration** — hub: Build tab (STOCK → ACTUAL, open, add) and on Resumen "N mods · RD$ invertido" + top 3 badges; hub
+  "Gasto total" and Cifras now include mods (a mod migrated from a v2.0 "mejora" record is skipped — its record carries
+  the cost); Cifras "Inversión en mods" tile (all-time); Historial mod rows open the mod, subtitle Instalado / Quitado ·
+  brand, chip MEJORAS → MODS; "Mejora" in the service form (and `/servicio/nuevo?kind=mejora`) opens the mod form, editing
+  a v2.0 mejora record stays a record; "Así estaba" labels from `SPEC_FIELDS`. `FEATURE_BUILD = true` (Inicio's BUILD
+  quick action was already wired).
+- **Tests** 732 → **757**: `__tests__/domain/build.test.ts` (18: the AE85 seed 3A-U → 4A-GE 20V and 13x5 → 15x8 ET0
+  derived with sources, removal falls back to stock, later mod and override precedence, planned/cosmetic ignored,
+  `cleanSpecs`, money, FX, wishlist estimate + conversion, tags, tires incl. 165SR13 and the speedo, DOT, offsets, wheel
+  specs), `__tests__/db/build.test.ts` (7, real SQLite + the real-garage seed: source chips, override/clear, wishlist
+  conversion writing the odometer and closing the item, removal keeps history and money, selling, mounting a set, stats
+  counting mods once).
+
+### Dependencies added / removed
+- added `react-native-view-shot 5.1.0` (share the ficha as an image; web uses its html2canvas path)
+
+### Acceptance criteria
+- [x] `build.ts` + `tires.ts` with tests; derived specs with sources.
+- [x] Build tab per artboard: grouped, subtotals, badges, lifecycle, wishlist inline, + button.
+- [x] Mod form complete incl. FX helper, spec effects, photo roles, odometer reading, reminder offer; "Mejora" alias.
+- [x] Specs tab with stock / actual / override / snapshot; share-as-image — web downloads the PNG (verified);
+  Android: compiled into the preview APK, not yet run on the phone (see below)
+- [x] Wishlist with priorities and conversion; Inventario with wheel sets, tires (DOT, cycles), parts.
+- [x] Historial / Cifras / hub integration; `FEATURE_BUILD` on; sync verified web ↔ web (below) — Android sync not run
+  (the phone has no account, and signing it in would upload the real garage).
+- [x] tsc, lint, 757/757, build (61/61 pages titled), `verify-x-core` 14/14, `verify-sync` 14/14.
+
+### Verification (web, Playwright, the AE85 seed, dark and light)
+- Start: RD$ 17,000 invertido · 5 instalados. (1) **USD + aduana, affects the ficha**: Escape 4-1 Tanabe, USD 350 × 60.5
+  = RD$ 21,175 → "Usar como precio", aduana 5,200, 52,600 km, hp 168. (2) **Wishlist conversion**: the coilovers form opens
+  prefilled ("De tu wishlist…"), aduana 9,000, 52,650 km. (3) Asiento Bride Zeta, RD$ 25,000, tags jdm, drift. →
+  **RD$ 140,900 · 8 instalados** (by hand: 17,000 + 26,375 + 72,525 at the remembered 60.5 + 25,000), STOCK → ACTUAL
+  HP — → 168 hp. Removed the seat (⋯ → Quitar): it stays listed and in the money. SPECS: sources shown (SWAP 4A-GE 20V,
+  ESCAPE 4-1 TANABE, AROS 15X8 ET0…); "Compartir ficha como imagen" downloaded `ficha-hachi-gō.png` (the full table).
+  Inventario: DOT "sem 23/2023 · 3.3 años"; a new "Set pista 15x9 ET-5" mounted → Aros 15x8 GUARDADO, Set pista MONTADO.
+  Historial: "Quitado", "Instalado · BC Racing"…; Cifras "Inversión en mods RD$ 140,900"; hub "7 mods · RD$ 140,900
+  invertido". 0 page errors in both schemes. Screenshots `docs/qa/imp-28092026-phase-4-*-{dark,light}.png`.
+- **Sync web → web** (throwaway account, removed with 999): the pushing profile and a fresh pulling profile show the same
+  build — RD$ 140,900, the three mods, HP 168, "1 convertidos a mod", Set pista MONTADO / Aros GUARDADO, 4 tires.
+- **Found and fixed while verifying**: a mouse cannot long-press — web rows got a "⋯" actions button; that button and
+  the wheel set's "Montar" sat inside the card's own button (nested `<button>`, invalid HTML and a React warning) — they
+  are siblings now; `cleanSpecs` turned "mucho" into 0 for a number field.
+
+### Android
+- The arm64 preview APK builds (Gradle 4m 45s) and is signed with the EAS key (`a16450a0…`); view-shot's native module
+  is in it. **Not run on the Redmi**: the phone was not connected when the phase closed, and Xaviel left the call to
+  Claude — merged on the web verification, with the device check (a throwaway vehicle: a mod with USD + aduana, STOCK →
+  ACTUAL, native long-press actions, the ficha's share sheet, a tire's DOT) to run the next time the phone is plugged in.
+- **Android sync not run by design**: the phone has no account, and signing it in would upload the real garage; the
+  round trip was verified web ↔ web instead. That stays Xaviel's decision (NEXT.md "Still yours").
+
+### Decisions made (defaults applied)
+- The stock value of a field nobody filled is "—", not "OEM" (the artboard's "OEM → tuneada"): Car Guy does not know it
+  was OEM.
+- Planned / ordered mods are listed but not counted in "invertido" or the ficha; removed / sold / damaged are counted in
+  the money and not in the ficha.
+- Mods count in Cifras and the hub total as "Mejoras"; a mod migrated from a v2.0 record is skipped there (its record
+  already counts), so nothing is double-counted.
+- "Usar en un mod" records the link in the item's notes (no schema change this phase).
+- The FX rate remembered is USD's (the spec's `last_fx_rate_usd`); other currencies start from it and are edited.
+
+### Deviations from the package
+- Web gets a "⋯" button for the row actions (the spec names long-press only).
+- Migration v3 is a view-only change (the spec did not plan a v3; needed for Instalado / Quitado in Historial).
+
+### Design check
+- **Build artboard**: eyebrow + MODS title + amber mono total with "invertido · N instalados", the four chips, the
+  STOCK → ACTUAL mono card with amber actuals, category eyebrows with mono subtotals, rows (48 px thumb, name + red SWAP
+  badge, mono meta with "USD 1,050 · + aduana RD$ 9,000", mono total, green dot), the dashed wishlist row with the
+  AHORRANDO outline pill, "+ AGREGAR MOD" amber — all present. Deviations: the row thumb is the system's icon until the
+  mod has a photo; the "⋯" on web.
+
+### Flags flipped
+- `FEATURE_BUILD` → true
+
+### Notes for the next phase
+- Phase 5 (DIY): the ficha técnica's presets write `vehicle_specsheet` columns (oil, fluids, torques) — separate from
+  `stock` / `overrides`, which stay the build's. `SPEC_FIELDS` is the place to add a field both screens show.
+- `CATEGORY_SERVICE` is the one map from a mod system to a reminder; add entries there.

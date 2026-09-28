@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { Platform } from 'react-native';
 
-import { migrationV2 } from './migrationV2';
+import { historyFeedV3, migrationV2 } from './migrationV2';
 
 /**
  * Schema migrations, applied in order under `PRAGMA user_version`.
@@ -260,6 +260,8 @@ export const MIGRATIONS: Migration[] = [
     ],
   },
   { version: 2, up: migrationV2() },
+  // v3: history_feed only (mod rows carry their status). Local view, no data change.
+  { version: 3, up: historyFeedV3() },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

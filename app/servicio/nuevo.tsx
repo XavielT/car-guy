@@ -23,6 +23,7 @@ import type { ServiceKind, ServiceType } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
+import { FEATURE_BUILD } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal, roundMoney } from '@/lib/math';
@@ -61,6 +62,13 @@ export default function NuevoServicioScreen() {
   const editingId = params.id ?? null;
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
+
+  // The alias: /servicio/nuevo?kind=mejora (the Historial FAB, old links) opens the mod form.
+  useEffect(() => {
+    if (FEATURE_BUILD && !editingId && params.kind === 'mejora') {
+      router.replace({ pathname: '/mod/nuevo', params: { vehicleId: activeVehicle?.id } });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [kind, setKind] = useState<ServiceKind>(
     KINDS.includes(params.kind as ServiceKind) ? (params.kind as ServiceKind) : 'mantenimiento',
@@ -266,7 +274,15 @@ export default function NuevoServicioScreen() {
             return (
               <Pressable
                 key={k}
-                onPress={() => setKind(k)}
+                onPress={() => {
+                  // "Mejora" is the build log now (IMP 28092026 Phase 4): a new one is a mod.
+                  // Editing a v2.0 mejora record stays here.
+                  if (k === 'mejora' && FEATURE_BUILD && !editingId) {
+                    router.replace({ pathname: '/mod/nuevo', params: { vehicleId: activeVehicle?.id } });
+                    return;
+                  }
+                  setKind(k);
+                }}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
                 style={[

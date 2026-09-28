@@ -300,6 +300,20 @@ const DDL: string[] = [
  * all of them would make every new one vanish from Historial the moment it was
  * saved. Hidden only when it has a mod, each improvement shows exactly once.
  */
+/**
+ * v3 (IMP 28092026 Phase 4): the same view, with a mod row's subtitle as
+ * "<status>|<brand>" so Historial can say Instalado / Quitado. The view is
+ * local-only — no cloud change, nothing to sync.
+ */
+export function historyFeedV3(): string[] {
+  return HISTORY_FEED_V2.map((sql) =>
+    sql.replace(
+      "installed_km, name, brand,",
+      "installed_km, name, status || '|' || COALESCE(brand, ''),",
+    ),
+  );
+}
+
 const HISTORY_FEED_V2 = [
   `DROP VIEW IF EXISTS history_feed`,
   `CREATE VIEW history_feed AS

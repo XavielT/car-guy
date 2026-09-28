@@ -1,5 +1,6 @@
+import { investedTotal } from '../domain/build';
 import { getDb } from './client';
-import { odometer as odometerRepo, reminders as reminderRepo, serviceRecords, tasks as taskRepo, vehicles } from './repos';
+import { mods as modRepo, odometer as odometerRepo, reminders as reminderRepo, serviceRecords, tasks as taskRepo, vehicles } from './repos';
 import type { ExpenseCategory, Vehicle } from './types';
 import { todayIso } from '../domain/dates';
 import { kmPerDay } from '../domain/odometer';
@@ -57,8 +58,15 @@ export async function spendRows(vehicleId: string): Promise<SpendRow[]> {
      UNION ALL
      SELECT occurred_at, category, amount_dop
        FROM expense WHERE vehicle_id = ? AND deleted_at IS NULL
-     ORDER BY occurred_at ASC`,
-    [vehicleId, vehicleId, vehicleId],
+     UNION ALL
+     -- Mods (IMP 28092026 Phase 4) count as mejoras. One migrated from a v2.0
+     -- "mejora" record is skipped: that record already carries its cost.
+     SELECT COALESCE(installed_at, created_at), 'mejora',
+            cost_part_dop + cost_labor_dop + cost_shipping_dop + cost_customs_dop
+       FROM mod WHERE vehicle_id = ? AND deleted_at IS NULL AND service_record_id IS NULL
+        AND status IN ('instalado', 'quitado', 'vendido', 'danado')
+     ORDER BY 1 ASC`,
+    [vehicleId, vehicleId, vehicleId, vehicleId],
   );
 
   return rows.map((row) => ({
@@ -116,6 +124,8 @@ export type VehicleStats = {
   upcoming: ReturnType<typeof upcomingCosts>;
   /** Rows inside the window, for the report and the CSV. */
   rowsInPeriod: SpendRow[];
+  /** The build's all-time investment (installed + removed mods), for the "Inversión en mods" tile. */
+  modsInvested: number;
 };
 
 /** How many calendar months of history each window puts in the bar charts. */
@@ -136,12 +146,13 @@ export async function vehicleStats(
   const vehicle = await vehicles.getById(vehicleId);
   if (!vehicle) return null;
 
-  const [spend, odoReadings, taskRows, reminderRows, costs] = await Promise.all([
+  const [spend, odoReadings, taskRows, reminderRows, costs, modRows] = await Promise.all([
     spendRows(vehicleId),
     readings(vehicleId),
     taskRepo.listWhere({ vehicleId }),
     reminderRepo.listWhere({ vehicleId }),
     lastCosts(vehicleId),
+    modRepo.listWhere({ vehicleId }),
   ]);
 
   const period = periodRanges(today)[periodKey];
@@ -196,5 +207,6 @@ export async function vehicleStats(
     ownership: totalCostOfOwnership(vehicle, totalSpend(spend), today),
     upcoming: upcomingCosts(taskRows, dueReminders),
     rowsInPeriod: current,
+    modsInvested: investedTotal(modRows),
   };
 }
