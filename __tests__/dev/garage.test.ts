@@ -1,13 +1,11 @@
 /**
  * The real-garage dev seed against a real SQLite (see helpers/sqlite.ts).
  *
- * With WRITE_FIXTURE=1 it also writes the v2.0 backup fixture PROMPT-01's
- * migration test imports:
- *   WRITE_FIXTURE=1 npx jest __tests__/dev/garage.test.ts
+ * docs/imp-28092026/fixtures/car-guy-v2.0-backup.sample.json was written by
+ * this seed at Phase 0 (commit 1875302), on schema v1. It is frozen: it stands
+ * for a v2.0.0 install, and rewriting it from today's schema would make the
+ * migration test prove nothing.
  */
-import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import type { TestDb } from '../helpers/sqlite';
 import { buildBackup } from '@/lib/backup';
 import { seedCatalog } from '@/lib/db/seed';
@@ -77,15 +75,55 @@ describe('seedRealGarage', () => {
     expect(all('SELECT id FROM fuel_log')).toHaveLength(before);
   });
 
-  it('exports as a v2 backup (and writes the fixture on request)', async () => {
+  it('exports as a v2 backup with the new tables', async () => {
     const backup = await buildBackup();
     expect(backup.app).toBe('car-guy');
     expect(backup.version).toBe(2);
     expect(backup.tables.vehicle).toHaveLength(4);
+    expect(backup.tables.mod).toHaveLength(5);
+    expect(backup.tables.tire).toHaveLength(4);
+    expect(backup.tables).not.toHaveProperty('dtc_code');
+  });
+});
 
-    if (process.env.WRITE_FIXTURE === '1') {
-      const out = join(__dirname, '../../docs/imp-28092026/fixtures/car-guy-v2.0-backup.sample.json');
-      writeFileSync(out, JSON.stringify(backup, null, 2) + '\n');
-    }
+describe('seedRealGarage — schema v2', () => {
+  it('writes identity, status and story', () => {
+    const rows = Object.fromEntries(all('SELECT * FROM vehicle').map((r) => [r.id, r]));
+    expect(rows[GARAGE_IDS.ae85]).toMatchObject({ nickname: 'hachi-gō', chassis_code: 'AE85', engine_code: '4A-GE 20V', drivetrain: 'rwd', origin: 'jdm' });
+    expect(rows[GARAGE_IDS.c3].status).toBe('proyecto');
+    expect(rows[GARAGE_IDS.jetta].status).toBe('vendido');
+    expect(rows[GARAGE_IDS.jetta].story).toMatch(/álbum/);
+  });
+
+  it('gives the Jetta its 2018 → 2021 ownership', () => {
+    const [own] = all('SELECT * FROM vehicle_ownership WHERE vehicle_id = ?', GARAGE_IDS.jetta);
+    expect(own).toMatchObject({ acquired_at: '2018-01-01', sold_at: '2021-01-01' });
+  });
+
+  it('builds the AE85: mods with spec effects, wishlist, wheels, DOT-coded tires', () => {
+    const mods = all('SELECT * FROM mod WHERE vehicle_id = ? ORDER BY name', GARAGE_IDS.ae85);
+    expect(mods.map((m) => m.name)).toEqual([
+      'Aros 15x8 ET0',
+      'ECU tuneada',
+      'Gomas 195/50R15',
+      'Radiador y abanicos racing',
+      'Swap 4A-GE 20V',
+    ]);
+    const swap = mods.find((m) => m.name === 'Swap 4A-GE 20V')!;
+    expect(JSON.parse(swap.spec_effects as string)).toEqual({ engine_code: '4A-GE 20V', hp: 160 });
+    // The radiator is the v2.0-style mejora record plus its mod, as migration v2 would leave it.
+    const radiator = mods.find((m) => String(m.name).startsWith('Radiador'))!;
+    expect(radiator.id).toBe(`mod_${radiator.service_record_id}`);
+
+    expect(all('SELECT * FROM wishlist_item')[0]).toMatchObject({ name: 'Coilovers BC Racing BR', est_price_foreign: 1050, currency: 'USD' });
+    expect(all('SELECT * FROM tire WHERE dot_code = ?', '2323')).toHaveLength(4);
+    const [ficha] = all('SELECT * FROM vehicle_specsheet WHERE id = ?', GARAGE_IDS.ae85);
+    expect(JSON.parse(ficha.stock as string)).toMatchObject({ engine_code: '3A-U', wheel_f: '13x5' });
+  });
+
+  it('shows the history once: the radiator as a mod, milestones as hitos', () => {
+    const feed = all('SELECT kind, title FROM history_feed WHERE vehicle_id = ?', GARAGE_IDS.ae85);
+    expect(feed.filter((r) => r.title === 'Radiador y abanicos racing')).toEqual([{ kind: 'mod', title: 'Radiador y abanicos racing' }]);
+    expect(feed).toContainEqual({ kind: 'hito', title: 'Swap 4A-GE 20V' });
   });
 });

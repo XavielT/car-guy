@@ -50,6 +50,12 @@ export function historyKindLabel(kind: HistoryEntry['kind']): string {
       return es.history.kinds.gasto;
     case 'chequeo':
       return es.history.kinds.chequeo;
+    case 'mod':
+      return es.history.kinds.mod;
+    case 'hito':
+      return es.history.kinds.hito;
+    case 'pista':
+      return es.history.kinds.pista;
     default:
       return kind;
   }

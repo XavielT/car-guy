@@ -1,6 +1,8 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { Platform } from 'react-native';
 
+import { migrationV2 } from './migrationV2';
+
 /**
  * Schema migrations, applied in order under `PRAGMA user_version`.
  *
@@ -10,8 +12,8 @@ import { Platform } from 'react-native';
  * - Every statement is plain SQL in `up`, run inside one transaction per version.
  * - Views are cheap to drop and recreate in a later version.
  *
- * To add version 2:
- *   { version: 2, up: [`ALTER TABLE vehicle ADD COLUMN nickname TEXT`] }
+ * Version 2 (IMP 28092026, ADR-17) lives in ./migrationV2.ts: it is long, and
+ * part of it is generated (the seeded catalogues and the bundled DTC table).
  */
 export type Migration = { version: number; up: string[] };
 
@@ -257,6 +259,7 @@ export const MIGRATIONS: Migration[] = [
         SELECT id, vehicle_id, 'chequeo', occurred_at, odometer_km, status, template_id, NULL FROM inspection WHERE deleted_at IS NULL`,
     ],
   },
+  { version: 2, up: migrationV2() },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

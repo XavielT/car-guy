@@ -4,6 +4,30 @@ import { id as newId } from '../../format';
 import { FUEL_CATALOG } from '../../fuel';
 import { enqueue, getDb, now } from '../client';
 import type {
+  AlbumItem,
+  ConsumableUsage,
+  Contact,
+  DtcCode,
+  FluidGuideItem,
+  InventoryItem,
+  Milestone,
+  Mod,
+  ModCategory,
+  ModMedia,
+  SetupSheet,
+  SpecSnapshot,
+  Tire,
+  TorqueSpec,
+  TrackEvent,
+  TrackSession,
+  Venue,
+  VehicleDtcEvent,
+  VehicleMember,
+  VehicleOwnership,
+  VehicleShare,
+  VehicleSpecsheet,
+  WheelSet,
+  WishlistItem,
   Expense,
   FuelLog,
   HistoryEntry,
@@ -55,7 +79,92 @@ export const inspections = makeRepo<Inspection>({ table: 'inspection' });
 export const inspectionResults = makeRepo<InspectionResult>({ table: 'inspection_result' });
 export const tasks = makeRepo<Task>({ table: 'task' });
 export const documents = makeRepo<VehicleDocument>({ table: 'document' });
-export const media = makeRepo<Media>({ table: 'media' });
+export const media = makeRepo<Media>({ table: 'media', booleans: ['isFavorite'] });
+
+// ----- schema v2 (IMP 28092026) -----
+export const vehicleOwnership = makeRepo<VehicleOwnership>({ table: 'vehicle_ownership', booleans: ['isCurrent'] });
+export const albumItems = makeRepo<AlbumItem>({ table: 'album_item' });
+export const milestones = makeRepo<Milestone>({ table: 'milestone' });
+export const modCategories = makeRepo<ModCategory>({ table: 'mod_category', booleans: ['isSeeded'] });
+export const mods = makeRepo<Mod>({ table: 'mod', booleans: ['affectsSpecs'] });
+export const modMedia = makeRepo<ModMedia>({ table: 'mod_media' });
+export const specSnapshots = makeRepo<SpecSnapshot>({ table: 'spec_snapshot' });
+export const torqueSpecs = makeRepo<TorqueSpec>({ table: 'torque_spec' });
+export const wishlist = makeRepo<WishlistItem>({ table: 'wishlist_item' });
+export const inventory = makeRepo<InventoryItem>({ table: 'inventory_item' });
+export const wheelSets = makeRepo<WheelSet>({ table: 'wheel_set' });
+export const tires = makeRepo<Tire>({ table: 'tire' });
+export const dtcEvents = makeRepo<VehicleDtcEvent>({ table: 'vehicle_dtc_event' });
+export const contacts = makeRepo<Contact>({ table: 'contact' });
+export const fluidGuide = makeRepo<FluidGuideItem>({ table: 'fluid_guide_item' });
+export const venues = makeRepo<Venue>({ table: 'venue', booleans: ['isSeeded'] });
+export const trackEvents = makeRepo<TrackEvent>({ table: 'track_event' });
+export const trackSessions = makeRepo<TrackSession>({ table: 'track_session', booleans: ['passenger'] });
+export const consumables = makeRepo<ConsumableUsage>({ table: 'consumable_usage' });
+export const vehicleShares = makeRepo<VehicleShare>({
+  table: 'vehicle_share',
+  booleans: [
+    'showPlate',
+    'showVin',
+    'showCosts',
+    'showLocation',
+    'showOdometer',
+    'showMaintenance',
+    'showMods',
+    'showTrack',
+    'showDocs',
+    'showStory',
+  ],
+});
+export const vehicleMembers = makeRepo<VehicleMember>({ table: 'vehicle_member' });
+
+const specsheetsBase = makeRepo<VehicleSpecsheet>({ table: 'vehicle_specsheet' });
+
+/** 1:1 with vehicle — the row's id *is* the vehicle id. */
+export const specsheets = {
+  ...specsheetsBase,
+  getForVehicle: (vehicleId: string) => specsheetsBase.getById(vehicleId),
+  upsertForVehicle: (vehicleId: string, input: Partial<VehicleSpecsheet>, db?: SQLiteDatabase) =>
+    specsheetsBase.upsert({ ...input, id: vehicleId, vehicleId }, db),
+};
+
+const setupSheetsBase = makeRepo<SetupSheet>({ table: 'setup_sheet', booleans: ['hydro'] });
+
+/** 1:1 with track_session — the row's id *is* the session id. */
+export const setupSheets = {
+  ...setupSheetsBase,
+  getForSession: (sessionId: string) => setupSheetsBase.getById(sessionId),
+  upsertForSession: (sessionId: string, input: Partial<SetupSheet>, db?: SQLiteDatabase) =>
+    setupSheetsBase.upsert({ ...input, id: sessionId, sessionId }, db),
+};
+
+/** The bundled DTC table: read-only, local-only, no Syncable columns. */
+export const dtcCodes = {
+  async get(code: string): Promise<DtcCode | null> {
+    const db = await getDb();
+    const row = await db.getFirstAsync<Record<string, unknown>>('SELECT * FROM dtc_code WHERE code = ?', [code]);
+    return row ? toDtc(row) : null;
+  },
+  async search(q: string, limit = 50): Promise<DtcCode[]> {
+    const db = await getDb();
+    const like = `%${q}%`;
+    const rows = await db.getAllAsync<Record<string, unknown>>(
+      `SELECT * FROM dtc_code WHERE code LIKE ? OR desc_es LIKE ? COLLATE NOCASE ORDER BY code LIMIT ${Number(limit)}`,
+      [like, like],
+    );
+    return rows.map(toDtc);
+  },
+};
+
+function toDtc(row: Record<string, unknown>): DtcCode {
+  return {
+    code: row.code as string,
+    system: row.system as string,
+    descEn: row.desc_en as string,
+    descEs: row.desc_es as string,
+    isGeneric: row.is_generic === 1,
+  };
+}
 
 const vehiclesBase = makeRepo<Vehicle>({ table: 'vehicle', booleans: ['isArchived'] });
 const fuelBase = makeRepo<FuelLog>({
@@ -280,7 +389,7 @@ export const history = {
     }
 
     const rows = await db.getAllAsync<Record<string, unknown>>(
-      `SELECT * FROM history_feed WHERE ${clauses.join(' AND ')} ORDER BY occurred_at DESC${
+      `SELECT * FROM history_feed WHERE ${clauses.join(' AND ')} ORDER BY occurred_at DESC, created_at DESC${
         opts.limit ? ` LIMIT ${Number(opts.limit)}` : ''
       }`,
       params as never,
@@ -291,6 +400,7 @@ export const history = {
       vehicleId: r.vehicle_id as string,
       kind: r.kind as HistoryEntry['kind'],
       occurredAt: r.occurred_at as string,
+      createdAt: (r.created_at as string | null) ?? null,
       odometerKm: (r.odometer_km as number | null) ?? null,
       title: (r.title as string) ?? '',
       subtitle: (r.subtitle as string | null) ?? null,
@@ -342,4 +452,28 @@ export const ALL_TABLES = [
   'task',
   'document',
   'media',
+  // schema v2 — dtc_code is bundled data, not user data, so it is not here.
+  'vehicle_ownership',
+  'milestone',
+  'album_item',
+  'mod_category',
+  'mod',
+  'mod_media',
+  'vehicle_specsheet',
+  'spec_snapshot',
+  'torque_spec',
+  'wishlist_item',
+  'inventory_item',
+  'wheel_set',
+  'tire',
+  'contact',
+  'vehicle_dtc_event',
+  'fluid_guide_item',
+  'venue',
+  'track_event',
+  'track_session',
+  'setup_sheet',
+  'consumable_usage',
+  'vehicle_share',
+  'vehicle_member',
 ] as const;

@@ -16,6 +16,11 @@
  *   5. User B sees none of A's rows.                            (sql/003)
  *   6. User B cannot insert a row owned by A.                   (sql/003)
  *   7. Anonymous access is refused.                             (sql/003)
+ *   8. Every schema v2 table answers.                           (sql/009)
+ *   9. v2 rows are own-rows only.                               (sql/010)
+ *  10. storage_usage_bytes() answers.                           (sql/010)
+ *  11. The media quota column defaults to 300 MB.               (sql/010)
+ *  12. A client cannot write vehicle_member.                    (sql/010)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -54,6 +59,14 @@ const stamp = Date.now();
 const userA = `carguy-test-${stamp}-a@example.com`;
 const userB = `carguy-test-${stamp}-b@example.com`;
 const PASSWORD = 'carguy-test-password-8';
+
+/** Schema v2 (IMP 28092026) — every new synced table, sql/009. */
+const V2_TABLES = [
+  'vehicle_ownership', 'album_item', 'milestone', 'mod_category', 'mod', 'mod_media',
+  'vehicle_specsheet', 'spec_snapshot', 'torque_spec', 'wishlist_item', 'inventory_item',
+  'wheel_set', 'tire', 'vehicle_dtc_event', 'contact', 'fluid_guide_item', 'venue',
+  'track_event', 'track_session', 'setup_sheet', 'consumable_usage', 'vehicle_share', 'vehicle_member',
+];
 
 /** Never print a token. A redacted transcript is still evidence. */
 function redact(value) {
@@ -213,6 +226,63 @@ async function main() {
       stealB.status === 403 || stealB.body?.code === '42501',
       `status ${stealB.status} · ${JSON.stringify(stealB.body?.code ?? stealB.body)}`,
     );
+
+    // 8–12 — schema v2 (sql/009, sql/010).
+    const missing = [];
+    for (const table of V2_TABLES) {
+      const probeV2 = await call(`/rest/v1/${table}?select=id&limit=1`, { headers: authA });
+      if (probeV2.status >= 400) missing.push(`${table} (${probeV2.body?.code ?? probeV2.status})`);
+    }
+    record(
+      `8. all ${V2_TABLES.length} v2 tables answer (sql/009)`,
+      missing.length === 0,
+      missing.length ? `missing: ${missing.join(', ')}` : 'ok',
+    );
+
+    const modId = `veh_test_mod_${stamp}`;
+    const modA = await call('/rest/v1/mod', {
+      method: 'POST',
+      headers: authA,
+      body: JSON.stringify({
+        id: modId,
+        vehicle_id: vehicleId,
+        category_id: 'motor',
+        name: 'Verificación',
+        created_at: now,
+        updated_at: now,
+      }),
+    });
+    const modB = await call(`/rest/v1/mod?id=eq.${modId}&select=id`, { headers: authB });
+    record(
+      "9. user A writes a mod; user B cannot see it (sql/010)",
+      modA.status === 201 && Array.isArray(modB.body) && modB.body.length === 0,
+      `insert ${modA.status}${modA.status !== 201 ? ` · ${JSON.stringify(modA.body)}` : ''} · B sees ${JSON.stringify(modB.body)}`,
+    );
+
+    const usage = await call('/rest/v1/rpc/storage_usage_bytes', { method: 'POST', headers: authA, body: '{}' });
+    record(
+      '10. storage_usage_bytes() answers for a user (sql/010)',
+      usage.status === 200 && typeof usage.body === 'number',
+      `status ${usage.status} · ${JSON.stringify(usage.body)}`,
+    );
+
+    const quota = await call('/rest/v1/profiles?select=media_quota_bytes', { headers: authA });
+    record(
+      '11. profiles.media_quota_bytes defaults to 300 MB (sql/010)',
+      Array.isArray(quota.body) && quota.body[0]?.media_quota_bytes === 314572800,
+      `status ${quota.status} · ${JSON.stringify(quota.body)}`,
+    );
+
+    const selfMember = await call('/rest/v1/vehicle_member', {
+      method: 'POST',
+      headers: authB,
+      body: JSON.stringify({ vehicle_id: vehicleId, user_id: b.body?.user?.id, role: 'owner' }),
+    });
+    record(
+      "12. a client cannot make itself a member of A's vehicle (sql/010)",
+      selfMember.status === 401 || selfMember.status === 403 || selfMember.body?.code === '42501',
+      `status ${selfMember.status} · ${JSON.stringify(selfMember.body?.code ?? selfMember.body)}`,
+    );
   }
 
   // 7 — anon has no grant at all.
@@ -233,6 +303,7 @@ function printCleanup() {
   console.log('\n--- Run this in the SQL editor to remove the test users ---');
   console.log(`delete from auth.users where email like 'carguy-test-${stamp}-%';`);
   console.log(`delete from carguy.vehicle where id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.mod where id like 'veh_test_%${stamp}%';`);
   console.log('-- and confirm nothing of Music Hub was touched:');
   console.log(`select id, email from public.profiles where email like 'carguy-test-%';`);
 }

@@ -66,6 +66,33 @@ export const es = {
     mas: 'Más',
   },
 
+  telltale: {
+    off: 'sin pendientes',
+    ok: 'al día',
+    proximo: 'próximo',
+    urgente: 'urgente',
+    vencido: 'vencido',
+  },
+  /** Corner labels: delantera/trasera, izquierda/derecha. */
+  corners: {
+    fl: 'DI',
+    fr: 'DD',
+    rl: 'TI',
+    rr: 'TD',
+    long: { fl: 'Delantera izquierda', fr: 'Delantera derecha', rl: 'Trasera izquierda', rr: 'Trasera derecha' },
+  },
+  cluster: {
+    caption: 'KM · ODÓMETRO',
+    next: 'PRÓX. SERVICIO',
+    nextLine: (title: string, left: string, when: string | null) =>
+      `${title} · ${left}${when ? ` · ~${when}` : ''}`,
+    kmLeft: (km: string) => km,
+    kmOver: (km: string) => `${km} pasado`,
+    daysLeft: (days: number) => (days === 1 ? '1 día' : `${days} días`),
+    daysOver: (days: number) => (days === 1 ? '1 día pasado' : `${days} días pasados`),
+    nothingDue: 'Nada pendiente con fecha o km',
+    a11y: (odo: string, next: string) => `Odómetro ${odo}. ${next}`,
+  },
   home: {
     telltale: {
       noData: (title: string) => `${title} · sin datos`,
@@ -277,6 +304,9 @@ export const es = {
       mejora: 'Mejoras',
       gasto: 'Gastos',
       chequeo: 'Chequeos',
+      mod: 'Mods',
+      hito: 'Hitos',
+      pista: 'Pista',
     },
     addTitle: '¿Qué vas a registrar?',
     addFuel: 'Carga de combustible',

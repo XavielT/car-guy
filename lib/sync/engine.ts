@@ -102,7 +102,7 @@ function emit(status: SyncStatus): void {
 export async function pendingCount(): Promise<number> {
   let total = 0;
   for (const table of SYNC_TABLES) {
-    if (table.name === 'setting') continue;
+    if (table.name === 'setting' || table.pullOnly) continue;
     total += await countDirty(table.name);
   }
   return total;
@@ -177,6 +177,7 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
         pulled += settings.pulled;
         continue;
       }
+      if (table.pullOnly) continue;
       pushed += await pushTable(supabase, table, userId);
     }
 

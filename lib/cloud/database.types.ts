@@ -1,15 +1,3 @@
-/**
- * Generated from the live `carguy` schema on x-core. Do not edit by hand.
- *
- *   npx supabase gen types typescript --project-id <ref> --schema carguy \
- *     > lib/cloud/database.types.ts
- *
- * Regenerate after any migration in sql/. `__tests__/sync/schema-parity.test.ts`
- * compares the local SQLite schema against sql/002 and will fail if the two
- * drift, but nothing checks this file against the database — so a stale copy
- * here is a lie TypeScript will happily believe.
- */
-
 export type Json =
   | string
   | number
@@ -26,6 +14,162 @@ export type Database = {
   }
   carguy: {
     Tables: {
+      album_item: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          media_id: string
+          milestone_id: string | null
+          mod_id: string | null
+          server_updated_at: string
+          sort_order: number
+          track_event_id: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          media_id: string
+          milestone_id?: string | null
+          mod_id?: string | null
+          server_updated_at?: string
+          sort_order?: number
+          track_event_id?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          media_id?: string
+          milestone_id?: string | null
+          mod_id?: string | null
+          server_updated_at?: string
+          sort_order?: number
+          track_event_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
+      consumable_usage: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          event_id: string
+          id: string
+          kind: string
+          notes: string
+          pad_thickness_mm: number | null
+          qty: number | null
+          server_updated_at: string
+          session_id: string | null
+          tire_id: string | null
+          tread_mm: number | null
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          wheel_set_id: string | null
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          event_id: string
+          id: string
+          kind: string
+          notes?: string
+          pad_thickness_mm?: number | null
+          qty?: number | null
+          server_updated_at?: string
+          session_id?: string | null
+          tire_id?: string | null
+          tread_mm?: number | null
+          unit?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          wheel_set_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          event_id?: string
+          id?: string
+          kind?: string
+          notes?: string
+          pad_thickness_mm?: number | null
+          qty?: number | null
+          server_updated_at?: string
+          session_id?: string | null
+          tire_id?: string | null
+          tread_mm?: number | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          wheel_set_id?: string | null
+        }
+        Relationships: []
+      }
+      contact: {
+        Row: {
+          address: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string
+          phone: string | null
+          rating: number | null
+          server_updated_at: string
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          kind: string
+          name: string
+          notes?: string
+          phone?: string | null
+          rating?: number | null
+          server_updated_at?: string
+          updated_at: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string
+          phone?: string | null
+          rating?: number | null
+          server_updated_at?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       document: {
         Row: {
           created_at: string
@@ -122,6 +266,54 @@ export type Database = {
           user_id?: string
           vehicle_id?: string
           vendor?: string
+        }
+        Relationships: []
+      }
+      fluid_guide_item: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          how: string
+          id: string
+          kind: string
+          media_id: string | null
+          notes: string
+          server_updated_at: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          how?: string
+          id: string
+          kind: string
+          media_id?: string | null
+          notes?: string
+          server_updated_at?: string
+          sort_order?: number
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          how?: string
+          id?: string
+          kind?: string
+          media_id?: string | null
+          notes?: string
+          server_updated_at?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
         }
         Relationships: []
       }
@@ -377,57 +569,402 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_item: {
+        Row: {
+          acquired_at: string | null
+          brand: string | null
+          condition: string
+          cost_dop: number | null
+          created_at: string
+          deleted_at: string | null
+          fits_vehicle_ids: string
+          id: string
+          kind: string
+          location: string | null
+          media_id: string | null
+          name: string
+          notes: string
+          owner_vehicle_id: string | null
+          part_number: string | null
+          qty: number
+          server_updated_at: string
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          brand?: string | null
+          condition?: string
+          cost_dop?: number | null
+          created_at: string
+          deleted_at?: string | null
+          fits_vehicle_ids?: string
+          id: string
+          kind: string
+          location?: string | null
+          media_id?: string | null
+          name: string
+          notes?: string
+          owner_vehicle_id?: string | null
+          part_number?: string | null
+          qty?: number
+          server_updated_at?: string
+          unit?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Update: {
+          acquired_at?: string | null
+          brand?: string | null
+          condition?: string
+          cost_dop?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          fits_vehicle_ids?: string
+          id?: string
+          kind?: string
+          location?: string | null
+          media_id?: string | null
+          name?: string
+          notes?: string
+          owner_vehicle_id?: string | null
+          part_number?: string | null
+          qty?: number
+          server_updated_at?: string
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       media: {
         Row: {
+          blurhash: string | null
+          caption: string
           created_at: string
+          date_precision: string
           deleted_at: string | null
           height: number | null
           id: string
+          is_favorite: boolean
           kind: string
           mime: string
           owner_id: string
           owner_table: string
           rel_path: string | null
           remote_path: string | null
+          remote_thumb_path: string | null
           server_updated_at: string
           size_bytes: number | null
+          source: string
+          taken_at: string | null
+          thumb_rel_path: string | null
           updated_at: string
           user_id: string
           width: number | null
         }
         Insert: {
+          blurhash?: string | null
+          caption?: string
           created_at: string
+          date_precision?: string
           deleted_at?: string | null
           height?: number | null
           id: string
+          is_favorite?: boolean
           kind: string
           mime: string
           owner_id: string
           owner_table: string
           rel_path?: string | null
           remote_path?: string | null
+          remote_thumb_path?: string | null
           server_updated_at?: string
           size_bytes?: number | null
+          source?: string
+          taken_at?: string | null
+          thumb_rel_path?: string | null
           updated_at: string
           user_id?: string
           width?: number | null
         }
         Update: {
+          blurhash?: string | null
+          caption?: string
           created_at?: string
+          date_precision?: string
           deleted_at?: string | null
           height?: number | null
           id?: string
+          is_favorite?: boolean
           kind?: string
           mime?: string
           owner_id?: string
           owner_table?: string
           rel_path?: string | null
           remote_path?: string | null
+          remote_thumb_path?: string | null
           server_updated_at?: string
           size_bytes?: number | null
+          source?: string
+          taken_at?: string | null
+          thumb_rel_path?: string | null
           updated_at?: string
           user_id?: string
           width?: number | null
+        }
+        Relationships: []
+      }
+      milestone: {
+        Row: {
+          cover_media_id: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: string
+          occurred_at: string
+          odometer_km: number | null
+          server_updated_at: string
+          story: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          cover_media_id?: string | null
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          kind: string
+          occurred_at: string
+          odometer_km?: number | null
+          server_updated_at?: string
+          story?: string
+          title: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          cover_media_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: string
+          occurred_at?: string
+          odometer_km?: number | null
+          server_updated_at?: string
+          story?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
+      mod: {
+        Row: {
+          affects_specs: boolean
+          brand: string | null
+          category_id: string
+          contact_id: string | null
+          cost_customs_dop: number
+          cost_labor_dop: number
+          cost_part_dop: number
+          cost_shipping_dop: number
+          created_at: string
+          currency: string | null
+          deleted_at: string | null
+          fx_rate_to_dop: number | null
+          id: string
+          installed_at: string | null
+          installed_km: number | null
+          installer_type: string
+          name: string
+          notes: string
+          part_number: string | null
+          price_foreign: number | null
+          removed_at: string | null
+          removed_km: number | null
+          replaces_mod_id: string | null
+          server_updated_at: string
+          service_record_id: string | null
+          sold_price_dop: number | null
+          sold_to: string | null
+          spec_effects: string
+          status: string
+          tags: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          variant: string | null
+          vehicle_id: string
+          vendor: string | null
+          vendor_url: string | null
+        }
+        Insert: {
+          affects_specs?: boolean
+          brand?: string | null
+          category_id: string
+          contact_id?: string | null
+          cost_customs_dop?: number
+          cost_labor_dop?: number
+          cost_part_dop?: number
+          cost_shipping_dop?: number
+          created_at: string
+          currency?: string | null
+          deleted_at?: string | null
+          fx_rate_to_dop?: number | null
+          id: string
+          installed_at?: string | null
+          installed_km?: number | null
+          installer_type?: string
+          name: string
+          notes?: string
+          part_number?: string | null
+          price_foreign?: number | null
+          removed_at?: string | null
+          removed_km?: number | null
+          replaces_mod_id?: string | null
+          server_updated_at?: string
+          service_record_id?: string | null
+          sold_price_dop?: number | null
+          sold_to?: string | null
+          spec_effects?: string
+          status?: string
+          tags?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          variant?: string | null
+          vehicle_id: string
+          vendor?: string | null
+          vendor_url?: string | null
+        }
+        Update: {
+          affects_specs?: boolean
+          brand?: string | null
+          category_id?: string
+          contact_id?: string | null
+          cost_customs_dop?: number
+          cost_labor_dop?: number
+          cost_part_dop?: number
+          cost_shipping_dop?: number
+          created_at?: string
+          currency?: string | null
+          deleted_at?: string | null
+          fx_rate_to_dop?: number | null
+          id?: string
+          installed_at?: string | null
+          installed_km?: number | null
+          installer_type?: string
+          name?: string
+          notes?: string
+          part_number?: string | null
+          price_foreign?: number | null
+          removed_at?: string | null
+          removed_km?: number | null
+          replaces_mod_id?: string | null
+          server_updated_at?: string
+          service_record_id?: string | null
+          sold_price_dop?: number | null
+          sold_to?: string | null
+          spec_effects?: string
+          status?: string
+          tags?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          variant?: string | null
+          vehicle_id?: string
+          vendor?: string | null
+          vendor_url?: string | null
+        }
+        Relationships: []
+      }
+      mod_category: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          icon: string | null
+          id: string
+          is_seeded: boolean
+          name: string
+          server_updated_at: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          icon?: string | null
+          id: string
+          is_seeded?: boolean
+          name: string
+          server_updated_at?: string
+          sort_order?: number
+          updated_at: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string | null
+          id?: string
+          is_seeded?: boolean
+          name?: string
+          server_updated_at?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mod_media: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          media_id: string
+          mod_id: string
+          role: string
+          server_updated_at: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          media_id: string
+          mod_id: string
+          role?: string
+          server_updated_at?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          media_id?: string
+          mod_id?: string
+          role?: string
+          server_updated_at?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -522,18 +1059,21 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          media_quota_bytes: number
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           display_name?: string | null
+          media_quota_bytes?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           display_name?: string | null
+          media_quota_bytes?: number
           updated_at?: string
           user_id?: string
         }
@@ -628,6 +1168,7 @@ export type Database = {
       }
       service_record: {
         Row: {
+          contact_id: string | null
           cost_labor_dop: number
           cost_parts_dop: number
           created_at: string
@@ -650,6 +1191,7 @@ export type Database = {
           warranty_until_km: number | null
         }
         Insert: {
+          contact_id?: string | null
           cost_labor_dop?: number
           cost_parts_dop?: number
           created_at: string
@@ -672,6 +1214,7 @@ export type Database = {
           warranty_until_km?: number | null
         }
         Update: {
+          contact_id?: string | null
           cost_labor_dop?: number
           cost_parts_dop?: number
           created_at?: string
@@ -803,6 +1346,222 @@ export type Database = {
         }
         Relationships: []
       }
+      setup_sheet: {
+        Row: {
+          brake_bias: string | null
+          bump_f: number | null
+          bump_r: number | null
+          camber_fl: number | null
+          camber_fr: number | null
+          camber_rl: number | null
+          camber_rr: number | null
+          caster_l: number | null
+          caster_r: number | null
+          changed_from_previous: string
+          clicks_total: number | null
+          compound_f: string | null
+          compound_r: string | null
+          created_at: string
+          deleted_at: string | null
+          hydro: boolean
+          id: string
+          lsd_preload: string | null
+          lsd_type: string | null
+          pad_f: string | null
+          pad_r: string | null
+          psi_cold_fl: number | null
+          psi_cold_fr: number | null
+          psi_cold_rl: number | null
+          psi_cold_rr: number | null
+          psi_hot_fl: number | null
+          psi_hot_fr: number | null
+          psi_hot_rl: number | null
+          psi_hot_rr: number | null
+          rebound_f: number | null
+          rebound_r: number | null
+          rev_limit_rpm: number | null
+          rh_fl_mm: number | null
+          rh_fr_mm: number | null
+          rh_rl_mm: number | null
+          rh_rr_mm: number | null
+          server_updated_at: string
+          session_id: string
+          spring_f: number | null
+          spring_r: number | null
+          spring_unit: string
+          steering_angle_deg: number | null
+          swaybar_f: string | null
+          swaybar_r: string | null
+          tire_set_f_id: string | null
+          tire_set_r_id: string | null
+          tire_size_f: string | null
+          tire_size_r: string | null
+          toe_f_mm: number | null
+          toe_r_mm: number | null
+          two_step_rpm: number | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          brake_bias?: string | null
+          bump_f?: number | null
+          bump_r?: number | null
+          camber_fl?: number | null
+          camber_fr?: number | null
+          camber_rl?: number | null
+          camber_rr?: number | null
+          caster_l?: number | null
+          caster_r?: number | null
+          changed_from_previous?: string
+          clicks_total?: number | null
+          compound_f?: string | null
+          compound_r?: string | null
+          created_at: string
+          deleted_at?: string | null
+          hydro?: boolean
+          id: string
+          lsd_preload?: string | null
+          lsd_type?: string | null
+          pad_f?: string | null
+          pad_r?: string | null
+          psi_cold_fl?: number | null
+          psi_cold_fr?: number | null
+          psi_cold_rl?: number | null
+          psi_cold_rr?: number | null
+          psi_hot_fl?: number | null
+          psi_hot_fr?: number | null
+          psi_hot_rl?: number | null
+          psi_hot_rr?: number | null
+          rebound_f?: number | null
+          rebound_r?: number | null
+          rev_limit_rpm?: number | null
+          rh_fl_mm?: number | null
+          rh_fr_mm?: number | null
+          rh_rl_mm?: number | null
+          rh_rr_mm?: number | null
+          server_updated_at?: string
+          session_id: string
+          spring_f?: number | null
+          spring_r?: number | null
+          spring_unit?: string
+          steering_angle_deg?: number | null
+          swaybar_f?: string | null
+          swaybar_r?: string | null
+          tire_set_f_id?: string | null
+          tire_set_r_id?: string | null
+          tire_size_f?: string | null
+          tire_size_r?: string | null
+          toe_f_mm?: number | null
+          toe_r_mm?: number | null
+          two_step_rpm?: number | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Update: {
+          brake_bias?: string | null
+          bump_f?: number | null
+          bump_r?: number | null
+          camber_fl?: number | null
+          camber_fr?: number | null
+          camber_rl?: number | null
+          camber_rr?: number | null
+          caster_l?: number | null
+          caster_r?: number | null
+          changed_from_previous?: string
+          clicks_total?: number | null
+          compound_f?: string | null
+          compound_r?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          hydro?: boolean
+          id?: string
+          lsd_preload?: string | null
+          lsd_type?: string | null
+          pad_f?: string | null
+          pad_r?: string | null
+          psi_cold_fl?: number | null
+          psi_cold_fr?: number | null
+          psi_cold_rl?: number | null
+          psi_cold_rr?: number | null
+          psi_hot_fl?: number | null
+          psi_hot_fr?: number | null
+          psi_hot_rl?: number | null
+          psi_hot_rr?: number | null
+          rebound_f?: number | null
+          rebound_r?: number | null
+          rev_limit_rpm?: number | null
+          rh_fl_mm?: number | null
+          rh_fr_mm?: number | null
+          rh_rl_mm?: number | null
+          rh_rr_mm?: number | null
+          server_updated_at?: string
+          session_id?: string
+          spring_f?: number | null
+          spring_r?: number | null
+          spring_unit?: string
+          steering_angle_deg?: number | null
+          swaybar_f?: string | null
+          swaybar_r?: string | null
+          tire_set_f_id?: string | null
+          tire_set_r_id?: string | null
+          tire_size_f?: string | null
+          tire_size_r?: string | null
+          toe_f_mm?: number | null
+          toe_r_mm?: number | null
+          two_step_rpm?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      spec_snapshot: {
+        Row: {
+          as_of: string
+          cover_media_id: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          server_updated_at: string
+          specs: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          as_of: string
+          cover_media_id?: string | null
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          label: string
+          server_updated_at?: string
+          specs?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          as_of?: string
+          cover_media_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label?: string
+          server_updated_at?: string
+          specs?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
       task: {
         Row: {
           created_at: string
@@ -857,19 +1616,351 @@ export type Database = {
         }
         Relationships: []
       }
+      tire: {
+        Row: {
+          aspect: number | null
+          brand: string | null
+          compound: string | null
+          cost_dop: number | null
+          created_at: string
+          deleted_at: string | null
+          dot_code: string | null
+          dot_week: number | null
+          dot_year: number | null
+          heat_cycles: number
+          id: string
+          load_index: string | null
+          model: string | null
+          position: string
+          purchased_at: string | null
+          rim_in: number | null
+          server_updated_at: string
+          size: string | null
+          speed_rating: string | null
+          status: string
+          tread_mm_current: number | null
+          tread_mm_new: number | null
+          treadwear: number | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+          wheel_set_id: string | null
+          width_mm: number | null
+        }
+        Insert: {
+          aspect?: number | null
+          brand?: string | null
+          compound?: string | null
+          cost_dop?: number | null
+          created_at: string
+          deleted_at?: string | null
+          dot_code?: string | null
+          dot_week?: number | null
+          dot_year?: number | null
+          heat_cycles?: number
+          id: string
+          load_index?: string | null
+          model?: string | null
+          position?: string
+          purchased_at?: string | null
+          rim_in?: number | null
+          server_updated_at?: string
+          size?: string | null
+          speed_rating?: string | null
+          status?: string
+          tread_mm_current?: number | null
+          tread_mm_new?: number | null
+          treadwear?: number | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+          wheel_set_id?: string | null
+          width_mm?: number | null
+        }
+        Update: {
+          aspect?: number | null
+          brand?: string | null
+          compound?: string | null
+          cost_dop?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          dot_code?: string | null
+          dot_week?: number | null
+          dot_year?: number | null
+          heat_cycles?: number
+          id?: string
+          load_index?: string | null
+          model?: string | null
+          position?: string
+          purchased_at?: string | null
+          rim_in?: number | null
+          server_updated_at?: string
+          size?: string | null
+          speed_rating?: string | null
+          status?: string
+          tread_mm_current?: number | null
+          tread_mm_new?: number | null
+          treadwear?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+          wheel_set_id?: string | null
+          width_mm?: number | null
+        }
+        Relationships: []
+      }
+      torque_spec: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          item: string
+          media_id: string | null
+          notes: string
+          server_updated_at: string
+          source: string | null
+          stage: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          value_nm: number
+          vehicle_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          item: string
+          media_id?: string | null
+          notes?: string
+          server_updated_at?: string
+          source?: string | null
+          stage?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          value_nm: number
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          item?: string
+          media_id?: string | null
+          notes?: string
+          server_updated_at?: string
+          source?: string | null
+          stage?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          value_nm?: number
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
+      track_event: {
+        Row: {
+          ambient_c: number | null
+          created_at: string
+          deleted_at: string | null
+          discipline: string
+          entry_fee_dop: number | null
+          fuel_cost_dop: number | null
+          id: string
+          notes: string
+          occurred_at: string
+          odometer_end_km: number | null
+          odometer_start_km: number | null
+          organizer: string | null
+          other_cost_dop: number | null
+          server_updated_at: string
+          title: string
+          track_condition: string | null
+          track_temp_c: number | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+          venue_id: string | null
+          weather: string | null
+        }
+        Insert: {
+          ambient_c?: number | null
+          created_at: string
+          deleted_at?: string | null
+          discipline?: string
+          entry_fee_dop?: number | null
+          fuel_cost_dop?: number | null
+          id: string
+          notes?: string
+          occurred_at: string
+          odometer_end_km?: number | null
+          odometer_start_km?: number | null
+          organizer?: string | null
+          other_cost_dop?: number | null
+          server_updated_at?: string
+          title?: string
+          track_condition?: string | null
+          track_temp_c?: number | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+          venue_id?: string | null
+          weather?: string | null
+        }
+        Update: {
+          ambient_c?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          discipline?: string
+          entry_fee_dop?: number | null
+          fuel_cost_dop?: number | null
+          id?: string
+          notes?: string
+          occurred_at?: string
+          odometer_end_km?: number | null
+          odometer_start_km?: number | null
+          organizer?: string | null
+          other_cost_dop?: number | null
+          server_updated_at?: string
+          title?: string
+          track_condition?: string | null
+          track_temp_c?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+          venue_id?: string | null
+          weather?: string | null
+        }
+        Relationships: []
+      }
+      track_session: {
+        Row: {
+          ballast_kg: number | null
+          best_lap_ms: number | null
+          car_feel: string | null
+          created_at: string
+          deleted_at: string | null
+          driver: string | null
+          duration_min: number | null
+          event_id: string
+          fuel_load_l: number | null
+          id: string
+          incident: string | null
+          kind: string
+          laps: number | null
+          notes: string
+          passenger: boolean
+          quarter_mile_ms: number | null
+          quarter_mile_trap_kmh: number | null
+          rating: number | null
+          runs: number | null
+          second_best_ms: number | null
+          sectors_ms: string
+          seq: number
+          server_updated_at: string
+          sixty_foot_ms: number | null
+          started_at: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          video_url: string | null
+          zero_100_ms: number | null
+        }
+        Insert: {
+          ballast_kg?: number | null
+          best_lap_ms?: number | null
+          car_feel?: string | null
+          created_at: string
+          deleted_at?: string | null
+          driver?: string | null
+          duration_min?: number | null
+          event_id: string
+          fuel_load_l?: number | null
+          id: string
+          incident?: string | null
+          kind?: string
+          laps?: number | null
+          notes?: string
+          passenger?: boolean
+          quarter_mile_ms?: number | null
+          quarter_mile_trap_kmh?: number | null
+          rating?: number | null
+          runs?: number | null
+          second_best_ms?: number | null
+          sectors_ms?: string
+          seq: number
+          server_updated_at?: string
+          sixty_foot_ms?: number | null
+          started_at?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          video_url?: string | null
+          zero_100_ms?: number | null
+        }
+        Update: {
+          ballast_kg?: number | null
+          best_lap_ms?: number | null
+          car_feel?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          driver?: string | null
+          duration_min?: number | null
+          event_id?: string
+          fuel_load_l?: number | null
+          id?: string
+          incident?: string | null
+          kind?: string
+          laps?: number | null
+          notes?: string
+          passenger?: boolean
+          quarter_mile_ms?: number | null
+          quarter_mile_trap_kmh?: number | null
+          rating?: number | null
+          runs?: number | null
+          second_best_ms?: number | null
+          sectors_ms?: string
+          seq?: number
+          server_updated_at?: string
+          sixty_foot_ms?: number | null
+          started_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          video_url?: string | null
+          zero_100_ms?: number | null
+        }
+        Relationships: []
+      }
       vehicle: {
         Row: {
+          chassis_code: string | null
+          chassis_number: string | null
           color: string | null
           created_at: string
           default_fuel_type: string
           deleted_at: string | null
+          drivetrain: string | null
+          engine_code: string | null
+          hero_media_id: string | null
           id: string
+          imported_year: number | null
           initial_odometer_km: number | null
           is_archived: boolean
           make: string | null
           model: string | null
           name: string
+          nickname: string | null
           notes: string
+          origin: string | null
           photo_media_id: string | null
           plate: string | null
           purchase_date: string | null
@@ -878,7 +1969,10 @@ export type Database = {
           sold_date: string | null
           sold_price: number | null
           sort_order: number
+          status: string
+          story: string
           tank_volume: number | null
+          transmission: string | null
           trim: string | null
           type: string
           updated_at: string
@@ -887,17 +1981,25 @@ export type Database = {
           year: number | null
         }
         Insert: {
+          chassis_code?: string | null
+          chassis_number?: string | null
           color?: string | null
           created_at: string
           default_fuel_type: string
           deleted_at?: string | null
+          drivetrain?: string | null
+          engine_code?: string | null
+          hero_media_id?: string | null
           id: string
+          imported_year?: number | null
           initial_odometer_km?: number | null
           is_archived?: boolean
           make?: string | null
           model?: string | null
           name: string
+          nickname?: string | null
           notes?: string
+          origin?: string | null
           photo_media_id?: string | null
           plate?: string | null
           purchase_date?: string | null
@@ -906,7 +2008,10 @@ export type Database = {
           sold_date?: string | null
           sold_price?: number | null
           sort_order?: number
+          status?: string
+          story?: string
           tank_volume?: number | null
+          transmission?: string | null
           trim?: string | null
           type?: string
           updated_at: string
@@ -915,17 +2020,25 @@ export type Database = {
           year?: number | null
         }
         Update: {
+          chassis_code?: string | null
+          chassis_number?: string | null
           color?: string | null
           created_at?: string
           default_fuel_type?: string
           deleted_at?: string | null
+          drivetrain?: string | null
+          engine_code?: string | null
+          hero_media_id?: string | null
           id?: string
+          imported_year?: number | null
           initial_odometer_km?: number | null
           is_archived?: boolean
           make?: string | null
           model?: string | null
           name?: string
+          nickname?: string | null
           notes?: string
+          origin?: string | null
           photo_media_id?: string | null
           plate?: string | null
           purchase_date?: string | null
@@ -934,13 +2047,244 @@ export type Database = {
           sold_date?: string | null
           sold_price?: number | null
           sort_order?: number
+          status?: string
+          story?: string
           tank_volume?: number | null
+          transmission?: string | null
           trim?: string | null
           type?: string
           updated_at?: string
           user_id?: string
           vin?: string | null
           year?: number | null
+        }
+        Relationships: []
+      }
+      vehicle_dtc_event: {
+        Row: {
+          cleared_at: string | null
+          code: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          notes: string
+          odometer_km: number | null
+          repair_record_id: string | null
+          seen_at: string
+          server_updated_at: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          cleared_at?: string | null
+          code: string
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          notes?: string
+          odometer_km?: number | null
+          repair_record_id?: string | null
+          seen_at: string
+          server_updated_at?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          cleared_at?: string | null
+          code?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string
+          odometer_km?: number | null
+          repair_record_id?: string | null
+          seen_at?: string
+          server_updated_at?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_member: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          display_name: string | null
+          id: string | null
+          role: string
+          server_updated_at: string
+          updated_at: string
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          role: string
+          server_updated_at?: string
+          updated_at?: string
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          role?: string
+          server_updated_at?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_ownership: {
+        Row: {
+          acquired_at: string | null
+          acquired_from: string | null
+          acquired_km: number | null
+          acquired_price: number | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_current: boolean
+          reason: string | null
+          server_updated_at: string
+          sold_at: string | null
+          sold_km: number | null
+          sold_price: number | null
+          sold_to: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          acquired_from?: string | null
+          acquired_km?: number | null
+          acquired_price?: number | null
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          is_current?: boolean
+          reason?: string | null
+          server_updated_at?: string
+          sold_at?: string | null
+          sold_km?: number | null
+          sold_price?: number | null
+          sold_to?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          acquired_at?: string | null
+          acquired_from?: string | null
+          acquired_km?: number | null
+          acquired_price?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_current?: boolean
+          reason?: string | null
+          server_updated_at?: string
+          sold_at?: string | null
+          sold_km?: number | null
+          sold_price?: number | null
+          sold_to?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_share: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          og_media_id: string | null
+          published_at: string | null
+          revoked_at: string | null
+          server_updated_at: string
+          show_costs: boolean
+          show_docs: boolean
+          show_location: boolean
+          show_maintenance: boolean
+          show_mods: boolean
+          show_odometer: boolean
+          show_plate: boolean
+          show_story: boolean
+          show_track: boolean
+          show_vin: boolean
+          slug: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+          visibility: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          og_media_id?: string | null
+          published_at?: string | null
+          revoked_at?: string | null
+          server_updated_at?: string
+          show_costs?: boolean
+          show_docs?: boolean
+          show_location?: boolean
+          show_maintenance?: boolean
+          show_mods?: boolean
+          show_odometer?: boolean
+          show_plate?: boolean
+          show_story?: boolean
+          show_track?: boolean
+          show_vin?: boolean
+          slug?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          og_media_id?: string | null
+          published_at?: string | null
+          revoked_at?: string | null
+          server_updated_at?: string
+          show_costs?: boolean
+          show_docs?: boolean
+          show_location?: boolean
+          show_maintenance?: boolean
+          show_mods?: boolean
+          show_odometer?: boolean
+          show_plate?: boolean
+          show_story?: boolean
+          show_track?: boolean
+          show_vin?: boolean
+          slug?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -983,12 +2327,345 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_specsheet: {
+        Row: {
+          battery_spec: string | null
+          bolt_pattern: string | null
+          brake_fluid: string | null
+          center_bore_mm: number | null
+          coolant_capacity_l: number | null
+          coolant_type: string | null
+          created_at: string
+          deleted_at: string | null
+          diff_oil_l: number | null
+          diff_oil_spec: string | null
+          field_sources: string
+          fuel_octane: number | null
+          fuel_tank_l: number | null
+          id: string
+          lug_thread: string | null
+          lug_torque_nm: number | null
+          oil_capacity_filter_l: number | null
+          oil_capacity_l: number | null
+          oil_filter_pn: string | null
+          oil_grade: string | null
+          oil_spec: string | null
+          overrides: string
+          plug_gap_mm: number | null
+          preset_id: string | null
+          ps_fluid: string | null
+          psi_oem_f: number | null
+          psi_oem_r: number | null
+          server_updated_at: string
+          spark_plug_pn: string | null
+          stock: string
+          tire_size_oem_f: string | null
+          tire_size_oem_r: string | null
+          trans_oil_l: number | null
+          trans_oil_spec: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+          verified_fields: string
+        }
+        Insert: {
+          battery_spec?: string | null
+          bolt_pattern?: string | null
+          brake_fluid?: string | null
+          center_bore_mm?: number | null
+          coolant_capacity_l?: number | null
+          coolant_type?: string | null
+          created_at: string
+          deleted_at?: string | null
+          diff_oil_l?: number | null
+          diff_oil_spec?: string | null
+          field_sources?: string
+          fuel_octane?: number | null
+          fuel_tank_l?: number | null
+          id: string
+          lug_thread?: string | null
+          lug_torque_nm?: number | null
+          oil_capacity_filter_l?: number | null
+          oil_capacity_l?: number | null
+          oil_filter_pn?: string | null
+          oil_grade?: string | null
+          oil_spec?: string | null
+          overrides?: string
+          plug_gap_mm?: number | null
+          preset_id?: string | null
+          ps_fluid?: string | null
+          psi_oem_f?: number | null
+          psi_oem_r?: number | null
+          server_updated_at?: string
+          spark_plug_pn?: string | null
+          stock?: string
+          tire_size_oem_f?: string | null
+          tire_size_oem_r?: string | null
+          trans_oil_l?: number | null
+          trans_oil_spec?: string | null
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+          verified_fields?: string
+        }
+        Update: {
+          battery_spec?: string | null
+          bolt_pattern?: string | null
+          brake_fluid?: string | null
+          center_bore_mm?: number | null
+          coolant_capacity_l?: number | null
+          coolant_type?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          diff_oil_l?: number | null
+          diff_oil_spec?: string | null
+          field_sources?: string
+          fuel_octane?: number | null
+          fuel_tank_l?: number | null
+          id?: string
+          lug_thread?: string | null
+          lug_torque_nm?: number | null
+          oil_capacity_filter_l?: number | null
+          oil_capacity_l?: number | null
+          oil_filter_pn?: string | null
+          oil_grade?: string | null
+          oil_spec?: string | null
+          overrides?: string
+          plug_gap_mm?: number | null
+          preset_id?: string | null
+          ps_fluid?: string | null
+          psi_oem_f?: number | null
+          psi_oem_r?: number | null
+          server_updated_at?: string
+          spark_plug_pn?: string | null
+          stock?: string
+          tire_size_oem_f?: string | null
+          tire_size_oem_r?: string | null
+          trans_oil_l?: number | null
+          trans_oil_spec?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+          verified_fields?: string
+        }
+        Relationships: []
+      }
+      venue: {
+        Row: {
+          city: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_seeded: boolean
+          lat: number | null
+          layout: string | null
+          length_m: number | null
+          lng: number | null
+          name: string
+          notes: string
+          server_updated_at: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          is_seeded?: boolean
+          lat?: number | null
+          layout?: string | null
+          length_m?: number | null
+          lng?: number | null
+          name: string
+          notes?: string
+          server_updated_at?: string
+          type?: string
+          updated_at: string
+          user_id?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_seeded?: boolean
+          lat?: number | null
+          layout?: string | null
+          length_m?: number | null
+          lng?: number | null
+          name?: string
+          notes?: string
+          server_updated_at?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wheel_set: {
+        Row: {
+          bolt_pattern: string | null
+          brand: string | null
+          center_bore_mm: number | null
+          created_at: string
+          deleted_at: string | null
+          diam_in: number | null
+          id: string
+          media_id: string | null
+          model: string | null
+          name: string
+          notes: string
+          offset_mm: number | null
+          position_pref: string
+          qty: number
+          server_updated_at: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+          width_in: number | null
+        }
+        Insert: {
+          bolt_pattern?: string | null
+          brand?: string | null
+          center_bore_mm?: number | null
+          created_at: string
+          deleted_at?: string | null
+          diam_in?: number | null
+          id: string
+          media_id?: string | null
+          model?: string | null
+          name: string
+          notes?: string
+          offset_mm?: number | null
+          position_pref?: string
+          qty?: number
+          server_updated_at?: string
+          status?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+          width_in?: number | null
+        }
+        Update: {
+          bolt_pattern?: string | null
+          brand?: string | null
+          center_bore_mm?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          diam_in?: number | null
+          id?: string
+          media_id?: string | null
+          model?: string | null
+          name?: string
+          notes?: string
+          offset_mm?: number | null
+          position_pref?: string
+          qty?: number
+          server_updated_at?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+          width_in?: number | null
+        }
+        Relationships: []
+      }
+      wishlist_item: {
+        Row: {
+          brand: string | null
+          category_id: string | null
+          converted_mod_id: string | null
+          created_at: string
+          currency: string | null
+          deleted_at: string | null
+          est_customs_dop: number | null
+          est_price_foreign: number | null
+          est_shipping_dop: number | null
+          est_total_dop: number | null
+          id: string
+          name: string
+          notes: string
+          part_number: string | null
+          priority: number
+          server_updated_at: string
+          status: string
+          target_date: string | null
+          updated_at: string
+          updated_by: string | null
+          url: string | null
+          user_id: string
+          vehicle_id: string
+          vendor: string | null
+        }
+        Insert: {
+          brand?: string | null
+          category_id?: string | null
+          converted_mod_id?: string | null
+          created_at: string
+          currency?: string | null
+          deleted_at?: string | null
+          est_customs_dop?: number | null
+          est_price_foreign?: number | null
+          est_shipping_dop?: number | null
+          est_total_dop?: number | null
+          id: string
+          name: string
+          notes?: string
+          part_number?: string | null
+          priority?: number
+          server_updated_at?: string
+          status?: string
+          target_date?: string | null
+          updated_at: string
+          updated_by?: string | null
+          url?: string | null
+          user_id?: string
+          vehicle_id: string
+          vendor?: string | null
+        }
+        Update: {
+          brand?: string | null
+          category_id?: string | null
+          converted_mod_id?: string | null
+          created_at?: string
+          currency?: string | null
+          deleted_at?: string | null
+          est_customs_dop?: number | null
+          est_price_foreign?: number | null
+          est_shipping_dop?: number | null
+          est_total_dop?: number | null
+          id?: string
+          name?: string
+          notes?: string
+          part_number?: string | null
+          priority?: number
+          server_updated_at?: string
+          status?: string
+          target_date?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          url?: string | null
+          user_id?: string
+          vehicle_id?: string
+          vendor?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      storage_usage_bytes: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

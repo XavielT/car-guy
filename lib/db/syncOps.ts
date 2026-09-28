@@ -18,7 +18,26 @@ import { camel, snake } from './repos/base';
  */
 
 /** Columns that exist in the cloud and have no home locally. */
-const CLOUD_ONLY = new Set(['user_id', 'server_updated_at']);
+const CLOUD_ONLY = new Set(['user_id', 'server_updated_at', 'updated_by']);
+
+/**
+ * `user_id` is a real local column on exactly one table: in `vehicle_member` it
+ * is the *member*, not the row's owner, so it must come down.
+ */
+const KEEP_USER_ID = new Set(['vehicle_member']);
+
+/** Each table's local columns, read once per launch. */
+const localColumns = new Map<string, Set<string>>();
+
+async function columnsOf(handle: SQLiteDatabase, table: string): Promise<Set<string>> {
+  let cols = localColumns.get(table);
+  if (!cols) {
+    const info = await handle.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+    cols = new Set(info.map((c) => c.name));
+    localColumns.set(table, cols);
+  }
+  return cols;
+}
 
 export type LocalRow = Record<string, unknown>;
 
@@ -108,11 +127,16 @@ export async function applyRemoteRows(
     // so on a fresh device every pull that had a new row to write failed with
     // "cannot rollback - no transaction is active". The queue's transaction is
     // the one that makes a page land all-or-nothing.
+    // A cloud column this build does not know — one a newer version added —
+    // is dropped too, so an older install keeps pulling instead of parking
+    // every row of the table.
+    const known = await columnsOf(handle, table);
     for (const incoming of rows) {
       const data: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(incoming)) {
         const column = key.includes('_') ? key : snake(key);
-        if (CLOUD_ONLY.has(column)) continue;
+        if (CLOUD_ONLY.has(column) && !(column === 'user_id' && KEEP_USER_ID.has(table))) continue;
+        if (known.size && !known.has(column)) continue;
         if (value === undefined) continue;
         data[column] = normalise(value);
       }

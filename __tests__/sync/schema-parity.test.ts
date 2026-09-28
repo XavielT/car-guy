@@ -21,6 +21,9 @@ import { BOOLEAN_COLUMNS, conflictTarget, SYNC_TABLES } from '@/lib/sync/tables'
  */
 
 const SQL_PATH = join(__dirname, '../../sql/002_schema_carguy.sql');
+/** Schema v2's mirror (IMP 28092026). The two files together are the cloud schema. */
+const SQL_V2_PATH = join(__dirname, '../../sql/009_schema_v2.sql');
+const cloudSql = readFileSync(SQL_PATH, 'utf8') + '\n' + readFileSync(SQL_V2_PATH, 'utf8');
 
 /** Column names out of `CREATE TABLE <name> ( … )`, as they appear. */
 function parseColumns(sql: string, open: RegExp): Map<string, Set<string>> {
@@ -64,12 +67,26 @@ function parseColumns(sql: string, open: RegExp): Map<string, Set<string>> {
   return tables;
 }
 
+/** `ALTER TABLE t ADD COLUMN c …` — schema v2 adds columns to v1 tables. */
+function addAlters(tables: Map<string, Set<string>>, sql: string, pattern: RegExp): void {
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(sql)) !== null) {
+    const [, table, column] = match;
+    if (!tables.has(table)) tables.set(table, new Set());
+    tables.get(table)!.add(column);
+  }
+}
+
 const localSql = MIGRATIONS.flatMap((migration) => migration.up).join('\n');
 const localTables = parseColumns(localSql, /CREATE TABLE (\w+)\s*\(/gi);
-const cloudTables = parseColumns(readFileSync(SQL_PATH, 'utf8'), /create table if not exists carguy\.(\w+)\s*\(/gi);
+addAlters(localTables, localSql, /ALTER TABLE (\w+) ADD COLUMN (\w+)/gi);
+const cloudTables = parseColumns(cloudSql, /create table if not exists carguy\.(\w+)\s*\(/gi);
+addAlters(cloudTables, cloudSql, /^alter table carguy\.(\w+) add column if not exists (\w+)/gim);
 
 /** Local bookkeeping that is deliberately absent from the cloud (ADR-03). */
-const NEVER_IN_CLOUD = new Set(['synced_at', 'blob']);
+const NEVER_IN_CLOUD = new Set(['synced_at', 'blob', 'thumb_blob']);
+
+const snakeCase = (key: string) => key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 
 describe('the parser itself', () => {
   it('found both schemas — an empty map would make every test below vacuous', () => {
@@ -80,6 +97,14 @@ describe('the parser itself', () => {
   it('reads a known table correctly', () => {
     expect(localTables.get('fuel_log')).toContain('missed_previous');
     expect(cloudTables.get('fuel_log')).toContain('missed_previous');
+  });
+
+  it('reads the v2 additions, including ALTER-added columns', () => {
+    expect(localTables.get('vehicle')).toContain('nickname');
+    expect(cloudTables.get('vehicle')).toContain('nickname');
+    expect(cloudTables.get('media')).toContain('is_favorite');
+    expect(cloudTables.get('mod')).toContain('spec_effects');
+    expect(cloudTables.has('dtc_code')).toBe(false);
   });
 });
 
@@ -104,8 +129,10 @@ describe('every local column has a home in the cloud', () => {
       expect(localColumns).toBeDefined();
       expect(cloudColumns).toBeDefined();
 
+      // A table's declared local-only columns (vehicle.garage_role) stay home too.
+      const localOnly = new Set(table.localOnly.map(snakeCase));
       const missing = [...localColumns!].filter(
-        (column) => !NEVER_IN_CLOUD.has(column) && !cloudColumns!.has(column),
+        (column) => !NEVER_IN_CLOUD.has(column) && !localOnly.has(column) && !cloudColumns!.has(column),
       );
       expect(missing).toEqual([]);
     });
@@ -123,6 +150,7 @@ describe('the cloud adds exactly what the spec says it adds', () => {
       // The two columns that must never leave the device.
       expect(cloudColumns.has('synced_at')).toBe(false);
       expect(cloudColumns.has('blob')).toBe(false);
+      expect(cloudColumns.has('thumb_blob')).toBe(false);
     });
   }
 });
@@ -135,7 +163,7 @@ describe('the boolean map matches the cloud schema exactly', () => {
    * column, where `is_full_tank = 1` then matches nothing — silent, total, and
    * invisible until someone notices their fuel history is empty.
    */
-  const sql = readFileSync(SQL_PATH, 'utf8');
+  const sql = cloudSql;
 
   /** Every `<name> boolean` column, grouped by the table it appears in. */
   function booleansFromSql(): Record<string, string[]> {
@@ -150,6 +178,8 @@ describe('the boolean map matches the cloud schema exactly', () => {
       if (/^\);/.test(line.trim())) table = null;
       const column = line.trim().match(/^(\w+)\s+boolean\b/i);
       if (table && column) (out[table] ??= []).push(column[1]);
+      const altered = line.trim().match(/^alter table carguy\.(\w+) add column if not exists (\w+)\s+boolean\b/i);
+      if (altered) (out[altered[1]] ??= []).push(altered[2]);
     }
     return out;
   }
@@ -173,6 +203,15 @@ describe('the boolean map matches the cloud schema exactly', () => {
 
 describe("a deleted user's rows go with them", () => {
   const cascade = readFileSync(join(__dirname, '../../sql/007_user_cascade.sql'), 'utf8');
+  const v2 = readFileSync(SQL_V2_PATH, 'utf8');
+
+  /** v2 tables declare the cascade inline, on their own create. */
+  function cascadesInline(table: string): boolean {
+    const start = v2.indexOf(`create table if not exists carguy.${table} (`);
+    if (start < 0) return false;
+    const block = v2.slice(start, v2.indexOf('\n);', start));
+    return /user_id\s+uuid not null[^,\n]*references auth\.users\(id\) on delete cascade/.test(block);
+  }
 
   it('every synced table is covered by the cascade migration', () => {
     // Found by exercising the system, not by reading it: carguy.setting still
@@ -181,7 +220,7 @@ describe("a deleted user's rows go with them", () => {
     // list keeps its rows forever, unreachable — no session can ever match
     // their user_id again, so RLS hides them from everyone.
     for (const table of SYNC_TABLES) {
-      expect(cascade).toContain(`'${table.name}'`);
+      expect(cascade.includes(`'${table.name}'`) || cascadesInline(table.name)).toBe(true);
     }
   });
 
@@ -270,11 +309,24 @@ describe('every push targets the cloud primary key', () => {
     for (const t of tables) cloudKey.set(t, cols);
   }
 
+  // v2 declares its per-user keys inline: `primary key (user_id, id)` in the create.
+  const v2Sql = readFileSync(SQL_V2_PATH, 'utf8');
+  for (const m of v2Sql.matchAll(/create table if not exists carguy\.(\w+) \(([\s\S]*?)\n\);/g)) {
+    const pk = m[2].match(/^\s*primary key \(([^)]+)\)/m);
+    if (pk) cloudKey.set(m[1], pk[1].replace(/\s+/g, ''));
+  }
+
   it('found the sql/008 re-key', () => {
     expect(cloudKey.get('service_type')).toBe('user_id,id');
   });
 
-  for (const table of SYNC_TABLES) {
+  it('found the v2 per-user keys', () => {
+    expect(cloudKey.get('mod_category')).toBe('user_id,id');
+    expect(cloudKey.get('venue')).toBe('user_id,id');
+  });
+
+  // A pull-only table is never pushed, so it has no conflict target to agree on.
+  for (const table of SYNC_TABLES.filter((t) => !t.pullOnly)) {
     it(`${table.name} pushes on (${cloudKey.get(table.name)})`, () => {
       expect(conflictTarget(table)).toBe(cloudKey.get(table.name));
     });
