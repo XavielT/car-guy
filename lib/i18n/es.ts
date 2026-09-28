@@ -1286,4 +1286,23 @@ export const es = {
     /** The hanko on a finished inspection or service (a11y label). */
     stamped: 'Registrado',
   },
+  /**
+   * 05-design-jdm.md "Voice additions" — the copy the later blocks (álbum,
+   * build, pista, compartir) speak with, kept here so they arrive written.
+   */
+  voice: {
+    albumEmpty: 'Aquí va la historia del carro. Sube las fotos viejas antes de que se pierdan.',
+    exCaption: 'Ya no está, pero aquí sigue.',
+    feel: {
+      subvira: 'Subvira',
+      neutral: 'Neutral',
+      sobrevira: 'Sobrevira',
+      nervioso: 'Nervioso',
+      lento: 'Lento',
+    },
+    driftNoteHint: '¿Cómo se sintió de lao\'?',
+    specUpdated: (from: string, to: string) => `Ficha actualizada: ${from} → ${to}.`,
+    wishlistInstalled: 'Instalado. Eso ta\' clean.',
+    publicLinkReady: 'Link listo. Lo que no marcaste no se ve.',
+  },
 } as const;
