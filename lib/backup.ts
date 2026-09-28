@@ -38,7 +38,8 @@ function filename(): string {
   return `car-guy-${new Date().toISOString().slice(0, 10)}.json`;
 }
 
-async function buildBackup(): Promise<BackupV2> {
+/** Exported for the dev fixture (__tests__/dev/garage.test.ts); the app only calls exportBackup. */
+export async function buildBackup(): Promise<BackupV2> {
   const db = await getDb();
   const tables: BackupV2['tables'] = {};
 

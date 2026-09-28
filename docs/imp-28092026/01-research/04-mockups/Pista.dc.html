@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pista · Sesión</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+JP:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Rajdhani',sans-serif;background:#121212;color:#EDEDED}
+a{color:#FFB300}a:hover{color:#FF8F00}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #121212; color: #EDEDED; display: flex; flex-direction: column; gap: 12px; padding: 22px 20px 20px 20px; overflow: hidden; position: relative">
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">AUTÓDROMO DE LAS AMÉRICAS · 21 SEP 2026 <span style="font-family: 'Noto Sans JP', sans-serif; color: #8C8C8C; letter-spacing: 0; font-size: 10px">走り</span></div>
+    <div style="font-family: 'Saira Condensed', sans-serif; font-weight: 800; font-size: 30px; line-height: 1">DRIFT · SESIÓN 2</div>
+  </div>
+
+  <div style="display: flex; gap: 8px">
+    <div style="flex: 1; background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #8C8C8C">CLIMA</span><span style="font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 14px">Soleado · 33 °C</span></div>
+    <div style="flex: 1; background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #8C8C8C">PISTA</span><span style="font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 14px">Seca · con goma</span></div>
+    <div style="flex: 1; background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #8C8C8C">RUNS</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px">14</span></div>
+  </div>
+
+  <div style="background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.16em; color: #8C8C8C">PRESIÓN DE GOMAS · PSI</span>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.1em; color: #FFB300; border: 1px solid #FFB300; padding: 3px 7px; border-radius: 4px">FRÍO → CALIENTE</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 64px 1fr; grid-template-rows: auto auto; gap: 8px; align-items: center">
+      <div style="background: #212121; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #8C8C8C">DI</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px">30 <span style="color: #8C8C8C; font-size: 12px">→</span> 34.5</span></div>
+      <div style="grid-row: span 2; display: flex; align-items: center; justify-content: center"><svg width="44" height="88" viewBox="0 0 44 88" fill="none" stroke="#3F3F3F" stroke-width="2"><rect x="10" y="6" width="24" height="76" rx="8"/><rect x="4" y="14" width="8" height="18" rx="2" fill="#2A2A2A"/><rect x="32" y="14" width="8" height="18" rx="2" fill="#2A2A2A"/><rect x="4" y="56" width="8" height="18" rx="2" fill="#E10600" stroke="#E10600"/><rect x="32" y="56" width="8" height="18" rx="2" fill="#E10600" stroke="#E10600"/></svg></div>
+      <div style="background: #212121; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #8C8C8C">DD</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px">30 <span style="color: #8C8C8C; font-size: 12px">→</span> 34</span></div>
+      <div style="background: #212121; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; border: 1px solid #E10600"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #FF4D45">TI</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px">42 <span style="color: #8C8C8C; font-size: 12px">→</span> <span style="color: #FF4D45">51</span></span></div>
+      <div style="background: #212121; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; border: 1px solid #E10600"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #FF4D45">TD</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px">42 <span style="color: #8C8C8C; font-size: 12px">→</span> <span style="color: #FF4D45">50</span></span></div>
+    </div>
+    <div style="font-family: 'Rajdhani', sans-serif; font-size: 12px; color: #8C8C8C">Traseras +9 psi: normal en drift. Cambiaste desde la sesión 1: <span style="color: #FFB300">TI/TD 40 → 42</span></div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+    <div style="background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #8C8C8C">GOMAS TRASERAS</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px">Set "drift" · ciclo 3</span></div>
+    <div style="background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #8C8C8C">ÁNGULO · LSD</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px">~55° · 2-way</span></div>
+    <div style="background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #8C8C8C">SENSACIÓN</span><span style="font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 14px; color: #3DDC84">Neutral · "de lao' fácil"</span></div>
+    <div style="background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #8C8C8C">INCIDENTE</span><span style="font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 14px; color: #FF5F00">Temp. subió en run 11</span></div>
+  </div>
+
+  <div style="background: #1B1B1B; border: 1px solid #2A2A2A; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px">
+    <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.16em; color: #8C8C8C">RESUMEN DEL DÍA</div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+      <div style="display: flex; flex-direction: column"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px">2</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">sesiones</span></div>
+      <div style="display: flex; flex-direction: column"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px">4</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">gomas quemadas</span></div>
+      <div style="display: flex; flex-direction: column"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px">86 km</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">en pista</span></div>
+      <div style="display: flex; flex-direction: column"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 15px">RD$ 9 800</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">gasto</span></div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+    <div style="aspect-ratio: 1; border-radius: 8px; background: linear-gradient(160deg, #333, #1A1A1A); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #8C8C8C">[FOTO]</div>
+    <div style="aspect-ratio: 1; border-radius: 8px; background: linear-gradient(160deg, #2C2C2C, #171717); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #8C8C8C">[VIDEO]</div>
+    <div style="aspect-ratio: 1; border-radius: 8px; background: #1E1E1E; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #8C8C8C">+8</div>
+  </div>
+
+  <div style="margin-top: auto; display: flex; gap: 8px">
+    <button type="button" style="flex: 1; height: 50px; border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; color: #EDEDED; font-family: 'Saira Condensed', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.1em; cursor: pointer">COPIAR A SESIÓN 3</button>
+    <button type="button" style="flex: 1; height: 50px; border-radius: 12px; border: 0; background: #FFB300; color: #121212; font-family: 'Saira Condensed', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.1em; cursor: pointer">COMPARTIR RESUMEN</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

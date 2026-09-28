@@ -93,9 +93,9 @@ Constraints, so you do not waste a turn discovering them:
   shared production with Music Hub — ADR-06 allows one IF in their code, nothing more.
 - Clean up test users afterwards: node tools/apply-sql.mjs sql/999_cleanup_test_users.sql --shared
 
-Housekeeping I could not do: the folder is still ~/dev2/tu-gasolina-rd. Rename it to
-car-guy now if no session is holding it (the old path only appears in docs, which are
-history). The old Vercel project `tu-combustible-rd` is still git-connected to this repo
+Housekeeping: the repo lives at ~/dev2/car-guy. If it is still ~/dev2/tu-gasolina-rd on
+this machine, rename it with no session holding it (the old path only appears in docs,
+which are history). The old Vercel project `tu-combustible-rd` is still git-connected to this repo
 and has been auto-deploying Car Guy to the old URL all cycle — delete the project when I
 say so, not before.
 ```
