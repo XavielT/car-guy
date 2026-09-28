@@ -32,7 +32,13 @@ function images(): Query {
 
 /** Years that have photos, newest first — from the oldest photo on the phone to this year. */
 export async function libraryYears(today = new Date()): Promise<number[]> {
-  const oldest = await images().orderBy({ key: AssetField.CREATION_TIME, ascending: true }).limit(1).exeForMetadata();
+  // `> 0`: photos with no DATE_TAKEN (screenshots, some downloads) sort first
+  // ascending and would make "the oldest photo" undated — this year only.
+  const oldest = await images()
+    .gt(AssetField.CREATION_TIME, 0)
+    .orderBy({ key: AssetField.CREATION_TIME, ascending: true })
+    .limit(1)
+    .exeForMetadata();
   const first = oldest[0]?.creationTime ? new Date(oldest[0].creationTime).getFullYear() : today.getFullYear();
   const years: number[] = [];
   for (let y = today.getFullYear(); y >= first; y--) years.push(y);
