@@ -3,7 +3,7 @@
 Claude Code appends a report per phase (block in `00-context/04-conventions.md`, plus *Design
 check* and *Flags flipped*). "Notes for the next phase" carry context between sessions.
 
-**Started:** 2026-09-28 · **Status:** Phase 6 done
+**Started:** 2026-09-28 · **Status:** complete — v2.1.0 released 2026-09-29
 
 ## Phase status
 
@@ -17,7 +17,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 5 | DIY | ✅ | `imp-28092026/phase-5-diy` | web verified 2026-09-28; Android device check pending with Phase 4's |
 | 6 | Pista | ✅ | `imp-28092026/phase-6-track` | web verified 2026-09-28 (dark + light, web↔web sync); Android device check pending with Phases 4–5 |
 | 7 | Compartir | ✅ | `imp-28092026/phase-7-share` | sql/012–014 applied; verify-x-core 23/23, verify-sync 17/17, local-rls 32/32 (2026-09-29); Android checked; WhatsApp preview pending |
-| 8 | Release 2.1.0 | 🟡 | `imp-28092026/phase-8-release` (on top of phase 7) | backlog + docs + version done; regression on Android, builds, release pending |
+| 8 | Release 2.1.0 | ✅ | `imp-28092026/phase-8-release` | released 2026-09-29: GitHub v2.1.0 (universal APK), AAB built, web production verified |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -1106,4 +1106,21 @@ Screenshots `docs/qa/imp-28092026-phase-{6,7,8}-android-*.png` (status bar cropp
   redeployed: the web bundle now carries the project URL, and `node tools/smoke-public-page.mjs` passes **6/6** on
   production (renders with OG tags + noindex, unknown slug 404, malformed slug refused at the edge, revoke → 404).
   Test user cleaned. `api/c/[slug]` now sets `X-Car-Guy-Error` (no secrets) on a 502.
-- Pending: Xaviel shares a real link in WhatsApp and confirms the preview shows the photo.
+- Xaviel shared a real link in WhatsApp: **the preview shows the photo** (confirmed 2026-09-29).
+
+### Release (2026-09-29)
+| Artifact | Detail |
+|---|---|
+| GitHub release | https://github.com/XavielT/car-guy/releases/tag/v2.1.0 — "Car Guy v2.1.0 — Hachi-Gō", notes = CHANGELOG 2.1.0 + install + SHA-256 |
+| APK (attached) | `releases/car-guy-v2.1.0.apk` — universal (arm64-v8a, armeabi-v7a, x86, x86_64), 124 MB, versionName 2.1.0, EAS cert `a16450a0…`, SHA-256 `c10a7733…2336`; new `release-apk` profile in eas.json (preview stays arm64-only for fast test builds) |
+| AAB | `releases/car-guy-v2.1.0.aab` — production profile, 83 MB, versionCode auto-incremented by EAS; not uploaded (no Play listing yet) |
+| Phone | the 2.1.0 arm64 build from `main` installed over the owner's (now signed-in) garage |
+| Web | `main` deployed; Supabase env vars set; `/c/<slug>` smoke 6/6; WhatsApp preview confirmed; `sw.js` → `carguy-v4` so installed PWAs refresh |
+| Tag | `v2.1.0` on `main` |
+
+### Final state
+- IMP 28092026 phases 0–8 done. Tests 820, tsc/lint clean, build 78/78, verify-x-core 23/23, verify-sync 17/17,
+  local-rls 32/32, public-page smoke 6/6.
+- Deferred (NEXT.md §3): the SDK 57 patch bumps and `npm audit fix` (break the web dev server), ICU search, same-day
+  Historial order, per-user catalogues not shared with members, heat cycles per event, PB per venue, the share-image
+  file name not yet seen on a device.
