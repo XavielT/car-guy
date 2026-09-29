@@ -17,7 +17,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 5 | DIY | ✅ | `imp-28092026/phase-5-diy` | web verified 2026-09-28; Android device check pending with Phase 4's |
 | 6 | Pista | ✅ | `imp-28092026/phase-6-track` | web verified 2026-09-28 (dark + light, web↔web sync); Android device check pending with Phases 4–5 |
 | 7 | Compartir | 🟡 | `imp-28092026/phase-7-share` | code + local web verified; sql/012 + 013 applied; **cloud verification blocked** (verifier runs need Xaviel's OK) — not merged |
-| 8 | Release 2.1.0 | ⬜ | | |
+| 8 | Release 2.1.0 | 🟡 | `imp-28092026/phase-8-release` (on top of phase 7) | backlog + docs + version done; regression on Android, builds, release pending |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -1029,3 +1029,30 @@ running the verifiers against production after the RLS swap ("Production Deploy"
 2. Merge → push (deploys `api/c/[slug]`), then a real link on a phone without the app, the WhatsApp preview, revoke → 404.
 3. The two-account app scenario (A owner, B editor → viewer → removed) and the PDF on Android.
 If (1) shows a problem, the rollback block at the end of `sql/013` restores the own-rows policies.
+
+## Phase 8 — Release 2.1.0 "Hachi-Gō"   (branch `imp-28092026/phase-8-release`, stacked on phase 7)
+
+**Status:** in progress. Steps 2 (backlog) and 3 (versions/docs) done; 1 (regression on Android +
+upgrade from 2.0.0 with data), 4 (phone table, AAB), 5 (release, web production) and 6 wait for the
+phone and for Phase 7's cloud verification + merge.
+
+### Done
+- **Backlog** — Cifras y-axis starts at 0 (explicit `yAxisLabelTexts`; gifted-charts rounded its own
+  first label to "1"); the 320 px tab label was already fixed in Phase 2 (checked at 320 px); desktop:
+  a 560 px centred column on web ≥ 900 px (checked at 1280 px); **PDF documents**: "+ Adjuntar PDF" in
+  the document form (expo-document-picker, ≤ 10 MB, stored as a `kind: 'pdf'` media row and synced like a
+  photo), "Abrir PDF" on the document (new tab on web, share sheet on the phone) — verified on web.
+- **Service worker** — `carguy-v4`; `/c/` and `/api/` are never cached (a revoked public page must not keep
+  opening from an installed PWA's cache).
+- **Versions** — app.json / package.json 2.1.0; CHANGELOG "2.1.0 — Hachi-Gō" in Spanish by block; README
+  feature list; NEXT.md backlog rewritten (closed items, carried items, the dependency blocker below).
+- Regression on web (fresh profiles, 0 page errors): the Phase 6 track flow and the Phase 7 share/book flow
+  re-run green on this branch.
+- tsc, lint, 820/820, build 78/78. Preview APK 2.1.0 building for the phone session.
+
+### Deferred, with reasons
+- **SDK patch bumps + `npm audit fix`** — `npx expo install --fix` (expo 57.0.25, @expo/metro-config
+  57.0.12) breaks the web dev server: every bundle fails with "Worker chunk not found for
+  expo-sqlite/web/worker.ts". Reproduced with expo-sqlite pinned back to 57.0.1 and with the tslib resolver
+  disabled, so it is the expo/metro-config bump. `npm audit fix` pulls the same expo within `~57.0.14`, so it
+  breaks too. Both reverted; the lockfile is unchanged. Retry with the next expo patch.

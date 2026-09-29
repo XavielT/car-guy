@@ -8,7 +8,8 @@ El combustible es una parte, no el centro: sigue registrando cargas y calculando
 km/gal como siempre, pero ahora al lado del aceite que toca a los 5,000 km y del marbete que vence
 en enero.
 
-Plan de la transformación, decisiones y fases: [docs/imp-17092026/](docs/imp-17092026/).
+Plan de la transformación, decisiones y fases: [docs/imp-17092026/](docs/imp-17092026/) (2.0) y
+[docs/imp-28092026/](docs/imp-28092026/) (2.1 "Hachi-Gō").
 Reglas de dominio y precios MICM semilla del app original: [docs/PLAN.md](docs/PLAN.md).
 
 ## Origen
@@ -29,6 +30,11 @@ un extra.
   precios oficiales de referencia editables
 - **Historial y estadísticas**: una sola línea de tiempo por vehículo, costo por km, gasto por
   categoría y mes a mes
+- **Álbum** (2.1): fotos con su fecha real, hitos, línea de tiempo por año
+- **Build** (2.1): mods, STOCK → ACTUAL, wishlist, inventario de piezas, aros y gomas
+- **DIY** (2.1): ficha de servicio con presets y VIN, fluidos, códigos OBD, contactos
+- **Pista** (2.1): eventos y sesiones con setup, tiempos, gomas y pastillas, resumen del día
+- **Compartir** (2.1): ficha pública por link, libro del carro en PDF, garaje compartido
 
 Todo vive en el teléfono. La cuenta en la nube es opcional y nunca hace falta para usar la app.
 

@@ -5,7 +5,7 @@ import type { MonthlyDistance } from '@/lib/domain/stats';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import { ChartFrame } from './ChartFrame';
-import { compact } from './StackedBars';
+import { axisLabels } from './StackedBars';
 
 const MONTH_INITIALS = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
@@ -53,7 +53,7 @@ export function DistanceBars({ months }: { months: MonthlyDistance[] }) {
           yAxisTextStyle={{ color: theme.text.muted, fontSize: 9, fontFamily: fonts.mono }}
           xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 11, fontFamily: fonts.title }}
           yAxisLabelWidth={44}
-          formatYLabel={(value: string) => compact(Number(value))}
+          yAxisLabelTexts={axisLabels(max * 1.15, 3)}
           disablePress
         />
       )}

@@ -460,6 +460,11 @@ export const es = {
   },
 
   documents: {
+    pdf: 'documento',
+    attachPdf: '+ Adjuntar PDF',
+    openPdf: (name: string) => `Abrir PDF · ${name}`,
+    pdfTooBig: 'Ese PDF pesa más de 10 MB.',
+    pdfFailed: 'No se pudo adjuntar el PDF.',
     title: 'Documentos',
     subtitle: 'Seguro, marbete, matrícula y lo que necesites a mano.',
     new: 'Nuevo documento',

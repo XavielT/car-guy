@@ -5,10 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
-import { GhostButton, StatusPill, Surface } from '@/components/ui';
+import { GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { documents as documentRepo } from '@/lib/db/repos';
-import type { VehicleDocument } from '@/lib/db/types';
+import { documents as documentRepo, media as mediaRepo } from '@/lib/db/repos';
+import type { Media, VehicleDocument } from '@/lib/db/types';
+import { openPdf } from '@/lib/media/pdf';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { dateLabel } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
@@ -23,7 +24,17 @@ export default function DocumentoScreen() {
   const { theme } = useTheme();
   const { refresh, data } = useStore();
   const [doc, setDoc] = useState<VehicleDocument | null | undefined>(undefined);
-  const uri = useMediaUri(doc?.mediaId);
+  const [file, setFile] = useState<Media | null>(null);
+  // A PDF is opened, not drawn: no <Image> for it (mediaUri would hand one a PDF blob).
+  const uri = useMediaUri(file?.kind === 'pdf' ? null : doc?.mediaId);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (doc?.mediaId ? mediaRepo.getById(doc.mediaId) : Promise.resolve(null)).then((m) => !cancelled && setFile(m));
+    return () => {
+      cancelled = true;
+    };
+  }, [doc?.mediaId]);
 
   useEffect(() => {
     if (!id) return;
@@ -62,7 +73,11 @@ export default function DocumentoScreen() {
           />
         ) : null}
 
-        {uri ? <Image source={{ uri }} style={[styles.image, { backgroundColor: theme.bg.raised }]} resizeMode="contain" /> : null}
+        {file?.kind === 'pdf' ? (
+          <PrimaryButton label={es.documents.openPdf(file.caption || es.documents.pdf)} onPress={() => void openPdf(file)} />
+        ) : uri ? (
+          <Image source={{ uri }} style={[styles.image, { backgroundColor: theme.bg.raised }]} resizeMode="contain" />
+        ) : null}
 
         {doc.notes ? (
           <Surface style={{ marginTop: space.lg }}>
