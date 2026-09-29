@@ -4,7 +4,7 @@ Claude Code appends a report per phase (block in `00-context/04-conventions.md` 
 sections plus *Design check*, *Flags flipped*, *Notes closed*). "Notes for the next phase" carry
 context between sessions.
 
-**Started:** 2026-09-29 · **Status:** Phase 2 done (schema v6 on the branch; cloud 019–020 applied)
+**Started:** 2026-09-29 · **Status:** Phase 3 done (branch `imp-29092026/phase-3-forms`)
 
 ## Phase status
 
@@ -13,7 +13,7 @@ context between sessions.
 | 0 | Kickoff | ✅ | `imp-29092026/phase-0-kickoff` | package, baseline, audit, portfolio live, seed |
 | 1 | Hotfix 2.1.3 | ✅ | `fix/2.1.3-hotfix` | photos, cloud in the APK, Car Guy-only accounts, reset link, released |
 | 2 | Schema v6 + liters + refdata | ✅ | `imp-29092026/phase-2-schema-v6` | migration v6, liters (canary green), trip table, statuses, refdata, sql/019–020 applied; native check pending (no AVD) |
-| 3 | Forms v2 | ⬜ | | |
+| 3 | Forms v2 | ✅ | `imp-29092026/phase-3-forms` | pickers, gallery, statuses, oil, check photos + atención; web verified, Android pending |
 | 4 | Carga parcial | ⬜ | | |
 | 5A | Viajes — manual + live | ⬜ | | |
 | 5B | Viajes — automático | ⬜ | | |
