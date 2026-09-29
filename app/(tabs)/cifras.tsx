@@ -8,6 +8,7 @@ import { Donut } from '@/components/charts/Donut';
 import { EconomyLegend, EconomyLine } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
 import { T } from '@/components/T';
+import { TripsCifrasBlock } from '@/components/trips/TripPieces';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
@@ -19,7 +20,7 @@ import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
 import { economyNumber, km, money } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
-import { FEATURE_BUILD, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_BUILD, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -318,6 +319,9 @@ export default function CifrasScreen() {
             </View>
           </>
         ) : null}
+
+        {/* Phase 5: this month's trips; renders nothing without any. */}
+        {FEATURE_TRIPS ? <TripsCifrasBlock vehicleId={activeVehicle.id} /> : null}
       </ScrollView>
     </SafeAreaView>
   );

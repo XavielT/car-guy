@@ -102,7 +102,8 @@ export type VehicleSpec = Syncable & {
   sortOrder: number;
 };
 
-export type OdometerSource = 'fuel' | 'service' | 'inspection' | 'manual' | 'import' | 'mod' | 'track';
+/** 'trip_estimate' (v6, ADR-30): GPS distance since the last typed reading — a suggestion, never the truth. */
+export type OdometerSource = 'fuel' | 'service' | 'inspection' | 'manual' | 'import' | 'mod' | 'track' | 'trip_estimate';
 
 export type OdometerReading = Syncable & {
   vehicleId: string;

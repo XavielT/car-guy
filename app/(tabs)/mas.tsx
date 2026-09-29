@@ -21,7 +21,7 @@ import { useSession } from '@/lib/cloud/auth';
 import { userMessage } from '@/lib/diagnostics';
 import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
-import { FEATURE_DIY, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_DIY, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
@@ -167,6 +167,7 @@ export default function MasScreen() {
             <NavRow label={es.diyMore.contacts} caption={es.diyMore.contactsCaption} onPress={() => router.push('/contactos')} />
             <NavRow label={es.diyMore.obd} caption={es.diyMore.obdCaption} onPress={() => router.push('/obd')} />
             {FEATURE_TRACK ? <NavRow label={es.track.more} caption={es.track.moreCaption} onPress={() => router.push('/pista')} /> : null}
+            {FEATURE_TRIPS ? <NavRow label={es.trips.more} caption={es.trips.moreCaption} onPress={() => router.push('/viajes')} /> : null}
           </>
         ) : null}
 

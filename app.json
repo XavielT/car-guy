@@ -56,7 +56,19 @@
             "photo"
           ]
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Car Guy usa tu ubicación en segundo plano para registrar tus viajes automáticamente.",
+          "locationWhenInUsePermission": "Car Guy usa tu ubicación para medir la velocidad y registrar viajes.",
+          "motionUsagePermission": "Car Guy detecta si vas conduciendo para iniciar viajes automáticamente.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "androidForegroundServiceIcon": "./assets/images/notification-icon.png"
+        }
+      ],
+      "expo-task-manager"
     ],
     "experiments": {
       "typedRoutes": true

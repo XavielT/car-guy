@@ -261,6 +261,10 @@ function Shell() {
         <Stack.Screen name="pista/evento/[id]" options={{ headerShown: true, title: es.routes.trackEvent }} />
         <Stack.Screen name="pista/sesion/nueva" options={{ headerShown: true, title: es.routes.newTrackSession }} />
         <Stack.Screen name="pista/sesion/[id]" options={{ headerShown: true, title: es.routes.trackSession }} />
+        <Stack.Screen name="viajes/index" options={{ headerShown: true, title: es.routes.trips }} />
+        <Stack.Screen name="viajes/ajustes" options={{ headerShown: true, title: es.routes.tripSettings }} />
+        <Stack.Screen name="viajes/permisos" options={{ headerShown: true, title: es.routes.tripPermissions }} />
+        <Stack.Screen name="viaje/[id]" options={{ headerShown: true, title: es.routes.trip }} />
         <Stack.Screen
           name="odometro"
           options={{ presentation: 'modal', headerShown: true, title: es.routes.odometer }}

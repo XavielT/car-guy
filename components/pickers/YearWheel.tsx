@@ -45,7 +45,8 @@ export function YearWheel({
   // Open on the chosen year, or on the model's newest year.
   useEffect(() => {
     if (!visible) return;
-    const target = value ?? range?.to ?? range?.from ?? null;
+    // A model still built (no end year) opens at the newest years, not at its first one.
+    const target = value ?? (range && (range.from != null || range.to != null) ? (range.to ?? years[0]) : null);
     if (target) setTimeout(() => jump(target), 50);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);

@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+
 /**
  * Feature flags — things that are built but not yet finished.
  *
@@ -35,8 +37,15 @@ export const FEATURE_SHARE = true;
  * IMP 29092026 (2.2 "Kaidō"): schema v6 has everything these need; each flips
  * in the phase that ships its screens.
  */
-/** Viajes: manual and automatic trips — PROMPT-05. */
-export const FEATURE_TRIPS = false;
+/**
+ * "Car Guy (prueba)" (APP_VARIANT=test, app.config.js) switches on the features
+ * still being verified, so a phase can be tried on a real phone next to the
+ * real app. Every release build has variant null and keeps them off.
+ */
+const TEST_VARIANT = (Constants.expoConfig?.extra as { variant?: string | null } | undefined)?.variant === 'test';
+
+/** Viajes: manual and automatic trips — PROMPT-05. On in the test variant and in dev until Part A's verify passes. */
+export const FEATURE_TRIPS = TEST_VARIANT || __DEV__;
 /** Comentarios / reportar un problema — PROMPT-06. */
 export const FEATURE_FEEDBACK = false;
 /** Garaje v2: grid / list / covers, user order, galleries — PROMPT-06. */

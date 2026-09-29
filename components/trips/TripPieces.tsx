@@ -1,0 +1,489 @@
+import { useRouter } from 'expo-router';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
+import * as Location from 'expo-location';
+import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
+
+import { T } from '@/components/T';
+import { Badge, GhostButton, SectionHeader, Surface } from '@/components/ui';
+import { radius, space } from '@/constants/theme';
+import { odometer as odometerRepo } from '@/lib/db/repos';
+import { trips as tripRepo } from '@/lib/db/tripOps';
+import type { Trip, TripRole } from '@/lib/db/types';
+import { Alert } from '@/lib/alert';
+import { es } from '@/lib/i18n/es';
+import { useStore } from '@/lib/store';
+import { useTheme } from '@/lib/theme/useTheme';
+import type { Fix } from '@/lib/trips/geo';
+import {
+  BUCKET_COLORS,
+  bucketPercents,
+  coloredRuns,
+  durationLabel,
+  equivalences,
+  fitRoute,
+  kmhLabel,
+  kmLabel,
+  monthSummary,
+  pathD,
+  thinPoints,
+  timeRange,
+  timesLabel,
+  tripRoute,
+  type TripSummary,
+} from '@/lib/trips/present';
+
+/**
+ * Trip UI shared by the list, the detail, the vehicle hub tab and Cifras
+ * (IMP 29092026 Phase 5A, 03-screens.md "Phase 5"). The TrackPieces pattern:
+ * pieces here, screens stay thin.
+ */
+
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
+
+/** Done, non-deleted trips, newest first; one vehicle or all. */
+export async function listDoneTrips(vehicleId?: string): Promise<Trip[]> {
+  const rows = await tripRepo.list(vehicleId, { orderBy: 'started_at', direction: 'DESC' });
+  return rows.filter((t) => t.status === 'done');
+}
+
+/**
+ * Conductor ↔ pasajero. A passenger trip must not move the odometer (ADR-30),
+ * so going to pasajero tombstones the trip's `trip_estimate` reading; going
+ * back does not recreate it (the estimate belongs to the moment the trip
+ * ended). Returns true when a reading was removed.
+ */
+export async function setTripRole(trip: Trip, role: TripRole): Promise<boolean> {
+  let removed = false;
+  if (role === 'pasajero') {
+    const readingId = trip.odometerReadingId ?? `odo_trip_${trip.id}`;
+    const reading = await odometerRepo.getById(readingId);
+    if (reading) {
+      await odometerRepo.softDelete(readingId);
+      removed = true;
+    }
+    await tripRepo.upsert({ id: trip.id, role, odometerReadingId: null });
+  } else {
+    await tripRepo.upsert({ id: trip.id, role });
+  }
+  return removed;
+}
+
+/** Asks, then soft-deletes the trip (and its odometer estimate). */
+export function confirmDeleteTrip(trip: Trip, onDone?: () => void) {
+  Alert.alert(es.trips.delete, es.trips.deleteBody, [
+    { text: es.common.cancel, style: 'cancel' },
+    {
+      text: es.common.delete,
+      style: 'destructive',
+      onPress: () =>
+        void (async () => {
+          const readingId = trip.odometerReadingId ?? `odo_trip_${trip.id}`;
+          if (await odometerRepo.getById(readingId)) await odometerRepo.softDelete(readingId);
+          await tripRepo.softDelete(trip.id);
+          onDone?.();
+        })(),
+    },
+  ]);
+}
+
+/** Long-press on a row: role toggle and delete. */
+export function tripActions(trip: Trip, onChanged?: () => void) {
+  const toPassenger = trip.role !== 'pasajero';
+  Alert.alert(es.trips.actions, undefined, [
+    { text: es.common.cancel, style: 'cancel' },
+    {
+      text: toPassenger ? es.trips.markPassenger : es.trips.markDriver,
+      onPress: () => void setTripRole(trip, toPassenger ? 'pasajero' : 'conductor').then(() => onChanged?.()),
+    },
+    { text: es.trips.delete, style: 'destructive', onPress: () => confirmDeleteTrip(trip, onChanged) },
+  ]);
+}
+
+export type LocationPermission = 'granted' | 'denied' | 'undetermined' | 'unknown';
+
+/**
+ * The foreground location permission (Part A needs only this one): its state,
+ * and `ask()` — the system prompt while it can still be asked, else the app's
+ * system settings (native) since Android/iOS stop showing the prompt.
+ */
+export function useLocationPermission() {
+  const [state, setState] = useState<LocationPermission>('unknown');
+  const [canAsk, setCanAsk] = useState(true);
+
+  const apply = (r: Location.LocationPermissionResponse) => {
+    setState(r.granted ? 'granted' : r.status === 'denied' ? 'denied' : 'undetermined');
+    setCanAsk(r.canAskAgain);
+  };
+  const fail = () => setState('unknown');
+  const check = () => Location.getForegroundPermissionsAsync().then(apply, fail);
+
+  useEffect(() => {
+    void Location.getForegroundPermissionsAsync().then(apply, fail);
+    // Coming back from the system settings: read it again.
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && void Location.getForegroundPermissionsAsync().then(apply, fail));
+    return () => sub.remove();
+  }, []);
+
+  const ask = async () => {
+    if (state === 'denied' && !canAsk && Platform.OS !== 'web') {
+      await Linking.openSettings();
+      return;
+    }
+    try {
+      await Location.requestForegroundPermissionsAsync();
+    } catch {
+      // Web without geolocation, or dismissed.
+    }
+    await check();
+  };
+
+  return { state, canAsk, ask, check };
+}
+
+const dayLabel = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'short' });
+
+// ---------------------------------------------------------------------------
+// Route drawings
+// ---------------------------------------------------------------------------
+
+/** 64×40 route thumbnail for a list row (decoded polyline, one colour). */
+export function RouteSparkline({ polyline, width = 64, height = 40 }: { polyline: string | null; width?: number; height?: number }) {
+  const { theme } = useTheme();
+  const d = useMemo(() => pathD(fitRoute(tripRoute({ polyline }), { width, height, pad: 4 })), [polyline, width, height]);
+  return (
+    <View style={[styles.spark, { width, height, backgroundColor: theme.bg.well, borderColor: theme.line }]}>
+      {d ? (
+        <Svg width={width} height={height}>
+          <Path d={d} stroke={theme.accent} strokeWidth={1.6} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+        </Svg>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The route on the dark card: coloured by speed bucket when the raw points
+ * are still on the phone (< 30 days), else the simplified polyline in one
+ * colour. Start dot green, end a checkered flag. Always dark, like a cluster.
+ */
+export function RouteSvg({ trip, points, width, height }: { trip: Trip; points: Fix[] | null; width: number; height: number }) {
+  const { runs, single, ends } = useMemo(() => {
+    const box = { width, height, pad: 16 };
+    const raw = points && points.length > 1 ? thinPoints(points) : null;
+    const src = raw ?? tripRoute(trip);
+    const xy = fitRoute(src, box);
+    return {
+      runs: raw ? coloredRuns(raw, box, Infinity) : [],
+      single: raw ? '' : pathD(xy),
+      ends: xy.length > 1 ? { start: xy[0], end: xy[xy.length - 1] } : null,
+    };
+  }, [trip, points, width, height]);
+
+  const allPaths = runs.length ? runs.map((r) => r.d) : single ? [single] : [];
+  return (
+    <Svg width={width} height={height} accessibilityLabel={es.trips.routeA11y(kmLabel(trip.distanceM))}>
+      <Rect x={0} y={0} width={width} height={height} rx={radius.card} fill="#0B0B0D" />
+      {/* Glow: the same line, wider and faint. */}
+      {allPaths.map((d, i) => (
+        <Path key={`g${i}`} d={d} stroke={runs.length ? BUCKET_COLORS[runs[i].bucket] : '#E10600'} strokeOpacity={0.22} strokeWidth={9} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      ))}
+      {allPaths.map((d, i) => (
+        <Path key={`p${i}`} d={d} stroke={runs.length ? BUCKET_COLORS[runs[i].bucket] : '#FF3B30'} strokeWidth={3} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      ))}
+      {ends ? (
+        <>
+          <Circle cx={ends.start.x} cy={ends.start.y} r={6} fill="#3DDC84" stroke="#0B0B0D" strokeWidth={2} />
+          <EndFlag x={ends.end.x} y={ends.end.y} />
+        </>
+      ) : null}
+    </Svg>
+  );
+}
+
+/** A small checkered flag planted at (x, y). */
+function EndFlag({ x, y }: { x: number; y: number }) {
+  const s = 4;
+  const cells: [number, number][] = [];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) if ((r + c) % 2 === 0) cells.push([c, r]);
+  return (
+    <G x={x} y={y - 16}>
+      <Rect x={-1} y={0} width={2} height={16} fill="#FFFFFF" />
+      <Rect x={1} y={0} width={4 * s} height={3 * s} fill="#FFFFFF" />
+      {cells.map(([c, r]) => (
+        <Rect key={`${c}${r}`} x={1 + c * s} y={r * s} width={s} height={s} fill="#111111" />
+      ))}
+    </G>
+  );
+}
+
+/** The five-bucket bar with its legend (% of moving time). */
+export function DistributionBar({ buckets }: { buckets: number[] }) {
+  const { theme } = useTheme();
+  const pct = bucketPercents(buckets);
+  if (!pct) {
+    return (
+      <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
+        {es.trips.distributionEmpty}
+      </T>
+    );
+  }
+  return (
+    <View>
+      <View style={[styles.bar, { backgroundColor: theme.bg.well }]}>
+        {pct.map((p, i) => (p > 0 ? <View key={i} style={{ flex: p, backgroundColor: BUCKET_COLORS[i] }} /> : null))}
+      </View>
+      <View style={styles.legend}>
+        {pct.map((p, i) => (
+          <View key={i} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: BUCKET_COLORS[i] }]} />
+            <T face="mono" style={{ color: theme.text.secondary, fontSize: 11 }}>
+              {es.trips.buckets[i]} · {p}%
+            </T>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// List pieces
+// ---------------------------------------------------------------------------
+
+export function TripRow({ trip, vehicleName, onPress, onLongPress }: { trip: Trip; vehicleName?: string; onPress: () => void; onLongPress?: () => void }) {
+  const { theme } = useTheme();
+  const labels = [trip.startLabel, trip.endLabel].some(Boolean) ? `${trip.startLabel || '…'} → ${trip.endLabel || '…'}` : null;
+  const top = [dayLabel(trip.startedAt), timeRange(trip.startedAt, trip.endedAt)].join(' · ');
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityLabel={es.trips.rowA11y(dayLabel(trip.startedAt), kmLabel(trip.distanceM), durationLabel(trip.durationS))}
+      accessibilityHint={onLongPress ? es.trips.actions : undefined}
+      style={({ pressed }) => [styles.row, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, opacity: pressed ? 0.85 : 1 }]}>
+      <RouteSparkline polyline={trip.polyline} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }} numberOfLines={1}>
+          {[top, vehicleName].filter(Boolean).join(' · ').toUpperCase()}
+        </T>
+        {labels ? (
+          <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }} numberOfLines={1}>
+            {labels}
+          </T>
+        ) : null}
+        <View style={styles.rowLine}>
+          <T face="mono" style={{ color: theme.text.primary, fontSize: 13 }}>
+            {kmLabel(trip.distanceM)} km · {durationLabel(trip.durationS)}
+          </T>
+          <T face="monoBold" style={{ color: theme.statusText.proximo, fontSize: 13 }}>
+            {es.trips.maxShort(kmhLabel(trip.maxKmh))}
+          </T>
+        </View>
+      </View>
+      {trip.role === 'pasajero' ? <Badge label={es.trips.passenger} tone="amber" /> : null}
+    </Pressable>
+  );
+}
+
+/** km este mes · viajes · al volante. */
+export function TripsStrip({ summary }: { summary: TripSummary }) {
+  const { theme } = useTheme();
+  const cells: [string, string][] = [
+    [kmLabel(summary.distanceM), es.trips.strip.km],
+    [String(summary.count), es.trips.strip.count],
+    [durationLabel(summary.durationS), es.trips.strip.time],
+  ];
+  return (
+    <View style={[styles.strip, { backgroundColor: theme.bg.well, borderColor: theme.lineStrong }]}>
+      {cells.map(([v, l]) => (
+        <View key={l} style={{ flex: 1 }}>
+          <T face="monoBold" style={{ color: theme.text.primary, fontSize: 18 }} numberOfLines={1} adjustsFontSizeToFit>
+            {v}
+          </T>
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
+            {l}
+          </T>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** The hub's Viajes tab: the vehicle's last trips and a way to the list. */
+export function TripsHubTab({ vehicleId, version }: { vehicleId: string; version: number }) {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const { data } = useStore();
+  const [list, setList] = useState<Trip[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listDoneTrips(vehicleId).then((t) => !cancelled && setList(t));
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId, version, data]);
+
+  if (!list) return null;
+  return (
+    <View style={{ gap: space.sm }}>
+      <TripsStrip summary={monthSummary(list)} />
+      {!list.length ? (
+        <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
+          {es.trips.empty}
+        </T>
+      ) : (
+        <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+          {es.trips.hubRecent}
+        </T>
+      )}
+      {list.slice(0, 3).map((t) => (
+        <TripRow key={t.id} trip={t} onPress={() => router.push({ pathname: '/viaje/[id]', params: { id: t.id } })} />
+      ))}
+      <GhostButton label={es.trips.hubAll} onPress={() => router.push({ pathname: '/viajes', params: { vehicleId } })} />
+    </View>
+  );
+}
+
+/** Cifras → Viajes: this month's numbers and the DR equivalences. Nothing without trips. */
+export function TripsCifrasBlock({ vehicleId }: { vehicleId: string }) {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const { data } = useStore();
+  const [summary, setSummary] = useState<TripSummary | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listDoneTrips(vehicleId).then((t) => !cancelled && setSummary(monthSummary(t)));
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId, data]);
+
+  if (!summary || !summary.count) return null;
+  const kmTotal = summary.distanceM / 1000;
+  const eq = equivalences(kmTotal, es.trips.equivalences);
+  const tiles: [string, string][] = [
+    [String(summary.count), es.trips.cifras.count],
+    [kmLabel(summary.distanceM), es.trips.cifras.km],
+    [durationLabel(summary.durationS), es.trips.cifras.time],
+    [summary.maxKmh != null ? `${kmhLabel(summary.maxKmh)} km/h` : '—', es.trips.cifras.max],
+  ];
+  return (
+    <View style={{ marginTop: space.md }}>
+      <SectionHeader title={es.trips.cifrasTitle} caption={es.trips.cifrasCaption} />
+      <Pressable onPress={() => router.push({ pathname: '/viajes', params: { vehicleId } })} accessibilityRole="button" accessibilityLabel={es.trips.cifrasTitle}>
+        <Surface>
+          <View style={styles.tiles}>
+            {tiles.map(([v, l]) => (
+              <View key={l} style={styles.tile}>
+                <T face="monoBold" style={{ color: theme.text.primary, fontSize: 20 }} numberOfLines={1} adjustsFontSizeToFit>
+                  {v}
+                </T>
+                <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
+                  {l.toUpperCase()}
+                </T>
+              </View>
+            ))}
+          </View>
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.xs }}>
+            {es.trips.equivalencesTitle.toUpperCase()}
+          </T>
+          {eq.map((e) => (
+            <View key={e.key} style={styles.eqRow}>
+              <T face="monoBold" style={{ color: theme.accent, fontSize: 14, minWidth: 64 }}>
+                {timesLabel(e.times)}
+              </T>
+              <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
+                {es.trips.equivalences.find((d) => d.key === e.key)?.label}
+              </T>
+            </View>
+          ))}
+          <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.xs }}>
+            {es.trips.equivalencesNote}
+          </T>
+        </Surface>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * The shareable card: route + headline numbers + wordmark, no plate. A
+ * forwardRef so the share button captures exactly this view (TrackPieces).
+ */
+export const TripShareCard = forwardRef<View, { trip: Trip; points: Fix[] | null; width: number; vehicleName?: string }>(function TripShareCard(
+  { trip, points, width, vehicleName },
+  ref,
+) {
+  const h = Math.round(width * 0.62);
+  const stats: [string, string][] = [
+    [`${kmLabel(trip.distanceM)} km`, es.trips.tiles.distance],
+    [durationLabel(trip.durationS), es.trips.tiles.duration],
+    [`${kmhLabel(trip.avgMovingKmh ?? trip.avgKmh)} km/h`, es.trips.tiles.avgMoving],
+    [`${kmhLabel(trip.maxKmh)} km/h`, es.trips.tiles.max],
+  ];
+  return (
+    // collapsable={false}: Android must keep this View in the native tree to capture it.
+    <View ref={ref} collapsable={false} style={styles.shareCard}>
+      <T face="eyebrow" style={{ color: '#FFB300', fontSize: 11 }}>
+        {[dayLabel(trip.startedAt), timeRange(trip.startedAt, trip.endedAt), vehicleName].filter(Boolean).join(' · ').toUpperCase()}
+      </T>
+      {trip.startLabel || trip.endLabel ? (
+        <T face="title" style={{ color: '#FFFFFF', fontSize: 16, textTransform: 'uppercase' }} numberOfLines={1}>
+          {`${trip.startLabel || '…'} → ${trip.endLabel || '…'}`}
+        </T>
+      ) : null}
+      <View style={{ marginVertical: space.sm }}>
+        <RouteSvg trip={trip} points={points} width={width - 2 * space.md} height={h} />
+      </View>
+      <View style={styles.tiles}>
+        {stats.map(([v, l]) => (
+          <View key={l} style={styles.tile}>
+            <T face="monoBold" style={{ color: '#FFFFFF', fontSize: 18 }} numberOfLines={1} adjustsFontSizeToFit>
+              {v}
+            </T>
+            <T face="eyebrow" style={{ color: '#9A9AA2', fontSize: 10 }}>
+              {l.toUpperCase()}
+            </T>
+          </View>
+        ))}
+      </View>
+      <T face="eyebrow" style={{ color: '#6B6B73', fontSize: 9, textAlign: 'right', marginTop: space.xs }}>
+        CAR GUY · 走り
+      </T>
+    </View>
+  );
+});
+
+/** The trip as text, for WhatsApp. */
+export function tripText(trip: Trip, vehicleName?: string): string {
+  const lines = [
+    [dayLabel(trip.startedAt), timeRange(trip.startedAt, trip.endedAt)].join(' · '),
+    vehicleName ?? null,
+    trip.startLabel || trip.endLabel ? `${trip.startLabel || '…'} → ${trip.endLabel || '…'}` : null,
+    `${kmLabel(trip.distanceM)} km · ${durationLabel(trip.durationS)}`,
+    `${es.trips.tiles.max}: ${kmhLabel(trip.maxKmh)} km/h`,
+  ].filter((l): l is string => Boolean(l));
+  return es.trips.summaryText(lines);
+}
+
+const styles = StyleSheet.create({
+  spark: { borderWidth: 1, borderRadius: radius.tag, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: 1, borderRadius: radius.button, padding: space.md, marginBottom: space.sm },
+  rowLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  strip: { flexDirection: 'row', gap: space.md, borderWidth: 1, borderRadius: radius.button, paddingVertical: space.md, paddingHorizontal: space.md, marginBottom: space.md },
+  bar: { flexDirection: 'row', height: 14, borderRadius: 7, overflow: 'hidden' },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginTop: space.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md },
+  tile: { width: '50%', paddingRight: space.sm },
+  eqRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 3 },
+  shareCard: { backgroundColor: '#141417', borderRadius: radius.card, padding: space.md, borderWidth: 1, borderColor: '#2A2A30' },
+});

@@ -12,6 +12,7 @@ import {
 } from './db/repos';
 import { resetDatabase } from './db/reset';
 import { seedCatalog } from './db/seed';
+import { purgeOldTripPoints } from './db/tripOps';
 import { deleteVehicleCascade } from './db/vehicleOps';
 import type { Expense as ExpenseRow, ExpenseCategory as NewExpenseCategory, ServiceRecord } from './db/types';
 import { fuelForDisplay, fuelForStorage, tankForDisplay, tankForStorage, type VolumeUnit } from './domain/units';
@@ -224,6 +225,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       await getDb();
       await seedCatalog();
+      // v6 local scratch: GPS points of trips done > 30 days ago (the row keeps the route).
+      void purgeOldTripPoints().catch(() => {});
       if (cancelled) return;
       await load();
       if (!cancelled) setReady(true);

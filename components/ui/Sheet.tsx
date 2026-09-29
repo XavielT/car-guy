@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Keyboard, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, space } from '@/constants/theme';
@@ -21,11 +21,18 @@ export function Sheet({
   onClose,
   title,
   children,
+  avoidKeyboard = false,
 }: {
   visible: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /**
+   * Lift the sheet above the keyboard (a search box inside it). On Android the
+   * Modal's window does not resize for the keyboard, so without this the list
+   * under the search field sat behind it (seen on the Redmi, IMP 29092026).
+   */
+  avoidKeyboard?: boolean;
 }) {
   const { theme } = useTheme();
   // Android draws edge-to-edge: without the inset the last button sits on the
@@ -34,6 +41,8 @@ export function Sheet({
   // useState, not useRef: the value is read during render to build the
   // transform, and reading a ref there is exactly what react-hooks/refs forbids.
   const [slide] = useState(() => new Animated.Value(0));
+  const keyboardHeight = useKeyboardHeight(avoidKeyboard);
+  const keyboard = avoidKeyboard ? keyboardHeight : 0;
 
   useEffect(() => {
     Animated.timing(slide, {
@@ -56,7 +65,13 @@ export function Sheet({
       <Animated.View
         style={[
           styles.sheet,
-          { backgroundColor: theme.bg.surface, borderColor: theme.line, paddingBottom: space.xxxl + insets.bottom, transform: [{ translateY }] },
+          {
+            backgroundColor: theme.bg.surface,
+            borderColor: theme.line,
+            paddingBottom: space.xxxl + insets.bottom,
+            bottom: keyboard,
+            transform: [{ translateY }],
+          },
         ]}>
         <View style={[styles.grabber, { backgroundColor: theme.text.muted }]} />
         {title ? (
@@ -103,3 +118,21 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, marginBottom: space.lg, textTransform: 'uppercase', letterSpacing: 0.6 },
 });
+
+/** The on-screen keyboard's height (0 when hidden, and always on web). */
+export function useKeyboardHeight(enabled = true): number {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    if (!enabled || Platform.OS === 'web') return;
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) =>
+      setHeight(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [enabled]);
+  return height;
+}
+

@@ -40,7 +40,7 @@ import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { isEx, ownershipLine, toKatakana, vehicleBadges } from '@/lib/domain/garage';
 import { vidaUtil, vidaUtilTone } from '@/lib/domain/legal-dr';
 import { parseDecimal } from '@/lib/domain/economy';
-import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_SHARE, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_SHARE, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { dateLabel, isoFromDateInput, km as fmtKm, money, todayIsoDate } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
@@ -48,6 +48,7 @@ import { AlbumTab } from '@/components/album/AlbumTab';
 import { BuildSummary, BuildTab } from '@/components/build/BuildTab';
 import { FichaTab } from '@/components/diy/FichaTab';
 import { TrackSummaryLine, TrackTab } from '@/components/track/TrackPieces';
+import { TripsHubTab } from '@/components/trips/TripPieces';
 import { investedTotal } from '@/lib/domain/build';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
@@ -63,7 +64,7 @@ import { useTheme } from '@/lib/theme/useTheme';
  * for the car's story, because an Ex is exactly the car you will want to
  * remember (the Jetta lesson).
  */
-type Tab = 'resumen' | 'album' | 'build' | 'ficha' | 'pista' | 'docs';
+type Tab = 'resumen' | 'album' | 'build' | 'ficha' | 'pista' | 'viajes' | 'docs';
 
 const TABS: { key: Tab; flag: boolean }[] = [
   { key: 'resumen', flag: true },
@@ -71,6 +72,7 @@ const TABS: { key: Tab; flag: boolean }[] = [
   { key: 'build', flag: FEATURE_BUILD },
   { key: 'ficha', flag: FEATURE_DIY },
   { key: 'pista', flag: FEATURE_TRACK },
+  { key: 'viajes', flag: FEATURE_TRIPS },
   { key: 'docs', flag: true },
 ];
 
@@ -101,7 +103,7 @@ export default function VehicleHubScreen() {
   const [totals, setTotals] = useState({ spend: 0, fillups: 0, services: 0 });
   const [specName, setSpecName] = useState('');
   const [specValue, setSpecValue] = useState('');
-  const [tab, setTab] = useState<Tab>(TABS.some((t) => t.key === tabParam) ? (tabParam as Tab) : 'resumen');
+  const [tab, setTab] = useState<Tab>(TABS.some((t) => t.flag && t.key === tabParam) ? (tabParam as Tab) : 'resumen');
   const [statusOpen, setStatusOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
@@ -125,7 +127,7 @@ export default function VehicleHubScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, version]);
+  }, [id, version, data]);
 
   useEffect(() => {
     if (!id) return;
@@ -279,7 +281,7 @@ export default function VehicleHubScreen() {
         {/* 1 — the page tabs (sticky) */}
         <View style={{ backgroundColor: theme.bg.base, paddingVertical: space.sm }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist">
-            {TABS.map((t) => {
+            {TABS.filter((t) => t.flag).map((t) => {
               const on = t.key === tab;
               return (
                 <Pressable
@@ -347,6 +349,8 @@ export default function VehicleHubScreen() {
             <FichaTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'pista' && FEATURE_TRACK ? (
             <TrackTab vehicleId={vehicle.id} version={version} />
+          ) : tab === 'viajes' && FEATURE_TRIPS ? (
+            <TripsHubTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'docs' ? (
             <Docs docs={docs} onOpen={(docId) => router.push({ pathname: '/documento/[id]', params: { id: docId } })} onAll={() => router.push('/documentos')} />
           ) : (

@@ -16,7 +16,7 @@ import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
-import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -35,6 +35,7 @@ const FILTERS: { key: 'todo' | RecordKind; label: string }[] = [
   // appear with the screens that create them.
   ...(FEATURE_ALBUM ? [{ key: 'hito' as const, label: es.history.kinds.hito }] : []),
   ...(FEATURE_TRACK ? [{ key: 'pista' as const, label: es.history.kinds.pista }] : []),
+  ...(FEATURE_TRIPS ? [{ key: 'viaje' as const, label: es.history.kinds.viaje }] : []),
 ];
 
 const PAGE = 50;
@@ -296,6 +297,10 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
   }
   if (entry.kind === 'pista') {
     router.push({ pathname: '/pista/evento/[id]', params: { id: entry.id } });
+    return;
+  }
+  if (entry.kind === 'viaje') {
+    router.push({ pathname: '/viaje/[id]', params: { id: entry.id } });
     return;
   }
   router.push({ pathname: '/inspeccion/[id]', params: { id: entry.id } });

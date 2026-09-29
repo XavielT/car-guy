@@ -16,6 +16,7 @@ import { matchesQuery } from '@/lib/domain/text';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import { PrimaryButton, Sheet } from '../ui';
+import { useKeyboardHeight } from '../ui/Sheet';
 import { T } from '../T';
 
 export type SearchItem = {
@@ -62,6 +63,9 @@ export function SearchSheet({
 }) {
   const { theme } = useTheme();
   const { height } = useWindowDimensions();
+  const keyboard = useKeyboardHeight();
+  // With the keyboard up the sheet sits on it: the list gets what is left.
+  const listMax = keyboard ? Math.max(160, height - keyboard - 260) : height * 0.55;
   const [query, setQuery] = useState('');
   const [typingOther, setTypingOther] = useState(false);
   const [other, setOther] = useState('');
@@ -90,7 +94,7 @@ export function SearchSheet({
   }
 
   return (
-    <Sheet visible={visible} onClose={close} title={title}>
+    <Sheet visible={visible} onClose={close} title={title} avoidKeyboard>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {typingOther ? (
           <View>
@@ -124,7 +128,7 @@ export function SearchSheet({
               </View>
             ) : null}
             <SectionList
-              style={{ maxHeight: height * 0.55 }}
+              style={{ maxHeight: listMax }}
               sections={sections}
               keyExtractor={(item) => item.key}
               keyboardShouldPersistTaps="handled"

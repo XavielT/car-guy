@@ -1,6 +1,8 @@
-import { useRouter } from 'expo-router';
+import { useKeepAwake } from 'expo-keep-awake';
+import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SyncPill } from '@/components/SyncPill';
@@ -19,11 +21,16 @@ import {
 import { palette, radius, space } from '@/constants/theme';
 import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
-import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { SpeedCluster } from '@/components/ui/SpeedCluster';
+import { Alert } from '@/lib/alert';
+import { startManualTrip, stopTrip } from '@/lib/trips/live';
+import { useLiveTrip } from '@/lib/trips/liveStore';
+import { tripsKeepAwake, tripsMode, type TripsMode } from '@/lib/trips/settings';
 import { garageFacts, lastWeeklyCheck, type GarageFacts } from '@/lib/db/garageQueries';
 import { lampStates, toKatakana, vehicleBadges } from '@/lib/domain/garage';
 import {
-  currentOdometer as currentOdometerQuery,
+  odometerNow,
   odometer as odometerRepo,
   settings as settingsRepo,
   tasks as taskRepo,
@@ -61,6 +68,20 @@ export default function HomeScreen() {
   const { activeVehicle, vehicleFillups, vehicleExpenses, data, setActiveVehicle } = useStore();
 
   const [odometerKm, setOdometerKm] = useState<number | null>(null);
+  // ADR-30: the number on the LCD may be a trip's GPS estimate (shown with "≈").
+  const [odometerEstimated, setOdometerEstimated] = useState(false);
+  // Viajes (Phase 5A): the live trip, the device's trip mode, keep-awake, a short notice.
+  const live = useLiveTrip();
+  const [tripsModeNow, setTripsModeNow] = useState<TripsMode>('manual');
+  const [keepAwake, setKeepAwake] = useState(true);
+  const [tripNotice, setTripNotice] = useState<string | null>(null);
+  const [tripBusy, setTripBusy] = useState(false);
+  const focused = useIsFocused();
+  useEffect(() => {
+    if (!FEATURE_TRIPS) return;
+    void tripsMode().then(setTripsModeNow);
+    void tripsKeepAwake().then(setKeepAwake);
+  }, [focused]);
   const [daysSince, setDaysSince] = useState<number | null>(null);
   const [monthKm, setMonthKm] = useState<number>(0);
   const [attention, setAttention] = useState<EvaluatedReminder[]>([]);
@@ -72,6 +93,7 @@ export default function HomeScreen() {
   const [weekly, setWeekly] = useState<{ lastAt: string | null; lastHadFailures: boolean } | null>(null);
   const [facts, setFacts] = useState<GarageFacts | null>(null);
   const { width } = useWindowDimensions();
+  const reduced = useReducedMotion();
 
   // The account nudge: shown once the garage has something worth protecting,
   // dismissible for good. `null` means "not read from storage yet", which keeps
@@ -96,14 +118,15 @@ export default function HomeScreen() {
     let cancelled = false;
 
     (async () => {
-      const [max, readings, vehicle] = await Promise.all([
-        currentOdometerQuery(vehicleId),
+      const [odo, readings, vehicle] = await Promise.all([
+        odometerNow(vehicleId),
         odometerRepo.list(vehicleId, { orderBy: 'occurred_at', direction: 'DESC' }),
         vehicleRepo.getById(vehicleId),
       ]);
       if (cancelled) return;
 
-      setOdometerKm(max);
+      setOdometerKm(odo.km);
+      setOdometerEstimated(odo.estimated);
       setModelYear(vehicle?.year ?? null);
       setDaysSince(readings[0] ? daysBetween(readings[0].occurredAt, todayIso()) : null);
 
@@ -210,6 +233,34 @@ export default function HomeScreen() {
     onPress: l.icon === 'checklist' ? () => router.push('/chequeo') : () => router.push('/recordatorios'),
   }));
 
+  const notify = (text: string) => {
+    setTripNotice(text);
+    setTimeout(() => setTripNotice(null), 4000);
+  };
+  const beginTrip = async () => {
+    setTripBusy(true);
+    const result = await startManualTrip(activeVehicle.id);
+    setTripBusy(false);
+    if (result.ok) return;
+    if (result.reason === 'permission') {
+      Alert.alert(es.trips.title, es.trips.permissionDenied, [
+        { text: es.common.cancel, style: 'cancel' },
+        { text: es.trips.openSettings, onPress: () => void Linking.openSettings() },
+      ]);
+    } else notify(es.trips.needPermission);
+  };
+  const finishTrip = async () => {
+    const result = await stopTrip();
+    if (result.kind === 'discarded') {
+      notify(
+        result.reason === 'duration'
+          ? es.trips.discardedBrief(Math.max(1, Math.round(result.durationS / 60)))
+          : es.trips.discardedShort(Math.round(result.distanceM)),
+      );
+    }
+    else if (result.kind === 'saved') notify(es.trips.saved((result.distanceM / 1000).toFixed(1)));
+  };
+
   const detail = activeVehicle.detail;
   const badges = detail ? vehicleBadges(detail, facts ?? { installedMods: 0 }) : [];
 
@@ -292,10 +343,29 @@ export default function HomeScreen() {
           </Pressable>
         </ScrollView>
 
+        {tripNotice ? (
+          <Surface style={{ marginBottom: space.md }}>
+            <T face="body" accessibilityRole="alert" style={{ color: theme.text.secondary, fontSize: 14 }}>
+              {tripNotice}
+            </T>
+          </Surface>
+        ) : null}
+
+        {FEATURE_TRIPS && live && live.vehicleId === activeVehicle.id ? (
+          <Animated.View key="speed" entering={reduced ? undefined : FadeIn.duration(300)} exiting={reduced ? undefined : FadeOut.duration(300)}>
+            {keepAwake && focused && Platform.OS !== 'web' ? <KeepScreenOn /> : null}
+            <SpeedCluster
+              limitKmh={activeVehicle.detail?.limitKmh ?? 120}
+              size={Math.min(340, Math.max(240, width - 72))}
+              onStop={() => void finishTrip()}
+            />
+          </Animated.View>
+        ) : (
+        <Animated.View key="odo" entering={reduced ? undefined : FadeIn.duration(300)}>
         <ClusterHero
           odometerKm={odometerKm}
           reading={clusterReading(allReminders)}
-          caption={odometerCaption(daysSince)}
+          caption={odometerEstimated ? es.trips.odometerEstimated : odometerCaption(daysSince)}
           size={Math.min(340, Math.max(240, width - 72))}
           onPress={() => router.push('/recordatorios')}
           onPressOdometer={() => router.push('/odometro')}
@@ -313,6 +383,25 @@ export default function HomeScreen() {
             <TelltaleRow lamps={lamps} />
           </View>
         </ClusterHero>
+        </Animated.View>
+        )}
+
+        {FEATURE_TRIPS && tripsModeNow !== 'off' && !live ? (
+          <Pressable
+            onPress={() => void beginTrip()}
+            disabled={tripBusy}
+            accessibilityRole="button"
+            style={[styles.pendingRow, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, borderLeftColor: theme.accent }]}>
+            <View style={{ flex: 1 }}>
+              <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+                {es.trips.start}
+              </T>
+              <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
+                {es.trips.startHint}
+              </T>
+            </View>
+          </Pressable>
+        ) : null}
 
         {pending.length ? (
           <View style={styles.pending}>
@@ -497,6 +586,12 @@ function countdown(status: EvaluatedReminder['status']): string {
   if (byKm) return `${status.dueKm! < 0 ? '−' : ''}${fmtKm(Math.abs(Math.round(status.dueKm!)))}`;
   if (status.dueDays != null) return `${status.dueDays < 0 ? '−' : ''}${Math.abs(status.dueDays)} d`;
   return STATUS_LABEL[status.status];
+}
+
+/** expo-keep-awake's hook, mounted only while the speed cluster is up and Inicio is focused. */
+function KeepScreenOn() {
+  useKeepAwake('car-guy-trip');
+  return null;
 }
 
 function odometerCaption(daysSince: number | null): string {
