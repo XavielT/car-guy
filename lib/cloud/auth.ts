@@ -206,12 +206,17 @@ export function useSession(): SessionState {
     if (!supabase) return;
 
     let cancelled = false;
+    // Events are checked asynchronously; only the newest may win. Without this
+    // a slow check of the old session finished after SIGNED_OUT and put the
+    // account back on screen (seen on the Redmi, 2026-09-29).
+    let latest = 0;
 
     // Only a Car Guy account's session reaches the app (and so sync). One from
     // another x-core app — a web tab signed in before 2.1.3, or a reset link
     // opened by a Music Hub user — is signed out; an unanswered check (offline,
     // never verified here) is simply not shown until it can be asked.
     const accept = async (next: Session | null) => {
+      const mine = ++latest;
       if (next && !(await isKnownMember(next.user.id))) {
         const member = await checkMembership(supabase, next.user.id);
         if (member === false) {
@@ -220,7 +225,7 @@ export function useSession(): SessionState {
         }
         if (member !== true) next = null;
       }
-      if (cancelled) return;
+      if (cancelled || mine !== latest) return;
       if (next) rejectedOtherApp = false;
       setOtherApp(rejectedOtherApp);
       setSession(next);
