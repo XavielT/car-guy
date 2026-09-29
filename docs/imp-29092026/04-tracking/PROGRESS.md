@@ -81,7 +81,7 @@ Run 2026-09-29 on `imp-29092026/phase-0-kickoff` (from `main` at v2.1.2 + docs),
 | `gh auth status` | XavielT, git protocol ssh (`~/.ssh/config` pins the key since 2026-09-29) |
 | `adb devices` | **none attached** at baseline time (the Redmi was on USB earlier today) |
 
-The cloud checks leave throwaway `carguy-test-*` users; cleanup (`sql/999_cleanup_test_users.sql --shared`) needs Xaviel's OK in this conversation — see Blockers.
+The cloud checks leave throwaway `carguy-test-*` users; cleanup (`sql/999_cleanup_test_users.sql --shared`) was run after Xaviel's OK ("clean the test users"): `leftover_profiles` 0.
 
 ## Portfolio (Phase 0)
 
@@ -106,7 +106,7 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 | Phase | Blocker | Needs | Status |
 |---|---|---|---|
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel, no session open | open |
-| 0 | Cleanup of the baseline's `carguy-test-*` users on x-core (auto-mode refuses `999_cleanup_test_users.sql --shared` without a per-conversation OK) | Xaviel's OK | open |
+| 0 | Cleanup of the baseline's `carguy-test-*` users on x-core (auto-mode refuses `999_cleanup_test_users.sql --shared` without a per-conversation OK) | Xaviel's OK | ✅ done 2026-09-29, 0 leftover |
 
 ---
 
@@ -114,7 +114,7 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 
 ## Phase 0 — Kickoff   (branch `imp-29092026/phase-0-kickoff`)
 
-**Status:** complete (folder rename pending — manual; test-user cleanup waiting on an OK)
+**Status:** complete (folder rename pending — manual)
 **Commits:** `chore(imp-29092026): kickoff — package, baseline, audit, portfolio check, seed`
 
 ### Changed
