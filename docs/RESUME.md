@@ -1,5 +1,9 @@
 # Resume prompt — Car Guy, finishing IMP 17092026
 
+> **Current cycle (2026-09-29): IMP 29092026 — Car Guy 2.2 "Kaidō".** Package in
+> [`docs/imp-29092026/`](imp-29092026/README.md); run the prompts in `03-prompts/` in order and log in
+> `04-tracking/PROGRESS.md`. What follows is the historical 17092026 resume prompt.
+
 Paste everything below the line into a fresh `claude` session started in the repo root.
 
 The repo may have been renamed on disk by then; `cd` to wherever it lives.

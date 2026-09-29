@@ -3,6 +3,7 @@ import {
   contacts as contactRepo,
   expenses as expenseRepo,
   fuel as fuelRepo,
+  inspectionItems as inspectionItemRepo,
   milestones as milestoneRepo,
   mods as modRepo,
   odometer as odometerRepo,
@@ -17,6 +18,7 @@ import {
   wishlist as wishlistRepo,
 } from '@/lib/db/repos';
 import { seedVehicleDefaults } from '@/lib/db/seed';
+import { saveInspection } from '@/lib/db/inspectionOps';
 import { measurePads, saveEvent, saveSession, setTireUsed } from '@/lib/db/trackQueries';
 import type { ExpenseCategory, Mod, Task, Vehicle } from '@/lib/db/types';
 import { id as newId } from '@/lib/format';
@@ -49,6 +51,8 @@ const VEHICLES: SeedVehicle[] = [
     year: 1985,
     defaultFuelType: 'premium',
     initialOdometerKm: 49_040,
+    // Purchase prices other than the DS3's are placeholders (IMP 29092026 Phase 0), not his numbers.
+    purchasePrice: 350_000,
     notes: '',
     sortOrder: 0,
     nickname: 'hachi-gō', // ハチゴー
@@ -93,6 +97,7 @@ const VEHICLES: SeedVehicle[] = [
     trim: '1.6 hatchback manual',
     defaultFuelType: 'regular',
     initialOdometerKm: null,
+    purchasePrice: 180_000,
     notes: 'Interior de tela beige.',
     sortOrder: 2,
     status: 'proyecto',
@@ -113,6 +118,7 @@ const VEHICLES: SeedVehicle[] = [
     initialOdometerKm: null,
     // Year precision only: bought in 2018, sold in 2021.
     purchaseDate: '2018-01-01',
+    purchasePrice: 420_000,
     soldDate: '2021-01-01',
     isArchived: true,
     notes: '',
@@ -214,16 +220,18 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
   odometer = 96_000;
   for (let i = 11; i >= 0; i--) {
     odometer += 430 + ((i * 37) % 90);
-    const partial = i === 6;
+    // The last six are a mix of full and partial (IMP 29092026 Phase 0: carga parcial demo). The
+    // partials carry no gauge reading yet — Phase 4 adds those columns.
+    const partial = i === 6 || i === 4 || i === 2 || i === 1;
     const missed = i === 3;
     await fuelRepo.upsert({
       id: newId(),
       vehicleId: GARAGE_IDS.ds3,
       occurredAt: at(i * 30 + 4),
       odometerKm: odometer,
-      volume: partial ? 4.2 : 10.4,
+      volume: partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4,
       pricePerUnit: 305 + (i % 4) * 3.5,
-      totalDop: (partial ? 4.2 : 10.4) * (305 + (i % 4) * 3.5),
+      totalDop: (partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4) * (305 + (i % 4) * 3.5),
       fuelType: 'regular',
       isFullTank: !partial,
       missedPrevious: missed,
@@ -231,7 +239,9 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
       notes: '',
     });
   }
-  lines.push('DS3: 12 cargas regular (una parcial, una tras carga olvidada)');
+  lines.push('DS3: 12 cargas regular (cuatro parciales, tres entre las últimas seis; una tras carga olvidada)');
+
+  lines.push(...(await seedFailedCheck(at)));
 
   const services = [
     {
@@ -349,6 +359,33 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
 }
 
 /**
+ * A weekly check on the DS3 with one failed item (IMP 29092026 Phase 0), for the
+ * multi-photo work of Phase 3. Everything else passes; the failure follows the
+ * item's own on_fail, as the runner would.
+ */
+async function seedFailedCheck(at: (daysAgo: number) => string): Promise<string[]> {
+  const items = await inspectionItemRepo.listWhere({ templateId: 'carro_semanal' }, { orderBy: 'sort_order', direction: 'ASC' });
+  if (!items.length) return [];
+  const failing = items.find((i) => i.label === 'Luces') ?? items[items.length - 1];
+  await saveInspection({
+    id: 'dev_check_ds3_semanal',
+    vehicleId: GARAGE_IDS.ds3,
+    templateId: 'carro_semanal',
+    occurredAt: at(3),
+    odometerKm: null,
+    durationSec: 420,
+    answers: items.map((item) => ({
+      item,
+      result: item.id === failing.id ? ('falla' as const) : ('ok' as const),
+      note: item.id === failing.id ? 'Bombillo de freno trasero izquierdo fundido.' : '',
+      mediaId: null,
+      action: item.onFail,
+    })),
+  });
+  return [`DS3: chequeo semanal con una falla (${failing.label})`];
+}
+
+/**
  * The schema v2 part: the AE85's build, a wishlist item, its wheels and tires,
  * the fichas, milestones and a contact. Values Xaviel gave; the rest (prices,
  * dates) are placeholders marked as such, and "~160 hp" is an estimate — he
@@ -400,6 +437,12 @@ async function seedBuildAndMemory(at: (daysAgo: number) => string, radiatorRecor
       categoryId: 'ruedas',
       name: 'Aros 15x8 ET0',
       installedAt: at(200),
+      // Costs are placeholders (IMP 29092026 Phase 0) so "lo que me ha costado" has mods to add.
+      priceForeign: 480,
+      currency: 'USD',
+      fxRateToDop: 60,
+      costPartDop: 28_800,
+      costShippingDop: 3_500,
       affectsSpecs: true,
       specEffects: JSON.stringify({ wheel_f: '15x8 ET0', wheel_r: '15x8 ET0' }),
     },
@@ -408,6 +451,8 @@ async function seedBuildAndMemory(at: (daysAgo: number) => string, radiatorRecor
       categoryId: 'gomas',
       name: 'Gomas 195/50R15',
       installedAt: at(200),
+      costPartDop: 16_000,
+      costLaborDop: 800,
       affectsSpecs: true,
       specEffects: JSON.stringify({ tire_f: '195/50R15', tire_r: '195/50R15' }),
     },

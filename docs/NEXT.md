@@ -6,6 +6,13 @@ still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
+## Cycle 3 — IMP 29092026 (Car Guy 2.2 "Kaidō")
+
+Started 2026-09-29 from v2.1.2: nineteen notes from Xaviel's use of 2.1.x → hotfix 2.1.3, schema v6
+(liters canonical), forms v2, partial fills, Viajes (manual + automatic), Garaje v2 / launch / versions /
+feedback / costs, web APK + 2.2.0. Package: [`imp-29092026/`](imp-29092026/README.md), log:
+[`imp-29092026/04-tracking/PROGRESS.md`](imp-29092026/04-tracking/PROGRESS.md).
+
 ## Where things stand
 
 | | |
