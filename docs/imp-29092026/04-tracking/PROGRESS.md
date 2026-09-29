@@ -28,20 +28,20 @@ context between sessions.
 |---|---|---|---|
 | 1 | Wheelz-style trips | 5A/5B | ⬜ |
 | 2 | Live speed on the home cluster | 5A | ⬜ |
-| 3 | Photos on check issues / new parts, in history | 3 | ⬜ |
+| 3 | Photos on check issues / new parts, in history | 3 | ✅ ≤5 photos on falla/atención, 📷 N in Historial, CHEQUEO card in the album |
 | 4 | Carga parcial | 4 | ⬜ |
 | 5 | Historial de versiones | 6 | ⬜ |
 | 6 | Bug reports / comments | 6 | ⬜ |
 | 7 | Animated launch icon | 6 | ⬜ |
-| 8 | Mod costs + car price + what it cost me | 3 + 6 | ⬜ |
+| 8 | Mod costs + car price + what it cost me | 3 + 6 | 🟡 price + date visible in the form (3); Cifras in 6 |
 | 9 | Portfolio | 0 + 7 | 🟡 live card verified in Phase 0; APK button in 7 |
-| 10 | Several vehicle photos | 3 | ⬜ |
-| 11 | Liters/gallons, colour picker, make/model/year pickers, body types | 3 | ⬜ |
+| 10 | Several vehicle photos | 3 | ✅ gallery strip, cover, 1/N pager |
+| 11 | Liters/gallons, colour picker, make/model/year pickers, body types | 3 | ✅ |
 | 12 | Photo error on Android | 1 | ✅ compressPhoto + pending result; 8/8 on the Redmi; phone photo *upload* fixed too |
 | 13 | Sign-in message / accounts configured | 1 | ✅ cloud values in every EAS build, user copy, Car Guy-only accounts, reset link to Car Guy |
 | 14 | Garage view with all photos, user-arranged | 6 | ⬜ |
-| 15 | More statuses (the C3 case) | 2 + 3 | 🟡 schema + domain in 2 (nine statuses, status line, milestone on change); picker in 3 |
-| 16 | Oil types picker | 3 | ⬜ |
+| 15 | More statuses (the C3 case) | 2 + 3 | ✅ nine statuses, Desde + Nota, status line everywhere, milestone on change |
+| 16 | Oil types picker | 3 | ✅ |
 | 17 | APK from the web page | 1 (name) + 7 | 🟡 stable `car-guy.apk` asset from 2.1.3; the web button is Phase 7 |
 | 18 | Folder rename | 0 (manual) | ✅ path check done (still `tu-gasolina-rd`); the rename itself is Xaviel's |
 | 19 | Where trips live in the app | 5A | ⬜ |
@@ -117,6 +117,9 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 | 2 | Economy unit L/100 km is stored and has its maths (units.ts) but screens show km per the vehicle's *volume* unit (km/gal or km/L) | low | Phase 3's unit picker decides; `economyFromKmPerLiter` + `higherIsBetter` are ready |
 | 2 | A 2.1.x device editing a v6 fuel row rewrites the gallons only; the bridge detects the stale liters and trusts the gallons — but `schema_hint` stays 'v6' on that row, so *other* 2.1.x devices keep skipping it | low | acceptable while Xaviel is the only multi-device user; 2.2 re-stamps it on its next push |
 | 2 | New settings keys (garage_layout, trips_*) are local: not in SYNCED_SETTING_KEYS yet | low | Phases 5/6 decide which travel |
+| 3 | Public dossier does not show the status: vehicle_share has no "estado" option | low | needs a share column + public_dossier() change (cloud) — with Phase 6 or 7 |
+| 3 | Gallery reorder is "Mover ←/→" in the photo's sheet, not drag | low | same on native and web and reachable with a screen reader; drag can come with Phase 6's garage |
+| 3 | Garaje card badge sits on the cover photo and can be hard to read (outline on a busy photo) | low | Phase 6 restyles the cards |
 
 ## Blockers
 
@@ -362,4 +365,80 @@ newest auth event`
   conversion is already there (`tankForStorage`, `fuelForStorage`). A unit change on an existing car must
   re-express `tank_volume_entered`.
 - Refdata ids: make `toyota`, model `toyota-hilux`; `searchMakes` returns `{ make, models }[]`.
+
+---
+
+## Phase 3 — Vehicle form v2, oil picker, check photos   (branch `imp-29092026/phase-3-forms`)
+
+**Status:** complete on web (Android run pending, as for Phase 2)
+**Commits:** `feat(imp-29092026 phase 3): vehicle form v2, gallery, statuses, oil picker, check photos` ·
+`docs(imp-29092026): Phase 3 report`
+
+Built by me plus two helper agents working on separate files (oil; check photos), merged on the branch.
+
+### Changed
+- `components/pickers/`: PickerField, SearchSheet (accent-insensitive via `lib/domain/text.ts` foldText,
+  sections, "Otro…" → text), SwatchGrid (18 colours + Otro), YearWheel (next year → 1950, the model's years
+  highlighted, decade jumps). `lib/domain/refdata` uses the shared fold now.
+- `components/VehicleForm.tsx` rewritten in 03-screens.md order, split into `components/vehicle/`
+  (PhotosSection, MakeModelYear, IdentitySection). Body type chips derive the legacy `type`
+  (`legacyTypeFor` / `bodyTypeFromLegacy` in refdata). Tank: number + gal | L; the number converts when the
+  unit flips (same liters stored) and a caption shows the other unit. Precio + fecha de compra visible
+  (note 8). Estado: activo, proyecto, en taller, accidentado, guardado, restauración, prestado (+ Desde,
+  Nota). `lib/domain/vehicleForm.ts`, `lib/domain/gallery.ts` hold the pure rules.
+- `lib/db/vehicleOps.ts`: saveVehicleDraft writes the v6 columns (unit from the form, economy unit
+  follows it), the gallery (`syncVehicleGallery`: album items role 'vehicle', in order; dropping a photo
+  removes it from the gallery, not the database) and a milestone 'estado' on a status change
+  ("Cambió a ACCIDENTADO · esperando piezas"); setVehicleStatus uses the same title.
+- Hub: cover = gallery cover, "1/N" pill → `/foto/[id]?gallery=1` pages the gallery in order; status detail
+  beside the pill; "Cambiar estado" offers the new statuses (scrolls). Garaje: cover first, status line on
+  hero and small cards. Inicio switcher: any non-active status tag.
+- Oil (agent): `lib/domain/oil.ts`, `lib/db/oilQueries.ts`, `components/service/OilBlock.tsx`, service
+  form/detail, Historial meta line, and (me) "La última vez: …" on the oil-change reminder; the block sits
+  above the catalogue list.
+- Checks (agent): verdict **ATENCIÓN** (`atencion`), status **con_avisos**; up to 5 photos per falla/atención
+  (`components/checks/CheckPhotoStrip.tsx`, media owned by the result, first also in `media_id`); result
+  screen thumbs → viewer; Historial "📷 N" (history_feed v5 counts owned media; service/mod counts too);
+  album: check photos captioned "CHEQUEO · <item>" and (me) a CHEQUEO card on the timeline.
+
+### Dependencies added / removed
+- none
+
+### Acceptance criteria
+- [x] Web: C3 registered from scratch through the pickers with 3 photos, ACCIDENTADO desde + "esperando
+  piezas" — scripted run 8 s; Garaje card shows "ACCIDENTADO · desde 29 sept · esperando piezas"
+  (`docs/qa/imp-29092026-phase-3-c3-garage-card.png`, form: `…-vehicle-form.png`).
+- [x] Tank 12 gal → L shows 45.4 with "45.4 L ≈ 12 gal"; the same liters stored either way (db test).
+- [x] Service "Aceite de motor" 5W-30 sintético Castrol → Historial "5W-30 sintético · Castrol" (agent's web run).
+- [x] Check with a falla + 2 photos → result thumbs, Historial "Chequeo · con fallas · 📷 2", album CHEQUEO
+  card (`docs/qa/imp-29092026-phase-3-check-photos.png`).
+- [ ] Android — same situation as Phase 2 (no AVD; the Redmi holds the real garage).
+- [x] tsc, lint, 975 tests.
+
+### Decisions made (defaults applied)
+- Reminders by status (existing `isArchivedFor`): guardado, prestado, vendido, perdido leave the selector and
+  get **no** reminder notifications (all of them, not only km); en_taller, accidentado, restauración,
+  proyecto keep running — the car comes back.
+- A status's "Desde" defaults to the day of the change; back to activo clears Desde and Nota.
+- Interior material ids are refdata's without the prefix (`piel-sintetica` included), so the column is text.
+
+### Deviations from the package
+- Reorder by "Mover ←/→" instead of long-press drag (see Observed).
+- The public dossier does not show the status yet (see Observed).
+- history_feed v5 (in migration v6, unshipped) was edited in place for the photo counts.
+
+### Design check
+- Pickers use the existing Sheet, Chip, Segmented and Field look; 44 px targets; labelled for screen
+  readers. Screenshots in docs/qa.
+
+### Flags flipped
+- none
+
+### Notes closed
+- 3, 10, 11, 15 (UI), 16; the form half of 8.
+
+### Notes for the next phase
+- Phase 4 (carga parcial) writes gauges through the store: `fuelForStorage` already stores liters; the
+  form knows the vehicle's unit from `data.vehicles[].detail.volumeUnit`.
+- `vehicleGallery` lives in lib/db/tripOps.ts next to the other v6 helpers.
 
