@@ -1,6 +1,7 @@
-import { enqueue } from './client';
+import { enqueue, getDb } from './client';
 import {
   inspectionItems as itemRepo,
+  media as mediaRepo,
   inspectionResults as resultRepo,
   inspectionTemplates as templateRepo,
   inspections as inspectionRepo,
@@ -11,17 +12,32 @@ import {
 import type { Cadence, InspectionItem, InspectionTemplate, OnFail, Vehicle } from './types';
 import { templateIdsForVehicle } from '../domain/catalog';
 import { addDays } from '../domain/dates';
-import { baseTemplateId, scopedTemplateId, taskPriorityFor } from '../domain/inspections';
+import {
+  baseTemplateId,
+  inspectionStatusFor,
+  needsDetail,
+  scopedTemplateId,
+  taskPriorityFor,
+  type Verdict,
+} from '../domain/inspections';
+import { es } from '../i18n/es';
 
 export { baseTemplateId, scopedTemplateId };
 import { id as newId } from '../format';
 
 export type Answer = {
   item: InspectionItem;
-  result: 'ok' | 'falla' | 'na';
+  result: Verdict;
   note: string;
+  /** Legacy single photo; used when `mediaIds` is absent. */
   mediaId: string | null;
-  /** What to do about a failure. Defaults to the item's own `on_fail`. */
+  /**
+   * Every photo on the answer, in strip order (IMP 29092026 note 3). The first
+   * one is also written to `inspection_result.media_id`, so readers that only
+   * know the single column keep working.
+   */
+  mediaIds?: string[];
+  /** What to do about a failure (or an ATENCIÓN). Defaults to the item's own `on_fail`. */
   action: OnFail;
 };
 
@@ -47,6 +63,8 @@ export function resultIdFor(inspectionId: string, itemId: string): string {
 export type InspectionResultSummary = {
   id: string;
   failures: number;
+  /** ATENCIÓN answers: not failures, but worth a look. */
+  warnings: number;
   /** Titles of the tasks this run created, for the result screen. */
   createdTasks: string[];
   createdReminders: string[];
@@ -70,6 +88,7 @@ export const FAILURE_REMINDER_DAYS = 7;
 export async function saveInspection(draft: InspectionDraft): Promise<InspectionResultSummary> {
   const inspectionId = draft.id ?? newId();
   const failures = draft.answers.filter((a) => a.result === 'falla');
+  const warnings = draft.answers.filter((a) => a.result === 'atencion');
 
   const created = await enqueue(async (db) => {
     await inspectionRepo.upsert(
@@ -79,7 +98,7 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
         templateId: draft.templateId,
         occurredAt: draft.occurredAt,
         odometerKm: draft.odometerKm,
-        status: failures.length ? 'con_fallas' : 'ok',
+        status: inspectionStatusFor(draft.answers),
         durationSec: draft.durationSec,
         notes: '',
       },
@@ -87,9 +106,15 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
     );
 
     for (const answer of draft.answers) {
+      const resultId = resultIdFor(inspectionId, answer.item.id);
+      // Only a FALLA or an ATENCIÓN keeps photos: a photo taken before the
+      // verdict changed to OK belongs to nothing the user meant to record.
+      const keep = needsDetail(answer.result)
+        ? (answer.mediaIds ?? (answer.mediaId ? [answer.mediaId] : []))
+        : [];
       await resultRepo.upsert(
         {
-          id: resultIdFor(inspectionId, answer.item.id),
+          id: resultId,
           inspectionId,
           itemId: answer.item.id,
           // Snapshotted: templates can be edited later, and a past run should
@@ -97,10 +122,11 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
           labelSnapshot: answer.item.label,
           result: answer.result,
           note: answer.note,
-          mediaId: answer.mediaId,
+          mediaId: keep[0] ?? null,
         },
         db,
       );
+      await reconcileResultPhotos(db, resultId, keep, answer.item.label);
     }
 
     if (draft.odometerKm != null) {
@@ -120,7 +146,9 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
 
     const titles: string[] = [];
     const reminderTitles: string[] = [];
-    for (const failure of failures) {
+    // An ATENCIÓN creates nothing by default (its action starts at 'none'), but
+    // the user may still ask for a task or a reminder.
+    for (const failure of [...failures, ...warnings]) {
       if (failure.action === 'none') continue;
       const title = `Revisar ${failure.item.label.toLowerCase()}`;
       if (failure.action === 'reminder') {
@@ -146,7 +174,7 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
           vehicleId: draft.vehicleId,
           title,
           kind: 'reparacion',
-          priority: taskPriorityFor(failure.item.relatedServiceTypeId),
+          priority: failure.result === 'falla' ? taskPriorityFor(failure.item.relatedServiceTypeId) : 'normal',
           status: 'pendiente',
           notes: failure.note,
           sourceInspectionResultId: resultIdFor(inspectionId, failure.item.id),
@@ -161,9 +189,57 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
   return {
     id: inspectionId,
     failures: failures.length,
+    warnings: warnings.length,
     createdTasks: created.titles,
     createdReminders: created.reminderTitles,
   };
+}
+
+type Handle = Parameters<Parameters<typeof enqueue>[0]>[0];
+
+/**
+ * Photo storage for a result (IMP 29092026 note 3). Every photo is a `media`
+ * row owned by the result (owner_table 'inspection_result', owner_id = result
+ * id) — the picker already stored them that way while the check was running,
+ * so a result's photos are simply "the media it owns". `media_id` keeps the
+ * first one for old readers and old runs.
+ *
+ * Here the owned rows are brought in line with what the user kept: a photo
+ * removed from the strip (or left behind by a verdict changed to OK) is
+ * soft-deleted, and a kept one without a caption gets "CHEQUEO · <item>" so
+ * the album and the viewer say where it came from.
+ */
+async function reconcileResultPhotos(db: Handle, resultId: string, keep: string[], label: string) {
+  const owned = await db.getAllAsync<{ id: string; caption: string | null }>(
+    `SELECT id, caption FROM media WHERE owner_table = 'inspection_result' AND owner_id = ? AND deleted_at IS NULL`,
+    [resultId],
+  );
+  const kept = new Set(keep);
+  const now = new Date().toISOString();
+  for (const row of owned) {
+    if (!kept.has(row.id)) await mediaRepo.upsert({ id: row.id, deletedAt: now }, db);
+    else if (!row.caption) await mediaRepo.upsert({ id: row.id, caption: es.album.checkCaption(label) }, db);
+  }
+}
+
+/**
+ * Every photo of a run, per result id, in strip order: the result's `media_id`
+ * first (the only photo an old run has — found even when it is not owned by
+ * the result), then the rest of the media it owns, oldest first.
+ */
+export async function inspectionPhotos(inspectionId: string): Promise<Record<string, string[]>> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ result_id: string; media_id: string }>(
+    `SELECT r.id AS result_id, m.id AS media_id
+       FROM inspection_result r
+       JOIN media m ON (m.owner_table = 'inspection_result' AND m.owner_id = r.id) OR m.id = r.media_id
+      WHERE r.inspection_id = ? AND r.deleted_at IS NULL AND m.deleted_at IS NULL AND m.kind = 'photo'
+      ORDER BY r.id, CASE WHEN m.id = r.media_id THEN 0 ELSE 1 END, m.created_at, m.id`,
+    [inspectionId],
+  );
+  const out: Record<string, string[]> = {};
+  for (const r of rows) (out[r.result_id] ??= []).push(r.media_id);
+  return out;
 }
 
 /**

@@ -10,6 +10,7 @@ import { T } from '@/components/T';
 import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { radius, space } from '@/constants/theme';
+import { oilSummaries } from '@/lib/db/oilQueries';
 import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
@@ -57,6 +58,8 @@ export default function HistorialScreen() {
   const [limit, setLimit] = useState(PAGE);
   const [hasMore, setHasMore] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // "5W-30 sintético · Castrol" per maintenance record with an oil item (note 16).
+  const [oilLines, setOilLines] = useState<Map<string, string>>(new Map());
 
   const vehicleId = activeVehicle?.id;
 
@@ -75,7 +78,11 @@ export default function HistorialScreen() {
       });
       if (cancelled) return;
       setHasMore(rows.length > limit);
-      setEntries(rows.slice(0, limit));
+      const page = rows.slice(0, limit);
+      const oil = await oilSummaries(page.filter((e) => e.kind === 'mantenimiento').map((e) => e.id));
+      if (cancelled) return;
+      setOilLines(oil);
+      setEntries(page);
     })().catch(() => {});
 
     return () => {
@@ -160,7 +167,7 @@ export default function HistorialScreen() {
                   key={`${entry.kind}-${entry.id}`}
                   kind={entry.kind}
                   title={historyTitle(entry)}
-                  meta={metaFor(entry)}
+                  meta={metaFor(entry, oilLines.get(entry.id))}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
                   tag={tagFor(entry, economy, fillUpsById, activeVehicle.detail?.volumeUnit ?? 'gal')}
                   onPress={() => openDetail(entry, router)}
@@ -234,11 +241,13 @@ function groupByMonth(entries: HistoryEntry[]) {
   return groups;
 }
 
-function metaFor(entry: HistoryEntry): string {
+function metaFor(entry: HistoryEntry, oil?: string): string {
   const parts = [dateLabel(entry.occurredAt)];
   if (entry.odometerKm != null) parts.push(fmtKm(entry.odometerKm));
   const subtitle = historySubtitle(entry);
-  if (subtitle && entry.kind !== 'chequeo') parts.push(subtitle);
+  // A check's subtitle is now its photo count ("📷 2"), never the template id.
+  if (subtitle) parts.push(subtitle);
+  if (oil) parts.push(oil);
   return parts.join(' · ');
 }
 

@@ -109,8 +109,21 @@ export function migrationV6(): string[] {
 }
 
 /**
- * v5 = v4 plus trips (kind 'viaje') and a tenth column, `photos`: the number
- * of photos on a check's results (null for every other kind).
+ * v5 = v4 plus trips (kind 'viaje') and a tenth column, `photos`: how many
+ * photos a row carries — a check's results, a service record, a mod — and null
+ * for every other kind.
+ *
+ * Edited in place (IMP 29092026 Phase 3, note 3) rather than in a v7: schema v6
+ * has not shipped, so no installed app has the first version of this view. A
+ * development database that already ran v6 keeps the old count until it is
+ * reset (Ajustes → Borrar datos, or /dev/seed).
+ *
+ * A check counts the **media rows owned by its results** (owner_table
+ * 'inspection_result'), so an item with three photos counts three; a result's
+ * legacy `media_id` counts too when no owned row stands for it (a run saved
+ * before photos had owners, or a pulled result whose media row has not arrived
+ * yet) — unless that photo was deleted. A service record counts the media it owns; a mod
+ * its album photos (album_item.mod_id).
  *
  * A trip row packs its numbers the way the other arms do: title = distance in
  * meters, subtitle = "<duration_s>|<start_label>|<end_label>"; lib/domain/
@@ -121,14 +134,33 @@ export function historyFeedV5(): string[] {
   return historyFeedV4().map((sql) => {
     if (!sql.includes('CREATE VIEW history_feed')) return sql;
     const withPhotos = sql
-      // Every arm but the check gets a NULL tenth column…
-      .replace(/(FROM (fuel_log|service_record sr|expense|mod|milestone|track_event|vehicle_dtc_event) WHERE)/g, ', NULL AS photos $1')
-      // …and the check counts the photos on its results.
+      // Arms without photos get a NULL tenth column…
+      .replace(/(FROM (fuel_log|expense|milestone|track_event|vehicle_dtc_event) WHERE)/g, ', NULL AS photos $1')
+      // …a service record counts the photos it owns…
+      .replace(
+        'FROM service_record sr WHERE',
+        `, (SELECT COUNT(*) FROM media m WHERE m.owner_table = 'service_record' AND m.owner_id = sr.id
+                        AND m.kind = 'photo' AND m.deleted_at IS NULL) FROM service_record sr WHERE`,
+      )
+      // …a mod its album photos…
+      .replace(
+        /FROM mod WHERE/,
+        `, (SELECT COUNT(*) FROM album_item a JOIN media m ON m.id = a.media_id
+                        WHERE a.mod_id = mod.id AND a.deleted_at IS NULL AND m.deleted_at IS NULL) FROM mod WHERE`,
+      )
+      // …and a check the photos on its results.
       .replace(
         'status, template_id, NULL FROM inspection WHERE',
         `status, template_id, NULL,
-                     (SELECT COUNT(*) FROM inspection_result r WHERE r.inspection_id = inspection.id
-                        AND r.media_id IS NOT NULL AND r.deleted_at IS NULL) FROM inspection WHERE`,
+                     (SELECT COUNT(*) FROM inspection_result r
+                        JOIN media m ON m.owner_table = 'inspection_result' AND m.owner_id = r.id
+                       WHERE r.inspection_id = inspection.id AND r.deleted_at IS NULL
+                         AND m.deleted_at IS NULL AND m.kind = 'photo')
+                   + (SELECT COUNT(*) FROM inspection_result r
+                       WHERE r.inspection_id = inspection.id AND r.deleted_at IS NULL AND r.media_id IS NOT NULL
+                         AND NOT EXISTS (SELECT 1 FROM media m WHERE m.id = r.media_id
+                               AND (m.deleted_at IS NOT NULL OR (m.owner_table = 'inspection_result' AND m.owner_id = r.id))))
+                     FROM inspection WHERE`,
       );
     return `${withPhotos}
     UNION ALL SELECT id, vehicle_id, 'viaje', started_at, created_at, NULL, CAST(distance_m AS TEXT),

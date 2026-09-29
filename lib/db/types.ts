@@ -69,7 +69,8 @@ export type Vehicle = Syncable & {
   bodyType: string | null;
   colorId: string | null;
   interiorColorId: string | null;
-  interiorMaterial: InteriorMaterial | null;
+  /** refdata material id without its prefix: tela, cuero, piel-sintetica, vinil, alcantara, otro. */
+  interiorMaterial: string | null;
   makeId: string | null;
   modelId: string | null;
   /** Redline on the speed dial. */
@@ -281,7 +282,8 @@ export type Inspection = Syncable & {
   templateId: string;
   occurredAt: string;
   odometerKm: number | null;
-  status: 'ok' | 'con_fallas';
+  /** 'con_avisos': no failure, but at least one ATENCIÓN (IMP 29092026 note 3). */
+  status: 'ok' | 'con_avisos' | 'con_fallas';
   durationSec: number | null;
   notes: string;
 };
@@ -290,7 +292,8 @@ export type InspectionResult = Syncable & {
   inspectionId: string;
   itemId: string;
   labelSnapshot: string;
-  result: 'ok' | 'falla' | 'na';
+  /** 'atencion' (IMP 29092026 note 3): keep an eye on it — not a failure. */
+  result: 'ok' | 'atencion' | 'falla' | 'na';
   note: string;
   mediaId: string | null;
 };

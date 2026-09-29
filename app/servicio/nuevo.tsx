@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
+import { OilBlock } from '@/components/service/OilBlock';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, radius, space } from '@/constants/theme';
@@ -18,9 +19,11 @@ import {
   serviceRecords as serviceRecordRepo,
   serviceTypes as serviceTypeRepo,
 } from '@/lib/db/repos';
+import { lastOilFor } from '@/lib/db/oilQueries';
 import { saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
 import type { ServiceKind, ServiceType } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
+import { EMPTY_OIL, isOilItem, normalizeOil, type OilFields } from '@/lib/domain/oil';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
 import { FEATURE_BUILD, FEATURE_DIY } from '@/lib/flags';
@@ -97,6 +100,9 @@ export default function NuevoServicioScreen() {
   const [sourceTaskId, setSourceTaskId] = useState<string | null>(params.taskId ?? null);
   const [sourceInspectionId, setSourceInspectionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The Aceite block per oil item, and the previous oil offered for each (note 16).
+  const [oil, setOil] = useState<Record<string, OilFields>>({});
+  const [lastOil, setLastOil] = useState<Record<string, OilFields | null>>({});
 
   const [catalog, setCatalog] = useState<ServiceType[]>([]);
   const [currentKm, setCurrentKm] = useState<number | null>(null);
@@ -152,6 +158,7 @@ export default function NuevoServicioScreen() {
       setTitle(row.title);
       setTitleTouched(true);
       setSelected(items.map((i) => i.serviceTypeId));
+      setOil(Object.fromEntries(items.map((i) => [i.serviceTypeId, normalizeOil(i)])));
       setDescription(row.description);
       setCostParts(row.costPartsDop ? String(row.costPartsDop) : '');
       setCostLabor(row.costLaborDop ? String(row.costLaborDop) : '');
@@ -191,7 +198,29 @@ export default function NuevoServicioScreen() {
     };
   }, [editingId]);
 
+  const oilItems = kind === 'mantenimiento'
+    ? selected.map((id) => catalog.find((t) => t.id === id)).filter((t): t is ServiceType => isOilItem(t))
+    : [];
+  const oilItemKey = oilItems.map((t) => t.id).join(',');
+
+  // "Igual que la última vez": the previous oil of this vehicle, fetched once per oil item.
+  useEffect(() => {
+    if (!vehicleId) return;
+    const missing = oilItemKey.split(',').filter((id) => id && !(id in lastOil));
+    if (!missing.length) return;
+    let cancelled = false;
+    void Promise.all(missing.map((id) => lastOilFor(vehicleId, id, editingId).then((o) => [id, o] as const)))
+      .then((pairs) => {
+        if (!cancelled) setLastOil((prev) => ({ ...prev, ...Object.fromEntries(pairs) }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId, oilItemKey, editingId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!activeVehicle) return null;
+  const oilFuel = activeVehicle.defaultFuelType?.startsWith('gasoil') ? 'diesel' : 'gasolina';
 
   // The title writes itself from the items until the user takes it over; a
   // record called "Aceite de motor y filtro + Filtro de aire" is better than an
@@ -248,6 +277,8 @@ export default function NuevoServicioScreen() {
         sourceTaskId,
         sourceInspectionId,
         serviceTypeIds: kind === 'mantenimiento' ? selected : [],
+        // Only the oil items keep their block; an unticked or non-oil item saves empty columns.
+        oil: Object.fromEntries(oilItems.map((t) => [t.id, oil[t.id] ?? EMPTY_OIL])),
         parts,
       });
       await refresh();
@@ -324,6 +355,17 @@ export default function NuevoServicioScreen() {
             <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
               {es.service.itemsHint}
             </T>
+            {/* Above the list, next to the Aceite chip that opened it (the list is long on a phone). */}
+            {oilItems.map((type) => (
+              <OilBlock
+                key={type.id}
+                title={oilItems.length > 1 || type.id !== 'aceite_motor' ? es.oil.titleFor(type.name) : es.oil.title}
+                value={oil[type.id] ?? EMPTY_OIL}
+                onChange={(next) => setOil((prev) => ({ ...prev, [type.id]: next }))}
+                last={lastOil[type.id]}
+                fuel={oilFuel}
+              />
+            ))}
             <Field label={es.service.searchItems} value={search} onChangeText={setSearch} />
             <View style={styles.row}>
               {visible.map((type) => {

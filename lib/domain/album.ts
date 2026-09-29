@@ -99,13 +99,17 @@ export type TimelinePhoto = {
   trackEventId?: string | null;
   /** A service record's own photo (media owned by the record, not an album item). */
   serviceId?: string | null;
+  /** A check photo (IMP 29092026 note 3): it rides on that check's CHEQUEO card. */
+  inspectionId?: string | null;
 };
 
 export type TimelineEvent =
   | { kind: 'hito'; id: string; date: string; title: string; subtitle?: string | null; story?: string; milestoneKind: string }
   | { kind: 'mod'; id: string; date: string; title: string; subtitle?: string | null; removed?: boolean }
   | { kind: 'pista'; id: string; date: string; title: string; subtitle?: string | null; discipline: string }
-  | { kind: 'mantenimiento'; id: string; date: string; title: string; subtitle?: string | null };
+  | { kind: 'mantenimiento'; id: string; date: string; title: string; subtitle?: string | null }
+  /** A check with photos on its items; title = the items' labels. */
+  | { kind: 'chequeo'; id: string; date: string; title: string; subtitle?: string | null };
 
 export type TimelineItem =
   | (TimelineEvent & { photos: TimelinePhoto[]; before?: string | null; after?: string | null })
@@ -195,7 +199,9 @@ export function buildTimeline(input: {
           ? `pista:${p.trackEventId}`
           : p.serviceId
             ? `mantenimiento:${p.serviceId}`
-            : null;
+            : p.inspectionId
+              ? `chequeo:${p.inspectionId}`
+              : null;
     if (link) {
       const list = byEvent.get(link) ?? [];
       list.push(p);

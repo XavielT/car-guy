@@ -203,3 +203,20 @@ describe('storage meter', () => {
     expect(formatBytes(300)).toBe('1 KB');
   });
 });
+
+describe('check photos on the timeline (IMP 29092026 note 3)', () => {
+  it('ride on their CHEQUEO card instead of the loose FOTOS card', () => {
+    const { buildTimeline } = jest.requireActual('@/lib/domain/album') as typeof import('@/lib/domain/album');
+    const sections = buildTimeline({
+      photos: [
+        { id: 'p1', takenAt: '2026-09-26T12:00:00.000Z', createdAt: '2026-09-26T12:00:00.000Z', precision: 'day', inspectionId: 'ins1' },
+        { id: 'p2', takenAt: '2026-09-26T12:00:00.000Z', createdAt: '2026-09-26T12:00:00.000Z', precision: 'day' },
+      ],
+      events: [{ kind: 'chequeo', id: 'ins1', date: '2026-09-26T12:00:00.000Z', title: 'Fugas debajo del carro' }],
+    });
+    const items = sections[0].items;
+    const check = items.find((i) => i.kind === 'chequeo');
+    expect(check?.photos.map((p) => p.id)).toEqual(['p1']);
+    expect(items.find((i) => i.kind === 'fotos')?.photos.map((p) => p.id)).toEqual(['p2']);
+  });
+});

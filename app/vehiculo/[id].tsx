@@ -33,6 +33,8 @@ import {
   vehicles as vehicleRepo,
 } from '@/lib/db/repos';
 import type { Vehicle, VehicleDocument, VehicleSpec, VehicleStatus } from '@/lib/db/types';
+import { vehicleGallery } from '@/lib/db/tripOps';
+import { statusLine } from '@/lib/domain/vehicleStatus';
 import { sellVehicle, setVehicleStatus } from '@/lib/db/vehicleOps';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { isEx, ownershipLine, toKatakana, vehicleBadges } from '@/lib/domain/garage';
@@ -107,12 +109,23 @@ export default function VehicleHubScreen() {
   // for this visit. The album stays open to imports — that is the Jetta case.
   const [unlocked, setUnlocked] = useState(false);
 
-  const coverUri = useMediaUri(vehicle?.heroMediaId ?? facts?.favoriteMediaId ?? vehicle?.photoMediaId);
+  // v6: the gallery's cover (photo_media_id) leads; the older hero / favourite are the fallback.
+  const coverId = vehicle?.photoMediaId ?? vehicle?.heroMediaId ?? facts?.favoriteMediaId ?? null;
+  const coverUri = useMediaUri(coverId);
 
   // Reloads on this screen's own mutations (`version`) and on the store's
   // `data`, which changes whenever anything else writes.
   const [version, setVersion] = useState(0);
   const reload = () => setVersion((v) => v + 1);
+  const [galleryCount, setGalleryCount] = useState(0);
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    void vehicleGallery(id).then((items) => !cancelled && setGalleryCount(items.length));
+    return () => {
+      cancelled = true;
+    };
+  }, [id, version]);
 
   useEffect(() => {
     if (!id) return;
@@ -184,8 +197,21 @@ export default function VehicleHubScreen() {
         {/* 0 — the header */}
         <View>
           <CarbonFrame style={[styles.cover, { backgroundColor: theme.bg.well, borderColor: theme.lineStrong }]}>
-            {coverUri ? (
-              <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+            {coverUri && coverId ? (
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={() =>
+                  router.push({ pathname: '/foto/[id]', params: { id: coverId, vehicleId: vehicle.id, ...(galleryCount > 1 ? { gallery: '1' } : {}) } })
+                }
+                accessibilityRole="imagebutton"
+                accessibilityLabel={galleryCount > 1 ? es.vehicleForm.photoN(1, galleryCount, true) : es.vehicleForm.cover}>
+                <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+                {galleryCount > 1 ? (
+                  <View style={[styles.countPill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+                    <T face="mono" style={{ color: '#fff', fontSize: 11 }}>{`1/${galleryCount}`}</T>
+                  </View>
+                ) : null}
+              </Pressable>
             ) : (
               <View style={styles.coverEmpty}>
                 <T face="body" style={{ color: theme.text.muted }}>
@@ -221,6 +247,12 @@ export default function VehicleHubScreen() {
 
           <View style={styles.statusRow}>
             <StatusPill status={STATUS_TONE[vehicle.status]} label={es.vehicleStatus[vehicle.status]} />
+            {/* v6: "desde 12 ago · esperando piezas" beside the pill. */}
+            {vehicle.status !== 'activo' && (vehicle.statusSince || vehicle.statusNote) ? (
+              <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, flexShrink: 1 }}>
+                {statusLine(vehicle)?.split(' · ').slice(1).join(' · ')}
+              </T>
+            ) : null}
             {owned ? (
               <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, flexShrink: 1 }}>
                 {owned}
@@ -579,7 +611,7 @@ function Docs({ docs, onOpen, onAll }: { docs: VehicleDocument[]; onOpen: (id: s
 
 // ---------------------------------------------------------------- sheets ---
 
-const PICKABLE: VehicleStatus[] = ['activo', 'proyecto', 'guardado', 'vendido'];
+const PICKABLE: VehicleStatus[] = ['activo', 'proyecto', 'en_taller', 'accidentado', 'guardado', 'restauracion', 'prestado', 'vendido'];
 
 function StatusSheet({
   visible,
@@ -595,20 +627,22 @@ function StatusSheet({
   const { theme } = useTheme();
   return (
     <Sheet visible={visible} onClose={onClose} title={es.hub.changeStatus}>
-      {PICKABLE.filter((s) => s !== current).map((s) => (
-        <Pressable
-          key={s}
-          onPress={() => onPick(s)}
-          accessibilityRole="button"
-          style={[styles.option, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
-          <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
-            {es.vehicleStatus[s]}
-          </T>
-          <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: 2 }}>
-            {es.hub.statusHint[s as keyof typeof es.hub.statusHint]}
-          </T>
-        </Pressable>
-      ))}
+      <ScrollView style={{ maxHeight: 460 }}>
+        {PICKABLE.filter((s) => s !== current).map((s) => (
+          <Pressable
+            key={s}
+            onPress={() => onPick(s)}
+            accessibilityRole="button"
+            style={[styles.option, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
+              {es.vehicleStatus[s]}
+            </T>
+            <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: 2 }}>
+              {es.hub.statusHint[s as keyof typeof es.hub.statusHint]}
+            </T>
+          </Pressable>
+        ))}
+      </ScrollView>
     </Sheet>
   );
 }
@@ -709,6 +743,7 @@ const styles = StyleSheet.create({
   readOnly: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderWidth: 1, borderRadius: radius.input, padding: space.md, marginBottom: space.md },
   pad: { padding: space.gutter, paddingBottom: 40 },
   cover: { width: '100%', height: 180, borderRadius: radius.card, borderWidth: 1, marginBottom: space.lg },
+  countPill: { position: 'absolute', right: space.sm, bottom: space.sm, borderRadius: radius.tag, paddingHorizontal: 6, paddingVertical: 2 },
   coverEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   badgeRow: { position: 'absolute', top: space.md, left: space.md, flexDirection: 'row', gap: space.sm },
   titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' },

@@ -1,13 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { BoostRing, GhostButton, Hanko, PrimaryButton, StatusPill, Surface } from '@/components/ui';
-import { radius, space } from '@/constants/theme';
-import { baseTemplateId } from '@/lib/db/inspectionOps';
+import { space } from '@/constants/theme';
+import { baseTemplateId, inspectionPhotos } from '@/lib/db/inspectionOps';
 import {
   inspectionResults as resultRepo,
   inspections as inspectionRepo,
@@ -19,7 +20,6 @@ import { todayIso } from '@/lib/domain/dates';
 import { weeklyStreak } from '@/lib/domain/inspections';
 import { dateLabel, km as fmtKm } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
-import { useMediaUri } from '@/lib/media/useMediaUri';
 import { offerAfterFirstInspection } from '@/lib/notifications';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -47,6 +47,8 @@ export default function InspeccionScreen() {
 
   const [run, setRun] = useState<Inspection | null | undefined>(undefined);
   const [results, setResults] = useState<InspectionResult[]>([]);
+  // Every photo per result id (IMP 29092026 note 3).
+  const [photos, setPhotos] = useState<Record<string, string[]>>({});
   const [templateName, setTemplateName] = useState('');
   const [openTasks, setOpenTasks] = useState<Task[]>([]);
   const [streak, setStreak] = useState(0);
@@ -58,11 +60,12 @@ export default function InspeccionScreen() {
       const row = await inspectionRepo.getById(id);
       if (cancelled) return;
       if (!row) return setRun(null);
-      const [rows, template, tasks, history] = await Promise.all([
+      const [rows, template, tasks, history, byResult] = await Promise.all([
         resultRepo.listWhere({ inspectionId: id }),
         templateRepo.getById(row.templateId),
         taskRepo.list(row.vehicleId),
         inspectionRepo.list(row.vehicleId, { orderBy: 'occurred_at', direction: 'DESC', limit: 60 }),
+        inspectionPhotos(id),
       ]);
       if (cancelled) return;
       // A task points at the result it came from. Runs saved before results
@@ -70,6 +73,7 @@ export default function InspeccionScreen() {
       const sources = new Set([id, ...rows.map((r) => r.id)]);
       setRun(row);
       setResults(rows);
+      setPhotos(byResult);
       setTemplateName(template?.name ?? '');
       setOpenTasks(tasks.filter((t) => t.sourceInspectionResultId && sources.has(t.sourceInspectionResultId)));
       setStreak(
@@ -106,8 +110,18 @@ export default function InspeccionScreen() {
   if (!run) return null;
 
   const failures = results.filter((r) => r.result === 'falla');
-  const rest = results.filter((r) => r.result !== 'falla');
+  // ATENCIÓN: its own group, amber — something to keep an eye on, not a failure.
+  const warnings = results.filter((r) => r.result === 'atencion');
+  const rest = results.filter((r) => r.result !== 'falla' && r.result !== 'atencion');
   const answered = results.filter((r) => r.result !== 'na').length;
+  const card = (result: InspectionResult) => (
+    <ResultCard
+      key={result.id}
+      result={result}
+      mediaIds={photos[result.id] ?? []}
+      onPhoto={(mediaId) => router.push({ pathname: '/foto/[id]', params: { id: mediaId } })}
+    />
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
@@ -118,9 +132,15 @@ export default function InspeccionScreen() {
             progress={results.length ? answered / results.length : 1}
             size={132}
             animate
-            value={failures.length ? String(failures.length) : '✓'}
-            label={failures.length ? es.check.resultWithFails(failures.length) : ''}
-            color={failures.length ? theme.status.vencido : theme.status.ok}
+            value={failures.length ? String(failures.length) : warnings.length ? String(warnings.length) : '✓'}
+            label={
+              failures.length
+                ? es.check.resultWithFails(failures.length)
+                : warnings.length
+                  ? es.check.resultWithWarnings(warnings.length)
+                  : ''
+            }
+            color={failures.length ? theme.status.vencido : warnings.length ? theme.status.proximo : theme.status.ok}
           />
         </View>
 
@@ -132,9 +152,19 @@ export default function InspeccionScreen() {
               accessibilityRole="header"
               style={[
                 styles.h,
-                { color: failures.length === 0 ? theme.statusText.ok : theme.statusText.vencido },
+                {
+                  color: failures.length
+                    ? theme.statusText.vencido
+                    : warnings.length
+                      ? theme.statusText.proximo
+                      : theme.statusText.ok,
+                },
               ]}>
-              {failures.length === 0 ? es.check.resultAllGood : es.check.resultWithFails(failures.length)}
+              {failures.length
+                ? es.check.resultWithFails(failures.length)
+                : warnings.length
+                  ? es.check.resultWithWarnings(warnings.length)
+                  : es.check.resultAllGood}
             </T>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, marginTop: 2 }}>
               {templateName}
@@ -155,9 +185,16 @@ export default function InspeccionScreen() {
           </T>
         ) : null}
 
-        {failures.map((failure) => (
-          <ResultCard key={failure.id} result={failure} />
-        ))}
+        {failures.map(card)}
+
+        {warnings.length ? (
+          <>
+            <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.statusText.proximo }]}>
+              {es.check.resultAttention}
+            </T>
+            {warnings.map(card)}
+          </>
+        ) : null}
 
         {openTasks.length ? (
           <>
@@ -190,9 +227,7 @@ export default function InspeccionScreen() {
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.check.resultChecked}
             </T>
-            {rest.map((result) => (
-              <ResultCard key={result.id} result={result} />
-            ))}
+            {rest.map(card)}
           </>
         ) : null}
 
@@ -203,16 +238,28 @@ export default function InspeccionScreen() {
   );
 }
 
-/** One answered item: the verdict, and for a failure what was seen and the photo. */
-function ResultCard({ result }: { result: InspectionResult }) {
+/**
+ * One answered item: the verdict, and for a FALLA or an ATENCIÓN what was seen
+ * and every photo, as thumbs that open the photo viewer.
+ */
+function ResultCard({
+  result,
+  mediaIds,
+  onPhoto,
+}: {
+  result: InspectionResult;
+  mediaIds: string[];
+  onPhoto: (mediaId: string) => void;
+}) {
   const { theme } = useTheme();
-  const uri = useMediaUri(result.mediaId);
   const pill =
     result.result === 'falla'
       ? { status: 'vencido' as const, label: es.check.fail }
-      : result.result === 'ok'
-        ? { status: 'ok' as const, label: es.check.ok }
-        : { status: 'neutral' as const, label: es.check.na };
+      : result.result === 'atencion'
+        ? { status: 'proximo' as const, label: es.check.attention }
+        : result.result === 'ok'
+          ? { status: 'ok' as const, label: es.check.ok }
+          : { status: 'neutral' as const, label: es.check.na };
   return (
     <Surface style={{ marginBottom: space.sm }}>
       <View style={styles.row}>
@@ -226,20 +273,25 @@ function ResultCard({ result }: { result: InspectionResult }) {
           {result.note}
         </T>
       ) : null}
-      {uri ? (
-        <Image
-          source={{ uri }}
-          style={[styles.photo, { borderColor: theme.line }]}
-          accessibilityLabel={result.labelSnapshot}
-          resizeMode="cover"
-        />
+      {mediaIds.length ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbs}>
+          {mediaIds.map((mediaId, i) => (
+            <PhotoThumb
+              key={mediaId}
+              mediaId={mediaId}
+              size={96}
+              onPress={() => onPhoto(mediaId)}
+              accessibilityLabel={es.check.photoOpen(result.labelSnapshot, i + 1)}
+            />
+          ))}
+        </ScrollView>
       ) : null}
     </Surface>
   );
 }
 
 const styles = StyleSheet.create({
-  photo: { height: 180, borderRadius: radius.input, borderWidth: 1, marginTop: space.md },
+  thumbs: { gap: space.sm, marginTop: space.md },
   pad: { padding: space.gutter, paddingBottom: 40 },
   hero: { alignItems: 'center', marginBottom: space.lg },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.lg },

@@ -411,6 +411,8 @@ export const history = {
       title: (r.title as string) ?? '',
       subtitle: (r.subtitle as string | null) ?? null,
       amountDop: (r.amount_dop as number | null) ?? null,
+      // history_feed v5: photos on a check / service record / mod (null for the rest).
+      photos: (r.photos as number | null) ?? null,
     }));
   },
 };

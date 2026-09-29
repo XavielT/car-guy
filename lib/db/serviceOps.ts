@@ -8,6 +8,7 @@ import {
   tasks as taskRepo,
 } from './repos';
 import type { ExpenseCategory, ServiceKind } from './types';
+import { EMPTY_OIL, normalizeOil, type OilFields } from '../domain/oil';
 import { completeLegal, describeReset, resetForServiceItems } from '../domain/reminders';
 import { id as newId } from '../format';
 
@@ -40,6 +41,13 @@ export type ServiceDraft = {
   sourceInspectionId?: string | null;
   /** Catalog items done in this visit — these drive the reminder resets. */
   serviceTypeIds: string[];
+  /**
+   * The Aceite block per service item id (IMP 29092026 note 16). When given,
+   * every item's four oil columns are written — nulls for an item without an
+   * entry. Omitted (a record made from a task or a check), they are left as
+   * they are.
+   */
+  oil?: Record<string, Partial<OilFields>>;
   parts: PartDraft[];
 };
 
@@ -90,7 +98,13 @@ export async function saveServiceRecord(draft: ServiceDraft): Promise<SaveResult
     }
     for (const serviceTypeId of draft.serviceTypeIds) {
       await itemRepo.upsert(
-        { id: `${recordId}__${serviceTypeId}`, serviceRecordId: recordId, serviceTypeId, deletedAt: null },
+        {
+          id: `${recordId}__${serviceTypeId}`,
+          serviceRecordId: recordId,
+          serviceTypeId,
+          deletedAt: null,
+          ...(draft.oil ? normalizeOil(draft.oil[serviceTypeId] ?? EMPTY_OIL) : {}),
+        },
         db,
       );
     }

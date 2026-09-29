@@ -15,7 +15,15 @@ import { id as newId } from '../format';
  * the rules that turn the rows into a timeline live in lib/domain/album.ts.
  */
 
-export type AlbumPhoto = TimelinePhoto & { albumItemId: string | null; caption: string; width: number | null; height: number | null };
+export type AlbumPhoto = TimelinePhoto & {
+  albumItemId: string | null;
+  caption: string;
+  width: number | null;
+  height: number | null;
+  /** A check photo (IMP 29092026 note 3): the run it came from and the item's label. */
+  inspectionId?: string | null;
+  checkLabel?: string | null;
+};
 
 type PhotoRow = {
   id: string;
@@ -32,6 +40,8 @@ type PhotoRow = {
   mod_id: string | null;
   track_event_id: string | null;
   service_id: string | null;
+  inspection_id: string | null;
+  check_label: string | null;
 };
 
 function toPhoto(r: PhotoRow): AlbumPhoto {
@@ -50,29 +60,43 @@ function toPhoto(r: PhotoRow): AlbumPhoto {
     modId: r.mod_id,
     trackEventId: r.track_event_id,
     serviceId: r.service_id,
+    inspectionId: r.inspection_id,
+    checkLabel: r.check_label,
   };
 }
 
 /**
  * Every photo of the vehicle's album: album items, plus the photos its service
  * records own (a repair photo is a photo of the car too — they appear on the
- * timeline's MANTENIMIENTO cards). Newest first.
+ * timeline's MANTENIMIENTO cards), plus the photos of its checks (IMP 29092026
+ * note 3: media owned by an inspection_result, or a result's legacy media_id,
+ * with the item's label). Newest first.
  */
 export async function albumPhotos(vehicleId: string): Promise<AlbumPhoto[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<PhotoRow>(
     `SELECT m.id, a.id AS album_item_id, m.taken_at, m.created_at, m.date_precision, m.blurhash, m.is_favorite,
-            m.caption, m.width, m.height, a.milestone_id, a.mod_id, a.track_event_id, NULL AS service_id
+            m.caption, m.width, m.height, a.milestone_id, a.mod_id, a.track_event_id, NULL AS service_id,
+            NULL AS inspection_id, NULL AS check_label
        FROM album_item a JOIN media m ON m.id = a.media_id
       WHERE a.vehicle_id = ? AND a.deleted_at IS NULL AND m.deleted_at IS NULL
      UNION ALL
      SELECT m.id, NULL, m.taken_at, m.created_at, m.date_precision, m.blurhash, m.is_favorite,
-            m.caption, m.width, m.height, NULL, NULL, NULL, s.id
+            m.caption, m.width, m.height, NULL, NULL, NULL, s.id, NULL, NULL
        FROM media m JOIN service_record s ON s.id = m.owner_id AND m.owner_table = 'service_record'
       WHERE s.vehicle_id = ? AND s.deleted_at IS NULL AND m.deleted_at IS NULL AND m.kind = 'photo'
         AND NOT EXISTS (SELECT 1 FROM album_item x WHERE x.media_id = m.id AND x.deleted_at IS NULL)
+     UNION ALL
+     SELECT m.id, NULL, m.taken_at, m.created_at, m.date_precision, m.blurhash, m.is_favorite,
+            m.caption, m.width, m.height, NULL, NULL, NULL, NULL, i.id, r.label_snapshot
+       FROM inspection_result r
+       JOIN inspection i ON i.id = r.inspection_id
+       JOIN media m ON (m.owner_table = 'inspection_result' AND m.owner_id = r.id) OR m.id = r.media_id
+      WHERE i.vehicle_id = ? AND i.deleted_at IS NULL AND r.deleted_at IS NULL
+        AND m.deleted_at IS NULL AND m.kind = 'photo'
+        AND NOT EXISTS (SELECT 1 FROM album_item x WHERE x.media_id = m.id AND x.deleted_at IS NULL)
      ORDER BY 3 DESC, 4 DESC`,
-    [vehicleId, vehicleId],
+    [vehicleId, vehicleId, vehicleId],
   );
   return rows.map(toPhoto);
 }
@@ -95,7 +119,7 @@ const MOD_REMOVED = new Set(['quitado', 'vendido', 'danado']);
 /** Milestones, mod installs/removals, track events and services with photos — the timeline's cards. */
 export async function timelineEvents(vehicleId: string): Promise<TimelineEvent[]> {
   const db = await getDb();
-  const [hitos, mods, events, services] = await Promise.all([
+  const [hitos, mods, events, services, checks] = await Promise.all([
     db.getAllAsync<{ id: string; kind: string; occurred_at: string; title: string; story: string; odometer_km: number | null }>(
       'SELECT id, kind, occurred_at, title, story, odometer_km FROM milestone WHERE vehicle_id = ? AND deleted_at IS NULL',
       [vehicleId],
@@ -114,6 +138,15 @@ export async function timelineEvents(vehicleId: string): Promise<TimelineEvent[]
           AND EXISTS (SELECT 1 FROM media m WHERE m.owner_table = 'service_record' AND m.owner_id = s.id AND m.deleted_at IS NULL AND m.kind = 'photo')`,
       [vehicleId],
     ),
+    // Checks whose items have photos (owned by the result, or the pre-v6 single media_id).
+    db.getAllAsync<{ id: string; occurred_at: string; labels: string }>(
+      `SELECT i.id, i.occurred_at, group_concat(r.label_snapshot, ', ') AS labels
+         FROM inspection i JOIN inspection_result r ON r.inspection_id = i.id AND r.deleted_at IS NULL
+        WHERE i.vehicle_id = ? AND i.deleted_at IS NULL
+          AND (r.media_id IS NOT NULL OR EXISTS (SELECT 1 FROM media m WHERE m.owner_table = 'inspection_result' AND m.owner_id = r.id AND m.deleted_at IS NULL))
+        GROUP BY i.id`,
+      [vehicleId],
+    ),
   ]);
 
   const out: TimelineEvent[] = [];
@@ -126,6 +159,7 @@ export async function timelineEvents(vehicleId: string): Promise<TimelineEvent[]
   }
   for (const e of events) out.push({ kind: 'pista', id: e.id, date: e.occurred_at, title: e.title || 'Evento de pista', discipline: e.discipline });
   for (const s of services) out.push({ kind: 'mantenimiento', id: s.id, date: s.occurred_at, title: s.title, subtitle: s.shop || null });
+  for (const c of checks) out.push({ kind: 'chequeo', id: c.id, date: c.occurred_at, title: c.labels });
   return out;
 }
 

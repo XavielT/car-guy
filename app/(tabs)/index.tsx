@@ -35,6 +35,7 @@ import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
 import { mergeAttention, STATUS_LABEL } from '@/lib/domain/reminders';
 import { economyLabel, unitLabelFor } from '@/lib/fuel';
+import { statusBadgeLabel } from '@/lib/domain/vehicleStatus';
 import { km as fmtKm, kmPerUnit, money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { computeEconomy, inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
@@ -244,14 +245,15 @@ export default function HomeScreen() {
           {data.vehicles.filter((v) => !v.isArchived).map((v) => {
             const on = v.id === activeVehicle.id;
             const kana = toKatakana(v.detail?.nickname);
-            const proyecto = v.detail?.status === 'proyecto';
+            // v6: any non-active status on the chip (PROYECTO, EN TALLER, ACCIDENTADO…).
+            const statusTag = v.detail && v.detail.status !== 'activo' ? statusBadgeLabel(v.detail.status) : null;
             return (
               <Pressable
                 key={v.id}
                 onPress={() => setActiveVehicle(v.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                accessibilityLabel={[v.name, v.detail?.nickname, proyecto ? es.vehicleStatus.proyecto : null].filter(Boolean).join(', ')}
+                accessibilityLabel={[v.name, v.detail?.nickname, v.detail && statusTag ? es.vehicleStatus[v.detail.status] : null].filter(Boolean).join(', ')}
                 style={[
                   styles.chip,
                   { backgroundColor: on ? theme.accentFill : theme.bg.surface, borderColor: on ? theme.accentFill : theme.lineStrong },
@@ -264,10 +266,10 @@ export default function HomeScreen() {
                     {kana}
                   </T>
                 ) : null}
-                {proyecto ? (
+                {statusTag ? (
                   <T face="title" style={[styles.chipLabel, { color: on ? theme.accentFillInk : theme.statusText.urgente }]}>
                     {' · '}
-                    {es.vehicleStatus.proyecto.toUpperCase()}
+                    {statusTag}
                   </T>
                 ) : null}
               </Pressable>

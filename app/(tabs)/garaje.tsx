@@ -13,6 +13,7 @@ import { currentOdometer } from '@/lib/db/repos';
 import { evaluatedReminders } from '@/lib/db/reminderQueries';
 import type { Vehicle as VehicleRow } from '@/lib/db/types';
 import { isEx, ownershipLine, toKatakana, vehicleBadges } from '@/lib/domain/garage';
+import { statusLine } from '@/lib/domain/vehicleStatus';
 import { km as fmtKm } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
@@ -166,10 +167,11 @@ function specLine(v: VehicleRow): string {
   return [v.year, v.engineCode, box].filter(Boolean).join(' · ');
 }
 
-/** hero_media_id, else the first favourite album photo, else the v2.0 vehicle photo. */
+/** The gallery cover (v6), else hero_media_id, else the first favourite album photo. */
 function Cover({ vehicle, favoriteMediaId, height }: { vehicle: VehicleRow; favoriteMediaId: string | null; height: number }) {
   const { theme } = useTheme();
-  const uri = useMediaUri(vehicle.heroMediaId ?? favoriteMediaId ?? vehicle.photoMediaId);
+  // v6: the gallery's cover (photo_media_id) first; the older hero / favourite are the fallback.
+  const uri = useMediaUri(vehicle.photoMediaId ?? vehicle.heroMediaId ?? favoriteMediaId);
   return (
     <CarbonFrame style={[styles.cover, { height, backgroundColor: theme.bg.well }]}>
       {uri ? (
@@ -217,6 +219,11 @@ function HeroCard({ card, onPress }: { card: Card; onPress: () => void }) {
         <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
           {specLine(vehicle) || vehicle.name}
         </T>
+        {statusLine(vehicle) ? (
+          <T face="medium" numberOfLines={1} style={{ color: theme.statusText.urgente, fontSize: 12, marginTop: 2 }}>
+            {statusLine(vehicle)}
+          </T>
+        ) : null}
         <View style={styles.stats}>
           <Stat value={card.odometerKm != null ? fmtKm(Math.round(card.odometerKm)) : '—'} />
           <Stat value={es.garage.mods(facts.installedMods)} />
@@ -243,14 +250,13 @@ function SmallCard({ card, onPress }: { card: Card; onPress: () => void }) {
   const { theme } = useTheme();
   const { vehicle, facts } = card;
   const badge = vehicleBadges(vehicle, facts).at(-1);
+  // v6: any non-active status speaks for itself ("ACCIDENTADO · desde 12 ago · esperando piezas");
+  // a project with nothing noted still counts its open tasks.
   const line =
-    vehicle.status === 'proyecto'
+    vehicle.status === 'proyecto' && !vehicle.statusNote && !vehicle.statusSince
       ? es.garage.projectLine(facts.openTasks)
-      : vehicle.status === 'guardado'
-        ? es.vehicleStatus.guardado
-        : card.overdue
-          ? es.garage.overdue(card.overdue)
-          : es.garage.allGood;
+      : (statusLine(vehicle) ??
+        (card.overdue ? es.garage.overdue(card.overdue) : es.garage.allGood));
 
   return (
     <Pressable
@@ -268,7 +274,7 @@ function SmallCard({ card, onPress }: { card: Card; onPress: () => void }) {
       <T
         face="medium"
         style={{
-          color: vehicle.status === 'proyecto' ? theme.statusText.urgente : card.overdue ? theme.statusText.vencido : theme.text.muted,
+          color: vehicle.status !== 'activo' ? theme.statusText.urgente : card.overdue ? theme.statusText.vencido : theme.text.muted,
           fontSize: 12,
           marginTop: space.sm,
         }}>

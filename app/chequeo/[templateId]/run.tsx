@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CheckPhotoStrip } from '@/components/checks/CheckPhotoStrip';
 import { Field } from '@/components/Field';
-import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
 import { BoostRing, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -17,6 +17,7 @@ import { resultIdFor, saveInspection, type Answer } from '@/lib/db/inspectionOps
 import type { FluidGuideItem, InspectionItem, InspectionTemplate, OnFail } from '@/lib/db/types';
 import { listFluids, readFicha } from '@/lib/db/diyQueries';
 import { fluidForItem, fluidInfo, isTirePressureItem } from '@/lib/domain/fluids';
+import { defaultActionFor, needsDetail, VERDICTS, type Verdict } from '@/lib/domain/inspections';
 import { FEATURE_DIY } from '@/lib/flags';
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { id as newId } from '@/lib/format';
@@ -25,8 +26,6 @@ import { es } from '@/lib/i18n/es';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
-
-type Verdict = 'ok' | 'falla' | 'na';
 
 /**
  * The runner. Designed for one thumb, standing next to the car.
@@ -46,7 +45,8 @@ export default function RunScreen() {
   const [items, setItems] = useState<InspectionItem[]>([]);
   const [answers, setAnswers] = useState<Record<string, Verdict>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
-  const [photos, setPhotos] = useState<Record<string, string | null>>({});
+  // Every photo per item, in strip order (IMP 29092026 note 3).
+  const [photos, setPhotos] = useState<Record<string, string[]>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [actions, setActions] = useState<Record<string, OnFail>>({});
   // Chosen now so a photo taken mid-run can name the result that will own it.
@@ -124,8 +124,9 @@ export default function RunScreen() {
       item,
       result: answers[item.id] ?? 'na',
       note: notes[item.id] ?? '',
-      mediaId: photos[item.id] ?? null,
-      action: actions[item.id] ?? item.onFail,
+      mediaId: photos[item.id]?.[0] ?? null,
+      mediaIds: photos[item.id] ?? [],
+      action: actions[item.id] ?? defaultActionFor(answers[item.id], item.onFail),
     }));
 
     setSaving(true);
@@ -243,14 +244,32 @@ export default function RunScreen() {
                   })()}
 
                   <View style={styles.verdicts}>
-                    {(['ok', 'falla', 'na'] as Verdict[]).map((v) => {
+                    {VERDICTS.map((v) => {
                       const on = verdict === v;
                       const color =
-                        v === 'ok' ? theme.statusText.ok : v === 'falla' ? theme.statusText.vencido : theme.text.muted;
+                        v === 'ok'
+                          ? theme.statusText.ok
+                          : v === 'falla'
+                            ? theme.statusText.vencido
+                            : v === 'atencion'
+                              ? theme.statusText.proximo
+                              : theme.text.muted;
                       return (
                         <Pressable
                           key={v}
-                          onPress={() => setAnswers((p) => ({ ...p, [item.id]: v }))}
+                          onPress={() => {
+                            // The "AL TERMINAR, CREAR" default differs per verdict
+                            // (a falla uses the item's, an atención none), so a
+                            // choice made under the other verdict does not carry over.
+                            if (v !== verdict) {
+                              setActions((p) => {
+                                const next = { ...p };
+                                delete next[item.id];
+                                return next;
+                              });
+                            }
+                            setAnswers((p) => ({ ...p, [item.id]: v }));
+                          }}
                           accessibilityRole="button"
                           accessibilityState={{ selected: answers[item.id] === v }}
                           aria-selected={answers[item.id] === v}
@@ -258,28 +277,37 @@ export default function RunScreen() {
                             styles.verdict,
                             { borderColor: on ? color : theme.line, backgroundColor: on ? `${color}28` : 'transparent' },
                           ]}>
-                          <T face="title" style={[styles.verdictLabel, { color: on ? color : theme.text.secondary }]}>
-                            {v === 'ok' ? es.check.ok : v === 'falla' ? es.check.fail : es.check.na}
+                          <T
+                            face="title"
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            style={[styles.verdictLabel, { color: on ? color : theme.text.secondary }]}>
+                            {v === 'ok'
+                              ? es.check.ok
+                              : v === 'falla'
+                                ? es.check.fail
+                                : v === 'atencion'
+                                  ? es.check.attention
+                                  : es.check.na}
                           </T>
                         </Pressable>
                       );
                     })}
                   </View>
 
-                  {verdict === 'falla' ? (
+                  {needsDetail(verdict) ? (
                     <View style={{ marginTop: space.md }}>
                       <Field
-                        label={es.check.failNote}
+                        label={verdict === 'atencion' ? es.check.attentionNote : es.check.failNote}
                         value={notes[item.id] ?? ''}
                         onChangeText={(v) => setNotes((p) => ({ ...p, [item.id]: v }))}
                       />
-                      <PhotoPicker
-                        mediaId={photos[item.id] ?? null}
-                        ownerTable="inspection_result"
+                      <CheckPhotoStrip
+                        mediaIds={photos[item.id] ?? []}
                         ownerId={resultIdFor(inspectionId, item.id)}
                         vehicleId={activeVehicle.id}
-                        height={130}
-                        onChange={(mediaId) => setPhotos((p) => ({ ...p, [item.id]: mediaId }))}
+                        label={item.label}
+                        onChange={(ids) => setPhotos((p) => ({ ...p, [item.id]: ids }))}
                       />
                       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: 6 }}>
                         {es.check.onFailTitle}
@@ -290,7 +318,7 @@ export default function RunScreen() {
                           { key: 'reminder', label: es.check.onFailShort.reminder },
                           { key: 'none', label: es.check.onFailShort.none },
                         ]}
-                        value={actions[item.id] ?? item.onFail}
+                        value={actions[item.id] ?? defaultActionFor(verdict, item.onFail)}
                         onChange={(v) => setActions((p) => ({ ...p, [item.id]: v }))}
                       />
                     </View>
@@ -332,13 +360,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, lineHeight: 30, textTransform: 'uppercase', letterSpacing: 0.3 },
   group: { fontSize: 11, marginTop: space.lg, marginBottom: space.sm },
   itemHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  verdicts: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
+  // Four across on a 360 px phone: tighter gaps and type than the three-button row had.
+  verdicts: { flexDirection: 'row', gap: 6, marginTop: space.md },
   verdict: {
     flex: 1,
     borderWidth: 1,
     borderRadius: radius.input,
     paddingVertical: space.md,
+    paddingHorizontal: 2,
     alignItems: 'center',
   },
-  verdictLabel: { fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
+  verdictLabel: { fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' },
 });

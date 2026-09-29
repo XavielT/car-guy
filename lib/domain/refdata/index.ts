@@ -13,6 +13,7 @@
  * means still built (or end unknown). `modelsFor` expands them; the public
  * model id is `${makeId}-${slug}` ("toyota-hilux").
  */
+import { foldText } from '../text';
 import bodyTypesFile from './bodyTypes.json';
 import colorsFile from './colors.json';
 import fluidsFile from './fluids.json';
@@ -83,8 +84,8 @@ export const COOLANT_COLOR_NOTE = 'El color del refrigerante no es un estándar:
 /** Earliest year the year picker offers when a model's range is unknown. */
 export const DEFAULT_FIRST_YEAR = 1980;
 
-// Same fold as the 2.1.1 searches in lib/db/repos (inline there, so repeated here).
-const fold = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// The 2.1.1 search fold (lib/domain/text.ts).
+const fold = foldText;
 
 const rawMakes = (makesFile as RefFile<RawMake>).items;
 
@@ -192,3 +193,56 @@ export const REFDATA_CREDITS: { file: string; source: string; license: string }[
   ['oil.json', oilFile],
   ['fluids.json', fluidsFile],
 ].map(([file, f]) => ({ file: file as string, source: (f as RefFile<unknown>).source, license: (f as RefFile<unknown>).license }));
+
+// ------------------------------------------------ body type ↔ legacy type ---
+//
+// `vehicle.type` (carro, jeepeta, camioneta, motor, camion, guagua, otro)
+// predates the body types and is read everywhere — check templates, icons,
+// the service catalogue's applies_to. The form picks a body type and derives
+// `type` from it, so nothing downstream changes (03-screens.md Phase 3 §3).
+
+type LegacyType = 'carro' | 'jeepeta' | 'camioneta' | 'motor' | 'camion' | 'guagua' | 'otro';
+
+const LEGACY: Record<string, LegacyType> = {
+  sedan: 'carro',
+  hatchback: 'carro',
+  coupe: 'carro',
+  convertible: 'carro',
+  wagon: 'carro',
+  suv: 'jeepeta',
+  pickup: 'camioneta',
+  minivan: 'guagua',
+  van: 'guagua',
+  truck: 'camion',
+  motorcycle: 'motor',
+  utv: 'otro',
+  other: 'otro',
+};
+
+/** The legacy `type` a body type implies; unknown or null → 'carro'. */
+export function legacyTypeFor(bodyType: string | null | undefined): LegacyType {
+  return (bodyType && LEGACY[bodyType]) || 'carro';
+}
+
+/**
+ * The body type to preselect for a car saved before v6, from its legacy type.
+ * 'carro' says nothing about the body (sedán? hatchback?), so it stays null.
+ */
+export function bodyTypeFromLegacy(type: string | null | undefined): string | null {
+  switch (type) {
+    case 'jeepeta':
+      return 'suv';
+    case 'camioneta':
+      return 'pickup';
+    case 'motor':
+      return 'motorcycle';
+    case 'camion':
+      return 'truck';
+    case 'guagua':
+      return 'minivan';
+    case 'otro':
+      return 'other';
+    default:
+      return null;
+  }
+}
