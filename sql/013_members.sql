@@ -76,10 +76,12 @@ end $$;
 
 create or replace function carguy.is_member(v text, min_role text default 'viewer') returns boolean
 language sql stable security definer set search_path = '' as $$
-  select case min_role
+  -- coalesce: vehicle_role() is null for someone else's car, and `not null` is
+  -- null — an `if not is_member(...)` guard would silently let the caller through.
+  select coalesce(case min_role
            when 'owner' then carguy.vehicle_role(v) = 'owner'
            when 'editor' then carguy.vehicle_role(v) in ('owner', 'editor')
-           else carguy.vehicle_role(v) in ('owner', 'editor', 'viewer') end;
+           else carguy.vehicle_role(v) in ('owner', 'editor', 'viewer') end, false);
 $$;
 
 create or replace function carguy.can_see(v text, row_user uuid) returns boolean
