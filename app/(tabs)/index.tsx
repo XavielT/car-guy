@@ -34,7 +34,7 @@ import type { Task } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
 import { mergeAttention, STATUS_LABEL } from '@/lib/domain/reminders';
-import { economyLabel, FUEL_CATALOG } from '@/lib/fuel';
+import { economyLabel, unitLabelFor } from '@/lib/fuel';
 import { km as fmtKm, kmPerUnit, money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { computeEconomy, inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
@@ -408,7 +408,7 @@ export default function HomeScreen() {
             <MonthStat label={es.home.monthKm} value={fmtKm(Math.round(monthKm))} />
             <MonthStat
               label={es.home.monthEconomy}
-              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType) : '—'}
+              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit) : '—'}
             />
           </View>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
@@ -440,16 +440,16 @@ export default function HomeScreen() {
             {es.home.lastTank}
           </T>
           <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
-            {last ? kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType) : '—'}
+            {last ? kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit) : '—'}
           </T>
           <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
             {last
               ? es.home.lastTankHint(
                   fmtKm(last.distanceKm),
-                  `${last.volume} ${FUEL_CATALOG[activeVehicle.defaultFuelType].unitLabel}`,
+                  `${last.volume} ${unitLabelFor(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit)}`,
                 )
               : avg == null
-                ? es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType))
+                ? es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit))
                 : es.home.lastTankEmpty}
           </T>
         </Surface>

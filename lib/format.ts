@@ -1,4 +1,4 @@
-import { FUEL_CATALOG } from './fuel';
+import { displayUnitLabel, economyUnitLabel, type VolumeUnit } from './domain/units';
 import type { FuelType } from './types';
 
 const dop = new Intl.NumberFormat('es-DO', {
@@ -27,8 +27,9 @@ export function money(n: number): string {
   return dop.format(n).replace('RD$', 'RD$ ');
 }
 
-export function volume(n: number, type: FuelType): string {
-  return `${qty.format(n)} ${FUEL_CATALOG[type].unitLabel}`;
+/** A volume in the vehicle's unit (v6); GNV is always m³. */
+export function volume(n: number, type: FuelType, unit: VolumeUnit = 'gal'): string {
+  return `${qty.format(n)} ${displayUnitLabel(type, unit)}`;
 }
 
 export function km(n: number): string {
@@ -40,9 +41,12 @@ export function economyNumber(n: number): string {
   return economyFmt.format(n);
 }
 
-export function kmPerUnit(n: number, type: FuelType): string {
-  const unit = FUEL_CATALOG[type].unit === 'm3' ? 'km/m³' : 'km/gal';
-  return `${economyFmt.format(n)} ${unit}`;
+/**
+ * km per the vehicle's volume unit — the figure computeEconomy returns over the
+ * store's fill-ups, which are already in that unit (lib/domain/units.ts).
+ */
+export function kmPerUnit(n: number, type: FuelType, unit: VolumeUnit = 'gal'): string {
+  return `${economyFmt.format(n)} ${economyUnitLabel(type, unit === 'l' ? 'km_l' : 'km_gal')}`;
 }
 
 export function dateLabel(iso: string): string {

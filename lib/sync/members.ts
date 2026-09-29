@@ -64,4 +64,5 @@ export const UPDATED_BY_TABLES = new Set([
   'vehicle_ownership', 'album_item', 'milestone', 'mod', 'mod_media', 'vehicle_specsheet', 'spec_snapshot', 'torque_spec',
   'wishlist_item', 'inventory_item', 'wheel_set', 'tire', 'vehicle_dtc_event', 'fluid_guide_item', 'track_event',
   'track_session', 'setup_sheet', 'consumable_usage', 'vehicle_share',
+  'trip',
 ]);

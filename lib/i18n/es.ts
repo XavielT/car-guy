@@ -103,10 +103,16 @@ export const es = {
   vehicleStatus: {
     activo: 'Activo',
     proyecto: 'Proyecto',
+    en_taller: 'En el taller',
+    accidentado: 'Accidentado',
     guardado: 'Guardado',
+    restauracion: 'En restauración',
+    prestado: 'Prestado',
     vendido: 'Vendido',
     perdido: 'Perdido',
   },
+  /** "EN TALLER · desde 12 sept · esperando piezas" (lib/domain/vehicleStatus.ts). */
+  statusSince: (date: string) => `desde ${date}`,
   transmissions: { manual: 'Manual', automatica: 'Automática', cvt: 'CVT', otro: 'Otra' },
   origins: { jdm: 'JDM', usdm: 'USDM', eudm: 'EUDM', local: 'Local', otro: 'Otro' },
   hub: {
@@ -421,7 +427,10 @@ export const es = {
       hito: 'Hitos',
       pista: 'Pista',
       obd: 'Códigos OBD',
+      viaje: 'Viajes',
     },
+    /** "Viaje · 12.4 km · 25 min" */
+    tripTitle: (km: string, minutes: number) => `Viaje · ${km} km · ${minutes} min`,
     addTitle: '¿Qué vas a registrar?',
     addFuel: 'Carga de combustible',
     addService: 'Mantenimiento',
@@ -945,6 +954,8 @@ export const es = {
     // someone reports something that only happens on theirs.
     build: (sha: string) => `Build ${sha}`,
     aboutBody: 'Car Guy · Tu carro, al día. Hecho en República Dominicana.',
+    /** CC BY 4.0 asks for the credit where the data is used (docs/CREDITS.md). */
+    aboutCredits: 'Datos parciales de marcas y modelos: us-car-models-data (Abhilash Reddy), CC BY 4.0.',
   },
 
   backup: {
@@ -1197,8 +1208,8 @@ export const es = {
       odometer: 'Odómetro',
       amount: 'Monto',
     },
-    economySummary: (tanks: number, average: string, min: string, max: string) =>
-      `${tanks} tanques medidos · promedio ${average} km/gal · entre ${min} y ${max}.`,
+    economySummary: (tanks: number, average: string, min: string, max: string, unit = 'km/gal') =>
+      `${tanks} tanques medidos · promedio ${average} ${unit} · entre ${min} y ${max}.`,
     footer: 'Generado con Car Guy',
 
     generate: 'Generar reporte',
@@ -1246,7 +1257,7 @@ export const es = {
     newTitle: 'En la bomba',
     editTitle: 'Editar carga',
     // The unit word follows the fuel: GNV is sold by the cubic metre, not the gallon.
-    unitWord: (unit: 'gal' | 'm3') => (unit === 'm3' ? 'metros cúbicos' : 'galones'),
+    unitWord: (unit: 'gal' | 'l' | 'm3') => (unit === 'm3' ? 'metros cúbicos' : unit === 'l' ? 'litros' : 'galones'),
     intro: (units: string) =>
       `Anota dos de tres (${units}, precio, total) y el tercero se calcula solo. El consumo sale cuando marcas tanque lleno.`,
     date: 'Fecha',
@@ -2094,7 +2105,7 @@ export const es = {
     newTitle: 'Nuevo hito',
     editTitle: 'Editar hito',
     kind: 'Qué pasó',
-    kinds: { compra: 'COMPRA', swap: 'SWAP', restauracion: 'RESTAURACIÓN', primer_track: 'PRIMER TRACK', accidente: 'ACCIDENTE', pintura: 'PINTURA', venta: 'VENTA', otro: 'OTRO' },
+    kinds: { compra: 'COMPRA', swap: 'SWAP', restauracion: 'RESTAURACIÓN', primer_track: 'PRIMER TRACK', accidente: 'ACCIDENTE', pintura: 'PINTURA', venta: 'VENTA', estado: 'ESTADO', otro: 'OTRO' },
     date: 'Fecha',
     km: 'Kilometraje (opcional)',
     title: 'Título',

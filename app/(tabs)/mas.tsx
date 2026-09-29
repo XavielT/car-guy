@@ -261,6 +261,9 @@ export default function MasScreen() {
           <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
             {es.more.aboutBody}
           </T>
+          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm, lineHeight: 17 }}>
+            {es.more.aboutCredits}
+          </T>
         </Surface>
       </ScrollView>
     </SafeAreaView>

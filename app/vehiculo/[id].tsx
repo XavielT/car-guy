@@ -75,7 +75,11 @@ const TABS: { key: Tab; flag: boolean }[] = [
 const STATUS_TONE: Record<VehicleStatus, Tone> = {
   activo: 'ok',
   proyecto: 'urgente',
+  en_taller: 'urgente',
+  accidentado: 'urgente',
   guardado: 'neutral',
+  restauracion: 'urgente',
+  prestado: 'neutral',
   vendido: 'neutral',
   perdido: 'neutral',
 };

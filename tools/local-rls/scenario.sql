@@ -153,3 +153,42 @@ reset role;
 select t_as('a');
 select t_ok('12h. Car Guy account: is_app_user() is true, still sees its car', carguy.is_app_user() and (select count(*) from carguy.vehicle where id = 'veh_a') = 1);
 reset role;
+
+-- 13 trips (sql/019 + 020): the track_event shape, plus Car Guy-only
+select t_as('a');
+insert into carguy.trip (id, vehicle_id, source, status, started_at, created_at, updated_at, distance_m)
+  values ('trip_a', 'veh_a', 'manual', 'done', now(), now(), now(), 12400);
+select t_ok('13a. owner reads, updates and deletes its trip',
+  (select count(*) from carguy.trip where id = 'trip_a') = 1
+  and not t_denied($q$update carguy.trip set notes = 'x' where id = 'trip_a'$q$));
+select carguy.create_invite('veh_a', 'editor', 'c@example.com') as code_c \gset
+reset role;
+select t_as('c');
+select t_ok('13b. C redeems as editor', (carguy.redeem_invite(:'code_c')->>'ok')::boolean);
+select t_ok('13c. editor member sees the trip and can add one on the shared car',
+  (select count(*) from carguy.trip where vehicle_id = 'veh_a') = 1
+  and not t_denied($q$insert into carguy.trip (id, vehicle_id, source, status, started_at, created_at, updated_at) values ('trip_c', 'veh_a', 'auto', 'done', now(), now(), now())$q$));
+reset role;
+select t_as('a');
+select t_ok('13d. A demotes C to viewer', carguy.set_member_role('veh_a', '00000000-0000-0000-0000-00000000000c', 'viewer'));
+reset role;
+select t_as('c');
+select t_ok('13e. viewer reads trips but cannot insert one',
+  (select count(*) from carguy.trip where vehicle_id = 'veh_a') = 2
+  and t_denied($q$insert into carguy.trip (id, vehicle_id, source, status, started_at, created_at, updated_at) values ('trip_v', 'veh_a', 'auto', 'done', now(), now(), now())$q$));
+reset role;
+select t_as('b');
+select t_ok('13f. outsider (removed member) sees no trips', (select count(*) from carguy.trip) = 0);
+reset role;
+select t_as('d');
+select t_ok('13g. other-app account sees and writes no trips',
+  (select count(*) from carguy.trip) = 0
+  and t_denied($q$insert into carguy.trip (id, vehicle_id, source, status, started_at, created_at, updated_at) values ('trip_d', 'veh_d', 'auto', 'done', now(), now(), now())$q$));
+reset role;
+select t_as('a');
+update carguy.vehicle_share set revoked_at = null, slug = 'ae85hchg', published_at = now() where id = 'share_veh_a';
+reset role;
+select t_as('anon');
+select t_ok('13h. the public dossier renders and has no trips', carguy.public_dossier('ae85hchg') is not null and carguy.public_dossier('ae85hchg')::text not like '%trip%');
+select t_ok('13i. anon cannot read trips', t_denied('select 1 from carguy.trip'));
+reset role;

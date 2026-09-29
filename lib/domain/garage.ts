@@ -1,3 +1,4 @@
+import { statusBadgeLabel } from './vehicleStatus';
 import type { Reminder, Vehicle, VehicleOwnership, VehicleStatus } from '../db/types';
 import type { ReminderState, ReminderStatus } from './reminders';
 
@@ -42,17 +43,11 @@ export function disciplineBadge(opts: { lastDiscipline?: string | null; tags?: s
  * lets its engine and discipline badges speak instead.
  */
 export function statusBadge(status: VehicleStatus, installedMods: number): DerivedBadge | null {
-  switch (status) {
-    case 'proyecto':
-      return { label: 'PROYECTO', tone: 'outline' };
-    case 'vendido':
-    case 'perdido':
-      return { label: 'EX', tone: 'outline' };
-    case 'guardado':
-      return { label: 'GUARDADO', tone: 'outline' };
-    default:
-      return installedMods === 0 ? { label: 'DAILY', tone: 'amber' } : null;
-  }
+  // Every non-active status is `outline` (v6): the status line under the name
+  // carries the meaning, so ACCIDENTADO does not get a red of its own.
+  const label = statusBadgeLabel(status);
+  if (label) return { label, tone: 'outline' };
+  return installedMods === 0 ? { label: 'DAILY', tone: 'amber' } : null;
 }
 
 /** At most one badge per tone family on a card, red first (05-design-jdm.md: one badge per card on small cards). */
@@ -70,14 +65,8 @@ export function vehicleBadges(
   return out;
 }
 
-/** Status ⇔ is_archived, kept consistent until a later version drops is_archived. */
-export function isArchivedFor(status: VehicleStatus): boolean {
-  return status === 'guardado' || status === 'vendido' || status === 'perdido';
-}
-
-export function isEx(status: VehicleStatus): boolean {
-  return status === 'vendido' || status === 'perdido';
-}
+// Moved to ./vehicleStatus.ts with the v6 statuses; re-exported for the callers that import them from here.
+export { isArchivedFor, isEx } from './vehicleStatus';
 
 // ------------------------------------------------------- ownership line ---
 

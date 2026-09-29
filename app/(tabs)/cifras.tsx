@@ -80,7 +80,7 @@ export default function CifrasScreen() {
   if (!activeVehicle) return null;
 
   const empty = stats != null && stats.kpis.spend === 0 && points.length === 0;
-  const unit = economyLabel(activeVehicle.defaultFuelType);
+  const unit = economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -159,7 +159,7 @@ export default function CifrasScreen() {
             </View>
 
             <View onLayout={rememberOffset('economy')}>
-              <EconomyLine points={points} fuelType={activeVehicle.defaultFuelType} />
+              <EconomyLine points={points} fuelType={activeVehicle.defaultFuelType} volumeUnit={activeVehicle.detail?.volumeUnit} />
             </View>
 
             <View onLayout={rememberOffset('km')}>

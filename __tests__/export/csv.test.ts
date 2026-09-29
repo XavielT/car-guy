@@ -1,14 +1,19 @@
 import { BOM, exportFileName, fuelCsv, historyCsv, toCsv } from '@/lib/export/csv';
 import type { FuelLog, HistoryEntry } from '@/lib/db/types';
+import { fuelForStorage } from '@/lib/domain/units';
 
+/**
+ * A stored v6 row: liters and RD$/L, with the gallons as typed — `over` is in
+ * gallons, like the form, and is converted the way the store converts it.
+ */
 function log(over: Partial<FuelLog> = {}): FuelLog {
+  const typed = { volume: 10, pricePerUnit: 307.5, fuelType: 'regular' as const, ...over };
+  const stored = fuelForStorage(typed, 'gal');
   return {
     id: 'f1',
     vehicleId: 'v1',
     occurredAt: '2026-09-03T12:00:00.000Z',
     odometerKm: 51000,
-    volume: 10,
-    pricePerUnit: 307.5,
     totalDop: 3075,
     fuelType: 'regular',
     isFullTank: true,
@@ -19,7 +24,11 @@ function log(over: Partial<FuelLog> = {}): FuelLog {
     updatedAt: '2026-09-03T12:05:00.000Z',
     deletedAt: null,
     syncedAt: null,
+    gaugeBeforeEighths: null,
+    gaugeAfterEighths: null,
+    inReserve: false,
     ...over,
+    ...stored,
   };
 }
 

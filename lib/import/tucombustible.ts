@@ -11,6 +11,8 @@
  */
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { fuelForStorage, tankForStorage } from '../domain/units';
+
 import { enqueue } from '../db/client';
 import { seedVehicleDefaults } from '../db/seed';
 import {
@@ -133,7 +135,8 @@ export function mapLegacy(payload: unknown): MappedImport {
       type: 'carro',
       plate: v.plate || null,
       defaultFuelType: v.defaultFuelType,
-      tankVolume: v.tankVolume,
+      // Tu Combustible RD logged gallons (m³ for GNV); v6 stores liters.
+      ...tankForStorage(v.tankVolume, 'gal', v.defaultFuelType),
       notes: '',
       isArchived: false,
       sortOrder: 0,
@@ -149,8 +152,7 @@ export function mapLegacy(payload: unknown): MappedImport {
       vehicleId: f.vehicleId,
       occurredAt: f.occurredAt,
       odometerKm: f.odometerKm,
-      volume: f.volume,
-      pricePerUnit: f.pricePerUnit,
+      ...fuelForStorage({ volume: f.volume, pricePerUnit: f.pricePerUnit, fuelType: f.fuelType }, 'gal'),
       totalDop: f.totalDop,
       fuelType: f.fuelType,
       isFullTank: f.isFullTank,

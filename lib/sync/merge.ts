@@ -225,7 +225,7 @@ export function normaliseRow<T extends { updatedAt: string; deletedAt?: string |
  * the migration that makes rows a previous build could misread — v6 turns
  * volumes into liters, so a 2.2 row read by a 2.1.3 build must wait.
  */
-export const SCHEMA_HINT = 'v5';
+export const SCHEMA_HINT = 'v6';
 
 /** "v6" → 6. Absent, null or unparseable → null (a row from before the column existed). */
 export function hintNumber(hint: unknown): number | null {

@@ -62,7 +62,7 @@ export default function ExportarScreen() {
     if (!activeVehicle) return;
     setBusy(true);
     try {
-      const content = kind === 'historial' ? historyCsv(rows) : fuelCsv(logs);
+      const content = kind === 'historial' ? historyCsv(rows) : fuelCsv(logs, activeVehicle.detail?.volumeUnit ?? 'gal');
       const name = exportFileName(kind, activeVehicle.name, todayIso());
       const result = await deliverText(content, name, 'text/csv', es.export.title);
 

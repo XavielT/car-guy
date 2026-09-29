@@ -31,6 +31,19 @@ export const FEATURE_TRACK = true;
 /** Ficha pública, libro PDF, garaje compartido — PROMPT-07. */
 export const FEATURE_SHARE = true;
 
+/*
+ * IMP 29092026 (2.2 "Kaidō"): schema v6 has everything these need; each flips
+ * in the phase that ships its screens.
+ */
+/** Viajes: manual and automatic trips — PROMPT-05. */
+export const FEATURE_TRIPS = false;
+/** Comentarios / reportar un problema — PROMPT-06. */
+export const FEATURE_FEEDBACK = false;
+/** Garaje v2: grid / list / covers, user order, galleries — PROMPT-06. */
+export const FEATURE_GARAGE_V2 = false;
+/** Animated launch — PROMPT-06. */
+export const FEATURE_LAUNCH_ANIM = false;
+
 /**
  * True when the app is running from a dev server. `__DEV__` is inlined by
  * Metro, so a production bundle drops the branches that read it entirely.

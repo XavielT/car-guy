@@ -91,6 +91,8 @@ export const SYNC_TABLES: SyncTable[] = [
   { name: 'venue', localOnly: ['syncedAt'], keyedBy: 'user_id' },
   { name: 'track_event', localOnly: ['syncedAt'] },
   { name: 'track_session', localOnly: ['syncedAt'] },
+  // v6 (sql/019). Its points (trip_point) and the recorder's state never leave the phone.
+  { name: 'trip', localOnly: ['syncedAt'] },
   { name: 'setup_sheet', localOnly: ['syncedAt'] },
   { name: 'consumable_usage', localOnly: ['syncedAt'] },
   { name: 'vehicle_share', localOnly: ['syncedAt'] },
@@ -151,7 +153,7 @@ export const SYNCED_SETTING_KEYS = ['reference_prices', 'price_week_label'];
  */
 export const BOOLEAN_COLUMNS: Record<string, string[]> = {
   vehicle: ['is_archived'],
-  fuel_log: ['is_full_tank', 'missed_previous'],
+  fuel_log: ['is_full_tank', 'missed_previous', 'in_reserve'],
   service_type: ['is_seeded'],
   reminder: ['is_recurring', 'fixed_interval', 'is_enabled'],
   inspection_template: ['is_seeded', 'is_enabled'],

@@ -1,3 +1,4 @@
+import { economyLabel } from '../fuel';
 import type { EconomyPoint } from '../types';
 import type { VehicleStats } from '../db/statsQueries';
 import type { HistoryEntry } from '../db/types';
@@ -66,6 +67,8 @@ export function reportHtml(input: ReportInput): string {
   const average = economy.length
     ? economy.reduce((sum, point) => sum + point.kmPerUnit, 0) / economy.length
     : null;
+  // The economy comes from the store's fill-ups, already in the vehicle's unit (v6).
+  const economyUnit = economyLabel(vehicle.defaultFuelType, vehicle.volumeUnit ?? 'gal');
 
   return `<!DOCTYPE html>
 <html lang="es-DO">
@@ -156,7 +159,7 @@ export function reportHtml(input: ReportInput): string {
   ${kpi(es.stats.spend, money(kpis.spend))}
   ${kpi(es.stats.distance, kpis.distanceKm > 0 ? km(kpis.distanceKm) : '—')}
   ${kpi(es.stats.costPerKm, kpis.costPerKm != null ? money(kpis.costPerKm) : '—')}
-  ${kpi(es.stats.economy, average != null ? `${average.toFixed(2)} km/gal` : '—')}
+  ${kpi(es.stats.economy, average != null ? `${average.toFixed(2)} ${economyUnit}` : '—')}
 </div>
 
 <h2>${escape(es.stats.byCategory)}</h2>
@@ -256,6 +259,7 @@ ${
           average != null ? average.toFixed(2) : '—',
           Math.min(...economy.map((p) => p.kmPerUnit)).toFixed(2),
           Math.max(...economy.map((p) => p.kmPerUnit)).toFixed(2),
+          economyUnit,
         ),
       )}</p>`
     : ''

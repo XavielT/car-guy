@@ -1,3 +1,4 @@
+import { displayUnitLabel, fuelForDisplay, type VolumeUnit } from '../domain/units';
 import type { FuelLog, HistoryEntry } from '../db/types';
 import { economyById } from '../domain/economy';
 import { historyTitle } from '../domain/history';
@@ -96,7 +97,9 @@ export const FUEL_HEADERS = [
  * the previous row's number down. A blank cell is a fact; a repeated one is a
  * lie a spreadsheet will happily average.
  */
-export function fuelCsv(logs: FuelLog[]): string {
+export function fuelCsv(logs: FuelLog[], unit: VolumeUnit = 'gal'): string {
+  // Stored in liters (v6); the file speaks the vehicle's unit, like the screens.
+  const shown = new Map(logs.map((log) => [log.id, fuelForDisplay(log, unit)]));
   // computeEconomy works on the app-facing FillUp shape and keys its output by
   // fill-up id, so the join below is by id and never by position.
   const asFillUps: FillUp[] = logs.map((log) => ({
@@ -104,8 +107,7 @@ export function fuelCsv(logs: FuelLog[]): string {
     vehicleId: log.vehicleId,
     occurredAt: log.occurredAt,
     odometerKm: log.odometerKm,
-    volume: log.volume,
-    pricePerUnit: log.pricePerUnit,
+    ...shown.get(log.id)!,
     totalDop: log.totalDop,
     fuelType: log.fuelType,
     isFullTank: log.isFullTank,
@@ -126,9 +128,9 @@ export function fuelCsv(logs: FuelLog[]): string {
         day(log.occurredAt),
         num(log.odometerKm, 0),
         FUEL_CATALOG[log.fuelType].label,
-        num(log.volume, 3),
-        FUEL_CATALOG[log.fuelType].unitLabel,
-        num(log.pricePerUnit),
+        num(shown.get(log.id)!.volume, 3),
+        displayUnitLabel(log.fuelType, unit),
+        num(shown.get(log.id)!.pricePerUnit),
         num(log.totalDop),
         log.isFullTank ? 'si' : 'no',
         log.missedPrevious ? 'si' : 'no',

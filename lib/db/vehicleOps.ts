@@ -2,9 +2,12 @@ import type { VehicleDraft } from '@/components/VehicleForm';
 
 import { addMonths, todayIso } from '../domain/dates';
 import { isArchivedFor } from '../domain/garage';
+import { statusLabel } from '../domain/vehicleStatus';
+import { tankForStorage } from '../domain/units';
 import type { VehicleStatus } from './types';
 import { enqueue, now } from './client';
 import {
+  milestones as milestoneRepo,
   odometer as odometerRepo,
   reminders as reminderRepo,
   specsheets as specsheetRepo,
@@ -26,7 +29,10 @@ const SYNTHETIC_MONTHS = 12;
  * effect) and seeding is called explicitly afterwards.
  */
 export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
-  const isNew = draft.id ? (await vehicleRepo.getById(draft.id)) == null : true;
+  const existing = draft.id ? await vehicleRepo.getById(draft.id) : null;
+  const isNew = existing == null;
+  // The form types the tank in the vehicle's unit; storage is liters (v6).
+  const tank = tankForStorage(draft.tankVolume, existing?.volumeUnit ?? 'gal', draft.defaultFuelType);
 
   const saved = await enqueue(async (db) => {
     const vehicle = await vehicleRepo.upsertRaw(
@@ -41,7 +47,7 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         plate: draft.plate,
         vin: draft.vin,
         defaultFuelType: draft.defaultFuelType,
-        tankVolume: draft.tankVolume,
+        ...tank,
         initialOdometerKm: draft.odometerKm,
         purchaseDate: draft.purchaseDate,
         purchasePrice: draft.purchasePrice,
@@ -243,8 +249,34 @@ export async function purgeVehicleLocal(vehicleId: string): Promise<void> {
  * — "lo compré otra vez" — but keeps the sale on record in the row's history
  * by leaving `sold_*` to the user's edit.
  */
-export async function setVehicleStatus(vehicleId: string, status: Exclude<VehicleStatus, 'vendido'>): Promise<void> {
-  await vehicleRepo.upsertRaw({ id: vehicleId, status, isArchived: isArchivedFor(status) });
+export async function setVehicleStatus(
+  vehicleId: string,
+  status: Exclude<VehicleStatus, 'vendido'>,
+  note?: string,
+): Promise<void> {
+  const before = await vehicleRepo.getById(vehicleId);
+  if (before && before.status === status && (note === undefined || note === before.statusNote)) return;
+  const today = todayIso();
+  await vehicleRepo.upsertRaw({
+    id: vehicleId,
+    status,
+    isArchived: isArchivedFor(status),
+    statusSince: before?.status === status ? before.statusSince : today,
+    ...(note === undefined ? {} : { statusNote: note.trim() }),
+  });
+  // v6: a status change is a milestone of kind 'estado', so the history and the
+  // album timeline show it without a table of its own (01-data-model-v6.md §1.8).
+  if (before?.status !== status) {
+    await milestoneRepo.upsert({
+      vehicleId,
+      kind: 'estado',
+      occurredAt: today,
+      odometerKm: null,
+      title: statusLabel(status),
+      story: note?.trim() ?? '',
+      coverMediaId: null,
+    });
+  }
 }
 
 export type SaleDraft = {

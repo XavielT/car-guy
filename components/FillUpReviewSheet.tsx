@@ -1,9 +1,10 @@
+import type { VolumeUnit } from '@/lib/domain/units';
 import { StyleSheet, View } from 'react-native';
 
 import { space } from '@/constants/theme';
 import type { FillUpReview } from '@/lib/domain/economy';
 import { km, kmPerUnit, money } from '@/lib/format';
-import { FUEL_CATALOG } from '@/lib/fuel';
+import { unitLabelFor } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FuelType } from '@/lib/types';
@@ -32,6 +33,7 @@ const TONES: Record<FillUpReview['status'], Tone> = {
 export function FillUpReviewSheet({
   review,
   fuelType,
+  volumeUnit = 'gal',
   missedPrevious,
   visible,
   onClose,
@@ -39,6 +41,8 @@ export function FillUpReviewSheet({
 }: {
   review: FillUpReview | null;
   fuelType: FuelType;
+  /** The vehicle's unit (v6); the review's numbers are already in it. */
+  volumeUnit?: VolumeUnit;
   missedPrevious: boolean;
   visible: boolean;
   onClose: () => void;
@@ -47,8 +51,8 @@ export function FillUpReviewSheet({
   const { theme } = useTheme();
   if (!review) return null;
 
-  const meta = FUEL_CATALOG[fuelType];
-  const average = review.baseline != null ? kmPerUnit(review.baseline, fuelType) : null;
+  const unitLabel = unitLabelFor(fuelType, volumeUnit);
+  const average = review.baseline != null ? kmPerUnit(review.baseline, fuelType, volumeUnit) : null;
 
   // The flag explains the missing numbers better than "first measurement" does,
   // so it wins when both would apply.
@@ -77,14 +81,14 @@ export function FillUpReviewSheet({
       />
 
       <View style={[styles.rows, { borderColor: theme.line }]}>
-        <KeyValueRow label={es.fuelReview.price(meta.unitLabel)} value={money(review.pricePerUnit)} />
+        <KeyValueRow label={es.fuelReview.price(unitLabel)} value={money(review.pricePerUnit)} />
         <KeyValueRow
           label={es.fuelReview.distance}
           value={review.distanceKm != null ? km(review.distanceKm) : es.fuelReview.noPrevious}
         />
         <KeyValueRow
           label={es.fuelReview.economy}
-          value={review.kmPerUnit != null ? kmPerUnit(review.kmPerUnit, fuelType) : es.fuelReview.pending}
+          value={review.kmPerUnit != null ? kmPerUnit(review.kmPerUnit, fuelType, volumeUnit) : es.fuelReview.pending}
           big={review.kmPerUnit != null}
         />
         <KeyValueRow

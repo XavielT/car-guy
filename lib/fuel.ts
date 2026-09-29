@@ -1,3 +1,4 @@
+import { displayUnitLabel, economyUnitLabel, perUnitLabel, type VolumeUnit } from './domain/units';
 import type { FuelGroup, FuelType, ReferencePrices } from './types';
 
 export type FuelMeta = {
@@ -113,6 +114,17 @@ export const GROUP_LABEL: Record<FuelGroup, string> = {
   gnv: 'Gas natural',
 };
 
-export function economyLabel(type: FuelType): string {
-  return FUEL_CATALOG[type].unit === 'm3' ? 'km/m³' : 'km/gal';
+/** "km/gal", "km/L" or "km/m³" — the vehicle's volume unit decides (v6). */
+export function economyLabel(type: FuelType, unit: VolumeUnit = 'gal'): string {
+  return economyUnitLabel(type, unit === 'l' ? 'km_l' : 'km_gal');
+}
+
+/** "gal", "L" or "m³". */
+export function unitLabelFor(type: FuelType, unit: VolumeUnit = 'gal'): string {
+  return displayUnitLabel(type, unit);
+}
+
+/** "RD$/gal", "RD$/L" or "RD$/m³". */
+export function perUnitLabelFor(type: FuelType, unit: VolumeUnit = 'gal'): string {
+  return perUnitLabel(type, unit);
 }

@@ -18,6 +18,7 @@ import {
 } from '../db/syncOps';
 import { es } from '../i18n/es';
 import { removeDeletedMediaBytes, uploadMediaBytes } from './mediaBytes';
+import { fromCloudUnits, toCloudUnits } from './unitBridge';
 import { membershipChanges, UPDATED_BY_TABLES } from './members';
 import { refreshStorageMeter } from './storageMeter';
 import {
@@ -280,7 +281,8 @@ async function pushTable(supabase: Client, spec: SyncTable, userId: string): Pro
 
   const withUpdatedBy = UPDATED_BY_TABLES.has(table);
   for (const chunk of batch(rows, PUSH_BATCH)) {
-    const payload = chunk.map((row) => toCloudShape(row, localOnly, userId, booleans, withUpdatedBy));
+    // Liters locally; liters and legacy gallons in the cloud, plus the schema hint (unitBridge).
+    const payload = chunk.map((row) => toCloudUnits(table, toCloudShape(row, localOnly, userId, booleans, withUpdatedBy)));
 
     const { error } = await supabase
       .from(table as never)
@@ -393,7 +395,7 @@ async function pullTable(supabase: Client, table: string): Promise<PullOutcome> 
     if (gated.skipped.length) await rememberSkipped(table, gated.skipped.map((row) => row.id as string));
 
     const incoming = gated.accepted.map((row) => ({
-      ...row,
+      ...fromCloudUnits(table, row),
       updatedAt: normaliseTimestamp(row.updated_at as string) ?? (row.updated_at as string),
       serverUpdatedAt: row.server_updated_at as string,
       id: row.id as string,

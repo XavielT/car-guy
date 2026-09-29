@@ -14,6 +14,7 @@ import { resetDatabase } from './db/reset';
 import { seedCatalog } from './db/seed';
 import { deleteVehicleCascade } from './db/vehicleOps';
 import type { Expense as ExpenseRow, ExpenseCategory as NewExpenseCategory, ServiceRecord } from './db/types';
+import { fuelForDisplay, fuelForStorage, tankForDisplay, tankForStorage, type VolumeUnit } from './domain/units';
 import { id } from './format';
 import { lastOdometer } from './math';
 import { EMPTY_DATA } from './storage';
@@ -137,6 +138,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Which table a legacy "expense" id actually lives in, so delete hits the
   // right one without a second round trip.
   const serviceIds = useRef<Set<string>>(new Set());
+  // Each vehicle's display unit, from the last load: writes convert with it.
+  const volumeUnits = useRef<Map<string, VolumeUnit>>(new Map());
 
   const load = useCallback(async () => {
     const [vehicleRows, fuelRows, expenseRows, reminderRows] = await Promise.all([
@@ -160,13 +163,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       settingsRepo.get('price_week_label', EMPTY_DATA.settings.priceWeekLabel),
     ]);
 
+    // v6: the database holds liters; everything below `data` works in each
+    // vehicle's display unit, as it did in gallons before (lib/domain/units.ts).
+    const unitOf = new Map(vehicleRows.map((v) => [v.id, v.volumeUnit ?? 'gal']));
+    volumeUnits.current = unitOf;
+
     setData({
       vehicles: vehicleRows.map((v) => ({
         id: v.id,
         name: v.name,
         plate: v.plate ?? '',
         defaultFuelType: v.defaultFuelType,
-        tankVolume: v.tankVolume,
+        tankVolume: tankForDisplay(v.tankVolume, v.tankVolumeEntered, v.volumeUnit ?? 'gal', v.defaultFuelType),
         createdAt: v.createdAt,
         isArchived: v.isArchived,
         detail: v,
@@ -176,8 +184,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         vehicleId: f.vehicleId,
         occurredAt: f.occurredAt,
         odometerKm: f.odometerKm,
-        volume: f.volume,
-        pricePerUnit: f.pricePerUnit,
+        ...fuelForDisplay(f, unitOf.get(f.vehicleId) ?? 'gal'),
         totalDop: f.totalDop,
         fuelType: f.fuelType,
         isFullTank: f.isFullTank,
@@ -286,7 +293,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           name: input.name,
           plate: input.plate || null,
           defaultFuelType: input.defaultFuelType,
-          tankVolume: input.tankVolume,
+          ...tankForStorage(input.tankVolume, volumeUnits.current.get(vehicleId) ?? 'gal', input.defaultFuelType),
         });
         const current = await settingsRepo.get<string | null>('active_vehicle_id', null);
         if (!current) await settingsRepo.set('active_vehicle_id', vehicleId);
@@ -338,8 +345,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           vehicleId: input.vehicleId,
           occurredAt: input.occurredAt,
           odometerKm: input.odometerKm,
-          volume: input.volume,
-          pricePerUnit: input.pricePerUnit,
+          ...fuelForStorage(input, volumeUnits.current.get(input.vehicleId) ?? 'gal'),
           totalDop: input.totalDop,
           fuelType: input.fuelType,
           isFullTank: input.isFullTank,

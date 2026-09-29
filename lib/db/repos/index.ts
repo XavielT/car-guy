@@ -482,4 +482,7 @@ export const ALL_TABLES = [
   'consumable_usage',
   'vehicle_share',
   'vehicle_member',
+  // schema v6. trip_point and trip_state are local scratch, not user history,
+  // so they are neither backed up nor listed here (lib/db/reset.ts clears them).
+  'trip',
 ] as const;

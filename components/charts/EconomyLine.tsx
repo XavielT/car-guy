@@ -1,3 +1,4 @@
+import type { VolumeUnit } from '@/lib/domain/units';
 import { LineChart } from 'react-native-gifted-charts';
 import { StyleSheet, View } from 'react-native';
 
@@ -21,14 +22,16 @@ import { ChartFrame } from './ChartFrame';
 export function EconomyLine({
   points,
   fuelType,
+  volumeUnit = 'gal',
 }: {
   points: EconomyPoint[];
   fuelType: FuelType;
+  volumeUnit?: VolumeUnit;
 }) {
   const { theme, scheme } = useTheme();
   const line = scheme === 'light' ? categoryInkLight.combustible : categoryColors.combustible;
 
-  const unit = economyLabel(fuelType);
+  const unit = economyLabel(fuelType, volumeUnit);
   const average =
     points.length > 0 ? points.reduce((sum, p) => sum + p.kmPerUnit, 0) / points.length : 0;
 

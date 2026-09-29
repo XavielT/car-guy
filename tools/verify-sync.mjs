@@ -409,6 +409,61 @@ async function main() {
     );
   }
 
+  // 18–20 — schema v6 (IMP 29092026 Phase 2, sql/019–020). Back as account A.
+  token = tokenA ?? token;
+  const GAL_L = 3.785411784;
+  const fuelId = `sync_probe_fuel_${stamp}`;
+  const hinted = await call('/rest/v1/fuel_log', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation,resolution=merge-duplicates' },
+    // Exactly what lib/sync/unitBridge.ts pushes: gallons in the legacy
+    // columns, liters alongside, and the hint.
+    body: [{
+      id: fuelId, user_id: userId, vehicle_id: vehicleId, occurred_at: t1, odometer_km: 1000,
+      volume: 11.2, price_per_unit: 322, volume_l: 11.2 * GAL_L, price_per_l: 322 / GAL_L,
+      volume_entered: 11.2, volume_entered_unit: 'gal', total_dop: 3606.4, fuel_type: 'premium',
+      is_full_tank: true, missed_previous: false, in_reserve: false, gauge_before_eighths: 2,
+      station: '', notes: '', schema_hint: 'v6', created_at: t1, updated_at: t1,
+    }],
+  });
+  const back = (await call(`/rest/v1/fuel_log?id=eq.${fuelId}&select=*`)).body?.[0];
+  // The gate as 2.1.3 ships it (lib/sync/merge.ts, SCHEMA_HINT 'v5'): newer hint → skipped.
+  const hintNumber = (h) => (typeof h === 'string' && /^v\d+$/.test(h) ? Number(h.slice(1)) : null);
+  check(
+    '18. a v6 row carries its hint, so a 2.1.3 client (v5) skips it',
+    wrote(hinted.status) && hintNumber(back?.schema_hint) > 5 && hintNumber(back?.schema_hint) === 6,
+    `status ${hinted.status} · schema_hint ${back?.schema_hint}${hinted.status >= 300 ? ` · ${JSON.stringify(hinted.body).slice(0, 160)}` : ''}`,
+  );
+  check(
+    '19. liters round-trip beside the legacy gallons (in_reserve a real boolean, gauge 0–8)',
+    Math.abs(back?.volume_l - 11.2 * GAL_L) < 1e-6 && back?.volume === 11.2 && Math.abs(back?.price_per_l - 322 / GAL_L) < 1e-6 &&
+      back?.in_reserve === false && back?.gauge_before_eighths === 2,
+    `volume ${back?.volume} gal · volume_l ${back?.volume_l} · price_per_l ${back?.price_per_l} · in_reserve ${back?.in_reserve}`,
+  );
+  const badGauge = await call('/rest/v1/fuel_log', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
+    body: [{ ...hinted.body?.[0], id: `${fuelId}_bad`, gauge_after_eighths: 9, server_updated_at: undefined }],
+  });
+  check('19b. a gauge outside 0–8 is refused', badGauge.status >= 400, `status ${badGauge.status}`);
+
+  const tripId = `sync_probe_trip_${stamp}`;
+  const tripRow = (updatedAt, notes) => ({
+    id: tripId, user_id: userId, vehicle_id: vehicleId, source: 'manual', status: 'done', started_at: t1,
+    distance_m: 12400, duration_s: 1500, notes, schema_hint: 'v6', updated_by: userId, created_at: t1, updated_at: updatedAt,
+  });
+  const upsertTrip = (row) => call('/rest/v1/trip', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: [row] });
+  const tripIn = await upsertTrip(tripRow(iso(10_000), 'primero'));
+  const tripStale = await upsertTrip(tripRow(iso(-120_000), 'viejo'));
+  const tripAfterStale = (await call(`/rest/v1/trip?id=eq.${tripId}&select=notes`)).body?.[0]?.notes;
+  const tripNewer = await upsertTrip(tripRow(iso(20_000), 'nuevo'));
+  const tripBack = (await call(`/rest/v1/trip?id=eq.${tripId}&select=notes,server_updated_at`)).body?.[0];
+  check(
+    '20. trip syncs with last-write-wins (a stale write does not replace a newer one)',
+    wrote(tripIn.status) && tripAfterStale === 'primero' && wrote(tripNewer.status) && tripBack?.notes === 'nuevo',
+    `insert ${tripIn.status} · stale ${tripStale.status} → ${tripAfterStale} · newer ${tripNewer.status} → ${tripBack?.notes}`,
+  );
+
   const failed = results.filter((r) => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} passed.`);
   console.log('\n--- cleanup ---');

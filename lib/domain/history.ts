@@ -21,6 +21,12 @@ export function historyTitle(entry: HistoryEntry): string {
   if (entry.kind === 'chequeo') {
     return entry.title === 'ok' ? es.history.checkOk : es.history.checkWithFails;
   }
+  if (entry.kind === 'viaje') {
+    // v5 view: title = distance in meters, subtitle = "<duration_s>|<from>|<to>".
+    const km = (Number(entry.title) || 0) / 1000;
+    const seconds = Number(entry.subtitle?.split('|')[0]) || 0;
+    return es.history.tripTitle(km.toFixed(1), Math.round(seconds / 60));
+  }
   // An expense saved without a description is still a Marbete, not a "—".
   if (entry.kind === 'gasto' && !entry.title) return expenseLabel(entry.subtitle) ?? '—';
   return entry.title || '—';
@@ -33,6 +39,10 @@ export function historySubtitle(entry: HistoryEntry): string | null {
     const d = lookup(entry.title);
     const state = entry.subtitle === 'resuelto' ? 'Resuelto' : 'Abierto';
     return [state, d?.descEs].filter(Boolean).join(' · ');
+  }
+  if (entry.kind === 'viaje') {
+    const [, from, to] = (entry.subtitle ?? '').split('|');
+    return from || to ? `${from || '—'} → ${to || '—'}` : null;
   }
   if (entry.kind === 'mod' && entry.subtitle?.includes('|')) {
     // "<status>|<brand>" (history_feed v3): "Instalado · BC Racing".
@@ -70,6 +80,8 @@ export function historyKindLabel(kind: HistoryEntry['kind']): string {
       return es.history.kinds.pista;
     case 'obd':
       return es.history.kinds.obd;
+    case 'viaje':
+      return es.history.kinds.viaje;
     default:
       return kind;
   }

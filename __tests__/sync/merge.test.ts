@@ -343,8 +343,8 @@ describe('schema gate', () => {
     expect(skipped.map((r) => r.id)).toEqual(['b']);
   });
 
-  it('ships as v5 in 2.1.3', () => {
-    expect(SCHEMA_HINT).toBe('v5');
+  it('is v6 from 2.2 (schema v6, liters) — 2.1.3 shipped v5', () => {
+    expect(SCHEMA_HINT).toBe('v6');
   });
 });
 

@@ -19,6 +19,9 @@ export async function resetDatabase(): Promise<void> {
     // inserting — and with foreign keys on, deleting `vehicle` while a fill-up
     // still points at it fails the statement and rolls the whole reset back.
     // "Borrar datos locales" therefore never cleared a phone that had data.
+    // v6's local scratch first: trip_point points at trip.
+    await db.runAsync('DELETE FROM trip_point');
+    await db.runAsync('DELETE FROM trip_state');
     for (const table of [...ALL_TABLES].reverse()) {
       await db.runAsync(`DELETE FROM ${table}`);
     }

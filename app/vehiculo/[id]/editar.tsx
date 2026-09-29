@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { VehicleForm, type VehicleDraft } from '@/components/VehicleForm';
 import { currentOdometer as currentOdometerQuery, vehicles as vehicleRepo } from '@/lib/db/repos';
 import { saveVehicleDraft } from '@/lib/db/vehicleOps';
+import { tankForDisplay } from '@/lib/domain/units';
 import { dateInputFromIso } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
@@ -34,7 +35,7 @@ export default function EditarVehiculoScreen() {
         plate: v.plate,
         vin: v.vin,
         defaultFuelType: v.defaultFuelType,
-        tankVolume: v.tankVolume,
+        tankVolume: tankForDisplay(v.tankVolume, v.tankVolumeEntered, v.volumeUnit, v.defaultFuelType),
         odometerKm: km,
         purchaseDate: v.purchaseDate ? dateInputFromIso(v.purchaseDate) : null,
         purchasePrice: v.purchasePrice,

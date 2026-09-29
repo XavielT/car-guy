@@ -25,7 +25,7 @@ const SQL_PATH = join(__dirname, '../../sql/002_schema_carguy.sql');
 const SQL_V2_PATH = join(__dirname, '../../sql/009_schema_v2.sql');
 // Later files only add columns (`alter table … add column if not exists`), and
 // the parser below reads those the same way it reads 009's.
-const LATER = ['013_members.sql', '017_track_layout.sql'].map((f) => readFileSync(join(__dirname, '../../sql', f), 'utf8'));
+const LATER = ['013_members.sql', '017_track_layout.sql', '019_schema_v3.sql'].map((f) => readFileSync(join(__dirname, '../../sql', f), 'utf8'));
 const cloudSql = [readFileSync(SQL_PATH, 'utf8'), readFileSync(SQL_V2_PATH, 'utf8'), ...LATER].join('\n');
 
 /** Column names out of `CREATE TABLE <name> ( … )`, as they appear. */
@@ -206,7 +206,8 @@ describe('the boolean map matches the cloud schema exactly', () => {
 
 describe("a deleted user's rows go with them", () => {
   const cascade = readFileSync(join(__dirname, '../../sql/007_user_cascade.sql'), 'utf8');
-  const v2 = readFileSync(SQL_V2_PATH, 'utf8');
+  // v2 tables, and later ones (trip, sql/019), declare the cascade on their own create.
+  const v2 = [readFileSync(SQL_V2_PATH, 'utf8'), ...LATER].join('\n');
 
   /** v2 tables declare the cascade inline, on their own create. */
   function cascadesInline(table: string): boolean {

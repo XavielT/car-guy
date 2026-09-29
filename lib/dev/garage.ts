@@ -1,3 +1,4 @@
+import { fuelForStorage } from '../domain/units';
 import { enqueue } from '@/lib/db/client';
 import {
   contacts as contactRepo,
@@ -204,8 +205,8 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
       vehicleId: GARAGE_IDS.ae85,
       occurredAt: at(i * 45 + 4),
       odometerKm: odometer,
-      volume: 11.2,
-      pricePerUnit: 322 + (i % 3) * 3,
+      // Typed in gallons, stored in liters (v6) — the store's own conversion.
+      ...fuelForStorage({ volume: 11.2, pricePerUnit: 322 + (i % 3) * 3, fuelType: 'premium' }, 'gal'),
       totalDop: 11.2 * (322 + (i % 3) * 3),
       fuelType: 'premium',
       isFullTank: true,
@@ -229,8 +230,10 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
       vehicleId: GARAGE_IDS.ds3,
       occurredAt: at(i * 30 + 4),
       odometerKm: odometer,
-      volume: partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4,
-      pricePerUnit: 305 + (i % 4) * 3.5,
+      ...fuelForStorage(
+        { volume: partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4, pricePerUnit: 305 + (i % 4) * 3.5, fuelType: 'regular' },
+        'gal',
+      ),
       totalDop: (partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4) * (305 + (i % 4) * 3.5),
       fuelType: 'regular',
       isFullTank: !partial,

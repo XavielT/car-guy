@@ -22,6 +22,7 @@ export type Database = {
           media_id: string
           milestone_id: string | null
           mod_id: string | null
+          role: string
           server_updated_at: string
           sort_order: number
           track_event_id: string | null
@@ -37,6 +38,7 @@ export type Database = {
           media_id: string
           milestone_id?: string | null
           mod_id?: string | null
+          role?: string
           server_updated_at?: string
           sort_order?: number
           track_event_id?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           media_id?: string
           milestone_id?: string | null
           mod_id?: string | null
+          role?: string
           server_updated_at?: string
           sort_order?: number
           track_event_id?: string | null
@@ -184,6 +187,7 @@ export type Database = {
           server_updated_at: string
           title: string
           updated_at: string
+          updated_by: string | null
           user_id: string
           vehicle_id: string
         }
@@ -200,6 +204,7 @@ export type Database = {
           server_updated_at?: string
           title: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id: string
         }
@@ -216,6 +221,7 @@ export type Database = {
           server_updated_at?: string
           title?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id?: string
         }
@@ -233,6 +239,7 @@ export type Database = {
           odometer_km: number | null
           server_updated_at: string
           updated_at: string
+          updated_by: string | null
           user_id: string
           vehicle_id: string
           vendor: string
@@ -248,6 +255,7 @@ export type Database = {
           odometer_km?: number | null
           server_updated_at?: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id: string
           vendor?: string
@@ -263,6 +271,7 @@ export type Database = {
           odometer_km?: number | null
           server_updated_at?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id?: string
           vendor?: string
@@ -322,58 +331,85 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           fuel_type: string
+          gauge_after_eighths: number | null
+          gauge_before_eighths: number | null
           id: string
+          in_reserve: boolean
           is_full_tank: boolean
           missed_previous: boolean
           notes: string
           occurred_at: string
           odometer_km: number
+          price_per_l: number | null
           price_per_unit: number
+          schema_hint: string | null
           server_updated_at: string
           station: string
           total_dop: number
           updated_at: string
+          updated_by: string | null
           user_id: string
           vehicle_id: string
           volume: number
+          volume_entered: number | null
+          volume_entered_unit: string | null
+          volume_l: number | null
         }
         Insert: {
           created_at: string
           deleted_at?: string | null
           fuel_type: string
+          gauge_after_eighths?: number | null
+          gauge_before_eighths?: number | null
           id: string
+          in_reserve?: boolean
           is_full_tank?: boolean
           missed_previous?: boolean
           notes?: string
           occurred_at: string
           odometer_km: number
+          price_per_l?: number | null
           price_per_unit: number
+          schema_hint?: string | null
           server_updated_at?: string
           station?: string
           total_dop: number
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id: string
           volume: number
+          volume_entered?: number | null
+          volume_entered_unit?: string | null
+          volume_l?: number | null
         }
         Update: {
           created_at?: string
           deleted_at?: string | null
           fuel_type?: string
+          gauge_after_eighths?: number | null
+          gauge_before_eighths?: number | null
           id?: string
+          in_reserve?: boolean
           is_full_tank?: boolean
           missed_previous?: boolean
           notes?: string
           occurred_at?: string
           odometer_km?: number
+          price_per_l?: number | null
           price_per_unit?: number
+          schema_hint?: string | null
           server_updated_at?: string
           station?: string
           total_dop?: number
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id?: string
           volume?: number
+          volume_entered?: number | null
+          volume_entered_unit?: string | null
+          volume_l?: number | null
         }
         Relationships: []
       }
@@ -390,6 +426,7 @@ export type Database = {
           status: string
           template_id: string
           updated_at: string
+          updated_by: string | null
           user_id: string
           vehicle_id: string
         }
@@ -405,6 +442,7 @@ export type Database = {
           status: string
           template_id: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id: string
         }
@@ -420,6 +458,7 @@ export type Database = {
           status?: string
           template_id?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id?: string
         }
@@ -492,6 +531,7 @@ export type Database = {
           result: string
           server_updated_at: string
           updated_at: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
@@ -506,6 +546,7 @@ export type Database = {
           result: string
           server_updated_at?: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
         }
         Update: {
@@ -520,6 +561,7 @@ export type Database = {
           result?: string
           server_updated_at?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
         }
         Relationships: []
@@ -664,6 +706,7 @@ export type Database = {
           taken_at: string | null
           thumb_rel_path: string | null
           updated_at: string
+          updated_by: string | null
           user_id: string
           width: number | null
         }
@@ -689,6 +732,7 @@ export type Database = {
           taken_at?: string | null
           thumb_rel_path?: string | null
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           width?: number | null
         }
@@ -714,6 +758,7 @@ export type Database = {
           taken_at?: string | null
           thumb_rel_path?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           width?: number | null
         }
@@ -978,6 +1023,7 @@ export type Database = {
           source: string
           source_id: string | null
           updated_at: string
+          updated_by: string | null
           user_id: string
           value_km: number
           vehicle_id: string
@@ -991,6 +1037,7 @@ export type Database = {
           source: string
           source_id?: string | null
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           value_km: number
           vehicle_id: string
@@ -1004,6 +1051,7 @@ export type Database = {
           source?: string
           source_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           value_km?: number
           vehicle_id?: string
@@ -1023,6 +1071,7 @@ export type Database = {
           service_record_id: string
           unit_cost_dop: number | null
           updated_at: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
@@ -1037,6 +1086,7 @@ export type Database = {
           service_record_id: string
           unit_cost_dop?: number | null
           updated_at: string
+          updated_by?: string | null
           user_id?: string
         }
         Update: {
@@ -1051,6 +1101,7 @@ export type Database = {
           service_record_id?: string
           unit_cost_dop?: number | null
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1105,6 +1156,7 @@ export type Database = {
           threshold_km: number | null
           title: string
           updated_at: string
+          updated_by: string | null
           user_id: string
           vehicle_id: string
         }
@@ -1133,6 +1185,7 @@ export type Database = {
           threshold_km?: number | null
           title: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id: string
         }
@@ -1161,6 +1214,7 @@ export type Database = {
           threshold_km?: number | null
           title?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id?: string
         }
@@ -1185,6 +1239,7 @@ export type Database = {
           title: string
           total_dop: number
           updated_at: string
+          updated_by: string | null
           user_id: string
           vehicle_id: string
           warranty_until_date: string | null
@@ -1208,6 +1263,7 @@ export type Database = {
           title: string
           total_dop?: number
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id: string
           warranty_until_date?: string | null
@@ -1231,6 +1287,7 @@ export type Database = {
           title?: string
           total_dop?: number
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id?: string
           warranty_until_date?: string | null
@@ -1244,10 +1301,15 @@ export type Database = {
           deleted_at: string | null
           id: string
           notes: string
+          oil_brand: string | null
+          oil_spec: string | null
+          oil_type: string | null
+          oil_viscosity: string | null
           server_updated_at: string
           service_record_id: string
           service_type_id: string
           updated_at: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
@@ -1255,10 +1317,15 @@ export type Database = {
           deleted_at?: string | null
           id: string
           notes?: string
+          oil_brand?: string | null
+          oil_spec?: string | null
+          oil_type?: string | null
+          oil_viscosity?: string | null
           server_updated_at?: string
           service_record_id: string
           service_type_id: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
         }
         Update: {
@@ -1266,10 +1333,15 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           notes?: string
+          oil_brand?: string | null
+          oil_spec?: string | null
+          oil_type?: string | null
+          oil_viscosity?: string | null
           server_updated_at?: string
           service_record_id?: string
           service_type_id?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1577,6 +1649,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          updated_by: string | null
           user_id: string
           vehicle_id: string
         }
@@ -1594,6 +1667,7 @@ export type Database = {
           status?: string
           title: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id: string
         }
@@ -1611,6 +1685,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vehicle_id?: string
         }
@@ -1772,6 +1847,7 @@ export type Database = {
           entry_fee_dop: number | null
           fuel_cost_dop: number | null
           id: string
+          layout: string | null
           notes: string
           occurred_at: string
           odometer_end_km: number | null
@@ -1797,6 +1873,7 @@ export type Database = {
           entry_fee_dop?: number | null
           fuel_cost_dop?: number | null
           id: string
+          layout?: string | null
           notes?: string
           occurred_at: string
           odometer_end_km?: number | null
@@ -1822,6 +1899,7 @@ export type Database = {
           entry_fee_dop?: number | null
           fuel_cost_dop?: number | null
           id?: string
+          layout?: string | null
           notes?: string
           occurred_at?: string
           odometer_end_km?: number | null
@@ -1940,23 +2018,136 @@ export type Database = {
         }
         Relationships: []
       }
+      trip: {
+        Row: {
+          avg_kmh: number | null
+          avg_moving_kmh: number | null
+          bbox: string | null
+          created_at: string
+          deleted_at: string | null
+          distance_m: number
+          duration_s: number
+          end_label: string
+          end_lat: number | null
+          end_lng: number | null
+          ended_at: string | null
+          id: string
+          max_kmh: number | null
+          moving_s: number
+          notes: string
+          odometer_reading_id: string | null
+          polyline: string | null
+          role: string
+          schema_hint: string | null
+          segments: number
+          server_updated_at: string
+          source: string
+          speed_buckets: string
+          start_label: string
+          start_lat: number | null
+          start_lng: number | null
+          started_at: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          avg_kmh?: number | null
+          avg_moving_kmh?: number | null
+          bbox?: string | null
+          created_at: string
+          deleted_at?: string | null
+          distance_m?: number
+          duration_s?: number
+          end_label?: string
+          end_lat?: number | null
+          end_lng?: number | null
+          ended_at?: string | null
+          id: string
+          max_kmh?: number | null
+          moving_s?: number
+          notes?: string
+          odometer_reading_id?: string | null
+          polyline?: string | null
+          role?: string
+          schema_hint?: string | null
+          segments?: number
+          server_updated_at?: string
+          source: string
+          speed_buckets?: string
+          start_label?: string
+          start_lat?: number | null
+          start_lng?: number | null
+          started_at: string
+          status: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          avg_kmh?: number | null
+          avg_moving_kmh?: number | null
+          bbox?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          distance_m?: number
+          duration_s?: number
+          end_label?: string
+          end_lat?: number | null
+          end_lng?: number | null
+          ended_at?: string | null
+          id?: string
+          max_kmh?: number | null
+          moving_s?: number
+          notes?: string
+          odometer_reading_id?: string | null
+          polyline?: string | null
+          role?: string
+          schema_hint?: string | null
+          segments?: number
+          server_updated_at?: string
+          source?: string
+          speed_buckets?: string
+          start_label?: string
+          start_lat?: number | null
+          start_lng?: number | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
       vehicle: {
         Row: {
+          body_type: string | null
           chassis_code: string | null
           chassis_number: string | null
           color: string | null
+          color_id: string | null
           created_at: string
           default_fuel_type: string
           deleted_at: string | null
           drivetrain: string | null
+          economy_unit: string
           engine_code: string | null
           hero_media_id: string | null
           id: string
           imported_year: number | null
           initial_odometer_km: number | null
+          interior_color_id: string | null
+          interior_material: string | null
           is_archived: boolean
+          limit_kmh: number
           make: string | null
+          make_id: string | null
           model: string | null
+          model_id: string | null
           name: string
           nickname: string | null
           notes: string
@@ -1965,37 +2156,54 @@ export type Database = {
           plate: string | null
           purchase_date: string | null
           purchase_price: number | null
+          reserve_volume_l: number | null
+          schema_hint: string | null
           server_updated_at: string
           sold_date: string | null
           sold_price: number | null
           sort_order: number
           status: string
+          status_note: string
+          status_since: string | null
           story: string
+          tank_l: number | null
           tank_volume: number | null
+          tank_volume_entered: number | null
           transmission: string | null
           trim: string | null
+          trip_mode: string
           type: string
           updated_at: string
+          updated_by: string | null
           user_id: string
           vin: string | null
+          volume_unit: string
           year: number | null
         }
         Insert: {
+          body_type?: string | null
           chassis_code?: string | null
           chassis_number?: string | null
           color?: string | null
+          color_id?: string | null
           created_at: string
           default_fuel_type: string
           deleted_at?: string | null
           drivetrain?: string | null
+          economy_unit?: string
           engine_code?: string | null
           hero_media_id?: string | null
           id: string
           imported_year?: number | null
           initial_odometer_km?: number | null
+          interior_color_id?: string | null
+          interior_material?: string | null
           is_archived?: boolean
+          limit_kmh?: number
           make?: string | null
+          make_id?: string | null
           model?: string | null
+          model_id?: string | null
           name: string
           nickname?: string | null
           notes?: string
@@ -2004,37 +2212,54 @@ export type Database = {
           plate?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
+          reserve_volume_l?: number | null
+          schema_hint?: string | null
           server_updated_at?: string
           sold_date?: string | null
           sold_price?: number | null
           sort_order?: number
           status?: string
+          status_note?: string
+          status_since?: string | null
           story?: string
+          tank_l?: number | null
           tank_volume?: number | null
+          tank_volume_entered?: number | null
           transmission?: string | null
           trim?: string | null
+          trip_mode?: string
           type?: string
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           vin?: string | null
+          volume_unit?: string
           year?: number | null
         }
         Update: {
+          body_type?: string | null
           chassis_code?: string | null
           chassis_number?: string | null
           color?: string | null
+          color_id?: string | null
           created_at?: string
           default_fuel_type?: string
           deleted_at?: string | null
           drivetrain?: string | null
+          economy_unit?: string
           engine_code?: string | null
           hero_media_id?: string | null
           id?: string
           imported_year?: number | null
           initial_odometer_km?: number | null
+          interior_color_id?: string | null
+          interior_material?: string | null
           is_archived?: boolean
+          limit_kmh?: number
           make?: string | null
+          make_id?: string | null
           model?: string | null
+          model_id?: string | null
           name?: string
           nickname?: string | null
           notes?: string
@@ -2043,19 +2268,28 @@ export type Database = {
           plate?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
+          reserve_volume_l?: number | null
+          schema_hint?: string | null
           server_updated_at?: string
           sold_date?: string | null
           sold_price?: number | null
           sort_order?: number
           status?: string
+          status_note?: string
+          status_since?: string | null
           story?: string
+          tank_l?: number | null
           tank_volume?: number | null
+          tank_volume_entered?: number | null
           transmission?: string | null
           trim?: string | null
+          trip_mode?: string
           type?: string
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           vin?: string | null
+          volume_unit?: string
           year?: number | null
         }
         Relationships: []
@@ -2107,6 +2341,42 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_invite: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          email: string | null
+          expires_at: string
+          role: string
+          used_at: string | null
+          used_by: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          expires_at?: string
+          role?: string
+          used_at?: string | null
+          used_by?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          expires_at?: string
+          role?: string
+          used_at?: string | null
+          used_by?: string | null
           vehicle_id?: string
         }
         Relationships: []
@@ -2297,6 +2567,7 @@ export type Database = {
           server_updated_at: string
           sort_order: number
           updated_at: string
+          updated_by: string | null
           user_id: string
           value: string
           vehicle_id: string
@@ -2309,6 +2580,7 @@ export type Database = {
           server_updated_at?: string
           sort_order?: number
           updated_at: string
+          updated_by?: string | null
           user_id?: string
           value: string
           vehicle_id: string
@@ -2321,6 +2593,7 @@ export type Database = {
           server_updated_at?: string
           sort_order?: number
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
           value?: string
           vehicle_id?: string
@@ -2665,8 +2938,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      storage_usage_bytes: { Args: never; Returns: number }
+      can_edit: { Args: { row_user: string; v: string }; Returns: boolean }
+      can_own: { Args: { row_user: string; v: string }; Returns: boolean }
+      can_read_media_object: { Args: { object_name: string }; Returns: boolean }
+      can_see: { Args: { row_user: string; v: string }; Returns: boolean }
+      create_invite: {
+        Args: { p_email?: string; p_role?: string; p_vehicle: string }
+        Returns: string
+      }
       is_app_user: { Args: never; Returns: boolean }
+      is_member: { Args: { min_role?: string; v: string }; Returns: boolean }
+      public_dossier: { Args: { p_slug: string }; Returns: Json }
+      redeem_invite: { Args: { p_code: string }; Returns: Json }
+      remove_member: {
+        Args: { p_user: string; p_vehicle: string }
+        Returns: boolean
+      }
+      set_member_role: {
+        Args: { p_role: string; p_user: string; p_vehicle: string }
+        Returns: boolean
+      }
+      storage_usage_bytes: { Args: never; Returns: number }
+      vehicle_of: { Args: { row_id: string; tbl: string }; Returns: string }
+      vehicle_role: { Args: { v: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

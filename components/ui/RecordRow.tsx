@@ -15,7 +15,8 @@ export type RecordKind =
   | 'mod'
   | 'hito'
   | 'pista'
-  | 'obd';
+  | 'obd'
+  | 'viaje';
 
 const ICON: Record<RecordKind, keyof typeof Ionicons.glyphMap> = {
   combustible: 'flash-outline',
@@ -28,6 +29,7 @@ const ICON: Record<RecordKind, keyof typeof Ionicons.glyphMap> = {
   hito: 'flag-outline',
   pista: 'speedometer-outline',
   obd: 'warning-outline',
+  viaje: 'navigate-outline',
 };
 
 const CATEGORY: Record<RecordKind, CategoryKey> = {
@@ -42,6 +44,8 @@ const CATEGORY: Record<RecordKind, CategoryKey> = {
   pista: 'track',
   // Subtle: a code is a note on the car, not money.
   obd: 'otros',
+  // A trip costs nothing by itself; it is a note on the car too (v6, FEATURE_TRIPS).
+  viaje: 'otros',
 };
 
 /**
