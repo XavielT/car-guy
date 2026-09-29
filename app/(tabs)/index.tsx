@@ -34,11 +34,12 @@ import type { Task } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
 import { mergeAttention, STATUS_LABEL } from '@/lib/domain/reminders';
-import { economyLabel, unitLabelFor } from '@/lib/fuel';
+import { economyLabel } from '@/lib/fuel';
+import { fuelCfgFor, latestKnown, partialEconomy, weightedAverage } from '@/lib/domain/partialEconomy';
 import { statusBadgeLabel } from '@/lib/domain/vehicleStatus';
-import { km as fmtKm, kmPerUnit, money } from '@/lib/format';
+import { km as fmtKm, kmPerUnit, money, volume as fmtVolume } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
-import { computeEconomy, inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
+import { inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -172,10 +173,14 @@ export default function HomeScreen() {
   );
   const monthSpend = sumSpend(monthLogs) + monthExpenses.reduce((total, e) => total + e.amountDop, 0);
 
-  const economy = computeEconomy(vehicleFillups);
-  const last = economy[economy.length - 1];
+  // Note 4: measured tanks plus the gauge estimates (research 02 §1). The
+  // insight stays on measured tanks only — never an alarm on an estimate.
+  const includeEstimates = Boolean(data.settings.includeEstimates);
+  const partial = partialEconomy(vehicleFillups, fuelCfgFor(activeVehicle.detail), { includeEstimates });
+  const last = latestKnown(partial.series);
+  const lastEstimated = last?.status === 'estimated';
   const insight = latestEconomyInsight(vehicleFillups);
-  const avg = economy.length ? economy.reduce((a, p) => a + p.kmPerUnit, 0) / economy.length : null;
+  const avg = partial.average;
 
   // Pendientes: one list, worst first across reminders and tasks (see
   // `mergeAttention`) — a critical task from a failed check outranks an
@@ -210,8 +215,10 @@ export default function HomeScreen() {
 
   const marbeteNotice = currentMarbeteNudge(todayIso());
   const marbeteTier = marbeteNotice ? marbeteTierLabel(modelYear, todayIso()) : null;
-  const monthEconomy = economy.filter((p) => inMonth(p.occurredAt, now.getFullYear(), now.getMonth()));
-  const monthAvg = monthEconomy.length ? monthEconomy.reduce((a, p) => a + p.kmPerUnit, 0) / monthEconomy.length : avg;
+  const monthEconomy = partial.series.filter(
+    (p) => inMonth(p.occurredAt, now.getFullYear(), now.getMonth()) && (p.status !== 'estimated' || includeEstimates),
+  );
+  const monthAvg = weightedAverage(monthEconomy) ?? avg;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -441,14 +448,14 @@ export default function HomeScreen() {
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
             {es.home.lastTank}
           </T>
-          <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
-            {last ? kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit) : '—'}
+          <T face="monoBold" style={[styles.statVal, { color: lastEstimated ? theme.text.muted : theme.text.primary }]}>
+            {last ? `${lastEstimated ? '≈ ' : ''}${kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit)}` : '—'}
           </T>
           <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
             {last
               ? es.home.lastTankHint(
                   fmtKm(last.distanceKm),
-                  `${last.volume} ${unitLabelFor(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit)}`,
+                  fmtVolume(last.volume, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit),
                 )
               : avg == null
                 ? es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit))

@@ -8,6 +8,7 @@ import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
 import { fuel as fuelRepo, history } from '@/lib/db/repos';
+import { fuelCfgFor } from '@/lib/domain/partialEconomy';
 import type { FuelLog, HistoryEntry } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { inRange, periodRanges, type PeriodKey } from '@/lib/domain/stats';
@@ -62,7 +63,7 @@ export default function ExportarScreen() {
     if (!activeVehicle) return;
     setBusy(true);
     try {
-      const content = kind === 'historial' ? historyCsv(rows) : fuelCsv(logs, activeVehicle.detail?.volumeUnit ?? 'gal');
+      const content = kind === 'historial' ? historyCsv(rows) : fuelCsv(logs, activeVehicle.detail?.volumeUnit ?? 'gal', fuelCfgFor(activeVehicle.detail));
       const name = exportFileName(kind, activeVehicle.name, todayIso());
       const result = await deliverText(content, name, 'text/csv', es.export.title);
 

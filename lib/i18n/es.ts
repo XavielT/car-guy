@@ -139,6 +139,34 @@ export const es = {
   },
   /** Milestone title for a status change: "Cambió a ACCIDENTADO · esperando piezas". */
   statusChanged: (label: string, note?: string | null) => `Cambió a ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
+  /** The fuel gauge in the fill-up form (IMP 29092026 note 4). */
+  gauge: {
+    title: 'Medidor',
+    hint: 'Con el nivel antes y después podemos estimar el consumo sin tanque lleno.',
+    before: 'Antes',
+    after: 'Después',
+    reserve: 'En reserva',
+    reserveShort: 'RESERVA',
+    unset: '—',
+    fullPrompt: '¿Se llenó hasta que la bomba disparó?',
+    fullPromptAction: 'Marcar tanque lleno',
+  },
+  /** Partial-fill economy (note 4, research 02 §1). */
+  estimate: {
+    approx: (value: string, low: string, high: string, unit: string) => `≈ ${value} ${unit} (entre ${low} y ${high}) · estimado por el medidor`,
+    short: (value: string, unit: string) => `≈ ${value} ${unit}`,
+    reasons: {
+      missing_gauge: 'Sin nivel del medidor: se contará en el próximo tanque lleno.',
+      missed_fill: 'Faltó una carga: la cuenta empieza otra vez aquí.',
+      odometer: 'El odómetro no avanzó desde la carga anterior.',
+      nonpositive: 'El medidor marca más que antes: revisa los niveles.',
+      too_uncertain: 'El medidor se movió muy poco para estimar: se contará en el próximo tanque lleno.',
+    },
+    mismatch: 'El medidor y lo que echaste no cuadran del todo; el estimado es menos seguro.',
+    legend: { measured: 'Medido', reconciled: 'Ajustado', estimated: 'Estimado', unknown: 'Sin dato' },
+    includeEstimates: 'Incluir estimados en el promedio',
+    status: { measured: 'medido', reconciled: 'ajustado', estimated: 'estimado', unknown: 'sin dato' },
+  },
   /** components/pickers (IMP 29092026 Phase 3). */
   pickers: {
     other: 'Otro…',

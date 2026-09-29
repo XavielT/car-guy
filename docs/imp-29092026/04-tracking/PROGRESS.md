@@ -4,7 +4,7 @@ Claude Code appends a report per phase (block in `00-context/04-conventions.md` 
 sections plus *Design check*, *Flags flipped*, *Notes closed*). "Notes for the next phase" carry
 context between sessions.
 
-**Started:** 2026-09-29 · **Status:** Phase 3 done (branch `imp-29092026/phase-3-forms`)
+**Started:** 2026-09-29 · **Status:** Phase 4 done (branch `imp-29092026/phase-4-fuel`)
 
 ## Phase status
 
@@ -14,7 +14,7 @@ context between sessions.
 | 1 | Hotfix 2.1.3 | ✅ | `fix/2.1.3-hotfix` | photos, cloud in the APK, Car Guy-only accounts, reset link, released |
 | 2 | Schema v6 + liters + refdata | ✅ | `imp-29092026/phase-2-schema-v6` | migration v6, liters (canary green), trip table, statuses, refdata, sql/019–020 applied; native check pending (no AVD) |
 | 3 | Forms v2 | ✅ | `imp-29092026/phase-3-forms` | pickers, gallery, statuses, oil, check photos + atención; web verified, Android pending |
-| 4 | Carga parcial | ⬜ | | |
+| 4 | Carga parcial | ✅ | `imp-29092026/phase-4-fuel` | gauge estimates with bands, reconciliation, chart styles, CSV estado; web verified |
 | 5A | Viajes — manual + live | ⬜ | | |
 | 5B | Viajes — automático | ⬜ | | |
 | 6 | Garaje v2 · launch · versiones · comentarios · costos | ⬜ | | |
@@ -29,7 +29,7 @@ context between sessions.
 | 1 | Wheelz-style trips | 5A/5B | ⬜ |
 | 2 | Live speed on the home cluster | 5A | ⬜ |
 | 3 | Photos on check issues / new parts, in history | 3 | ✅ ≤5 photos on falla/atención, 📷 N in Historial, CHEQUEO card in the album |
-| 4 | Carga parcial | 4 | ⬜ |
+| 4 | Carga parcial | 4 | ✅ |
 | 5 | Historial de versiones | 6 | ⬜ |
 | 6 | Bug reports / comments | 6 | ⬜ |
 | 7 | Animated launch icon | 6 | ⬜ |
@@ -120,6 +120,10 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 | 3 | Public dossier does not show the status: vehicle_share has no "estado" option | low | needs a share column + public_dossier() change (cloud) — with Phase 6 or 7 |
 | 3 | Gallery reorder is "Mover ←/→" in the photo's sheet, not drag | low | same on native and web and reachable with a screen reader; drag can come with Phase 6's garage |
 | 3 | Garaje card badge sits on the cover photo and can be hard to read (outline on a busy photo) | low | Phase 6 restyles the cards |
+| 4 | Estimate bands on the chart are a light halo around the hollow dot, not a true whisker (gifted-charts gives the custom marker no y-scale) | low | the numbers are in the review sheet; a whisker needs a custom SVG layer |
+| 4 | Headline economy averages are distance-weighted now (Σkm/Σvol, research §1.5): a garage's average moves slightly from 2.1.x's mean of ratios | low | intended by the spec; say so in the 2.2 changelog |
+| 4 | Capacity calibration (§1.4 "tu tanque parece aceptar ≈ X L más") not built | low | needs a few full tanks with a before-reading to be meaningful |
+| 4 | No render/snapshot test for GaugePicker (no react testing library in the repo) | low | verified by the web flow and screenshot |
 
 ## Blockers
 
@@ -441,4 +445,69 @@ Built by me plus two helper agents working on separate files (oil; check photos)
 - Phase 4 (carga parcial) writes gauges through the store: `fuelForStorage` already stores liters; the
   form knows the vehicle's unit from `data.vehicles[].detail.volumeUnit`.
 - `vehicleGallery` lives in lib/db/tripOps.ts next to the other v6 helpers.
+
+---
+
+## Phase 4 — Carga parcial   (branch `imp-29092026/phase-4-fuel`)
+
+**Status:** complete on web (Android pending, as for Phases 2–3)
+**Commits:** `feat(imp-29092026 phase 4): carga parcial — gauge estimates, reconciliation, chart` ·
+`docs(imp-29092026): Phase 4 report`
+
+### Changed
+- `lib/domain/partialEconomy.ts` (new; economy.ts untouched): research 02 §1.8 — levels before/after from
+  the gauge (E…F in eighths, reserve = reserveL ± half, F without the toggle = 15/16 C ± C/16), pump vs gauge
+  combined by inverse variance with a `gauge_pump_mismatch` warning, consecutive segments
+  estimated / unknown (missing_gauge, missed_fill, odometer, nonpositive, too_uncertain > 25 %), measured
+  spans = `computeEconomy` exactly, reconciliation by variance inside a span (only when every part is
+  known), a chart `series`, distance-weighted `average` (+ estimates when the setting is on),
+  `fuelCfgFor(vehicle)`, `latestKnown`, `weightedAverage`. Math in liters, km per the display unit.
+- `components/fuel/GaugePicker.tsx`: SVG arc, 9 stops E…F (44 px targets, tap; tap again clears), needle,
+  reading; "En reserva" chip on Antes greys the arc and wins over the reading.
+- FillUpForm: Medidor block (Antes + reserva, Después; not for GNV), hint, soft prompt when Después = F on
+  a partial ("¿Se llenó hasta que la bomba disparó? → Marcar tanque lleno"); gauges saved through the store
+  (`gaugeBeforeEighths` / `gaugeAfterEighths` / `inReserve`); the edit form loads them.
+- Review sheet: a partial with an estimate shows "≈ X km/gal" and "≈ X (entre A y B) · estimado por el
+  medidor" (+ the mismatch note); an unknown one shows its reason in Spanish.
+- Inicio: "Último tanque" is the newest known point, "≈" and muted when estimated; month average
+  distance-weighted; the low/great insight stays on measured tanks only.
+- Cifras: EconomyLine draws measured (solid), reconciled (ring), estimated (hollow + halo), unknown (gap),
+  legend, "Incluir estimados en el promedio" (setting `economy_include_estimates`, store `includeEstimates`);
+  KPI = the distance-weighted average; axis pinned at 0 (a gap counted as 0 pushed it negative).
+- CSV: `estado` (medido / ajustado / estimado / sin dato), `nivel_antes`, `nivel_despues`.
+- Report PDF and public dossier: unchanged — measured tanks only.
+- Dev seed: tanks in liters (DS3 50, AE85 50, C3 47) so estimates work on the seed.
+
+### Acceptance criteria
+- [x] §1.9 worked example to 2 decimals (A→B 10.67 (9.68–11.87), B→C 12.93 (11.57–14.66), span 12.26,
+  reconciled 11.05 / 13.54, sum 53.0 L); F-without-toggle, missed fill, reserve, mismatch, too-uncertain,
+  missing reading / stuck odometer / no tank; km/gal on gallons; all existing economy tests and the Phase 2
+  canary green.
+- [x] Web, seed DS3: partial 1/4 → 3/4: review "≈ 30.3 km/gal (entre 26.9 y 34.6) · estimado por el medidor"
+  (`docs/qa/imp-29092026-phase-4-review-estimated.png`); partial → F without the toggle: the prompt shows
+  (`…-full-prompt.png`); Inicio "≈ 37.9 km/gal"; then a full tank: Inicio "35.2 km/gal" (no ≈) and the chart
+  shows the reconciled rings (`…-cifras-reconciled.png`).
+- [x] A too-small gauge move (3/4 → 1/2 on a 50 L tank) is `unknown · too_uncertain` and its span stays one
+  measured point — the spec's rule, seen in the first web run.
+- [ ] Android.
+- [x] tsc, lint, 987 tests.
+
+### Decisions made (defaults applied)
+- "En reserva" disables the Antes arc (the reading is the reserve, not a gauge stop).
+- The review's "unknown" reason is not shown for `missing_gauge` (the old "se mide con el próximo lleno"
+  text says the same thing more simply).
+- Segment cost/km uses the price of the fill-up the fuel came from.
+
+### Deviations from the package
+- Estimate band drawn as a halo (see Observed). No GaugePicker snapshot test.
+
+### Flags flipped
+- none
+
+### Notes closed
+- 4.
+
+### Notes for the next phase
+- Phase 5 (viajes) may feed trip_estimate odometer readings; partialEconomy only reads fill-ups, so trips
+  do not change economy numbers.
 

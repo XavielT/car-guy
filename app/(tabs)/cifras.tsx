@@ -5,14 +5,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DistanceBars } from '@/components/charts/DistanceBars';
 import { Donut } from '@/components/charts/Donut';
-import { EconomyLine } from '@/components/charts/EconomyLine';
+import { EconomyLegend, EconomyLine } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
 import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
-import { computeEconomy, latestEconomyInsight } from '@/lib/domain/economy';
+import { latestEconomyInsight } from '@/lib/domain/economy';
+import { fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
 import { economyNumber, km, money } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
@@ -33,7 +34,7 @@ const PERIODS: PeriodKey[] = ['mes', 'trimestre', 'ano', 'todo'];
 export default function CifrasScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { activeVehicle, vehicleFillups, data } = useStore();
+  const { activeVehicle, vehicleFillups, data, updateSettings } = useStore();
 
   const [period, setPeriod] = useState<PeriodKey>('trimestre');
   const [stats, setStats] = useState<VehicleStats | null>(null);
@@ -59,7 +60,11 @@ export default function CifrasScreen() {
   // Economy is a fill-up series, not a spend series, so it comes from the store
   // rather than from the stats query — and from computeEconomy, which drops the
   // tanks it cannot measure.
-  const points = computeEconomy(vehicleFillups);
+  // Note 4: measured tanks, reconciled parts, gauge estimates and gaps.
+  const includeEstimates = Boolean(data.settings.includeEstimates);
+  const partial = partialEconomy(vehicleFillups, fuelCfgFor(activeVehicle?.detail), { includeEstimates });
+  const points = partial.series;
+  const hasEstimates = points.some((p) => p.status !== 'measured');
   const insight = latestEconomyInsight(vehicleFillups);
 
   const scrollTo = useCallback((key: string) => {
@@ -129,7 +134,7 @@ export default function CifrasScreen() {
               />
               <Kpi
                 label={es.stats.economy}
-                value={points.length ? `${economyNumber(averageOf(points))} ${unit}` : '—'}
+                value={partial.average != null ? `${economyNumber(partial.average)} ${unit}` : '—'}
                 onPress={() => scrollTo('economy')}
               />
               {FEATURE_BUILD && stats.modsInvested > 0 ? (
@@ -159,7 +164,32 @@ export default function CifrasScreen() {
             </View>
 
             <View onLayout={rememberOffset('economy')}>
-              <EconomyLine points={points} fuelType={activeVehicle.defaultFuelType} volumeUnit={activeVehicle.detail?.volumeUnit} />
+              <EconomyLine
+                points={points}
+                average={partial.average}
+                fuelType={activeVehicle.defaultFuelType}
+                volumeUnit={activeVehicle.detail?.volumeUnit}
+              />
+              {hasEstimates ? (
+                <>
+                  <EconomyLegend />
+                  <Pressable
+                    onPress={() => updateSettings({ includeEstimates: !includeEstimates })}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: includeEstimates }}
+                    style={styles.estimatesToggle}>
+                    <View
+                      style={[
+                        styles.estimatesBox,
+                        { borderColor: includeEstimates ? theme.accentFill : theme.lineStrong, backgroundColor: includeEstimates ? theme.accentFill : theme.bg.raised },
+                      ]}
+                    />
+                    <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
+                      {es.estimate.includeEstimates}
+                    </T>
+                  </Pressable>
+                </>
+              ) : null}
             </View>
 
             <View onLayout={rememberOffset('km')}>
@@ -260,9 +290,6 @@ export default function CifrasScreen() {
   );
 }
 
-function averageOf(points: { kmPerUnit: number }[]): number {
-  return points.reduce((sum, p) => sum + p.kmPerUnit, 0) / points.length;
-}
 
 /**
  * One headline number. Tapping it scrolls to the chart it came from, which is
@@ -361,6 +388,8 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 }
 
 const styles = StyleSheet.create({
+  estimatesToggle: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44, marginTop: space.sm },
+  estimatesBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1 },
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 48 },
   periodHint: { fontSize: 13, marginTop: space.sm, marginBottom: space.lg },

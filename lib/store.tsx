@@ -157,10 +157,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
     serviceIds.current = new Set(maintenance.map((r) => r.id));
 
-    const [activeVehicleId, referencePrices, priceWeekLabel] = await Promise.all([
+    const [activeVehicleId, referencePrices, priceWeekLabel, includeEstimates] = await Promise.all([
       settingsRepo.get<string | null>('active_vehicle_id', null),
       settingsRepo.get('reference_prices', EMPTY_DATA.settings.referencePrices),
       settingsRepo.get('price_week_label', EMPTY_DATA.settings.priceWeekLabel),
+      settingsRepo.get<boolean>('economy_include_estimates', false),
     ]);
 
     // v6: the database holds liters; everything below `data` works in each
@@ -192,6 +193,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         station: f.station,
         notes: f.notes,
         createdAt: f.createdAt,
+        gaugeBefore8: f.gaugeBeforeEighths ?? null,
+        gaugeAfter8: f.gaugeAfterEighths ?? null,
+        inReserve: Boolean(f.inReserve),
       })),
       expenses: [...expenseRows.map(expenseToLegacy), ...maintenance.map(serviceToLegacyExpense)].sort(
         (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
@@ -211,7 +215,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           notes: r.notes,
           createdAt: r.createdAt,
         })),
-      settings: { activeVehicleId, referencePrices, priceWeekLabel },
+      settings: { activeVehicleId, referencePrices, priceWeekLabel, includeEstimates },
     });
   }, []);
 
@@ -352,6 +356,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           missedPrevious: input.missedPrevious ?? false,
           station: input.station,
           notes: input.notes,
+          gaugeBeforeEighths: input.inReserve ? null : (input.gaugeBefore8 ?? null),
+          gaugeAfterEighths: input.gaugeAfter8 ?? null,
+          inReserve: Boolean(input.inReserve),
         });
         await load();
       });
@@ -458,6 +465,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (patch.priceWeekLabel !== undefined) {
           await settingsRepo.set('price_week_label', patch.priceWeekLabel);
         }
+        if (patch.includeEstimates !== undefined) await settingsRepo.set('economy_include_estimates', patch.includeEstimates);
         await load();
       });
     },

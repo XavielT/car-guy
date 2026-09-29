@@ -1,4 +1,4 @@
-import { BOM, exportFileName, fuelCsv, historyCsv, toCsv } from '@/lib/export/csv';
+import { BOM, exportFileName, FUEL_HEADERS, fuelCsv, historyCsv, toCsv } from '@/lib/export/csv';
 import type { FuelLog, HistoryEntry } from '@/lib/db/types';
 import { fuelForStorage } from '@/lib/domain/units';
 
@@ -127,8 +127,10 @@ describe('fuelCsv', () => {
     ]);
     // Without the flag this row would have claimed 90 km/gal.
     expect(csv).not.toContain('90.000');
+    const at = (name: string) => FUEL_HEADERS.indexOf(name);
     for (const line of csv.trim().split('\r\n').slice(1)) {
-      expect(line.endsWith(',,,')).toBe(true);
+      const cells = line.split(',');
+      expect([cells[at('km_recorridos')], cells[at('km_por_unidad')], cells[at('costo_por_km_dop')]]).toEqual(['', '', '']);
     }
   });
 
@@ -158,4 +160,22 @@ describe('exportFileName', () => {
       'car-guy-historial-2026-09-18.csv',
     );
   });
+});
+
+it('says how each tank was measured, and the gauge readings (note 4)', () => {
+  const csv = fuelCsv(
+    [
+      log({ id: 'a', occurredAt: '2026-09-01T12:00:00.000Z', odometerKm: 1000, isFullTank: true }),
+      log({ id: 'b', occurredAt: '2026-09-05T12:00:00.000Z', odometerKm: 1300, isFullTank: false, volume: 4, gaugeBeforeEighths: 2, gaugeAfterEighths: 6 }),
+      log({ id: 'c', occurredAt: '2026-09-09T12:00:00.000Z', odometerKm: 1600, isFullTank: false, volume: 4, inReserve: true }),
+    ],
+    'gal',
+    { capacityL: 45, unitL: 3.785411784 },
+  );
+  const rows = csv.trim().split('\r\n').slice(1).map((l) => l.split(','));
+  const at = (name: string) => FUEL_HEADERS.indexOf(name);
+  expect(rows[1][at('estado')]).toBe('estimado');
+  expect(rows[1][at('nivel_antes')]).toBe('1/4');
+  expect(rows[1][at('nivel_despues')]).toBe('3/4');
+  expect(rows[2][at('nivel_antes')]).toBe('reserva');
 });

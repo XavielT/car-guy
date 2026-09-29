@@ -1,4 +1,6 @@
 import { displayUnitLabel, fuelForDisplay, type VolumeUnit } from '../domain/units';
+import { partialEconomy, type FuelCfg, type SeriesPoint } from '../domain/partialEconomy';
+import { es } from '../i18n/es';
 import type { FuelLog, HistoryEntry } from '../db/types';
 import { economyById } from '../domain/economy';
 import { historyTitle } from '../domain/history';
@@ -87,6 +89,10 @@ export const FUEL_HEADERS = [
   'km_recorridos',
   'km_por_unidad',
   'costo_por_km_dop',
+  // Note 4: medido (full → full), ajustado, estimado (gauge) or sin dato.
+  'estado',
+  'nivel_antes',
+  'nivel_despues',
 ];
 
 /**
@@ -97,7 +103,7 @@ export const FUEL_HEADERS = [
  * the previous row's number down. A blank cell is a fact; a repeated one is a
  * lie a spreadsheet will happily average.
  */
-export function fuelCsv(logs: FuelLog[], unit: VolumeUnit = 'gal'): string {
+export function fuelCsv(logs: FuelLog[], unit: VolumeUnit = 'gal', cfg?: FuelCfg): string {
   // Stored in liters (v6); the file speaks the vehicle's unit, like the screens.
   const shown = new Map(logs.map((log) => [log.id, fuelForDisplay(log, unit)]));
   // computeEconomy works on the app-facing FillUp shape and keys its output by
@@ -117,6 +123,10 @@ export function fuelCsv(logs: FuelLog[], unit: VolumeUnit = 'gal'): string {
     createdAt: log.createdAt,
   }));
   const economy = economyById(asFillUps);
+  // The gauge picture (note 4): a partial with readings has an estimate; without cfg, none.
+  const gauged = asFillUps.map((f, i) => ({ ...f, gaugeBefore8: logs[i].gaugeBeforeEighths, gaugeAfter8: logs[i].gaugeAfterEighths, inReserve: logs[i].inReserve }));
+  const partial = partialEconomy(gauged, cfg ?? { capacityL: null, unitL: unit === 'l' ? 1 : 3.785411784 });
+  const statusOf = new Map(partial.series.map((p) => [p.fillUpId, p]));
 
   const sorted = [...logs].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
 
@@ -139,6 +149,9 @@ export function fuelCsv(logs: FuelLog[], unit: VolumeUnit = 'gal'): string {
         point ? num(point.distanceKm, 0) : '',
         point ? num(point.kmPerUnit, 3) : '',
         point?.costPerKm != null ? num(point.costPerKm) : '',
+        estadoFor(point != null, statusOf.get(log.id)),
+        log.inReserve ? 'reserva' : log.gaugeBeforeEighths != null ? gaugeLabel(log.gaugeBeforeEighths) : '',
+        log.gaugeAfterEighths != null ? gaugeLabel(log.gaugeAfterEighths) : '',
       ];
     }),
   );
@@ -154,4 +167,18 @@ export function exportFileName(kind: string, vehicleName: string, today: string)
     .replace(/^-|-$/g, '')
     .slice(0, 24);
   return `car-guy-${kind}${slug ? `-${slug}` : ''}-${day(today)}.csv`;
+}
+
+/** E, 1/8 … F — same reading as the fuel form's gauge. */
+function gaugeLabel(eighths: number): string {
+  if (eighths <= 0) return 'E';
+  if (eighths >= 8) return 'F';
+  const [n, d] = eighths % 4 === 0 ? [eighths / 4, 2] : eighths % 2 === 0 ? [eighths / 2, 4] : [eighths, 8];
+  return `${n}/${d}`;
+}
+
+function estadoFor(measured: boolean, point: SeriesPoint | undefined): string {
+  if (measured && (!point || point.status === 'measured')) return es.estimate.status.measured;
+  if (!point) return '';
+  return es.estimate.status[point.status];
 }
