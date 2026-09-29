@@ -27,7 +27,7 @@ export const FEATURE_BUILD = true;
 /** Ficha técnica, fluidos, OBD, contactos — PROMPT-05. */
 export const FEATURE_DIY = true;
 /** Pista: eventos, sesiones, setup sheets — PROMPT-06. */
-export const FEATURE_TRACK = false;
+export const FEATURE_TRACK = true;
 /** Ficha pública, libro PDF, garaje compartido — PROMPT-07. */
 export const FEATURE_SHARE = false;
 

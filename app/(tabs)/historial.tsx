@@ -283,8 +283,10 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
     router.push({ pathname: '/obd/[code]', params: { code: entry.title, vehicleId: entry.vehicleId } });
     return;
   }
-  // Track days get their screen in PROMPT-06.
-  if (entry.kind === 'pista') return;
+  if (entry.kind === 'pista') {
+    router.push({ pathname: '/pista/evento/[id]', params: { id: entry.id } });
+    return;
+  }
   router.push({ pathname: '/inspeccion/[id]', params: { id: entry.id } });
 }
 

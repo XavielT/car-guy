@@ -45,6 +45,7 @@ import { useMediaUri } from '@/lib/media/useMediaUri';
 import { AlbumTab } from '@/components/album/AlbumTab';
 import { BuildSummary, BuildTab } from '@/components/build/BuildTab';
 import { FichaTab } from '@/components/diy/FichaTab';
+import { TrackSummaryLine, TrackTab } from '@/components/track/TrackPieces';
 import { investedTotal } from '@/lib/domain/build';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
@@ -272,6 +273,7 @@ export default function VehicleHubScreen() {
             </View>
           ) : null}
           {tab === 'resumen' && FEATURE_BUILD ? <BuildSummary vehicleId={vehicle.id} version={version} /> : null}
+          {tab === 'resumen' && FEATURE_TRACK ? <TrackSummaryLine vehicleId={vehicle.id} version={version} /> : null}
           {tab === 'resumen' ? (
             <Resumen
               vehicle={vehicle}
@@ -292,6 +294,8 @@ export default function VehicleHubScreen() {
             <BuildTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'ficha' && FEATURE_DIY ? (
             <FichaTab vehicleId={vehicle.id} version={version} />
+          ) : tab === 'pista' && FEATURE_TRACK ? (
+            <TrackTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'docs' ? (
             <Docs docs={docs} onOpen={(docId) => router.push({ pathname: '/documento/[id]', params: { id: docId } })} onAll={() => router.push('/documentos')} />
           ) : (

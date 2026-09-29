@@ -3,7 +3,7 @@
 Claude Code appends a report per phase (block in `00-context/04-conventions.md`, plus *Design
 check* and *Flags flipped*). "Notes for the next phase" carry context between sessions.
 
-**Started:** 2026-09-28 · **Status:** Phase 5 done
+**Started:** 2026-09-28 · **Status:** Phase 6 done
 
 ## Phase status
 
@@ -15,7 +15,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 3 | Álbum / memoria | ✅ | `imp-28092026/phase-3-album` | web + Android (Redmi) verified 2026-09-28; sql/011 applied |
 | 4 | Build log | ✅ | `imp-28092026/phase-4-build` | web verified 2026-09-28; Android device check pending (phone not connected) |
 | 5 | DIY | ✅ | `imp-28092026/phase-5-diy` | web verified 2026-09-28; Android device check pending with Phase 4's |
-| 6 | Pista | ⬜ | | |
+| 6 | Pista | ✅ | `imp-28092026/phase-6-track` | web verified 2026-09-28 (dark + light, web↔web sync); Android device check pending with Phases 4–5 |
 | 7 | Compartir | ⬜ | | |
 | 8 | Release 2.1.0 | ⬜ | | |
 
@@ -78,7 +78,9 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | 3 | Web thumbs have no blurhash: `Image.generateBlurhashAsync` is Android/iOS only. Web cells show the well colour until the (local, fast) thumb loads | low | a JS blurhash encoder would add ~5 KB if it matters |
 | 3 | "Guardar original en Google Fotos/Drive" opens the share sheet once per photo (expo-sharing shares one file). In the viewer it shares the stored 1600 px copy — the untouched original only exists at import time, so the viewer's label says "copia" | low | a multi-file share needs a native module |
 | 3 | Over-quota refusal verified live against Storage with a 1-byte quota on a throwaway user; the 90 % / 100 % meter states verified in unit tests only (no account holds 270 MB) | low | — |
-| 4–5 | Phases 4 and 5 not yet run on the Redmi (phone not connected at merge time) | medium | install the latest preview build; check share-as-image, long-press, the ficha's share sheet, the runner's fluid card, WhatsApp/tel links natively |
+| 4–6 | Phases 4, 5 and 6 not yet run on the Redmi (phone not connected at merge time) | medium | install the latest preview build (Phase 6's is built); check share-as-image (specs + day summary), long-press, the ficha's share sheet, the runner's fluid card, WhatsApp/tel links, the CornerGrid keyboard "next" order natively |
+| 6 | Heat cycles count once per tire per **event** (the "Gomas usadas" tick), not per session | low | a per-session tick is a second picker on the session screen if anyone wants it |
+| 6 | Personal bests are per venue; `venue.layout` exists but events do not record which layout was run | low | add `track_event.layout` when a venue with two layouts shows up |
 | 4 | `inventory_item` has no column linking an item to the mod that used it; "Usar en un mod" prefills the mod form and appends "Usado en: <mod>" to the item's notes | low | a `used_in_mod_id` column needs migration v4 + cloud SQL; not worth it until someone filters by it |
 | 4 | The ficha image on web is html2canvas's rendering (fonts and the dark card come through; a long value is clipped at the card edge, as on screen) | low | — |
 | 5 | Presets hold only platform facts (bolt pattern, bore, lug thread, brake fluid type, tank, engine code); oil capacities, plug gaps and tire pressures are left null on purpose | low | the user fills them from the manual; a reviewed data source could extend the presets later |
@@ -844,3 +846,117 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 ### Notes for the next phase
 - Phase 6 (Pista): the hub's Pista tab and `vehicleBadges()`' `lastDiscipline` are waiting; `consumable_usage` + tires
   from Phase 4 (`heat_cycles`, `quemada`) are the consumables' home; `contactPicker` can serve "organizador".
+
+## Phase 6 — Pista: eventos, sesiones, setup copy-forward, tiempos, consumibles   (branch `imp-28092026/phase-6-track`)
+
+**Status:** complete (Android device check pending, with Phases 4–5)
+**Commits:** `feat(track): eventos y sesiones de pista con setup copy-forward, tiempos, consumibles y resumen del día …`, `docs(imp-28092026): phase 6 report`
+
+### Changed
+- **Domain** — `lib/domain/track.ts`: `parseLap` / `formatLap` (`m:ss.mmm` ⇄ integer ms, "83.456", "1:05,12", rejects
+  "1:75"), `formatSeconds`; `SHEET_FIELDS` (the setup sheet's 45 fields with Spanish labels); `copyForward` (the sheet
+  only, `changed_from_previous = []`), `diffSheets` (null / missing / hydro-off are the same), `describeChanges` (a pair
+  that moved together reads "TI/TD 40 → 42"); `pressureDeltas`, `flagRearGrowth` (> 8 psi, rears only);
+  `eventSummary` (sessions, runs, laps, best lap, burned tires, km on track — none when the odometer went backwards —
+  and RD$); `isTimed` (drift and junte count runs); `personalBests` (best timed lap per venue); `heatCycles`; `padLife`
+  (mm per session since the last pad change, sessions left, `due` under 5 mm track / 3 mm street).
+- **DB** — `lib/db/trackQueries.ts`: venues (list, add); events (`listEvents` with summaries, `eventDetail`,
+  `saveEvent` → odometer start/end readings with source **`track`** and derived ids, `deleteEvent` tombstones sessions,
+  sheets, usage and readings); sessions (`sessionDraft` = next number + the last sheet copied forward, `saveSession`
+  recomputes `changed_from_previous` against the previous session, `copyToNextSession`, `deleteSession`); consumables
+  (`setTireUsed` — one heat cycle per tire per event, derived id, untick gives it back; `burnTire` → tire `quemada`, off
+  the car, the corner kept on the usage row; `measurePads`); `padSeries` / `padStatus`; **`syncPadReminder`** — the
+  reminder hook: "Pastillas (pista)" (service type `pastillas_frenos`, metric date, due = next event or +30 d) armed when
+  an axle is due, switched off when new pads are measured; `vehicleBests`, `trackLine`, `eventPhotos`.
+  `OdometerSource` gains `'track'`. Cifras: `spendRows` adds the events' entrada + gasolina + otros as a new **`pista`**
+  category (orange, `categoryColors.track`), `VehicleStats.trackDays`.
+- **Screens** — `app/pista/index` (vehicle filter, MEJORES VUELTAS strip, próximos / pasados cards: venue, date,
+  discipline badge, sessions, best lap or runs, gomas quemadas); `app/pista/evento/nuevo|[id]` (vehicle, venue chips with
+  the seeded Autódromo + "Agregar pista", date, name, organiser, discipline chips TRACK DAY · DRIFT · DRAG · AUTOCROSS ·
+  JUNTE · PRUEBA, weather chips + temps, condition, odometer, costs, notes; then its sessions, GOMAS Y PASTILLAS, the
+  day summary and photos through the album pipeline with `trackEventId`); `app/pista/sesion/nueva|[id]` per
+  Pista.dc.html (eyebrow "SUNIX · 21 SEPT DE 2026 走り", "DRIFT · SESIÓN 2", CLIMA / PISTA / RUNS or MEJOR cards; the
+  pressure card with a cold CornerGrid and a hot one comparing against it, the rear over 8 in red and "Traseras +9 psi:
+  normal en drift." — on a timed day "bájales en frío"; the live "Cambiaste desde la sesión 1: …" note; tire sets and
+  sizes/compounds, camber grid, toe/caster, heights grid, springs, dampers + clicks, sway bars, pads/bias; ÁNGULO · LSD +
+  hydro on drift/junte; LAUNCH on drag; TIEMPOS on timed days (laps, best/second as m:ss.mmm, sectors, 0–100, 60 ft, ¼
+  mile + trap) else RUNS; incident; feel chips SUBVIRA · NEUTRAL · SOBREVIRA · NERVIOSO · LENTO + stars; notes, driver,
+  video link; RESUMEN DEL DÍA; COPIAR A SESIÓN N+1 · COMPARTIR RESUMEN). `components/track/`: `TrackPieces` (EventCard,
+  BestsStrip, `DaySummaryCard` + `shareCardImage` / `summaryText` / `shareSummaryText`, the hub's `TrackTab` and
+  `TrackSummaryLine`), `EventForm`, `SessionForm`.
+- **Integration** — Historial opens `pista` rows (orange, discipline subtitle — the v2 view already had them); Cifras
+  "Días de pista" tile (count + RD$ in the period) and the Pista slice in both charts; hub Resumen "N eventos · PB Sunix
+  1:23.456" and the Pista tab; Álbum PISTA/JUNTE cards now open the event; Más → DIY → Pista; Inicio's PISTA quick action
+  opens the index. `FEATURE_TRACK = true`. Routes registered in `_layout` + `vercel.json`.
+- **Seed** — `lib/dev/garage.ts` `seedTrack()`: the AE85's "Drift day Sunix" (7 days before seeding, soleado 33 °C, con
+  goma, 52,200 → 52,286 km, RD$ 9,800), session 1 práctica 6 runs (rears 40 → 47/46), session 2 batalla 8 runs copied
+  forward with the rears at 42 (→ 51/50, "de lao' fácil", "Temp. subió en run 11"), rears marked used, pads 7/8 mm. A
+  garage seeded before Phase 6 gets the drift day on its next "Sembrar garaje".
+- **Tests** 778 → **801**: `__tests__/domain/track.test.ts` (17: lap parse/format round trip, copy-forward, diff + the
+  paired note, deltas, rear flag at exactly 8, summaries, PBs, heat cycles, pad life incl. new pads and the street
+  threshold), `__tests__/db/track.test.ts` (6, real SQLite + seed: the artboard's summary, s2's stored diff + red rears,
+  copy-forward without runs/incident, no double heat cycle + burned tire, the pad reminder armed on the next event's date
+  and cleared by new pads, track odometer readings + Cifras spend + feed row + delete cascade). The DB test caught a real
+  bug: a sheet saved without `spring_unit` "changed" it against a stored default — defaults now count as values.
+
+### Dependencies added / removed
+- none (react-native-view-shot from Phase 4, expo-sharing already present)
+
+### Acceptance criteria
+- [x] Domain with tests; pad-life reminder hook.
+- [x] Events + sessions + copy-forward setup sheet per artboard; drift/timed variants.
+- [x] CornerGrid input with cold→hot deltas and rear-growth flag.
+- [x] Consumables: heat cycles, burned tires, pad measurements.
+- [x] Day summary shareable — image (share sheet on Android; a PNG download on web, captured with html2canvas — it
+  worked, so the PDF fallback was not needed) and text (share sheet / Web Share / clipboard).
+- [x] Historial/Cifras/hub/Álbum integration; `FEATURE_TRACK` on; sync verified web↔web.
+- [x] tsc, lint, 801/801, build (73/73 pages titled), `verify-sync` 14/14, `verify-x-core` 14/14.
+
+### Verification (web, Playwright, fresh profiles, dark and light — 0 page errors)
+- Seed → the index shows "SUNIX · 21 SEPT DE 2026 · DRIFT · DRIFT DAY SUNIX · 2 sesiones · 14 runs"; session 2 reads
+  "Cambiaste desde la sesión 1: TI/TD 40 → 42 · TI caliente 47 → 51 · TD caliente 46 → 50" and "Traseras +9 psi:
+  normal en drift." with the TI cell red.
+- Through the UI: a drift event "Drift test web" at the Autódromo (soleado 31 °C, con goma, 52,400 → 52,470, RD$ 5,500)
+  → "+ Nueva sesión" → session 1 cold 30/30/40/40, hot 34/34/47/46, 6 runs, 55° → COPIAR A SESIÓN 2 opens "DRIFT ·
+  SESIÓN 2" with TI copied at 40 → rears to 42 / 51 / 50 → the same note and red highlight live.
+- Consumables: a rear marked USADA (ciclo 1 → 2), the other rear burned (QUEMADA, gone from the usable list), pads 4.5 /
+  7 mm → "Menos de 5 mm para la próxima: recordatorio "Pastillas (pista)" creado." and the reminder is in Recordatorios.
+- Share: text "DRIFT · Autódromo de las Américas (Sunix) · 28 sept de 2026 / Trueno AE85 / Drift test web / 2 sesiones /
+  14 runs / 1 goma quemada / 70 km en pista / RD$ 5,500.00 gasto"; the image downloaded
+  (`imp-28092026-phase-6-summary-card-*.png`).
+- Historial row "Drift test web · 28 sept de 2026 · 52,400 km · drift"; hub line "2 eventos"; Cifras "DÍAS DE PISTA 2 ·
+  RD$ 15,300.00 en el período" and the orange Pista stack; Álbum shows the DRIFT card; Más → Pista; the hub odometer
+  reads 52,470 from the track reading.
+- **Sync**: the dark profile created an account and pushed; a fresh profile signed in and pulled both events (cards,
+  summaries, "1 goma quemada"), session 2's note (setup sheets + `changed_from_previous`) and "Pastillas (pista)".
+  Test users cleaned (`leftover_profiles: 0`).
+- Screenshots `docs/qa/imp-28092026-phase-6-*-{dark,light}.png`.
+- **Android**: the arm64 preview APK is built; not run on the phone (not connected) — pending with Phases 4–5.
+
+### Decisions made (defaults applied)
+- A new event defaults to the Autódromo and DRIFT (the garage's reality); both are one tap to change.
+- "Gomas usadas" is per event (one heat cycle per day at the track), with a derived id so it cannot double count.
+- A burned tire leaves the car (`position = unmounted`, status `quemada`) but stays in the inventory's history.
+- The pad reminder is switched off, not deleted, when new pads read above the line — its history stays.
+- The pad threshold is 5 mm (measurements are taken on track days); the domain takes 3 mm for street use.
+- Venue names show their short form ("Sunix") on cards and eyebrows, the full name in the summary.
+
+### Deviations from the package
+- The seed lives in `lib/dev/garage.ts` (where the whole real-garage seed is), not in `app/dev/seed.tsx`, which only
+  calls it.
+- The "Cambiaste…" note is computed live from the previous sheet (and stored as `changed_from_previous` on save), so it
+  is right while editing.
+- Web image share is a PNG download (no Web Share for files in Chrome desktop); the PDF fallback was not needed.
+
+### Design check
+- Pista.dc.html: eyebrow + kanji, the DISCIPLINE · SESIÓN N title, three stat cards, the PSI card (FRÍO → CALIENTE), the
+  red rear with the drift note, the amber "Cambiaste…" line, RESUMEN DEL DÍA with the stat grid, the two buttons. The
+  artboard shows pressures as "30 → 34.5" read-only pairs; the screen has two editable grids (cold, then hot with
+  deltas), since the same screen is the input.
+
+### Flags flipped
+- `FEATURE_TRACK` → true
+
+### Notes for the next phase
+- Phase 7 (Compartir): `vehicle_share.show_track` can use `listEvents()` + `summaryText()`; the `DaySummaryCard` is a
+  ready piece for the public page; `personalBests()` gives the dossier's PB line.

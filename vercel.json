@@ -21,6 +21,8 @@
     { "source": "/vehiculo/:id/fluidos", "destination": "/vehiculo/[id]/fluidos" },
     { "source": "/obd/:code", "destination": "/obd/[code]" },
     { "source": "/contactos/:id", "destination": "/contactos/[id]" },
+    { "source": "/pista/evento/:id", "destination": "/pista/evento/[id]" },
+    { "source": "/pista/sesion/:id", "destination": "/pista/sesion/[id]" },
     { "source": "/chequeo/:templateId/run", "destination": "/chequeo/[templateId]/run" },
     { "source": "/carga/:id", "destination": "/carga/[id]" },
     { "source": "/gasto/:id", "destination": "/gasto/[id]" },

@@ -10,12 +10,14 @@ import {
   specsheets as specsheetRepo,
   tasks as taskRepo,
   tires as tireRepo,
+  trackEvents as trackEventRepo,
   vehicleOwnership as ownershipRepo,
   vehicles as vehicleRepo,
   wheelSets as wheelSetRepo,
   wishlist as wishlistRepo,
 } from '@/lib/db/repos';
 import { seedVehicleDefaults } from '@/lib/db/seed';
+import { measurePads, saveEvent, saveSession, setTireUsed } from '@/lib/db/trackQueries';
 import type { ExpenseCategory, Mod, Task, Vehicle } from '@/lib/db/types';
 import { id as newId } from '@/lib/format';
 
@@ -138,12 +140,14 @@ const C3_TASKS: Pick<Task, 'title' | 'kind' | 'priority'>[] = [
  */
 export async function seedRealGarage(today = new Date()): Promise<string[]> {
   const lines: string[] = [];
-  if (await vehicleRepo.getById(GARAGE_IDS.ae85)) {
-    return ['El garaje ya está sembrado (AE85 existe). No se tocó nada.'];
-  }
-
   const at = (daysAgo: number) =>
     new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysAgo, 12, 0, 0).toISOString();
+
+  if (await vehicleRepo.getById(GARAGE_IDS.ae85)) {
+    // A garage seeded before Phase 6 still gets its drift day.
+    if (!(await trackEventRepo.getById(TRACK_EVENT_ID))) return ['El garaje ya estaba sembrado; se agregó el drift day.', ...(await seedTrack(at))];
+    return ['El garaje ya está sembrado (AE85 existe). No se tocó nada.'];
+  }
 
   // Same order as saveVehicleDraft: the vehicle without seeding, then its
   // first reading, then the defaults — which read the odometer for due_km.
@@ -340,6 +344,7 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
   lines.push('5 tareas (DS3: gomas · C3: chapa, pintura, alineación, suspensión)');
 
   lines.push(...(await seedBuildAndMemory(at, radiatorRecordId)));
+  lines.push(...(await seedTrack(at)));
   return lines;
 }
 
@@ -492,4 +497,48 @@ async function seedBuildAndMemory(at: (daysAgo: number) => string, radiatorRecor
     'AE85: aros 15x8 + 4 gomas DOT 2323 · fichas AE85 (3A-U) y DS3',
     'Hitos: swap ago 2025 (AE85), choque (C3) · contacto: Taller de Tony',
   ];
+}
+
+const TRACK_EVENT_ID = 'dev_track_drift';
+
+/**
+ * The AE85's drift day at the Autódromo (Pista.dc.html): two sessions, the
+ * second copied forward with the rears at 42 cold — so the "Cambiaste desde
+ * la sesión 1" note and the red rear growth both show. Costs, km and the
+ * incident are illustrative, not Xaviel's numbers.
+ */
+async function seedTrack(at: (daysAgo: number) => string): Promise<string[]> {
+  const ae85 = GARAGE_IDS.ae85;
+  const event = await saveEvent({
+    id: TRACK_EVENT_ID,
+    vehicleId: ae85,
+    venueId: 'autodromo_americas',
+    occurredAt: at(7),
+    title: 'Drift day Sunix',
+    discipline: 'drift',
+    weather: 'soleado',
+    ambientC: 33,
+    trackCondition: 'con_goma',
+    odometerStartKm: 52_200,
+    odometerEndKm: 52_286,
+    entryFeeDop: 2500,
+    fuelCostDop: 3800,
+    otherCostDop: 3500,
+    notes: '',
+  });
+  const base = { psiColdFl: 30, psiColdFr: 30, psiHotFl: 34.5, psiHotFr: 34, steeringAngleDeg: 55, lsdType: '2-way', hydro: true, tireSetRId: 'dev_wheels_15x8', tireSizeR: '195/50R15' };
+  await saveSession(
+    { id: 'dev_track_s1', eventId: event.id, seq: 1, kind: 'practica', runs: 6, carFeel: 'sobrevira', rating: 3, notes: '' },
+    { ...base, psiColdRl: 40, psiColdRr: 40, psiHotRl: 47, psiHotRr: 46 },
+  );
+  await saveSession(
+    { id: 'dev_track_s2', eventId: event.id, seq: 2, kind: 'batalla', runs: 8, carFeel: 'neutral', rating: 4, notes: '"de lao’ fácil"', incident: 'Temp. subió en run 11' },
+    { ...base, psiColdRl: 42, psiColdRr: 42, psiHotRl: 51, psiHotRr: 50 },
+  );
+  for (const position of ['rl', 'rr'] as const) {
+    const tire = await tireRepo.getById(`dev_tire_${position}`);
+    if (tire) await setTireUsed(event.id, tire, true);
+  }
+  await measurePads(event.id, { f: 7, r: 8 });
+  return ['Pista: drift day en Sunix (AE85), 2 sesiones · 14 runs · traseras 40 → 42 psi · RD$ 9,800'];
 }

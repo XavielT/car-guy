@@ -14,6 +14,7 @@ const STAT_TO_CATEGORY: Record<StatCategory, CategoryKey> = {
   mantenimiento: 'mantenimiento',
   reparacion: 'reparacion',
   mejora: 'mejora',
+  pista: 'track',
   legal: 'legal',
   otros: 'otros',
 };
@@ -24,6 +25,7 @@ export const CATEGORY_COLOR: Record<StatCategory, string> = {
   mantenimiento: categoryColors.mantenimiento,
   reparacion: categoryColors.reparacion,
   mejora: categoryColors.mejora,
+  pista: categoryColors.track,
   legal: categoryColors.legal,
   otros: categoryColors.otros,
 };

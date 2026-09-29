@@ -16,7 +16,7 @@ import { computeEconomy, latestEconomyInsight } from '@/lib/domain/economy';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
 import { economyNumber, km, money } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
-import { FEATURE_BUILD } from '@/lib/flags';
+import { FEATURE_BUILD, FEATURE_TRACK } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -138,6 +138,14 @@ export default function CifrasScreen() {
                   value={money(stats.modsInvested)}
                   hint={es.stats.modsInvestedHint}
                   onPress={() => router.push({ pathname: '/vehiculo/[id]/build', params: { id: activeVehicle.id } })}
+                />
+              ) : null}
+              {FEATURE_TRACK && stats.trackDays > 0 ? (
+                <Kpi
+                  label={es.stats.trackDays}
+                  value={String(stats.trackDays)}
+                  hint={es.stats.trackDaysHint(money(stats.byCategory.find((c) => c.category === 'pista')?.total ?? 0))}
+                  onPress={() => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } })}
                 />
               ) : null}
             </View>

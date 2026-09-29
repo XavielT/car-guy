@@ -26,6 +26,7 @@ export type StatCategory =
   | 'mantenimiento'
   | 'reparacion'
   | 'mejora'
+  | 'pista'
   | 'legal'
   | 'otros';
 
@@ -34,6 +35,7 @@ export const STAT_CATEGORIES: StatCategory[] = [
   'mantenimiento',
   'reparacion',
   'mejora',
+  'pista',
   'legal',
   'otros',
 ];
@@ -211,6 +213,7 @@ function emptyCategories(): Record<StatCategory, number> {
     mantenimiento: 0,
     reparacion: 0,
     mejora: 0,
+    pista: 0,
     legal: 0,
     otros: 0,
   };

@@ -248,6 +248,7 @@ export default function AlbumScreen() {
             onOpen={() => {
               if (r.item.kind === 'hito') router.push({ pathname: '/hito/[id]', params: { id: r.item.id } });
               else if (r.item.kind === 'mantenimiento') router.push({ pathname: '/servicio/[id]', params: { id: r.item.id } });
+              else if (r.item.kind === 'pista') router.push({ pathname: '/pista/evento/[id]', params: { id: r.item.id } });
             }}
           />
         )
@@ -319,7 +320,7 @@ function TimelineCard({
   const cell = Math.floor((width - GAP * (columns - 1)) / columns);
   const shown = item.photos.slice(0, columns);
   const extra = item.photos.length - shown.length;
-  const tappable = item.kind === 'hito' || item.kind === 'mantenimiento';
+  const tappable = item.kind === 'hito' || item.kind === 'mantenimiento' || item.kind === 'pista';
 
   return (
     <View style={styles.card}>
