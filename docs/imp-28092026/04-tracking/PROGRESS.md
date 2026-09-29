@@ -16,7 +16,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 4 | Build log | ✅ | `imp-28092026/phase-4-build` | web verified 2026-09-28; Android device check pending (phone not connected) |
 | 5 | DIY | ✅ | `imp-28092026/phase-5-diy` | web verified 2026-09-28; Android device check pending with Phase 4's |
 | 6 | Pista | ✅ | `imp-28092026/phase-6-track` | web verified 2026-09-28 (dark + light, web↔web sync); Android device check pending with Phases 4–5 |
-| 7 | Compartir | 🟡 | `imp-28092026/phase-7-share` | code + local web verified; sql/012 + 013 applied; **cloud verification blocked** (verifier runs need Xaviel's OK) — not merged |
+| 7 | Compartir | ✅ | `imp-28092026/phase-7-share` | sql/012–014 applied; verify-x-core 23/23, verify-sync 17/17, local-rls 32/32 (2026-09-29); Android checked; WhatsApp preview pending |
 | 8 | Release 2.1.0 | 🟡 | `imp-28092026/phase-8-release` (on top of phase 7) | backlog + docs + version done; regression on Android, builds, release pending |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
@@ -963,7 +963,8 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 
 ## Phase 7 — Compartir: ficha pública, libro PDF, garaje compartido   (branch `imp-28092026/phase-7-share`)
 
-**Status:** in progress — code complete and green locally; **not merged**. `sql/012` and `sql/013` are applied
+**Status:** complete (2026-09-29) — verified live: `verify-x-core` **23/23**, `verify-sync` **17/17** (after Xaviel allowed the runs),
+`tools/local-rls` 32/32; test users cleaned. Pending: the WhatsApp preview of a real link after deploy. Earlier status: `sql/012` and `sql/013` were applied
 to x-core; the live verification (`verify-x-core` 23 checks, `verify-sync` 17 checks, the public link on a
 phone, WhatsApp preview, two-account app scenario, Android) has not run: the auto-mode classifier refused
 running the verifiers against production after the RLS swap ("Production Deploy"). Needs Xaviel.
@@ -1086,3 +1087,13 @@ Screenshots `docs/qa/imp-28092026-phase-{6,7,8}-android-*.png` (status bar cropp
   with a Supabase shim, 32 checks as three accounts — before any real account existed. Applied to x-core; 013 fixed in
   place for fresh installs. The local run covers what `verify-x-core` 15–23 and `verify-sync` 15–17 test, minus the
   PostgREST/Storage HTTP layer, which those two still need to prove live.
+
+### Cloud verification (2026-09-29, Xaviel allowed the runs)
+- `verify-x-core` **23/23** — incl. 15–17 (anon RPC only, bucket not listable, published share without costs, VIN
+  `JT2••••`, revoke → null, B cannot publish A's car) and 18–23 (B cannot invite, invite → redeem → sees, editor writes
+  and the car stays A's, `v/<vehicle>/` upload readable by the owner, viewer refused 42501, removal).
+- `verify-sync` **17/17** — 15 (after a grant the old cursor misses the car, the reset pull brings it), 16 (B's push with
+  its own `user_id` edits the car, `user_id` stays A's, `updated_by` = B), 17 (removed: nothing visible, ended membership
+  pulled, push refused). Check 16 first failed on the test itself: check 5 leaves the car's `updated_at` a minute ahead,
+  so B's edit at +2 s was correctly dropped by LWW; B's writes are now stamped minutes ahead.
+- `sql/999` cleanup: `leftover_profiles: 0`; no probe objects left.

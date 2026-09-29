@@ -349,7 +349,9 @@ async function main() {
     `one stamp for all three: ${sameStamp} · after (ts, ${tieIds[0].slice(-1)}) → ${JSON.stringify(afterIds)}`,
   );
 
-  // 15–17 — the shared garage (sql/013), as the engine sees it. A second
+  // 15–17 — the shared garage (sql/013), as the engine sees it. B's writes are
+  //          stamped minutes ahead: check 5's tombstone left the car's updated_at a
+  //          minute in the future, and LWW would (rightly) drop anything older. A second
   //          account B joins the probe's car: its pull cursor is newer than the
   //          car's rows, so the ordinary pull must miss them — which is why
   //          lib/sync/members.ts resets the cursors on a grant — and the reset
@@ -380,7 +382,7 @@ async function main() {
     const pushB = await call('/rest/v1/vehicle', {
       method: 'POST',
       headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
-      body: [{ id: vehicleId, user_id: userB, updated_by: userB, name: 'Corolla de B', type: 'carro', default_fuel_type: 'regular', is_archived: false, sort_order: 0, notes: '', created_at: t1, updated_at: iso(2000) }],
+      body: [{ id: vehicleId, user_id: userB, updated_by: userB, name: 'Corolla de B', type: 'carro', default_fuel_type: 'regular', is_archived: false, sort_order: 0, notes: '', created_at: t1, updated_at: iso(300_000) }],
     });
     token = tokenA;
     const seen = await call(`/rest/v1/vehicle?id=eq.${vehicleId}&select=name,user_id,updated_by`);
@@ -397,7 +399,7 @@ async function main() {
     const refused = await call('/rest/v1/vehicle', {
       method: 'POST',
       headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
-      body: [{ id: vehicleId, user_id: userB, name: 'Otra vez', type: 'carro', default_fuel_type: 'regular', is_archived: false, sort_order: 0, notes: '', created_at: t1, updated_at: iso(3000) }],
+      body: [{ id: vehicleId, user_id: userB, name: 'Otra vez', type: 'carro', default_fuel_type: 'regular', is_archived: false, sort_order: 0, notes: '', created_at: t1, updated_at: iso(400_000) }],
     });
     token = tokenA;
     check(
