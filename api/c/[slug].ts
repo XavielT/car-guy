@@ -58,6 +58,9 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
     res.end(renderDossierHtml(d, { url: `${SITE}/c/${slug}` }));
   } catch (error) {
     console.error('[c/slug]', error);
+    // A reason without secrets, so a 502 can be diagnosed from outside.
+    const message = error instanceof Error ? error.message : String(error);
+    res.setHeader('X-Car-Guy-Error', /missing/.test(message) ? 'missing-env' : message.replace(/[^a-z0-9 _-]/gi, '').slice(0, 60));
     res.statusCode = 502;
     res.setHeader('Cache-Control', 'no-store');
     res.end(renderNotFoundHtml());
