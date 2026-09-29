@@ -72,6 +72,7 @@ function stats(over: Partial<VehicleStats> = {}): VehicleStats {
     upcoming: { items: [], total: 0 },
     rowsInPeriod: [],
     modsInvested: 0,
+    trackDays: 0,
     ...over,
   };
 }

@@ -81,6 +81,7 @@ describe('the September 2026 fixture, checked by hand', () => {
       mantenimiento: 4000,
       reparacion: 12500,
       mejora: 0,
+      pista: 0,
       legal: 3000,
       otros: 500,
     });

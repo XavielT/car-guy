@@ -65,8 +65,12 @@ export async function spendRows(vehicleId: string): Promise<SpendRow[]> {
             cost_part_dop + cost_labor_dop + cost_shipping_dop + cost_customs_dop
        FROM mod WHERE vehicle_id = ? AND deleted_at IS NULL AND service_record_id IS NULL
         AND status IN ('instalado', 'quitado', 'vendido', 'danado')
+     UNION ALL
+     -- Track days (IMP 28092026 Phase 6): entrada, gasolina and otros of the event.
+     SELECT occurred_at, 'pista', COALESCE(entry_fee_dop, 0) + COALESCE(fuel_cost_dop, 0) + COALESCE(other_cost_dop, 0)
+       FROM track_event WHERE vehicle_id = ? AND deleted_at IS NULL
      ORDER BY 1 ASC`,
-    [vehicleId, vehicleId, vehicleId, vehicleId],
+    [vehicleId, vehicleId, vehicleId, vehicleId, vehicleId],
   );
 
   return rows.map((row) => ({
@@ -76,7 +80,8 @@ export async function spendRows(vehicleId: string): Promise<SpendRow[]> {
       row.category === 'combustible' ||
       row.category === 'mantenimiento' ||
       row.category === 'reparacion' ||
-      row.category === 'mejora'
+      row.category === 'mejora' ||
+      row.category === 'pista'
         ? (row.category as StatCategory)
         : expenseCategory(row.category),
   }));
@@ -126,6 +131,8 @@ export type VehicleStats = {
   rowsInPeriod: SpendRow[];
   /** The build's all-time investment (installed + removed mods), for the "Inversión en mods" tile. */
   modsInvested: number;
+  /** Track events inside the window, for the "Días de pista" tile. */
+  trackDays: number;
 };
 
 /** How many calendar months of history each window puts in the bar charts. */
@@ -154,6 +161,10 @@ export async function vehicleStats(
     lastCosts(vehicleId),
     modRepo.listWhere({ vehicleId }),
   ]);
+  const trackRows = await (await getDb()).getAllAsync<{ occurred_at: string }>(
+    'SELECT occurred_at FROM track_event WHERE vehicle_id = ? AND deleted_at IS NULL',
+    [vehicleId],
+  );
 
   const period = periodRanges(today)[periodKey];
   const current = inRange(spend, period.from, period.to);
@@ -208,5 +219,6 @@ export async function vehicleStats(
     upcoming: upcomingCosts(taskRows, dueReminders),
     rowsInPeriod: current,
     modsInvested: investedTotal(modRows),
+    trackDays: trackRows.filter((r) => (period.from == null || r.occurred_at >= period.from) && r.occurred_at <= period.to).length,
   };
 }

@@ -389,7 +389,7 @@ export default function HomeScreen() {
               ? { label: es.quickActions.build, icon: 'construct-outline', onPress: () => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id, tab: 'build' } }) }
               : { label: es.quickActions.service, icon: 'construct-outline', onPress: () => router.push('/servicio/nuevo') },
             FEATURE_TRACK
-              ? { label: es.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id, tab: 'pista' } }) }
+              ? { label: es.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } }) }
               : { label: es.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
           ]}
         />

@@ -244,6 +244,11 @@ function Shell() {
         <Stack.Screen name="contactos/index" options={{ headerShown: true, title: es.routes.contacts }} />
         <Stack.Screen name="contactos/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newContact }} />
         <Stack.Screen name="contactos/[id]" options={{ headerShown: true, title: es.routes.contact }} />
+        <Stack.Screen name="pista/index" options={{ headerShown: true, title: es.routes.track }} />
+        <Stack.Screen name="pista/evento/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newTrackEvent }} />
+        <Stack.Screen name="pista/evento/[id]" options={{ headerShown: true, title: es.routes.trackEvent }} />
+        <Stack.Screen name="pista/sesion/nueva" options={{ headerShown: true, title: es.routes.newTrackSession }} />
+        <Stack.Screen name="pista/sesion/[id]" options={{ headerShown: true, title: es.routes.trackSession }} />
         <Stack.Screen
           name="odometro"
           options={{ presentation: 'modal', headerShown: true, title: es.routes.odometer }}
