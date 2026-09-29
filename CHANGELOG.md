@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.2.0 (sin publicar)
+
+- **Litros o galones**: cada vehículo elige su unidad; los datos se guardan en litros por dentro. Tus
+  números de siempre se ven igual.
+- **Registrar un carro es más rápido**: marca, modelo y año de una lista (con los modelos de aquí: Hilux,
+  Sprinter Trueno, Grand i10…), color con muestras, tipo de carrocería, varias fotos con portada, precio y
+  fecha de compra a la vista.
+- **Más estados**: en el taller, accidentado, en restauración, prestado… con "desde" y una nota.
+- **Aceite**: viscosidad, tipo, marca y especificación al registrar un cambio de aceite, y "igual que la
+  última vez".
+- **Chequeos con fotos**: hasta 5 fotos por punto en FALLA y en el nuevo **ATENCIÓN**; se ven en el
+  historial y en el álbum.
+- **Carga parcial**: con el nivel del medidor antes y después, una carga parcial también da consumo,
+  estimado y con su rango; al llegar el próximo tanque lleno se ajusta a lo medido.
+- **Promedio de consumo más justo**: ahora es kilómetros totales entre combustible total, así un tanque
+  corto no pesa lo mismo que uno largo. Tu promedio puede moverse un poco respecto a la 2.1.
+
 ## 2.1.3 (2026-09-29)
 
 - **Fotos en Android**: agregar la foto de un carro nuevo (o de un chequeo, un servicio) ya no falla con

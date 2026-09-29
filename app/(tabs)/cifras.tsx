@@ -13,7 +13,9 @@ import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
 import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
 import { latestEconomyInsight } from '@/lib/domain/economy';
-import { fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
+import { capacityHint, fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
+import { fromLiters } from '@/lib/domain/units';
+import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
 import { economyNumber, km, money } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
@@ -34,7 +36,7 @@ const PERIODS: PeriodKey[] = ['mes', 'trimestre', 'ano', 'todo'];
 export default function CifrasScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { activeVehicle, vehicleFillups, data, updateSettings } = useStore();
+  const { activeVehicle, vehicleFillups, data, updateSettings, refresh } = useStore();
 
   const [period, setPeriod] = useState<PeriodKey>('trimestre');
   const [stats, setStats] = useState<VehicleStats | null>(null);
@@ -65,6 +67,19 @@ export default function CifrasScreen() {
   const partial = partialEconomy(vehicleFillups, fuelCfgFor(activeVehicle?.detail), { includeEstimates });
   const points = partial.series;
   const hasEstimates = points.some((p) => p.status !== 'measured');
+  // §1.4: a tank that keeps taking more than its stated size.
+  const capacity = capacityHint(vehicleFillups, fuelCfgFor(activeVehicle?.detail));
+  const unitOf = activeVehicle?.detail?.volumeUnit ?? 'gal';
+  const applyCapacity = () => {
+    if (!activeVehicle || !capacity) return;
+    void vehicleRepo
+      .upsert({
+        id: activeVehicle.id,
+        tankVolume: capacity.suggestedL,
+        tankVolumeEntered: Math.round(fromLiters(capacity.suggestedL, unitOf) * 10) / 10,
+      })
+      .then(refresh);
+  };
   const insight = latestEconomyInsight(vehicleFillups);
 
   const scrollTo = useCallback((key: string) => {
@@ -189,6 +204,24 @@ export default function CifrasScreen() {
                     </T>
                   </Pressable>
                 </>
+              ) : null}
+              {capacity ? (
+                <Surface style={styles.card}>
+                  <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
+                    {es.estimate.capacity(
+                      economyNumber(fromLiters(capacity.extraL, unitOf)),
+                      unitOf === 'gal' ? 'gal' : 'L',
+                      capacity.samples,
+                    )}
+                  </T>
+                  <GhostButton
+                    label={es.estimate.capacityApply(
+                      economyNumber(fromLiters(capacity.suggestedL, unitOf)),
+                      unitOf === 'gal' ? 'gal' : 'L',
+                    )}
+                    onPress={applyCapacity}
+                  />
+                </Surface>
               ) : null}
             </View>
 

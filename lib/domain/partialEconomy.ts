@@ -309,3 +309,30 @@ export function weightedAverage(points: Pick<SeriesPoint, 'distanceKm' | 'volume
   }
   return units > 0 ? roundVolume(km / units) : null;
 }
+
+/**
+ * Capacity calibration (research 02 §1.4): on every full tank with a reading
+ * before pumping, `levelBefore + added − C` is what went in beyond the stated
+ * capacity. A consistent excess (median over at least three tanks, above 1.5 L
+ * and 3 % of the tank) means the tank takes more than the manual says — the
+ * filler neck, or a wrong number. Returned as a suggestion; never applied here.
+ */
+export function capacityHint(fillups: GaugeFillUp[], cfg: FuelCfg): { extraL: number; suggestedL: number; samples: number } | null {
+  const C = cfg.capacityL;
+  if (!C || C <= 0) return null;
+  const conf = { ...DEFAULTS, ...cfg };
+  const excess: number[] = [];
+  for (const f of sortFillUps(fillups) as GaugeFillUp[]) {
+    if (!f.isFullTank || f.missedPrevious) continue;
+    const before = levelBefore(f, C, conf);
+    if (!before) continue;
+    excess.push(before.value + f.volume * conf.unitL - C);
+  }
+  if (excess.length < 3) return null;
+  const sorted = [...excess].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  if (median <= Math.max(1.5, 0.03 * C)) return null;
+  const extraL = Math.round(median * 10) / 10;
+  return { extraL, suggestedL: Math.round(C + median), samples: excess.length };
+}

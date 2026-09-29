@@ -12,7 +12,10 @@ import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 import { ChartFrame } from './ChartFrame';
 
-type Point = EconomyPoint & { status?: EconomyStatus };
+type Point = EconomyPoint & { status?: EconomyStatus; kmPerUnitLow?: number | null; kmPerUnitHigh?: number | null };
+
+/** The plot's height in px; the whiskers are scaled against it. */
+const PLOT_H = 150;
 
 /**
  * km/gal per tank, with the average as a dashed reference line.
@@ -47,10 +50,29 @@ export function EconomyLine({
   const enough = known.length >= 2;
   const styled = points.some((p) => p.status && p.status !== 'measured');
 
-  const dot = (status: EconomyStatus | undefined) => {
+  // The axis range is ours (offset + maxValue below), so px per km/unit is known and
+  // an estimate's band can be drawn to scale: a whisker from its low to its high.
+  const values = known.flatMap((p) =>
+    p.status === 'estimated' ? [p.kmPerUnit, p.kmPerUnitLow ?? p.kmPerUnit, p.kmPerUnitHigh ?? p.kmPerUnit] : [p.kmPerUnit],
+  );
+  const min = Math.min(...values, average);
+  const max = Math.max(...values, average);
+  // A flat series would otherwise collapse onto the axis.
+  const pad = Math.max((max - min) * 0.2, 1);
+  const offset = Math.max(0, min - pad);
+  const range = max + pad - offset;
+  const pxPerUnit = PLOT_H / range;
+
+  const dot = (point: Point) => {
+    const status = point.status;
     if (status === 'estimated') {
+      const up = Math.max(0, ((point.kmPerUnitHigh ?? point.kmPerUnit) - point.kmPerUnit) * pxPerUnit);
+      const down = Math.max(0, (point.kmPerUnit - (point.kmPerUnitLow ?? point.kmPerUnit)) * pxPerUnit);
       return (
-        <View style={[styles.halo, { backgroundColor: line + '33' }]}>
+        <View style={styles.markBox}>
+          <View style={[styles.whisker, { top: 9 - up, height: up + down, backgroundColor: line + '66' }]} />
+          <View style={[styles.cap, { top: 9 - up, backgroundColor: line + '99' }]} />
+          <View style={[styles.cap, { top: 9 + down - 1, backgroundColor: line + '99' }]} />
           <View style={[styles.hollow, { borderColor: line, backgroundColor: theme.bg.surface }]} />
         </View>
       );
@@ -69,14 +91,8 @@ export function EconomyLine({
     // An unknown segment has no number: a gap in the line (interpolateMissingValues off).
     value: point.status === 'unknown' ? undefined : point.kmPerUnit,
     label: new Date(point.occurredAt).toLocaleDateString('es-DO', { month: 'short' }),
-    ...(styled && point.status !== 'unknown' ? { customDataPoint: () => dot(point.status) } : {}),
+    ...(styled && point.status !== 'unknown' ? { customDataPoint: () => dot(point) } : {}),
   }));
-
-  const values = known.map((p) => p.kmPerUnit);
-  const min = Math.min(...values, average);
-  const max = Math.max(...values, average);
-  // A flat series would otherwise collapse onto the axis.
-  const pad = Math.max((max - min) * 0.2, 1);
 
   return (
     <ChartFrame
@@ -99,7 +115,7 @@ export function EconomyLine({
         <LineChart
           data={data}
           width={width - 56}
-          height={150}
+          height={PLOT_H}
           adjustToWidth
           color={line}
           thickness={2}
@@ -108,8 +124,8 @@ export function EconomyLine({
           // gifted-charts subtracts the offset from every value and adds it
           // back when it writes the label, so `maxValue` is the range above the
           // offset rather than an absolute ceiling.
-          yAxisOffset={Math.max(0, min - pad)}
-          maxValue={max + pad - Math.max(0, min - pad)}
+          yAxisOffset={offset}
+          maxValue={range}
           noOfSections={3}
           // Without this the axis reads "46.190…" — three decimals of a km/gal
           // figure, clipped by the label width.
@@ -151,6 +167,10 @@ const styles = StyleSheet.create({
   ring: { width: 13, height: 13, borderRadius: 7, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   hollow: { width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
   halo: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  // 18 × 18 box centred on the point; the whisker overflows it up and down.
+  markBox: { width: 18, height: 18, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
+  whisker: { position: 'absolute', left: 8, width: 2 },
+  cap: { position: 'absolute', left: 4, width: 10, height: 2 },
 });
 
 /** The legend under the chart when it mixes kinds of points (note 4). */
@@ -176,7 +196,8 @@ export function EconomyLegend() {
       )}
       {item(
         es.estimate.legend.estimated,
-        <View style={[styles.halo, { backgroundColor: line + '33' }]}>
+        <View style={styles.markBox}>
+          <View style={[styles.whisker, { top: 1, height: 16, backgroundColor: line + '66' }]} />
           <View style={[styles.hollow, { borderColor: line, backgroundColor: theme.bg.surface }]} />
         </View>,
       )}

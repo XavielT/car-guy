@@ -160,11 +160,15 @@ export const es = {
       missed_fill: 'Faltó una carga: la cuenta empieza otra vez aquí.',
       odometer: 'El odómetro no avanzó desde la carga anterior.',
       nonpositive: 'El medidor marca más que antes: revisa los niveles.',
-      too_uncertain: 'El medidor se movió muy poco para estimar: se contará en el próximo tanque lleno.',
+      too_uncertain:
+        'El medidor se movió muy poco para estimar (hace falta que baje al menos 3/8). Se contará en el próximo tanque lleno.',
     },
     mismatch: 'El medidor y lo que echaste no cuadran del todo; el estimado es menos seguro.',
     legend: { measured: 'Medido', reconciled: 'Ajustado', estimated: 'Estimado', unknown: 'Sin dato' },
     includeEstimates: 'Incluir estimados en el promedio',
+    capacity: (extra: string, unit: string, tanks: number) =>
+      `Tu tanque parece aceptar ≈ ${extra} ${unit} más de lo indicado (en ${tanks} tanques llenos). Si es así, los estimados mejoran con el tamaño real.`,
+    capacityApply: (size: string, unit: string) => `Usar ${size} ${unit} como tamaño del tanque`,
     status: { measured: 'medido', reconciled: 'ajustado', estimated: 'estimado', unknown: 'sin dato' },
   },
   /** components/pickers (IMP 29092026 Phase 3). */

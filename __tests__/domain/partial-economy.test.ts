@@ -137,3 +137,22 @@ describe('rules', () => {
     expect(latestKnown(r.series)?.status).toBe('estimated');
   });
 });
+
+describe('capacity hint (§1.4)', () => {
+  const { capacityHint } = jest.requireActual('@/lib/domain/partialEconomy') as typeof import('@/lib/domain/partialEconomy');
+  const full = (km: number, before8: number, addedL: number) => log({ odometerKm: km, volume: addedL, isFullTank: true, gaugeBefore8: before8 });
+
+  it('three full tanks that each took ~4 L more than the manual allows → suggest the real size', () => {
+    // 45 L tank: from 1/4 (11.25 L) a true fill is 33.75 L; these took ~37.8.
+    const hint = capacityHint([full(0, 2, 37.5), full(400, 2, 38), full(800, 2, 37.8)], { capacityL: 45, unitL: 1, nonlinK: 0 });
+    expect(hint).toMatchObject({ suggestedL: 49, samples: 3 });
+    expect(hint!.extraL).toBeCloseTo(4.05, 1);
+  });
+
+  it('noise, too few tanks, or no before-reading say nothing', () => {
+    const cfgL = { capacityL: 45, unitL: 1, nonlinK: 0 };
+    expect(capacityHint([full(0, 2, 34), full(400, 2, 33), full(800, 2, 34.5)], cfgL)).toBeNull();
+    expect(capacityHint([full(0, 2, 38), full(400, 2, 38)], cfgL)).toBeNull();
+    expect(capacityHint([log({ odometerKm: 0, volume: 40, isFullTank: true })], cfgL)).toBeNull();
+  });
+});
