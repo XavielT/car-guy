@@ -138,6 +138,8 @@ export const setupSheets = {
     setupSheetsBase.upsert({ ...input, id: sessionId, sessionId }, db),
 };
 
+let dtcCache: Promise<DtcCode[]> | null = null;
+
 /** The bundled DTC table: read-only, local-only, no Syncable columns. */
 export const dtcCodes = {
   async get(code: string): Promise<DtcCode | null> {
@@ -145,14 +147,17 @@ export const dtcCodes = {
     const row = await db.getFirstAsync<Record<string, unknown>>('SELECT * FROM dtc_code WHERE code = ?', [code]);
     return row ? toDtc(row) : null;
   },
+  /**
+   * Code or Spanish description, accent- and case-insensitive ("valvula" finds
+   * "válvula"): SQLite's NOCASE folds ASCII only, so the bundled table (~1k
+   * rows, read-only) is read once and filtered in JS.
+   */
   async search(q: string, limit = 50): Promise<DtcCode[]> {
-    const db = await getDb();
-    const like = `%${q}%`;
-    const rows = await db.getAllAsync<Record<string, unknown>>(
-      `SELECT * FROM dtc_code WHERE code LIKE ? OR desc_es LIKE ? COLLATE NOCASE ORDER BY code LIMIT ${Number(limit)}`,
-      [like, like],
-    );
-    return rows.map(toDtc);
+    const fold = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const wanted = fold(q.trim());
+    dtcCache ??= getDb().then((db) => db.getAllAsync<Record<string, unknown>>('SELECT * FROM dtc_code ORDER BY code')).then((rows) => rows.map(toDtc));
+    const all = await dtcCache;
+    return all.filter((d) => fold(d.code).includes(wanted) || fold(d.descEs).includes(wanted)).slice(0, limit);
   },
 };
 
@@ -367,33 +372,34 @@ export const history = {
       clauses.push('occurred_at <= ?');
       params.push(opts.to);
     }
-    if (opts.q) {
-      // COLLATE NOCASE so "texaco" finds "Texaco". It only folds ASCII, so
-      // "optimo" will not find "Óptimo" — accent-insensitive search needs an
-      // ICU build of SQLite and is out of scope.
-      //
-      // A fill-up's title in the feed is its fuel *code* ("regular"); the
-      // screen shows the label ("Gasolina Regular"). Matching the query against
-      // the labels here — accent-insensitively, in JS — is what lets "gasolina"
-      // or "óptimo" find fill-ups at all.
-      const fold = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-      const wanted = fold(opts.q);
-      const fuelCodes = Object.entries(FUEL_CATALOG)
-        .filter(([, meta]) => fold(meta.label).includes(wanted))
-        .map(([code]) => code);
-      const fuelClause = fuelCodes.length
-        ? ` OR (kind = 'combustible' AND title IN (${fuelCodes.map(() => '?').join(', ')}))`
-        : '';
-      clauses.push(`(title LIKE ? COLLATE NOCASE OR subtitle LIKE ? COLLATE NOCASE${fuelClause})`);
-      params.push(`%${opts.q}%`, `%${opts.q}%`, ...fuelCodes);
-    }
+    // Free text is matched in JS, accent- and case-insensitively: SQLite's
+    // COLLATE NOCASE folds ASCII only, so "optimo" never found "Óptimo", and an
+    // ICU build is not available in expo-sqlite. A vehicle's feed is small
+    // (hundreds of rows), so filtering after the query costs nothing.
+    //
+    // A fill-up's title in the feed is its fuel *code* ("regular"); the
+    // search also matches the label people type ("Regular", "gasoil").
+    const fold = (text: string | null | undefined) => (text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const wanted = opts.q ? fold(opts.q.trim()) : '';
+    const fuelCodes = wanted
+      ? new Set(Object.entries(FUEL_CATALOG).filter(([, meta]) => fold(meta.label).includes(wanted)).map(([code]) => code))
+      : null;
 
-    const rows = await db.getAllAsync<Record<string, unknown>>(
+    const all = await db.getAllAsync<Record<string, unknown>>(
       `SELECT * FROM history_feed WHERE ${clauses.join(' AND ')} ORDER BY occurred_at DESC, created_at DESC${
-        opts.limit ? ` LIMIT ${Number(opts.limit)}` : ''
+        opts.limit && !wanted ? ` LIMIT ${Number(opts.limit)}` : ''
       }`,
       params as never,
     );
+    const matched = wanted
+      ? all.filter(
+          (r) =>
+            fold(r.title as string).includes(wanted) ||
+            fold(r.subtitle as string | null).includes(wanted) ||
+            (r.kind === 'combustible' && fuelCodes!.has(r.title as string)),
+        )
+      : all;
+    const rows = wanted && opts.limit ? matched.slice(0, Number(opts.limit)) : matched;
 
     return rows.map((r) => ({
       id: r.id as string,

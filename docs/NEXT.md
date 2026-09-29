@@ -80,14 +80,15 @@ Preview (values from `.env.local`; the anon key is public by design — no servi
 starting at 1 (explicit labels now); the 320 px tab label (fixed in Phase 2); desktop max width
 (a 560 px column on web ≥ 900 px).
 
+**Closed in 2.1.1 (branch `fix/2.1.1-backlog`):** accent-insensitive search in Historial and OBD codes
+(folded in JS — no ICU needed); same-day Historial order (was already newest first since the v2 view; now
+tested); a shared car's custom venues and mod categories readable by its members (sql/015).
+
 **Carried:**
 
-- Search: free text still folds ASCII only ("optimo" will not find a note saying "Óptimo"; fuel
-  names are matched accent-insensitively since 2026-09-25). Needs an ICU build of SQLite.
-- Same-day Historial entries list oldest first (needs `created_at` in the `history_feed` view —
-  a migration).
-- Shared garage: another member's custom venues, mod categories and service types are not shared
-  (they are per-user catalogues), so those names show as "Sin pista"/"Otro" on the member's phone.
+- Shared garage: the owner's custom *service types* are still per-user, so a member's copy of a service
+  item with a custom type parks until the member has one with that id (seeded ids are shared).
+
 - Heat cycles count once per tire per event; best laps are per venue (no layout on the event).
 
 **Dependencies and noise:**

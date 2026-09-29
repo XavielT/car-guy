@@ -66,6 +66,10 @@ select t_ok('6. B sees the car, mod, session (via event), media, and the old-lay
   and (select count(*) from carguy.track_session) = 1 and (select count(*) from carguy.media where id = 'm_a') = 1
   and (select count(*) from storage.objects where name like '%/m_a.jpg') = 1);
 select t_ok('6b. B still cannot see A''s contacts (own rows)', (select count(*) from carguy.contact) = 0);
+select t_ok('6c. B reads the venue and category the shared car uses, not A''s other venues (015)',
+  (select count(*) from carguy.venue where id = 'ven_a') = 1 and (select count(*) from carguy.venue where id = 'ven_private') = 0
+  and (select count(*) from carguy.mod_category where id = 'cat_a') = 1);
+select t_ok('6d. B cannot rename A''s venue', t_denied($q$do $d$ begin update carguy.venue set name = 'x' where id = 'ven_a'; if not found then raise exception 'no rows'; end if; end $d$$q$));
 
 -- 7 editor writes
 insert into carguy.mod (id, vehicle_id, category_id, name, created_at, updated_at) values ('mod_b', 'veh_a', 'motor', 'Hecho por B', now(), now());
@@ -110,6 +114,7 @@ select t_ok('10c. B pulls its ended membership (how the device learns)',
   (select deleted_at is not null from carguy.vehicle_member where vehicle_id = 'veh_a' and user_id = '00000000-0000-0000-0000-00000000000b'));
 select t_ok('10d. B''s push of the car is refused', t_denied($q$insert into carguy.vehicle (id, user_id, name, default_fuel_type, created_at, updated_at) values ('veh_a', '00000000-0000-0000-0000-00000000000b', 'x', 'regular', now(), now()) on conflict (id) do update set name = excluded.name$q$));
 select t_ok('10e. B keeps its own car', (select count(*) from carguy.vehicle where id = 'veh_b') = 1);
+select t_ok('10g. removed: the shared car''s venue and category are gone too', (select count(*) from carguy.venue where id = 'ven_a') = 0 and (select count(*) from carguy.mod_category where id = 'cat_a') = 0);
 select t_ok('10f. a new car of B''s gets B as owner', (select count(*) from carguy.vehicle_member where vehicle_id = 'veh_b' and role = 'owner') = 1);
 reset role;
 
