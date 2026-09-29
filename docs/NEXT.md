@@ -47,7 +47,10 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 
 ## 2. Hand-off to xaviel-web
 
-`imp-11092026` Phase 4 integrates the portfolio card. Updated for **2.1.0 "Hachi-Gō"** (2026-09-29):
+**Done 2026-09-29:** the card on https://xaviel-web-v2.vercel.app now shows Car Guy 2.1 (xaviel-web-v2 `main`
+`7a228f1`, literal English as that branch has it), and the same change sits on `imp-11092026/phase-3-admin-shell`
+(`2e3057a`, es + en keys `app.carGuy.description`) so that cycle's merge keeps it. Icon:
+`public/assets/apps-imgs/car-guy.png` (256 px, from `assets/images/icon.png`). What the card carries:
 
 | Field | New value |
 |---|---|
