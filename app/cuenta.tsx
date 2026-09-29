@@ -19,6 +19,7 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { appVersion, gitSha } from '@/lib/appVersion';
 import { resetPassword, signIn, signOut, signUp, useSession } from '@/lib/cloud/auth';
+import { recentErrors } from '@/lib/diagnostics';
 import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { FEATURE_ALBUM, FEATURE_SYNC } from '@/lib/flags';
 import { StorageMeter } from '@/components/album/StorageMeter';
@@ -194,6 +195,16 @@ export default function CuentaScreen() {
                   {status.message}
                 </T>
               ) : null}
+              {/* Modo diagnóstico: the raw causes behind the sentence above. */}
+              {diagnostics && status.state === 'error'
+                ? recentErrors()
+                    .slice(-3)
+                    .map((entry) => (
+                      <T key={entry.at + entry.where} face="mono" style={[styles.version, { color: theme.text.muted }]}>
+                        {`${entry.at.slice(11, 19)} ${entry.where}: ${entry.message}`}
+                      </T>
+                    ))
+                : null}
 
               {FEATURE_SYNC ? (
                 <View style={{ marginTop: space.md }}>

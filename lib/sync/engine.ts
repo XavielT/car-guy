@@ -1,3 +1,4 @@
+import { recordError } from '../diagnostics';
 import { getSupabase, describeSchemaError } from '../cloud/supabase';
 import { settings as settingsRepo } from '../db/repos';
 import {
@@ -173,11 +174,14 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
 
   let pushed = 0;
   let pulled = 0;
+  // Which step was running, for the diagnostics buffer when one throws.
+  let step = 'media-upload';
 
   try {
     // Before the media rows, so the `remote_path` they carry already points at
     // bytes the other device can actually fetch.
     await uploadMediaBytes(supabase, userId);
+    step = 'media-remove';
     await removeDeletedMediaBytes(supabase);
 
     for (const table of SYNC_TABLES) {
@@ -188,6 +192,7 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
         continue;
       }
       if (table.pullOnly) continue;
+      step = `push:${table.name}`;
       pushed += await pushTable(supabase, table, userId);
     }
 
@@ -199,6 +204,7 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
     const pullAll = async () => {
       for (const table of SYNC_TABLES) {
         if (table.name === 'setting') continue;
+        step = `pull:${table.name}`;
         const outcome = await pullTable(supabase, table.name);
         pulled += outcome.applied;
         if (outcome.parked.length) parked[table.name] = [...(parked[table.name] ?? []), ...(outcome.parked as IncomingRow[])];
@@ -225,6 +231,7 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
 
     // The quota meter, after the uploads and removals: this reading is what
     // un-pauses uploads once there is room again. Best-effort.
+    step = 'storage-meter';
     await refreshStorageMeter(supabase as never, userId);
 
     const finishedAt = now();
@@ -249,6 +256,8 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
     // The screen shows a friendly sentence; the cause goes to the console, or
     // a failure like this is undiagnosable from a user's report.
     console.warn('[sync] failed:', error);
+    const e = error as { code?: string; message?: string; details?: string };
+    recordError(`sync ${step}`, [e?.code, e?.message ?? String(error), e?.details].filter(Boolean).join(' · '));
     const message = describe(error);
     emit({
       state: 'error',
