@@ -63,6 +63,14 @@ The old release link keeps working through GitHub's redirect, so nothing is brok
 but `releases/latest` will point at Car Guy v2.0.0 as soon as it ships, under a card that still says
 Tu Combustible RD.
 
+### Vercel environment (set 2026-09-29, IMP 28092026 Phase 8)
+
+The `car-guy` project had no Supabase variables until then, so the production **web** build ran with the
+cloud off and `api/c/[slug]` answered 502 (`X-Car-Guy-Error: missing-env`). Now set for Production and
+Preview (values from `.env.local`; the anon key is public by design — no service-role key in Vercel):
+`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` (web build, inlined), `SUPABASE_URL`,
+`SUPABASE_ANON_KEY` (the function, runtime). Check: `node tools/smoke-public-page.mjs`.
+
 ## 3. Worth doing, not blocking
 
 **Closed in 2.1 (IMP 28092026 Phase 8):** PDF documents in the documents screen; the Cifras y-axis
