@@ -1097,3 +1097,13 @@ Screenshots `docs/qa/imp-28092026-phase-{6,7,8}-android-*.png` (status bar cropp
   pulled, push refused). Check 16 first failed on the test itself: check 5 leaves the car's `updated_at` a minute ahead,
   so B's edit at +2 s was correctly dropped by LWW; B's writes are now stamped minutes ahead.
 - `sql/999` cleanup: `leftover_profiles: 0`; no probe objects left.
+
+### Production (2026-09-29, after merge)
+- Merged phases 7–8 to `main` and pushed. The first deploy's `/c/<slug>` answered 502: the `car-guy` Vercel
+  project had **no Supabase env vars at all** — which also meant the production web build ran with the cloud off
+  (no account/sync on web since the move to this project). With Xaviel's OK, set `EXPO_PUBLIC_SUPABASE_URL/ANON_KEY`
+  (web build) and `SUPABASE_URL/ANON_KEY` (function) for Production + Preview via the Vercel CLI (anon values only),
+  redeployed: the web bundle now carries the project URL, and `node tools/smoke-public-page.mjs` passes **6/6** on
+  production (renders with OG tags + noindex, unknown slug 404, malformed slug refused at the edge, revoke → 404).
+  Test user cleaned. `api/c/[slug]` now sets `X-Car-Guy-Error` (no secrets) on a 502.
+- Pending: Xaviel shares a real link in WhatsApp and confirms the preview shows the photo.
