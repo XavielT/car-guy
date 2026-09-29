@@ -47,17 +47,17 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 
 ## 2. Hand-off to xaviel-web
 
-`imp-11092026` Phase 4 integrates the portfolio card. It currently describes **Tu Combustible RD**
-and needs:
+`imp-11092026` Phase 4 integrates the portfolio card. Updated for **2.1.0 "Hachi-Gō"** (2026-09-29):
 
 | Field | New value |
 |---|---|
 | Name | Car Guy |
-| Tagline | Tu carro, al día. |
-| Description | Mantenimiento, chequeos, combustible e historial de vehículos. Local-first, con cuenta opcional. |
+| Tagline | Tu carro, al día. Con historia. |
+| Description | Mantenimiento, chequeos, combustible, álbum, build, pista y ficha pública de tus vehículos. Local-first, con cuenta opcional. |
 | Web URL | `https://car-guy.vercel.app` |
 | Release link | `https://github.com/XavielT/car-guy/releases/latest` |
-| Screenshots | Re-shoot: the app is dark-first now and the old ones are the fuel-only UI |
+| Screenshots | `docs/qa/imp-28092026-phase-6-*`, `-phase-7-public-page-local.png`, `-phase-8-android-inicio.png` (2.1, dark) |
+| Public page example | ask Xaviel for a live `/c/<slug>` (his car); there is no permanent demo link |
 
 The old release link keeps working through GitHub's redirect, so nothing is broken in the meantime —
 but `releases/latest` will point at Car Guy v2.0.0 as soon as it ships, under a card that still says

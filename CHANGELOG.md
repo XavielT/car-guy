@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0 — Hachi-Gō (sin publicar)
+## 2.1.0 — Hachi-Gō (2026-09-29)
 
 El garaje deja de ser una lista de carros y se vuelve la historia de cada uno: las fotos de
 siempre con su fecha, el build con lo que costó, la ficha para el taller, los días de pista y un
@@ -59,10 +59,18 @@ se migra sola al abrir.
 - Cifras: el eje empieza en 0; en la computadora la app es una columna centrada.
 - Borrar un carro ahora borra también lo que anotaste de gomas y pastillas en pista.
 
-### Antes de publicar
+### Antes de publicar (2026-09-29)
 
-Pendiente de la prueba en el teléfono (Redmi Note 10 Pro): build, DIY, pista y compartir en
-Android; actualizar encima de la 2.0.0 con datos; el link público en WhatsApp.
+- Probado en un teléfono real (Redmi Note 10 Pro, Android 13) **instalando encima de la versión
+  anterior con datos reales**: el garaje quedó intacto y la base de datos se migró sola.
+- En el teléfono: libro PDF, ficha para el taller, pista (presiones, copiar sesión, resumen como
+  imagen y texto), menú de un mod, contactos, invitación por link y adjuntar PDF.
+- En la web y en la nube: la ficha pública por link (con vista previa en WhatsApp confirmada), el
+  garaje compartido entre dos cuentas (invitar, editar, solo lectura, quitar) y la sincronización.
+- La web de producción no tenía configurada la nube desde que se mudó de proyecto: ya la tiene,
+  así que la cuenta y la sincronización funcionan también en `car-guy.vercel.app`.
+- Una falla de seguridad en el garaje compartido (cualquier cuenta podía invitarse a un carro
+  ajeno) se encontró y se cerró antes de que existieran cuentas reales.
 
 ## 2.0.0 — Car Guy (2026-09-25)
 
