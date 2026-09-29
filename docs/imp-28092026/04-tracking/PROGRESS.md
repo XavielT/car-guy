@@ -1124,3 +1124,10 @@ Screenshots `docs/qa/imp-28092026-phase-{6,7,8}-android-*.png` (status bar cropp
 - Deferred (NEXT.md §3): the SDK 57 patch bumps and `npm audit fix` (break the web dev server), ICU search, same-day
   Historial order, per-user catalogues not shared with members, heat cycles per event, PB per venue, the share-image
   file name not yet seen on a device.
+
+### 2.1.1 (2026-09-29)
+- Accent/case-insensitive search (Historial, OBD) folded in JS; members read a shared car's venues and mod
+  categories (sql/015, applied; local-rls 35/35); same-day Historial order pinned by a test. Tests 824.
+- GitHub release https://github.com/XavielT/car-guy/releases/tag/v2.1.1 — universal APK, versionName 2.1.1,
+  cert `a16450a0…`, SHA-256 `d80ebf0a…81f8`. Installed on the Redmi over the owner's garage; on device
+  "totalENERGIES" finds the 4 TotalEnergies fill-ups and "gasolina" finds the fill-ups by their label.
