@@ -134,12 +134,31 @@ describe('personalBests', () => {
 
   it('keeps the best timed lap per venue, fastest venue first; drift does not count', () => {
     expect(personalBests(events, sessions)).toEqual([
-      { venueId: 'otro', bestLapMs: 45_000, eventId: 'e4', occurredAt: '2026-09-02' },
-      { venueId: 'sunix', bestLapMs: 83_456, eventId: 'e2', occurredAt: '2026-08-01' },
+      { venueId: 'otro', layout: null, bestLapMs: 45_000, eventId: 'e4', occurredAt: '2026-09-02' },
+      { venueId: 'sunix', layout: null, bestLapMs: 83_456, eventId: 'e2', occurredAt: '2026-08-01' },
     ]);
     expect(isTimed('drift')).toBe(false);
     expect(isTimed('junte')).toBe(false);
     expect(isTimed('drag')).toBe(true);
+  });
+});
+
+describe('personalBests per layout', () => {
+  it('a short-layout lap does not beat the full circuit; "Corto " and "corto" are one layout', () => {
+    const events = [
+      { id: 'full', venueId: 'sunix', layout: 'Completo', occurredAt: '2026-05-01', discipline: 'track_day' as const, deletedAt: null },
+      { id: 'short1', venueId: 'sunix', layout: 'Corto ', occurredAt: '2026-06-01', discipline: 'track_day' as const, deletedAt: null },
+      { id: 'short2', venueId: 'sunix', layout: 'corto', occurredAt: '2026-07-01', discipline: 'track_day' as const, deletedAt: null },
+    ];
+    const sessions = [
+      { eventId: 'full', bestLapMs: 83_000, deletedAt: null },
+      { eventId: 'short1', bestLapMs: 52_000, deletedAt: null },
+      { eventId: 'short2', bestLapMs: 51_500, deletedAt: null },
+    ];
+    expect(personalBests(events, sessions).map((b) => [b.layout, b.bestLapMs])).toEqual([
+      ['corto', 51_500],
+      ['Completo', 83_000],
+    ]);
   });
 });
 

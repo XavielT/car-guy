@@ -10,8 +10,8 @@ import type { Corner, CornerValues } from '@/components/ui/CornerGrid';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { wheelSets as wheelSetRepo } from '@/lib/db/repos';
-import { copyToNextSession, deleteSession, eventDetail, saveSession, sessionDetail, sessionDraft, type EventDetail } from '@/lib/db/trackQueries';
-import type { SetupSheet, TrackSession, WheelSet } from '@/lib/db/types';
+import { copyToNextSession, deleteSession, eventDetail, saveSession, sessionDetail, sessionDraft, sessionTireIds, setTireUsed, usableTires, type EventDetail } from '@/lib/db/trackQueries';
+import type { SetupSheet, Tire, TrackSession, WheelSet } from '@/lib/db/types';
 import { parseDecimal } from '@/lib/domain/economy';
 import { describeChanges, diffSheets, formatLap, isTimed, parseLap, pressureDeltas, type SheetValues } from '@/lib/domain/track';
 import { dateLabel } from '@/lib/format';
@@ -91,6 +91,8 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
   const [previous, setPrevious] = useState<{ session: TrackSession; sheet: SetupSheet | null } | null>(null);
   const [sets, setSets] = useState<WheelSet[]>([]);
   const [count, setCount] = useState(0);
+  const [tires, setTires] = useState<Tire[]>([]);
+  const [usedHere, setUsedHere] = useState<Set<string>>(new Set());
 
   const [seq, setSeq] = useState(1);
   const [session, setSession] = useState<Partial<TrackSession>>({ kind: 'practica' });
@@ -134,6 +136,8 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
       setEventId(evId);
       setEvent(ev);
       setSets(await wheelSetRepo.listWhere({ vehicleId: ev.event.vehicleId }));
+      setTires(await usableTires(ev.event.vehicleId));
+      if (sessionId) setUsedHere(new Set(await sessionTireIds(sessionId)));
       setLoaded((n) => n + 1);
     })();
     return () => {
@@ -305,6 +309,38 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
       ) : null}
       {pair(text('tireSizeF', es.track.session.sizeF), text('tireSizeR', es.track.session.sizeR))}
       {pair(text('compoundF', es.track.session.compoundF), text('compoundR', es.track.session.compoundR))}
+
+      {sessionId && tires.length ? (
+        <>
+          {eyebrow(es.track.consumables.sessionTitle)}
+          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
+            {es.track.consumables.sessionHint}
+          </T>
+          <View style={styles.chips}>
+            {tires.map((t) => {
+              const on = usedHere.has(t.id);
+              const label = [es.corners[t.position as 'fl'] ?? null, t.size].filter(Boolean).join(' · ') || es.inventory.tire.editTitle;
+              return (
+                <Chip
+                  key={t.id}
+                  label={on ? `✓ ${label}` : label}
+                  selected={on}
+                  onPress={() =>
+                    void setTireUsed(ev.id, t, !on, sessionId).then(() =>
+                      setUsedHere((prev) => {
+                        const next = new Set(prev);
+                        if (on) next.delete(t.id);
+                        else next.add(t.id);
+                        return next;
+                      }),
+                    )
+                  }
+                />
+              );
+            })}
+          </View>
+        </>
+      ) : null}
 
       {eyebrow(es.track.session.alignment)}
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>

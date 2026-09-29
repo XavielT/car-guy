@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.2 (2026-09-29)
+
+- Pista: el **trazado** del evento (completo, corto…); las mejores vueltas se comparan en el mismo
+  trazado, y la ficha pública lo muestra.
+- Pista: **gomas por sesión** — marca en cada sesión las gomas que salieron y cada una suma un ciclo
+  de calor por salida (la marca del día sigue en el evento).
+- Garaje compartido: los miembros ven los tipos de servicio y las listas de chequeo propias del
+  dueño que usa ese carro.
+- Por dentro: Expo al día (57.0.26), menos avisos de seguridad en dependencias (de 18 a 3) y sin los
+  avisos de los gráficos en la web.
+
 ## 2.1.1 (2026-09-29)
 
 - La búsqueda ignora acentos y mayúsculas: "optimo" encuentra "Óptimo", en el historial y en los

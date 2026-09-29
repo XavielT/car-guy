@@ -78,7 +78,7 @@ export async function listEvents(vehicleId?: string): Promise<EventCard[]> {
   }));
 }
 
-export type PersonalBest = { venue: Venue | null; bestLapMs: number; eventId: string; occurredAt: string };
+export type PersonalBest = { venue: Venue | null; layout: string | null; bestLapMs: number; eventId: string; occurredAt: string };
 
 export async function vehicleBests(vehicleId?: string): Promise<PersonalBest[]> {
   const events = await trackEvents.listWhere(vehicleId ? { vehicleId } : {});
@@ -223,21 +223,23 @@ export async function usableTires(vehicleId: string): Promise<Tire[]> {
   return all.filter((t) => t.status !== 'quemada' && t.status !== 'vendida');
 }
 
-const cycleId = (eventId: string, tireId: string) => `cyc_${eventId}_${tireId}`;
+const cycleId = (scopeId: string, tireId: string) => `cyc_${scopeId}_${tireId}`;
 
 /**
- * "Gomas usadas": one heat cycle per tire per event. The row's id is derived,
- * so ticking a tire twice counts once; unticking tombstones the row and gives
- * the cycle back.
+ * A heat cycle for a tire: once for the day on the event ("Gomas usadas"), or
+ * once per session when a session is given ("Gomas en esta sesión"). The row's
+ * id is derived from its scope, so ticking twice counts once; unticking
+ * tombstones the row and gives the cycle back.
  */
-export async function setTireUsed(eventId: string, tire: Tire, used: boolean): Promise<void> {
-  const id = cycleId(eventId, tire.id);
+export async function setTireUsed(eventId: string, tire: Tire, used: boolean, sessionId?: string): Promise<void> {
+  const id = cycleId(sessionId ?? eventId, tire.id);
   const existing = await usageRepo.getById(id);
   const live = Boolean(existing && !existing.deletedAt);
   if (used === live) return;
-  if (used) await usageRepo.upsert({ id, eventId, tireId: tire.id, kind: 'ciclo_goma', qty: 1, notes: '', deletedAt: null });
+  if (used) await usageRepo.upsert({ id, eventId, sessionId: sessionId ?? null, tireId: tire.id, kind: 'ciclo_goma', qty: 1, notes: '', deletedAt: null });
   else await usageRepo.softDelete(id);
-  await tireRepo.upsert({ id: tire.id, heatCycles: Math.max(0, (tire.heatCycles ?? 0) + (used ? 1 : -1)), status: used && tire.status === 'nueva' ? 'en_uso' : tire.status });
+  const fresh = (await tireRepo.getById(tire.id)) ?? tire;
+  await tireRepo.upsert({ id: tire.id, heatCycles: Math.max(0, (fresh.heatCycles ?? 0) + (used ? 1 : -1)), status: used && fresh.status === 'nueva' ? 'en_uso' : fresh.status });
 }
 
 /** "Goma quemada": the tire is retired from the garage (status quemada, off the car). */
@@ -339,4 +341,10 @@ export async function eventPhotos(eventId: string): Promise<string[]> {
     [eventId],
   );
   return rows.map((r) => r.media_id);
+}
+
+/** The tires ticked for one session (its own heat cycles). */
+export async function sessionTireIds(sessionId: string): Promise<string[]> {
+  const rows = await usageRepo.listWhere({ sessionId });
+  return rows.filter((u) => u.kind === 'ciclo_goma' && u.tireId && !u.deletedAt).map((u) => u.tireId as string);
 }

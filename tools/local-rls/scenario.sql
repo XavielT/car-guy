@@ -37,6 +37,13 @@ select t_ok('2. anon: published share renders, VIN masked, no costs',
   carguy.public_dossier('ae85hchg')::text);
 reset role;
 
+select t_as('a');
+update carguy.track_event set layout = 'Completo' where id = 'ev_a';
+reset role;
+select t_as('anon');
+select t_ok('2b. the page carries each event''s layout (017)', (carguy.public_dossier('ae85hchg')->'track'->0->>'layout') = 'Completo', carguy.public_dossier('ae85hchg')->>'track');
+reset role;
+
 -- 3/4 B outsider
 select t_as('b');
 select t_ok('3. B cannot publish A''s car', t_denied($q$insert into carguy.vehicle_share (id, vehicle_id, slug, visibility, published_at, created_at, updated_at) values ('share_b', 'veh_a', 'bbbbbbbb', 'link', now(), now(), now())$q$));

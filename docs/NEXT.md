@@ -85,22 +85,23 @@ starting at 1 (explicit labels now); the 320 px tab label (fixed in Phase 2); de
 tested); a shared car's custom venues and mod categories readable by its members (sql/015), and
 its custom service types and check templates (sql/016) — seeded rows excluded, so a member keeps its own copy.
 
+**Closed in 2.1.2:** expo 57.0.26 with `patches/@expo+metro-config+57.0.12.patch` (lazy dev bundles have no
+worker module in the graph yet — the new "workers always get a chunk" assert fired on it); `npm audit` 18 → 3
+moderate (`overrides` for `xcode → uuid@^11.1.1`; the 3 left are `decode-uri-component` under expo-router's
+`query-string`, whose fixed 0.5 is ESM-only and cannot be required by it); chart warnings on web
+(`patches/react-native-svg+15.15.4.patch`: onPress → onClick, touch-only props kept off the DOM); per-session
+heat cycles; best laps per venue + layout (migration v5, sql/017); members read a shared car's custom service
+types and check templates (sql/016). Patches apply on `postinstall` (patch-package) — re-check them on any
+bump of those two packages.
+
 **Carried:**
 
+- `decode-uri-component` ≤ 0.4.2 (3 moderate audit findings) until expo-router moves off query-string 7.
 
-- Heat cycles count once per tire per event; best laps are per venue (no layout on the event).
+
 
 **Dependencies and noise:**
 
-- **The SDK 57 patch bumps break the web dev server.** `npx expo install --fix` (expo 57.0.14 →
-  57.0.25, @expo/metro-config 57.0.12) makes every web bundle fail with "Worker chunk not found for
-  expo-sqlite/web/worker.ts" (serializeChunks.js). `npm audit fix` pulls the same expo inside the
-  `~57.0.14` range, so it breaks it too. Both reverted on 2026-09-29; keep the lockfile as is and
-  retry with the next expo patch (check `npx expo start --web` serves `/` before committing).
-- 18 npm audit findings (16 moderate, 2 high), all transitive; the non-forced fix is blocked by
-  the item above.
-- `react-native-gifted-charts` spreads React Native responder props onto DOM nodes, so the web dev
-  console logs seven "Unknown event handler property" warnings per chart render. Cosmetic, dev-only.
 
 **Known and accepted:**
 

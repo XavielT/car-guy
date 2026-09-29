@@ -14,6 +14,9 @@
  *   · only the `carguy-media` and `carguy-public` buckets
  *   · in carguy-media: object names containing `sync_probe_`, and the
  *     `v/<vehicle_id>/` folders of test vehicles (`veh_test_*`, `sync_probe_*`)
+ *   · with --orphans: `<user_id>/` folders whose account no longer exists in
+ *     auth.users (a deleted test user's photos — the account cascade removes
+ *     rows, never Storage bytes)
  *   · in carguy-public: slug folders no live vehicle_share points at (a test
  *     share whose row was deleted, or a revoke that could not finish)
  * Anything else is listed and skipped. Read the listing before passing --delete.
@@ -49,6 +52,23 @@ if (!URL_BASE || !KEY) {
 }
 
 const apply = process.argv.includes('--delete');
+const orphans = process.argv.includes('--orphans');
+
+/** Every account id, through the admin API (paginated). Read-only. */
+async function userIds() {
+  const ids = new Set();
+  for (let page = 1; page < 100; page++) {
+    const r = await fetch(`${URL_BASE}/auth/v1/admin/users?page=${page}&per_page=1000`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
+    const body = await r.json();
+    const users = body.users ?? [];
+    for (const u of users) ids.add(u.id);
+    if (users.length < 1000) break;
+  }
+  return ids;
+}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const accounts = orphans ? await userIds() : null;
+if (orphans) console.log(`orphans mode: ${accounts.size} account(s) exist`);
 
 async function api(path, init = {}) {
   const response = await fetch(`${URL_BASE}/storage/v1${path}`, {
@@ -96,10 +116,11 @@ for (const folder of folders) {
     }
     continue;
   }
+  const orphanFolder = Boolean(accounts && prefix && UUID.test(folder.name) && !accounts.has(folder.name));
   const entries = prefix ? await list(prefix) : [folder];
   for (const entry of entries) {
     const name = `${prefix}${entry.name}`;
-    (name.includes(MARKER) ? targets : skipped).push(name);
+    (name.includes(MARKER) || orphanFolder ? targets : skipped).push(name);
   }
 }
 

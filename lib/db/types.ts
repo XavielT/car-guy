@@ -603,6 +603,8 @@ export type TrackDiscipline = 'track_day' | 'drift' | 'drag' | 'autocross' | 'ju
 export type TrackEvent = Syncable & {
   vehicleId: string;
   venueId: string | null;
+  /** The circuit's configuration ("completo", "corto"…), free text; best laps are per venue + layout. */
+  layout: string | null;
   occurredAt: string;
   title: string;
   organizer: string | null;

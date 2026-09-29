@@ -1,0 +1,64 @@
+diff --git a/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js b/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js
+index d57e7c8..4daba19 100644
+--- a/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js
++++ b/node_modules/react-native-svg/lib/commonjs/web/utils/prepare.js
+@@ -32,16 +32,20 @@ const prepare = (self, props = self.props) => {
+     gradientTransform,
+     patternTransform,
+     onPress,
++    // car-guy patch: touch-only props have no DOM equivalent; keep them off the element.
++    onPressIn,
++    onPressOut,
++    onLongPress,
++    delayPressIn,
++    delayPressOut,
++    delayLongPress,
+     ...rest
+   } = props;
+   const clean = {
+-    ...((0, _hasProperty.hasTouchableProperty)(props) ? {
+-      onStartShouldSetResponder: self.touchableHandleStartShouldSetResponder,
+-      onResponderTerminationRequest: self.touchableHandleResponderTerminationRequest,
+-      onResponderGrant: self.touchableHandleResponderGrant,
+-      onResponderMove: self.touchableHandleResponderMove,
+-      onResponderRelease: self.touchableHandleResponderRelease,
+-      onResponderTerminate: self.touchableHandleResponderTerminate
++    ...(onPress ? {
++      // car-guy patch: a DOM element takes onClick, not React Native responder props
++      // (React warned 'Unknown event handler property' for every chart bar).
++      onClick: onPress
+     } : null),
+     ...rest
+   };
+diff --git a/node_modules/react-native-svg/lib/module/web/utils/prepare.js b/node_modules/react-native-svg/lib/module/web/utils/prepare.js
+index 113eb2b..8ebf9bf 100644
+--- a/node_modules/react-native-svg/lib/module/web/utils/prepare.js
++++ b/node_modules/react-native-svg/lib/module/web/utils/prepare.js
+@@ -26,16 +26,20 @@ export const prepare = (self, props = self.props) => {
+     gradientTransform,
+     patternTransform,
+     onPress,
++    // car-guy patch: touch-only props have no DOM equivalent; keep them off the element.
++    onPressIn,
++    onPressOut,
++    onLongPress,
++    delayPressIn,
++    delayPressOut,
++    delayLongPress,
+     ...rest
+   } = props;
+   const clean = {
+-    ...(hasTouchableProperty(props) ? {
+-      onStartShouldSetResponder: self.touchableHandleStartShouldSetResponder,
+-      onResponderTerminationRequest: self.touchableHandleResponderTerminationRequest,
+-      onResponderGrant: self.touchableHandleResponderGrant,
+-      onResponderMove: self.touchableHandleResponderMove,
+-      onResponderRelease: self.touchableHandleResponderRelease,
+-      onResponderTerminate: self.touchableHandleResponderTerminate
++    ...(onPress ? {
++      // car-guy patch: a DOM element takes onClick, not React Native responder props
++      // (React warned 'Unknown event handler property' for every chart bar).
++      onClick: onPress
+     } : null),
+     ...rest
+   };

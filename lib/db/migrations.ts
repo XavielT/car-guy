@@ -264,6 +264,8 @@ export const MIGRATIONS: Migration[] = [
   { version: 3, up: historyFeedV3() },
   // v4: history_feed gains OBD events (IMP 28092026 Phase 5). Local view only.
   { version: 4, up: historyFeedV4() },
+  // v5 (2.1.2): the circuit's layout on a track event, so best laps are per venue + layout.
+  { version: 5, up: [`ALTER TABLE track_event ADD COLUMN layout TEXT`] },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
