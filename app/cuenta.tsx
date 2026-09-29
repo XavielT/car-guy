@@ -44,7 +44,7 @@ export default function CuentaScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { resetAll } = useStore();
-  const { session, ready, configured } = useSession();
+  const { session, ready, configured, otherApp } = useSession();
   const { status, pending, lastSyncAt, running, syncNow } = useSync();
 
   const [mode, setMode] = useState<Mode>('signIn');
@@ -306,12 +306,13 @@ export default function CuentaScreen() {
               />
             ) : null}
 
-            {error ? (
+            {error || otherApp ? (
               <T
                 face="body"
                 accessibilityRole="alert"
                 style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>
-                {error}
+                {/* A session from another x-core app was signed out: say why. */}
+                {error ?? es.account.errors.otherApp}
               </T>
             ) : null}
 

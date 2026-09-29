@@ -1,7 +1,10 @@
-insert into auth.users (id, email) values
- ('00000000-0000-0000-0000-00000000000a', 'a@example.com'),
- ('00000000-0000-0000-0000-00000000000b', 'b@example.com'),
- ('00000000-0000-0000-0000-00000000000c', 'c@example.com');
+-- a, b, c sign up from Car Guy (app flag → carguy.profiles row, sql/002);
+-- d is a Music Hub account on the same auth.users and must get nothing (sql/018).
+insert into auth.users (id, email, raw_user_meta_data) values
+ ('00000000-0000-0000-0000-00000000000a', 'a@example.com', '{"app":"carguy"}'),
+ ('00000000-0000-0000-0000-00000000000b', 'b@example.com', '{"app":"carguy"}'),
+ ('00000000-0000-0000-0000-00000000000c', 'c@example.com', '{"app":"carguy"}'),
+ ('00000000-0000-0000-0000-00000000000d', 'd@example.com', '{}');
 -- as A
 begin;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);

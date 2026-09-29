@@ -51,6 +51,7 @@ export const es = {
     report: 'Reporte',
     export: 'Exportar',
     account: 'Cuenta',
+    newPassword: 'Nueva contraseña',
     album: 'Álbum',
     albumState: 'Así estaba',
     build: 'Build',
@@ -1122,6 +1123,20 @@ export const es = {
     resetSentBody: (email: string) => `Te mandamos un enlace a ${email} para cambiar la contraseña.`,
     resetNeedsEmail: 'Escribe tu correo primero.',
 
+    reset: {
+      title: 'Nueva contraseña',
+      reading: 'Revisando el enlace…',
+      body: 'Escribe la contraseña nueva para tu cuenta de Car Guy.',
+      newPassword: 'Contraseña nueva',
+      confirm: 'Repite la contraseña',
+      mismatch: 'Las dos contraseñas no coinciden.',
+      save: 'Guardar contraseña',
+      doneTitle: 'Contraseña cambiada',
+      doneBody: 'Ya tienes la sesión iniciada con la contraseña nueva.',
+      invalid: 'Este enlace ya no sirve: venció o ya se usó. Pide otro desde Cuenta → ¿Olvidaste la contraseña?',
+      toAccount: 'Ir a Cuenta',
+    },
+
     working: 'Un momento…',
     signedInAs: 'Sesión iniciada',
     lastSync: 'Última sincronización',
@@ -1150,7 +1165,11 @@ export const es = {
 
     errors: {
       invalidCredentials: 'Correo o contraseña incorrectos.',
-      userExists: 'Ya hay una cuenta con ese correo. Inicia sesión.',
+      // The email may belong to another app on the same backend (Music Hub):
+      // one address, one account there, so it cannot become a Car Guy one.
+      userExists:
+        'Ya hay una cuenta con ese correo. Si la creaste en Car Guy, inicia sesión; si es de otra app, usa otro correo.',
+      otherApp: 'Esa cuenta es de otra app y no sirve en Car Guy. Crea tu cuenta de Car Guy con otro correo.',
       weakPassword: 'La contraseña necesita al menos 8 caracteres.',
       invalidEmail: 'Ese correo no parece válido.',
       rateLimited: 'Demasiados intentos. Espera un momento.',

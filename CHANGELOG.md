@@ -7,6 +7,10 @@
   foto.
 - **Cuenta disponible en el APK**: "Iniciar sesión" funciona desde el APK que se descarga de GitHub (hasta
   la 2.1.2 ese APK salía sin la conexión a la nube).
+- **Cambiar la contraseña**: el enlace de "¿Olvidaste la contraseña?" ahora abre Car Guy (antes abría
+  otra app) y ahí mismo escribes la contraseña nueva.
+- **Cuentas propias de Car Guy**: solo entra una cuenta creada en Car Guy. Una cuenta de otra app no
+  sirve aquí aunque el correo y la contraseña sean correctos.
 - **Mensajes claros**: ningún mensaje de error muestra detalles técnicos. La pantalla de Cuenta dice la
   versión de la app.
 - Preparación para la 2.2: los cambios que haga una versión más nueva se guardan para cuando actualices,
