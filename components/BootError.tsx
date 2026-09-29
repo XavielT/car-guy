@@ -4,6 +4,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
 import { T } from '@/components/T';
 import { fonts, palette, radius, space } from '@/constants/theme';
+import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { es } from '@/lib/i18n/es';
 
 /**
@@ -107,6 +108,7 @@ export function BootError({
   retry,
   retrying = false,
 }: ErrorBoundaryProps & { retrying?: boolean }) {
+  const diagnostics = useDiagnosticsMode();
   // Mid-retry: the splash background, not a message. The page is about to
   // reload and the user reloaded it a moment ago anyway.
   if (retrying) return <View style={styles.blank} />;
@@ -139,10 +141,13 @@ export function BootError({
         </Pressable>
 
         {/* Last, small, and in the developer's language, because it is for the
-            developer. The two lines above are the ones the driver reads. */}
-        <T face="mono" style={styles.detail}>
-          {`${error.name}: ${error.message}`}
-        </T>
+            developer — so only in development or "modo diagnóstico" (IMP 29092026
+            Phase 1). The two lines above are the ones the driver reads. */}
+        {diagnostics ? (
+          <T face="mono" style={styles.detail}>
+            {`${error.name}: ${error.message}`}
+          </T>
+        ) : null}
       </ScrollView>
     </View>
   );

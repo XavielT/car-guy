@@ -1,7 +1,11 @@
 import type { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 
+import { recordError } from '../diagnostics';
+import { withDevHint } from '../diagnosticsMode';
 import { es } from '../i18n/es';
+import { checkMembership, isKnownMember, rememberMember } from './membership';
 import { getSupabase, isCloudConfigured } from './supabase';
 
 /**
@@ -22,7 +26,8 @@ export type AuthResult = { ok: true } | { ok: false; message: string };
 const MIN_PASSWORD = 8;
 
 function notConfigured(): AuthResult {
-  return { ok: false, message: es.account.notConfigured };
+  recordError('auth', es.dev.notConfigured);
+  return { ok: false, message: withDevHint(es.account.notConfigured, es.dev.notConfigured) };
 }
 
 /**
@@ -60,8 +65,11 @@ export function translateAuthError(raw: string): string {
     return es.account.errors.network;
   }
   // The invite trigger on x-core. A Car Guy signup should never see it — if it
-  // does, sql/001 has not been applied, and that is worth saying plainly.
-  if (message.includes('invite-only')) return es.account.errors.inviteOnly;
+  // does, sql/001 has not been applied: plain to the admin, not to the user.
+  if (message.includes('invite-only')) {
+    recordError('auth', es.dev.inviteOnly);
+    return withDevHint(es.account.errors.inviteOnly, es.dev.inviteOnly);
+  }
 
   return es.account.errors.generic;
 }
@@ -77,7 +85,7 @@ export async function signUp(
     return { ok: false, message: es.account.errors.weakPassword };
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
     options: {
@@ -89,6 +97,8 @@ export async function signUp(
   });
 
   if (error) return { ok: false, message: translateAuthError(error.message) };
+  // The signup trigger has just given it a carguy.profiles row (sql/002).
+  if (data.user) await rememberMember(data.user.id);
   return { ok: true };
 }
 
@@ -96,12 +106,19 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   const supabase = getSupabase();
   if (!supabase) return notConfigured();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: email.trim(),
     password,
   });
 
   if (error) return { ok: false, message: translateAuthError(error.message) };
+
+  // x-core accepts any of its accounts; Car Guy only its own (sql/018).
+  const member = await checkMembership(supabase, data.user.id);
+  if (member !== true) {
+    await supabase.auth.signOut();
+    return { ok: false, message: member === false ? es.account.errors.otherApp : es.account.errors.network };
+  }
   return { ok: true };
 }
 
@@ -129,26 +146,47 @@ export async function signOut(): Promise<AuthResult> {
 }
 
 /**
+ * Where the reset link lands: `carguy://nueva-contrasena` in the app,
+ * `<origin>/nueva-contrasena` on the web. Without `redirectTo` x-core sends the
+ * link to its Site URL, which is Music Hub (2.1.2 did exactly that). Both
+ * forms are in x-core's redirect allow list.
+ */
+export function resetRedirectUrl(): string {
+  return Linking.createURL('/nueva-contrasena');
+}
+
+/**
  * Sends the password-reset email.
  *
  * The template is project-level on x-core and shared with Music Hub, so the
- * message a Car Guy user receives is whatever Music Hub's template says. That
- * is reported rather than fixed: changing it would change Music Hub's email.
+ * wording is whatever that template says. That is reported rather than fixed:
+ * changing it would change Music Hub's email. The link itself comes back to
+ * Car Guy, and app/nueva-contrasena.tsx refuses an account from another app.
  */
 export async function resetPassword(email: string): Promise<AuthResult> {
   const supabase = getSupabase();
   if (!supabase) return notConfigured();
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: resetRedirectUrl(),
+  });
   if (error) return { ok: false, message: translateAuthError(error.message) };
   return { ok: true };
 }
+
+/** Set when any useSession() signs out another app's session; read by the next one. */
+let rejectedOtherApp = false;
 
 export type SessionState = {
   session: Session | null;
   /** False until the stored session has been read back from storage. */
   ready: boolean;
   configured: boolean;
+  /**
+   * A session from another x-core app was just signed out, so Cuenta can say
+   * why instead of only showing the sign-in form.
+   */
+  otherApp: boolean;
 };
 
 /**
@@ -161,27 +199,48 @@ export type SessionState = {
 export function useSession(): SessionState {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!isCloudConfigured);
+  const [otherApp, setOtherApp] = useState(() => rejectedOtherApp);
 
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
 
     let cancelled = false;
+    // Events are checked asynchronously; only the newest may win. Without this
+    // a slow check of the old session finished after SIGNED_OUT and put the
+    // account back on screen (seen on the Redmi, 2026-09-29).
+    let latest = 0;
+
+    // Only a Car Guy account's session reaches the app (and so sync). One from
+    // another x-core app — a web tab signed in before 2.1.3, or a reset link
+    // opened by a Music Hub user — is signed out; an unanswered check (offline,
+    // never verified here) is simply not shown until it can be asked.
+    const accept = async (next: Session | null) => {
+      const mine = ++latest;
+      if (next && !(await isKnownMember(next.user.id))) {
+        const member = await checkMembership(supabase, next.user.id);
+        if (member === false) {
+          rejectedOtherApp = true;
+          void supabase.auth.signOut();
+        }
+        if (member !== true) next = null;
+      }
+      if (cancelled || mine !== latest) return;
+      if (next) rejectedOtherApp = false;
+      setOtherApp(rejectedOtherApp);
+      setSession(next);
+      setReady(true);
+    };
 
     supabase.auth
       .getSession()
-      .then(({ data }) => {
-        if (cancelled) return;
-        setSession(data.session);
-        setReady(true);
-      })
+      .then(({ data }) => accept(data.session))
       .catch(() => {
         if (!cancelled) setReady(true);
       });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-      setReady(true);
+      void accept(next);
     });
 
     return () => {
@@ -190,5 +249,5 @@ export function useSession(): SessionState {
     };
   }, []);
 
-  return { session, ready, configured: isCloudConfigured };
+  return { session, ready, configured: isCloudConfigured, otherApp };
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The cloud SQL (sql/002…014) on a throwaway local PostgreSQL 16 with a Supabase
+# The cloud SQL (sql/002…018) on a throwaway local PostgreSQL 16 with a Supabase
 # shim (auth.uid() from request.jwt.claims, anon/authenticated roles, storage
 # tables), then the public-page + shared-garage scenario as two/three accounts.
 # Touches nothing but a temp cluster. Found the 013 is_member NULL hole (sql/014).
@@ -23,6 +23,7 @@ $P -f sql/014_is_member_null_fix.sql
 $P -f sql/015_member_catalogues.sql
 $P -f sql/016_member_service_types.sql
 $P -f sql/017_track_layout.sql
+$P -f sql/018_app_membership.sql
 OUT=$($P -f tools/local-rls/scenario.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
 echo "$OUT"
 echo "$OUT" | grep -q -E '^(FAIL|ERROR)' && exit 1

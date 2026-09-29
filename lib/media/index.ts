@@ -13,7 +13,6 @@
  * with a blurhash on native so a cell has a shape before its thumb arrives.
  * Grids never load the full copy: egress is the tighter cloud limit.
  */
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
@@ -22,7 +21,11 @@ import { albumItems, media as mediaRepo } from '../db/repos';
 import type { Media } from '../db/types';
 import { isDuplicate, resolveTakenAt, type DatePrecision, type TakenAtSource } from '../domain/album';
 import { id as newId } from '../format';
+import { recordError } from '../diagnostics';
+import { compressPhoto } from './compress';
 import { readFileExifDate } from './exif';
+
+export { MediaError } from './compress';
 
 const FULL = { width: 1600, quality: 0.75 };
 const THUMB = { width: 400, quality: 0.6 };
@@ -60,16 +63,6 @@ export type IngestTarget = {
   trackEventId?: string | null;
 };
 
-type Written = { uri: string; width: number | null; height: number | null };
-
-async function compress(uri: string, sourceWidth: number | null, target: { width: number; quality: number }): Promise<Written> {
-  const context = ImageManipulator.ImageManipulator.manipulate(uri);
-  // Unknown width: resize anyway — a 12 MP photo must never be stored as is.
-  if (sourceWidth == null || sourceWidth > target.width) context.resize({ width: target.width });
-  const rendered = await context.renderAsync();
-  const result = await rendered.saveAsync({ compress: target.quality, format: ImageManipulator.SaveFormat.JPEG });
-  return { uri: result.uri, width: result.width ?? null, height: result.height ?? null };
-}
 
 async function readBytes(uri: string): Promise<Uint8Array> {
   const response = await fetch(uri);
@@ -98,8 +91,8 @@ export async function ingest(
   target: IngestTarget,
   dupShapes?: Parameters<typeof isDuplicate>[1],
 ): Promise<IngestResult> {
-  const full = await compress(candidate.uri, candidate.width, FULL);
-  const thumb = await compress(full.uri, full.width, THUMB);
+  const full = await compressPhoto(candidate.uri, candidate.width, FULL);
+  const thumb = await compressPhoto(full.uri, full.width, THUMB);
   const takenAt = candidate.takenAt;
   const web = Platform.OS === 'web';
 
@@ -238,7 +231,8 @@ export async function importCandidates(
         // Two copies of one photo in the same batch are duplicates too.
         shapes.push({ width: result.media.width, height: result.media.height, takenAt: result.media.takenAt, sizeBytes: result.media.sizeBytes });
       }
-    } catch {
+    } catch (error) {
+      recordError('photo-import', error);
       progress.failed += 1;
     }
     progress.done += 1;
@@ -254,6 +248,17 @@ export async function importCandidates(
 export async function pickPhoto(options: PickOptions & { album?: boolean }): Promise<Media | null> {
   const [candidate] = await pickCandidates({ camera: options.camera });
   if (!candidate) return null;
+  return storePhoto(candidate, options);
+}
+
+/**
+ * The storing half of `pickPhoto`, on its own so a failed save can be retried
+ * with the photo already in hand (the picker is not reopened).
+ */
+export async function storePhoto(
+  candidate: Pick<Candidate, 'uri' | 'width' | 'takenAt'>,
+  options: PickOptions & { album?: boolean },
+): Promise<Media | null> {
   const result = await ingest(
     { ...candidate, source: options.camera ? 'camera' : Platform.OS === 'web' ? 'web' : 'import' },
     {
@@ -264,6 +269,22 @@ export async function pickPhoto(options: PickOptions & { album?: boolean }): Pro
     },
   );
   return result.media;
+}
+
+/**
+ * Android can kill the activity while the camera or the gallery is open
+ * ("No mantener actividades", low memory). The photo then comes back to a fresh
+ * JS runtime through `getPendingResultAsync` instead of the awaited promise.
+ * Null on web/iOS, when nothing was pending, or on an error result.
+ */
+export async function pendingPickedPhoto(): Promise<Pick<Candidate, 'uri' | 'width' | 'takenAt'> | null> {
+  if (Platform.OS !== 'android') return null;
+  const pending = await ImagePicker.getPendingResultAsync();
+  if (!pending || 'code' in pending || pending.canceled || !pending.assets?.length) return null;
+  const asset = pending.assets[0];
+  const exif = asset.exif as Record<string, unknown> | null | undefined;
+  const resolved = resolveTakenAt({ exif: exif?.DateTimeOriginal ?? exif?.DateTime ?? null, fileTimeMs: null });
+  return { uri: asset.uri, width: asset.width ?? null, takenAt: resolved.takenAt };
 }
 
 /**

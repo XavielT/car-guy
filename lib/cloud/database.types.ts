@@ -2666,6 +2666,7 @@ export type Database = {
     }
     Functions: {
       storage_usage_bytes: { Args: never; Returns: number }
+      is_app_user: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

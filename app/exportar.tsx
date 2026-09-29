@@ -6,6 +6,7 @@ import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { userMessage } from '@/lib/diagnostics';
 import { fuel as fuelRepo, history } from '@/lib/db/repos';
 import type { FuelLog, HistoryEntry } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
@@ -73,7 +74,7 @@ export default function ExportarScreen() {
     } catch (error) {
       Alert.alert(
         es.export.title,
-        es.export.failed(error instanceof Error ? error.message : String(error)),
+        userMessage('export', error, es.export.failed),
       );
     } finally {
       setBusy(false);

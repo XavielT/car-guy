@@ -218,3 +218,36 @@ export function normaliseRow<T extends { updatedAt: string; deletedAt?: string |
     deletedAt: normaliseTimestamp(row.deletedAt),
   };
 }
+
+/**
+ * The local schema this build understands, as the cloud's `schema_hint`
+ * column spells it (IMP 29092026 02-cloud-v3.md, "Schema gate"). Bump it with
+ * the migration that makes rows a previous build could misread — v6 turns
+ * volumes into liters, so a 2.2 row read by a 2.1.3 build must wait.
+ */
+export const SCHEMA_HINT = 'v5';
+
+/** "v6" → 6. Absent, null or unparseable → null (a row from before the column existed). */
+export function hintNumber(hint: unknown): number | null {
+  if (typeof hint !== 'string') return null;
+  const n = Number.parseInt(hint.replace(/^v/i, ''), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * True when the row was written by a newer schema than this build's. Rows
+ * without a hint (every row today: the column arrives in sql/018) pass.
+ */
+export function isFromNewerSchema(row: { schema_hint?: unknown }, clientHint: string = SCHEMA_HINT): boolean {
+  const theirs = hintNumber(row.schema_hint);
+  const mine = hintNumber(clientHint);
+  return theirs != null && mine != null && theirs > mine;
+}
+
+/** Splits a pulled page into what this build may apply and what it must skip. */
+export function gateBySchema<T extends { schema_hint?: unknown }>(rows: T[], clientHint: string = SCHEMA_HINT): { accepted: T[]; skipped: T[] } {
+  const accepted: T[] = [];
+  const skipped: T[] = [];
+  for (const row of rows) (isFromNewerSchema(row, clientHint) ? skipped : accepted).push(row);
+  return { accepted, skipped };
+}

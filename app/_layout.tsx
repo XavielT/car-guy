@@ -301,6 +301,7 @@ function Shell() {
         <Stack.Screen name="reporte" options={{ headerShown: true, title: es.routes.report }} />
         <Stack.Screen name="exportar" options={{ headerShown: true, title: es.routes.export }} />
         <Stack.Screen name="cuenta" options={{ headerShown: true, title: es.routes.account }} />
+        <Stack.Screen name="nueva-contrasena" options={{ headerShown: true, title: es.routes.newPassword }} />
       </Stack>
       <FirstSyncBanner />
       {/* Last child, so the dialog sits over every screen the Stack renders. */}

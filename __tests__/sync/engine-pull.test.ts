@@ -63,7 +63,9 @@ jest.mock('@/lib/cloud/supabase', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { sync } from '@/lib/sync/engine';
+import { newerSchemaCount, SCHEMA_SKIPPED_KEY, sync } from '@/lib/sync/engine';
+// eslint-disable-next-line import/first
+import { settings as settingsRepo } from '@/lib/db/repos';
 
 const db = (jest.requireMock('@/lib/db/client') as { testDb: TestDb }).testDb.sqlite;
 
@@ -103,3 +105,51 @@ describe('pull', () => {
     expect(result.ok).toBe(true);
   });
 });
+
+describe('schema gate (IMP 29092026 Phase 1)', () => {
+  const vehicle = (id: string, stamp: string, extra: Record<string, unknown>) => ({
+    id,
+    user_id: 'user-1',
+    name: id,
+    type: 'carro',
+    default_fuel_type: 'regular',
+    is_archived: false,
+    sort_order: 0,
+    notes: '',
+    created_at: '2026-09-29T10:00:00+00:00',
+    updated_at: '2026-09-29T10:00:00+00:00',
+    server_updated_at: stamp,
+    ...extra,
+  });
+
+  it('skips rows from a newer schema, counts them, and applies the rest (unknown columns ignored)', async () => {
+    mockServer.vehicle = [
+      ...(mockServer.vehicle ?? []),
+      vehicle('veh_gate_old', '2026-09-29T10:00:01+00:00', {}), // before sql/018: no schema_hint at all
+      vehicle('veh_gate_v5', '2026-09-29T10:00:02+00:00', { schema_hint: 'v5', some_future_column: 1 }),
+      vehicle('veh_gate_v6a', '2026-09-29T10:00:03+00:00', { schema_hint: 'v6', tank_l: 45 }),
+      vehicle('veh_gate_v6b', '2026-09-29T10:00:04+00:00', { schema_hint: 'v6' }),
+    ];
+    const result = await sync('manual');
+    expect(result.ok).toBe(true);
+    const ids = (db.prepare("SELECT id FROM vehicle WHERE id LIKE 'veh_gate_%' ORDER BY id").all() as { id: string }[]).map((r) => r.id);
+    expect(ids).toEqual(['veh_gate_old', 'veh_gate_v5']);
+    expect(await newerSchemaCount()).toBe(2);
+  });
+
+  it('does not count the same skipped row twice', async () => {
+    await sync('manual'); // the overlap window re-reads the same page
+    expect(await newerSchemaCount()).toBe(2);
+  });
+
+  it('after an app update, re-reads the tables that had skipped rows from zero', async () => {
+    // Pretend the skipped rows were recorded by an older build.
+    await settingsRepo.set(SCHEMA_SKIPPED_KEY, { hint: 'v4', tables: { vehicle: ['veh_gate_v6a'] } });
+    await sync('manual');
+    // The re-read found the v6 rows again (still too new for this build) and
+    // recorded them under this build's hint.
+    expect(await newerSchemaCount()).toBe(2);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM vehicle WHERE id LIKE 'veh_gate_v6%'").get()).toEqual({ n: 0 });
+  });
+});
+

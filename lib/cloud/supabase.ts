@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from './database.types';
+import { recordError } from '../diagnostics';
+import { withDevHint } from '../diagnosticsMode';
 import { es } from '../i18n/es';
 import { Platform } from 'react-native';
 
@@ -19,6 +21,9 @@ import { Platform } from 'react-native';
  * state to report, never a crash at import time.
  */
 
+// Dot access on purpose: Metro inlines `process.env.EXPO_PUBLIC_*` only when it
+// is written exactly like this. `process.env['…']` or destructuring would ship
+// an APK where both are undefined (IMP 29092026 Phase 1, note 13).
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -106,7 +111,8 @@ export const SCHEMA_NOT_EXPOSED = 'PGRST106';
  */
 export function describeSchemaError(error: { code?: string } | null): string | null {
   if (error?.code === SCHEMA_NOT_EXPOSED) {
-    return es.account.errors.schemaNotExposed;
+    recordError('cloud', es.dev.schemaNotExposed);
+    return withDevHint(es.account.errors.schemaNotExposed, es.dev.schemaNotExposed);
   }
   return null;
 }

@@ -137,3 +137,19 @@ reset role;
 select t_as('anon');
 select t_ok('11. revoked → null', carguy.public_dossier('ae85hchg') is null);
 reset role;
+
+-- 12 an x-core account made in another app (Music Hub) gets nothing (sql/018)
+-- A Music Hub bucket stand-in, so the storage check can show it is left alone.
+create policy mh_test_all on storage.objects for all to authenticated using (bucket_id = 'mh-test') with check (bucket_id = 'mh-test');
+select t_as('d');
+select t_ok('12a. other-app account: is_app_user() is false', not carguy.is_app_user());
+select t_ok('12b. other-app account: cannot create its own Car Guy profile', t_denied($q$insert into carguy.profiles (user_id) values ('00000000-0000-0000-0000-00000000000d')$q$));
+select t_ok('12c. other-app account: cannot push a vehicle', t_denied($q$insert into carguy.vehicle (id, user_id, name, default_fuel_type, created_at, updated_at) values ('veh_d', '00000000-0000-0000-0000-00000000000d', 'x', 'regular', now(), now())$q$));
+select t_ok('12d. other-app account: reads no Car Guy rows', (select count(*) from carguy.vehicle) = 0 and (select count(*) from carguy.service_type) = 0 and (select count(*) from carguy.profiles) = 0);
+select t_ok('12e. other-app account: cannot redeem an invite', t_denied($q$select carguy.redeem_invite('whatever')$q$));
+select t_ok('12f. other-app account: cannot upload to carguy-media', t_denied($q$insert into storage.objects (bucket_id, name, owner) values ('carguy-media', '00000000-0000-0000-0000-00000000000d/x.jpg', '00000000-0000-0000-0000-00000000000d')$q$));
+select t_ok('12g. other-app account: its own app''s bucket still works', not t_denied($q$insert into storage.objects (bucket_id, name, owner) values ('mh-test', 'd/x.jpg', '00000000-0000-0000-0000-00000000000d')$q$));
+reset role;
+select t_as('a');
+select t_ok('12h. Car Guy account: is_app_user() is true, still sees its car', carguy.is_app_user() and (select count(*) from carguy.vehicle where id = 'veh_a') = 1);
+reset role;

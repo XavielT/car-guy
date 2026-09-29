@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { es } from '@/lib/i18n/es';
-import { pickPhoto } from '@/lib/media';
+import { recordError } from '@/lib/diagnostics';
+import { pickCandidates, storePhoto, type Candidate } from '@/lib/media';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
@@ -24,6 +26,7 @@ export function PhotoPicker({
   vehicleId,
   onChange,
   height = 180,
+  recoverPending = false,
 }: {
   mediaId: string | null;
   ownerTable: string;
@@ -31,22 +34,79 @@ export function PhotoPicker({
   vehicleId?: string;
   onChange: (mediaId: string | null) => void;
   height?: number;
+  /**
+   * Picks up a photo Android handed back after killing the activity mid-pick
+   * (`getPendingResultAsync`). Only one picker per screen should ask.
+   */
+  recoverPending?: boolean;
 }) {
   const { theme } = useTheme();
   const uri = useMediaUri(mediaId);
+  const [busy, setBusy] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // The storing runs outside React (lib/media): an unmount cannot cancel it,
+  // it can only make the result land nowhere — hence the mounted check.
+  async function store(candidate: Pick<Candidate, 'uri' | 'width' | 'takenAt'>, camera: boolean) {
+    setBusy(true);
+    try {
+      const saved = await storePhoto(candidate, { camera, ownerTable, ownerId, vehicleId });
+      if (saved && mounted.current) onChange(saved.id);
+    } catch (error) {
+      // The raw text (a Kotlin stack, often) is for the diagnostics, never the screen.
+      recordError('photo', error);
+      if (!mounted.current) return;
+      Alert.alert(es.common.photoErrorTitle, es.common.photoErrorRetry, [
+        { text: es.common.cancel, style: 'cancel' },
+        { text: es.common.retry, onPress: () => void store(candidate, camera) },
+      ]);
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  }
 
   async function add(camera: boolean) {
+    let candidate: Candidate | undefined;
     try {
       // Called straight from the press handler: on web the picker injects an
       // <input type="file"> and clicks it, which only works inside a gesture.
-      const saved = await pickPhoto({ camera, ownerTable, ownerId, vehicleId });
-      if (saved) onChange(saved.id);
+      [candidate] = await pickCandidates({ camera });
     } catch (error) {
-      Alert.alert(
-        es.common.photoError,
-        error instanceof Error ? error.message : String(error),
-      );
+      recordError('photo-pick', error);
+      Alert.alert(es.common.photoErrorTitle, es.common.photoPickError);
+      return;
     }
+    if (candidate) await store(candidate, camera);
+  }
+
+  useEffect(() => {
+    if (!recoverPending || Platform.OS !== 'android') return;
+    void (async () => {
+      try {
+        const { pendingPickedPhoto } = await import('@/lib/media');
+        const pending = await pendingPickedPhoto();
+        if (pending && mounted.current) await store(pending, false);
+      } catch (error) {
+        recordError('photo-pending', error);
+      }
+    })();
+    // Once per mount: a pending result can only be read once anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (busy) {
+    return (
+      <View style={[styles.empty, { height, borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
+        <ActivityIndicator color={theme.text.muted} />
+        <T style={[styles.actionLabel, { color: theme.text.muted }]}>{es.common.photoSaving}</T>
+      </View>
+    );
   }
 
   if (uri) {

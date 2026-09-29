@@ -7,6 +7,7 @@ import { T } from '@/components/T';
 import { KeyValueRow, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { userMessage } from '@/lib/diagnostics';
 import { history } from '@/lib/db/repos';
 import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
 import type { HistoryEntry } from '@/lib/db/types';
@@ -91,7 +92,7 @@ export default function ReporteScreen() {
     } catch (error) {
       Alert.alert(
         es.report.unavailableTitle,
-        es.report.failed(error instanceof Error ? error.message : String(error)),
+        userMessage('report', error, es.report.failed),
       );
     } finally {
       setBusy(false);

@@ -1,3 +1,4 @@
+import { recordError } from '../diagnostics';
 import { getSupabase, describeSchemaError } from '../cloud/supabase';
 import { settings as settingsRepo } from '../db/repos';
 import {
@@ -25,10 +26,12 @@ import {
   cursorAfter,
   decide,
   formatCursor,
+  gateBySchema,
   hasMore,
   normaliseTimestamp,
   overlapStart,
   parseCursor,
+  SCHEMA_HINT,
 } from './merge';
 import {
   BOOLEAN_COLUMNS,
@@ -167,14 +170,18 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
   if (!userId) return { ok: false, pushed: 0, pulled: 0, message: es.sync.signedOut };
 
   emit({ state: 'running', reason });
+  await rereadAfterUpgrade();
 
   let pushed = 0;
   let pulled = 0;
+  // Which step was running, for the diagnostics buffer when one throws.
+  let step = 'media-upload';
 
   try {
     // Before the media rows, so the `remote_path` they carry already points at
     // bytes the other device can actually fetch.
     await uploadMediaBytes(supabase, userId);
+    step = 'media-remove';
     await removeDeletedMediaBytes(supabase);
 
     for (const table of SYNC_TABLES) {
@@ -185,6 +192,7 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
         continue;
       }
       if (table.pullOnly) continue;
+      step = `push:${table.name}`;
       pushed += await pushTable(supabase, table, userId);
     }
 
@@ -196,6 +204,7 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
     const pullAll = async () => {
       for (const table of SYNC_TABLES) {
         if (table.name === 'setting') continue;
+        step = `pull:${table.name}`;
         const outcome = await pullTable(supabase, table.name);
         pulled += outcome.applied;
         if (outcome.parked.length) parked[table.name] = [...(parked[table.name] ?? []), ...(outcome.parked as IncomingRow[])];
@@ -222,6 +231,7 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
 
     // The quota meter, after the uploads and removals: this reading is what
     // un-pauses uploads once there is room again. Best-effort.
+    step = 'storage-meter';
     await refreshStorageMeter(supabase as never, userId);
 
     const finishedAt = now();
@@ -246,6 +256,8 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
     // The screen shows a friendly sentence; the cause goes to the console, or
     // a failure like this is undiagnosable from a user's report.
     console.warn('[sync] failed:', error);
+    const e = error as { code?: string; message?: string; details?: string };
+    recordError(`sync ${step}`, [e?.code, e?.message ?? String(error), e?.details].filter(Boolean).join(' · '));
     const message = describe(error);
     emit({
       state: 'error',
@@ -375,7 +387,12 @@ async function pullTable(supabase: Client, table: string): Promise<PullOutcome> 
     const rows = (data ?? []) as Record<string, unknown>[];
     if (!rows.length) break;
 
-    const incoming = rows.map((row) => ({
+    // Schema gate: rows from a newer Car Guy are left alone, and remembered so
+    // this table is read again from the start once the app is updated.
+    const gated = gateBySchema(rows);
+    if (gated.skipped.length) await rememberSkipped(table, gated.skipped.map((row) => row.id as string));
+
+    const incoming = gated.accepted.map((row) => ({
       ...row,
       updatedAt: normaliseTimestamp(row.updated_at as string) ?? (row.updated_at as string),
       serverUpdatedAt: row.server_updated_at as string,
@@ -388,7 +405,9 @@ async function pullTable(supabase: Client, table: string): Promise<PullOutcome> 
 
     // The page is sorted by (server_updated_at, id), so its last row is where
     // the next one starts — ties included (see parseCursor).
-    const advanced = cursorAfter(incoming)!;
+    const advanced = cursorAfter(
+      rows.map((row) => ({ id: row.id as string, serverUpdatedAt: row.server_updated_at as string })),
+    )!;
     cursor = advanced;
     await settingsRepo.set(cursorKey(table), formatCursor(advanced));
 
@@ -399,6 +418,36 @@ async function pullTable(supabase: Client, table: string): Promise<PullOutcome> 
 }
 
 type PullOutcome = { applied: number; parked: Record<string, unknown>[] };
+
+/**
+ * Rows the schema gate skipped: `{ hint, tables: { table: ids[] } }`, local to
+ * this device (not in SYNCED_SETTING_KEYS). `hint` is the build's SCHEMA_HINT at
+ * the time — a different one on a later launch means the app was updated, and
+ * those tables are pulled again from zero so the skipped rows finally land.
+ */
+export const SCHEMA_SKIPPED_KEY = 'sync_schema_skipped';
+type SchemaSkipped = { hint: string; tables: Record<string, string[]> };
+
+async function rememberSkipped(table: string, ids: string[]): Promise<void> {
+  const stored = await settingsRepo.get<SchemaSkipped | null>(SCHEMA_SKIPPED_KEY, null);
+  const current: SchemaSkipped = stored?.hint === SCHEMA_HINT ? stored : { hint: SCHEMA_HINT, tables: {} };
+  current.tables[table] = [...new Set([...(current.tables[table] ?? []), ...ids])];
+  await settingsRepo.set(SCHEMA_SKIPPED_KEY, current);
+}
+
+async function rereadAfterUpgrade(): Promise<void> {
+  const stored = await settingsRepo.get<SchemaSkipped | null>(SCHEMA_SKIPPED_KEY, null);
+  if (!stored || stored.hint === SCHEMA_HINT) return;
+  for (const table of Object.keys(stored.tables)) await settingsRepo.set(cursorKey(table), null);
+  await settingsRepo.set(SCHEMA_SKIPPED_KEY, null);
+}
+
+/** How many pulled rows are waiting for a newer Car Guy (the Cuenta screen says so). */
+export async function newerSchemaCount(): Promise<number> {
+  const stored = await settingsRepo.get<SchemaSkipped | null>(SCHEMA_SKIPPED_KEY, null);
+  if (!stored || stored.hint !== SCHEMA_HINT) return 0;
+  return Object.values(stored.tables).reduce((sum, ids) => sum + ids.length, 0);
+}
 
 type IncomingRow = Record<string, unknown> & { id: string; updatedAt: string; serverUpdatedAt: string };
 

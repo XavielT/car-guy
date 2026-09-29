@@ -20,7 +20,8 @@ feedback / costs, web APK + 2.2.0. Package: [`imp-29092026/`](imp-29092026/READM
 | Web app | <https://car-guy.vercel.app> — live, installable PWA, Vercel project `car-guy` |
 | Old web app | <https://tu-combustible-rd.vercel.app> — still up, still git-connected to this repo, so it also serves Car Guy. Delete the project when you are ready |
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
-| Android | **2.1.2 released** (2026-09-29) — GitHub release `v2.1.2` with the universal APK; EAS project `@xavieldev/car-guy`, EAS-managed keystore |
+| Android | **2.1.3 released** (2026-09-29) — GitHub release `v2.1.3` with `car-guy.apk` (stable name, always the latest: `…/releases/latest/download/car-guy.apk`) and `car-guy-v2.1.3.apk`; EAS project `@xavieldev/car-guy`, EAS-managed keystore. Release with `bash tools/release-apk.sh --publish` |
+| Cloud in the APK | Until 2.1.2 the APKs had **no** Supabase values (EAS packs by .gitignore, so `.env.local` never reached a build) — Cuenta said "no configurada". Since 2.1.3: `eas.json` `build.base.env` carries the two public values (URL + anon key — public by design, RLS protects the data; no service-role key anywhere), the EAS environments `preview`/`production` carry them too (`eas env:list production`), `app.config.js` refuses an EAS release build without them, and `tools/check-bundle-env.mjs` refuses an APK whose bundle lacks the project URL (the release script runs it) |
 | Distribution | **Xaviel's own channels only:** the portfolio card (links `releases/latest`, so every release reaches it with no change there), the web app and the direct APK link. **No Play Store for now** — Xaviel's call (2026-09-29): the app is not ready for it yet; it is a future step |
 | Cloud | Supabase `x-core`, schema `carguy`: v1 tables (19, incl. cloud-only `profiles`) + **schema v2** (`sql/009`–`010`, 23 more, applied 2026-09-28), private `carguy-media` bucket. **A 2.0.0 install signed in to sync cannot pull `vehicle`/`media`/`service_record` any more** (new columns) — ship 2.1 before anyone syncs on 2.0.0 |
 | Local folder | `~/dev2/car-guy`. **Rename pending** (2026-09-28): on this laptop it is still `~/dev2/tu-gasolina-rd` — run `mv ~/dev2/tu-gasolina-rd ~/dev2/car-guy` with no Claude session open there |
@@ -119,8 +120,15 @@ bump of those two packages.
   if someone reports losing an edit.
 - Every Car Guy signup also gets a `public.profiles` row, created by Music Hub's `handle_new_user`
   trigger on `auth.users`. Harmless and left alone per ADR-06.
-- The password-reset email uses x-core's project-level template, shared with Music Hub. Changing it
-  would change Music Hub's email.
+- The password-reset email uses x-core's project-level template, shared with Music Hub (Supabase's
+  generic English "Reset your password"). Changing it would change Music Hub's email. Since 2.1.3 the
+  link itself comes back to Car Guy (`carguy://nueva-contrasena` / `<origin>/nueva-contrasena`, both in
+  x-core's redirect allow list; the Site URL is still Music Hub's).
+- **Car Guy accounts are Car Guy's own** (2.1.3, sql/018): only an account that signed up from Car Guy
+  (it has a `carguy.profiles` row) signs in or reads anything; a Music Hub account is refused even with
+  the right password. One email = one x-core account, so an address already used in Music Hub cannot
+  become a Car Guy account. **Still open:** a Car Guy account can sign in to Music Hub — that check
+  belongs in the Music Hub repo.
 - `seedCatalog()` reads the catalogue at every launch but writes only rows that changed (since
   2026-09-25 — unconditional upserts used to overwrite other devices' edits through sync).
 

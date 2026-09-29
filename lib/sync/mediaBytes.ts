@@ -52,7 +52,7 @@ type StorageClient = {
     from: (bucket: string) => {
       upload: (
         path: string,
-        body: Blob,
+        body: Blob | ArrayBuffer,
         options?: { contentType?: string; upsert?: boolean },
       ) => Promise<{ error: unknown }>;
       remove: (paths: string[]) => Promise<{ error: unknown }>;
@@ -121,9 +121,12 @@ export async function uploadMediaBytes(supabase: StorageClient, userId: string):
     // `upsert` because a crash between the upload and recording the path leaves
     // the object in place with the row still claiming nothing was sent; the
     // retry must be allowed to overwrite it.
+    // An ArrayBuffer, not a Blob: React Native cannot build a Blob from bytes
+    // ("Creating blobs from 'ArrayBuffer' … are not supported"), so until 2.1.3
+    // every phone upload threw here and was skipped in silence. Web takes both.
     const copy = new Uint8Array(bytes.length);
     copy.set(bytes);
-    return supabase.storage.from(BUCKET).upload(path, new Blob([copy], { type: mime }), { contentType: mime, upsert: true });
+    return supabase.storage.from(BUCKET).upload(path, copy.buffer, { contentType: mime, upsert: true });
   };
 
   for (const row of rows) {

@@ -78,7 +78,7 @@ export async function syncPublicPhotos(vehicleId: string, slug: string): Promise
       }
       const copy = new Uint8Array(bytes.length);
       copy.set(bytes);
-      const { error } = await bucket.upload(`${slug}/${name}`, new Blob([copy], { type: 'image/jpeg' }), { contentType: 'image/jpeg', upsert: true });
+      const { error } = await bucket.upload(`${slug}/${name}`, copy.buffer, { contentType: 'image/jpeg', upsert: true }); // not a Blob: see lib/sync/mediaBytes.ts
       if (error) ok = false;
     }
     if (ok) copied += 1;
