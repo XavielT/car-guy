@@ -47,9 +47,10 @@ export default function NuevaContrasenaScreen() {
     if (link.kind === 'none' && Platform.OS !== 'web') return;
     handled.current = true;
 
-    // The tokens must not stay in the address bar or the browser history.
+    // The tokens must not stay in the address bar or the browser history. After
+    // a tick: the router writes its own URL (fragment included) once it settles.
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.history.replaceState(null, '', window.location.pathname);
+      setTimeout(() => window.history.replaceState(window.history.state, '', window.location.pathname), 300);
     }
 
     void (async () => {
