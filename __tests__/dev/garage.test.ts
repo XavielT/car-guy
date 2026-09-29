@@ -86,6 +86,37 @@ describe('seedRealGarage', () => {
   });
 });
 
+describe('seedRealGarage — IMP 29092026 demo data', () => {
+  it('gives all four cars a purchase price', () => {
+    const rows = all('SELECT id, purchase_price FROM vehicle');
+    expect(rows).toHaveLength(4);
+    for (const r of rows) expect(Number(r.purchase_price)).toBeGreaterThan(0);
+  });
+
+  it('mixes full and partial fills among the DS3\'s last six', () => {
+    const last6 = all('SELECT is_full_tank FROM fuel_log WHERE vehicle_id = ? ORDER BY occurred_at DESC LIMIT 6', GARAGE_IDS.ds3);
+    const partials = last6.filter((r) => r.is_full_tank === 0).length;
+    expect(partials).toBeGreaterThanOrEqual(2);
+    expect(partials).toBeLessThan(6);
+  });
+
+  it('records one failed item on a DS3 weekly check', () => {
+    const [check] = all('SELECT * FROM inspection WHERE vehicle_id = ?', GARAGE_IDS.ds3);
+    expect(check.status).toBe('con_fallas');
+    const failed = all("SELECT label_snapshot, note FROM inspection_result WHERE inspection_id = ? AND result = 'falla'", String(check.id));
+    expect(failed).toHaveLength(1);
+    expect(failed[0].label_snapshot).toBe('Luces');
+  });
+
+  it('puts costs on two standalone Trueno mods', () => {
+    const costed = all(
+      'SELECT name FROM mod WHERE vehicle_id = ? AND service_record_id IS NULL AND cost_part_dop + cost_labor_dop + cost_shipping_dop + cost_customs_dop > 0 ORDER BY name',
+      GARAGE_IDS.ae85,
+    );
+    expect(costed.map((r) => r.name)).toEqual(['Aros 15x8 ET0', 'Gomas 195/50R15']);
+  });
+});
+
 describe('seedRealGarage — schema v2', () => {
   it('writes identity, status and story', () => {
     const rows = Object.fromEntries(all('SELECT * FROM vehicle').map((r) => [r.id, r]));

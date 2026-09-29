@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Viaje · Detalle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+JP:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Rajdhani',sans-serif;background:#121212;color:#EDEDED}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #121212; color: #EDEDED; display: flex; flex-direction: column; gap: 12px; padding: 22px 20px 24px 20px; overflow: hidden; position: relative">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">VIAJE <span style="font-family: 'Noto Sans JP', sans-serif; color: #8C8C8C; letter-spacing: 0; font-size: 10px">走行</span></div>
+      <div style="font-family: 'Saira Condensed', sans-serif; font-weight: 800; font-size: 28px; line-height: 1">MIÉ 25 SEP · 8:12–8:37</div>
+    </div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8C8C8C">EL TRUENO</div>
+  </div>
+
+  <!-- route card (SVG, no map) -->
+  <div style="border-radius: 16px; border: 1px solid #2A2A2A; background: #0E0E0E; position: relative; overflow: hidden; height: 250px">
+    <div style="position: absolute; inset: 0; opacity: 0.10; background-image: linear-gradient(#3A3A3A 1px, transparent 1px), linear-gradient(90deg, #3A3A3A 1px, transparent 1px); background-size: 24px 24px"></div>
+    <svg viewBox="0 0 350 250" width="350" height="250" style="display: block; position: relative">
+      <defs><filter id="glow"><feGaussianBlur stdDeviation="3"/></filter></defs>
+      <!-- glow copy -->
+      <path d="M 30 210 C 60 200, 70 150, 110 140 S 160 120, 190 90 S 250 70, 290 60 S 320 40, 325 30" fill="none" stroke="#FFB300" stroke-width="10" stroke-opacity="0.25" filter="url(#glow)" stroke-linecap="round"/>
+      <!-- speed-coloured segments -->
+      <path d="M 30 210 C 60 200, 70 150, 110 140" fill="none" stroke="#3DDC84" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 110 140 S 160 120, 190 90" fill="none" stroke="#FFB300" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 190 90 S 250 70, 290 60" fill="none" stroke="#FF6A00" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 290 60 S 320 40, 325 30" fill="none" stroke="#FFB300" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="30" cy="210" r="6" fill="#3DDC84" stroke="#121212" stroke-width="2"/>
+      <!-- checkered end flag -->
+      <g transform="translate(318,14)">
+        <rect x="0" y="0" width="14" height="10" fill="#EDEDED"/><rect x="0" y="0" width="7" height="5" fill="#121212"/><rect x="7" y="5" width="7" height="5" fill="#121212"/><line x1="0" y1="0" x2="0" y2="20" stroke="#EDEDED" stroke-width="2"/>
+      </g>
+      <!-- replay dot -->
+      <circle cx="190" cy="90" r="5" fill="#FFFFFF"/>
+    </svg>
+    <div style="position: absolute; left: 12px; top: 10px; font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #B3B3B3">CASA → TRABAJO</div>
+    <div style="position: absolute; right: 12px; top: 10px; font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #FFB300; border: 1px solid #3A3A3A; padding: 2px 6px; border-radius: 4px">VER EN MAPA</div>
+    <!-- replay scrubber -->
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 8px">
+      <span style="width: 26px; height: 26px; border-radius: 50%; background: #FFB300; color: #121212; display: flex; align-items: center; justify-content: center; font-size: 11px">▶</span>
+      <div style="flex: 1; height: 4px; background: #2A2A2A; border-radius: 2px; position: relative"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: 52%; background: #FFB300; border-radius: 2px"></div><div style="position: absolute; left: 52%; top: -5px; width: 14px; height: 14px; border-radius: 50%; background: #EDEDED; margin-left: -7px"></div></div>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8C8C8C">13:02 · 20×</span>
+    </div>
+  </div>
+
+  <!-- tiles -->
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <div style="border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px">12.4</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">km</span></div>
+    <div style="border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px">25 <span style="font-size: 12px; color: #8C8C8C">min</span></span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">21 en movimiento</span></div>
+    <div style="border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; padding: 10px; display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px; color: #FFB300">96</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">máx km/h · media 35</span></div>
+  </div>
+
+  <!-- distribution -->
+  <div style="border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+    <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">DISTRIBUCIÓN DE VELOCIDAD</div>
+    <div style="display: flex; height: 10px; border-radius: 5px; overflow: hidden">
+      <div style="width: 31%; background: #3DDC84"></div><div style="width: 44%; background: #FFB300"></div><div style="width: 19%; background: #FF6A00"></div><div style="width: 6%; background: #E10600"></div><div style="width: 0%; background: #7A0000"></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8C8C8C; text-align: center">
+      <div><span style="color: #EDEDED">31%</span><br>&lt;30</div><div><span style="color: #EDEDED">44%</span><br>30–60</div><div><span style="color: #EDEDED">19%</span><br>60–90</div><div><span style="color: #EDEDED">6%</span><br>90–120</div><div><span style="color: #EDEDED">0%</span><br>120+</div>
+    </div>
+  </div>
+
+  <!-- chips row -->
+  <div style="display: flex; gap: 8px; flex-wrap: wrap">
+    <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B3B3B3">VEHÍCULO · EL TRUENO ▾</span>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B3B3B3">CONDUCTOR ▾</span>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B3B3B3">AUTOMÁTICO</span>
+    <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B3B3B3">+ ETIQUETA</span>
+  </div>
+
+  <div style="margin-top: auto; display: flex; gap: 8px">
+    <span style="flex: 1; text-align: center; padding: 12px; border-radius: 10px; background: #FFB300; color: #121212; font-family: 'Saira Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.1em">COMPARTIR</span>
+    <span style="width: 110px; text-align: center; padding: 12px; border-radius: 10px; background: #1B1B1B; border: 1px solid #3A3A3A; color: #FF4D45; font-family: 'Saira Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.1em">ELIMINAR</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
