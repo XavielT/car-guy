@@ -80,7 +80,7 @@ export type RawDossier = {
     cost_dop?: number | null;
   }[];
   services?: { kind: string; occurred_at: string; title: string; odometer_km?: number | null; total_dop?: number | null }[];
-  track?: { id: string; occurred_at: string; title: string; discipline: string; venue_id: string | null; venue: string | null; sessions: number; runs: number | null; best_lap_ms: number | null }[];
+  track?: { id: string; occurred_at: string; title: string; discipline: string; venue_id: string | null; venue: string | null; layout?: string | null; sessions: number; runs: number | null; best_lap_ms: number | null }[];
   milestones?: { kind: string; occurred_at: string; title: string; story: string }[];
   photos: string[];
 };
@@ -238,7 +238,7 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
     const best = new Map<string, number>();
     for (const e of raw.track) {
       if (!isTimed(e.discipline as never) || !e.best_lap_ms) continue;
-      const venue = e.venue ?? 'Pista';
+      const venue = [e.venue ?? 'Pista', e.layout?.trim() || null].filter(Boolean).join(' · ');
       if (!best.has(venue) || e.best_lap_ms < best.get(venue)!) best.set(venue, e.best_lap_ms);
     }
     track = {
@@ -247,7 +247,7 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
       recent: raw.track.slice(0, 6).map((e) => ({
         title: e.title || e.venue || 'Evento',
         date: shortDate(e.occurred_at),
-        line: [LABELS.discipline[e.discipline] ?? e.discipline, e.venue, `${e.sessions} ${e.sessions === 1 ? 'sesión' : 'sesiones'}`, isTimed(e.discipline as never) ? (e.best_lap_ms ? formatLap(e.best_lap_ms) : null) : e.runs ? `${e.runs} runs` : null]
+        line: [LABELS.discipline[e.discipline] ?? e.discipline, e.venue, e.layout, `${e.sessions} ${e.sessions === 1 ? 'sesión' : 'sesiones'}`, isTimed(e.discipline as never) ? (e.best_lap_ms ? formatLap(e.best_lap_ms) : null) : e.runs ? `${e.runs} runs` : null]
           .filter(Boolean)
           .join(' · '),
       })),

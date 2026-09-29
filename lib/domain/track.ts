@@ -204,17 +204,28 @@ export function isTimed(discipline: TrackDiscipline): boolean {
  * Best lap per venue (the PB strip). Only timed sessions with a time count;
  * drift days have no lap to beat.
  */
+export type Best = { venueId: string; layout: string | null; bestLapMs: number; eventId: string; occurredAt: string };
+
+/** "Completo " and "completo" are the same layout; blank is none. */
+export const layoutKey = (layout: string | null | undefined): string => (layout ?? '').trim().toLowerCase();
+
+/**
+ * Best lap per venue **and layout** (the PB strip): a lap on the short
+ * configuration does not beat one on the full circuit. Only timed sessions
+ * with a time count; drift days have no lap to beat.
+ */
 export function personalBests(
-  events: Pick<TrackEvent, 'id' | 'venueId' | 'occurredAt' | 'discipline' | 'deletedAt'>[],
+  events: (Pick<TrackEvent, 'id' | 'venueId' | 'occurredAt' | 'discipline' | 'deletedAt'> & { layout?: string | null })[],
   sessions: Pick<TrackSession, 'eventId' | 'bestLapMs' | 'deletedAt'>[],
-): { venueId: string; bestLapMs: number; eventId: string; occurredAt: string }[] {
-  const best = new Map<string, { venueId: string; bestLapMs: number; eventId: string; occurredAt: string }>();
+): Best[] {
+  const best = new Map<string, Best>();
   for (const e of events) {
     if (e.deletedAt || !e.venueId || !isTimed(e.discipline)) continue;
+    const key = `${e.venueId}|${layoutKey(e.layout)}`;
     for (const s of sessions) {
       if (s.deletedAt || s.eventId !== e.id || !s.bestLapMs) continue;
-      const cur = best.get(e.venueId);
-      if (!cur || s.bestLapMs < cur.bestLapMs) best.set(e.venueId, { venueId: e.venueId, bestLapMs: s.bestLapMs, eventId: e.id, occurredAt: e.occurredAt });
+      const cur = best.get(key);
+      if (!cur || s.bestLapMs < cur.bestLapMs) best.set(key, { venueId: e.venueId, layout: e.layout?.trim() || null, bestLapMs: s.bestLapMs, eventId: e.id, occurredAt: e.occurredAt });
     }
   }
   return [...best.values()].sort((a, b) => a.bestLapMs - b.bestLapMs);

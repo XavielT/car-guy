@@ -16,6 +16,7 @@ import {
   saveSession,
   sessionDetail,
   sessionDraft,
+  sessionTireIds,
   setTireUsed,
   trackLine,
   usableTires,
@@ -80,6 +81,18 @@ it('heat cycles count once per tire per event, and a burned tire leaves the gara
   expect((await tires.getById('dev_tire_rl'))!.status).toBe('quemada');
   expect((await usableTires(AE85)).map((t) => t.id)).not.toContain('dev_tire_rl');
   expect((await eventDetail('dev_track_drift'))!.summary.tiresBurned).toBe(1);
+});
+
+it('per-session heat cycles count on top of the day tick, once each, and untick gives them back', async () => {
+  const fl = (await tires.getById('dev_tire_fl'))!;
+  const before = fl.heatCycles;
+  await setTireUsed('dev_track_drift', fl, true, 'dev_track_s1');
+  await setTireUsed('dev_track_drift', fl, true, 'dev_track_s1'); // again: no double count
+  await setTireUsed('dev_track_drift', fl, true, 'dev_track_s2');
+  expect((await tires.getById('dev_tire_fl'))!.heatCycles).toBe(before + 2);
+  expect(await sessionTireIds('dev_track_s1')).toEqual(['dev_tire_fl']);
+  await setTireUsed('dev_track_drift', (await tires.getById('dev_tire_fl'))!, false, 'dev_track_s2');
+  expect((await tires.getById('dev_tire_fl'))!.heatCycles).toBe(before + 1);
 });
 
 it('pads under 5 mm arm "Pastillas (pista)" on the next event, and new pads clear it', async () => {

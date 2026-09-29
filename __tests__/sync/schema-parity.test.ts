@@ -23,7 +23,10 @@ import { BOOLEAN_COLUMNS, conflictTarget, SYNC_TABLES } from '@/lib/sync/tables'
 const SQL_PATH = join(__dirname, '../../sql/002_schema_carguy.sql');
 /** Schema v2's mirror (IMP 28092026). The two files together are the cloud schema. */
 const SQL_V2_PATH = join(__dirname, '../../sql/009_schema_v2.sql');
-const cloudSql = readFileSync(SQL_PATH, 'utf8') + '\n' + readFileSync(SQL_V2_PATH, 'utf8');
+// Later files only add columns (`alter table … add column if not exists`), and
+// the parser below reads those the same way it reads 009's.
+const LATER = ['013_members.sql', '017_track_layout.sql'].map((f) => readFileSync(join(__dirname, '../../sql', f), 'utf8'));
+const cloudSql = [readFileSync(SQL_PATH, 'utf8'), readFileSync(SQL_V2_PATH, 'utf8'), ...LATER].join('\n');
 
 /** Column names out of `CREATE TABLE <name> ( … )`, as they appear. */
 function parseColumns(sql: string, open: RegExp): Map<string, Set<string>> {

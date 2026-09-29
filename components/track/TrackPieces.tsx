@@ -46,7 +46,7 @@ export function EventCard({ card, onPress }: { card: Card; onPress: () => void }
       style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, borderLeftColor: categoryColors.track }]}>
       <View style={styles.cardTop}>
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, flex: 1 }} numberOfLines={1}>
-          {`${venueShort(venue).toUpperCase()} · ${dateLabel(event.occurredAt).toUpperCase()}`}
+          {[venueShort(venue), event.layout, dateLabel(event.occurredAt)].filter(Boolean).join(' · ').toUpperCase()}
         </T>
         <Badge label={disciplineLabel(event.discipline)} tone={event.discipline === 'drift' || event.discipline === 'junte' ? 'red' : 'amber'} />
       </View>
@@ -72,7 +72,7 @@ export function BestsStrip({ bests }: { bests: PersonalBest[] }) {
         {bests.map((b) => (
           <View key={b.eventId} style={[styles.best, { backgroundColor: theme.bg.well, borderColor: theme.lineStrong }]}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }} numberOfLines={1}>
-              {venueShort(b.venue).toUpperCase()}
+              {[venueShort(b.venue), b.layout].filter(Boolean).join(' · ').toUpperCase()}
             </T>
             <T face="monoBold" style={{ color: theme.accent, fontSize: 18 }}>
               {formatLap(b.bestLapMs)}
@@ -110,7 +110,7 @@ export const DaySummaryCard = forwardRef<View, { event: TrackEvent; venue: Venue
         <Badge label={disciplineLabel(event.discipline)} tone={event.discipline === 'drift' || event.discipline === 'junte' ? 'red' : 'amber'} />
       </View>
       <T face="title" style={{ color: theme.text.primary, fontSize: 16, textTransform: 'uppercase' }} numberOfLines={2}>
-        {[venue?.name ?? es.track.noVenue, dateLabel(event.occurredAt)].join(' · ')}
+        {[venue?.name ?? es.track.noVenue, event.layout, dateLabel(event.occurredAt)].filter(Boolean).join(' · ')}
       </T>
       {vehicleName ? (
         <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
@@ -139,7 +139,7 @@ export const DaySummaryCard = forwardRef<View, { event: TrackEvent; venue: Venue
 /** The day as text, for WhatsApp. */
 export function summaryText(event: TrackEvent, venue: Venue | null, s: EventSummary, vehicleName?: string): string {
   const lines = [
-    `${disciplineLabel(event.discipline)} · ${venue?.name ?? es.track.noVenue} · ${dateLabel(event.occurredAt)}`,
+    [disciplineLabel(event.discipline), venue?.name ?? es.track.noVenue, event.layout, dateLabel(event.occurredAt)].filter(Boolean).join(' · '),
     vehicleName ?? null,
     event.title || null,
     `${s.sessions} ${es.track.summary.sessions}`,
@@ -240,7 +240,7 @@ export function TrackSummaryLine({ vehicleId, version }: { vehicleId: string; ve
   }, [vehicleId, version]);
 
   if (!line || !line.events) return null;
-  const text = [es.track.hubLine(line.events), line.best ? es.track.hubBest(venueShort(line.best.venue), formatLap(line.best.bestLapMs)) : null].filter(Boolean).join(' · ');
+  const text = [es.track.hubLine(line.events), line.best ? es.track.hubBest([venueShort(line.best.venue), line.best.layout].filter(Boolean).join(' '), formatLap(line.best.bestLapMs)) : null].filter(Boolean).join(' · ');
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/pista', params: { vehicleId } })}

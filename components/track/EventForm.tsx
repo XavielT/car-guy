@@ -65,6 +65,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
   const [venueName, setVenueName] = useState('');
   const [venueCity, setVenueCity] = useState('');
   const [venueType, setVenueType] = useState<Venue['type']>('circuito');
+  const [layout, setLayout] = useState('');
   const [date, setDate] = useState(todayIsoDate());
   const [title, setTitle] = useState('');
   const [organizer, setOrganizer] = useState('');
@@ -100,6 +101,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
       const e = d.event;
       setVehicleId(e.vehicleId);
       setVenueId(e.venueId);
+      setLayout(e.layout ?? '');
       setDate(dateInputFromIso(e.occurredAt));
       setTitle(e.title);
       setOrganizer(e.organizer ?? '');
@@ -136,6 +138,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
       id,
       vehicleId,
       venueId,
+      layout: layout.trim() || null,
       occurredAt: isoFromDateInput(date),
       title: title.trim(),
       organizer: organizer.trim() || null,
@@ -255,6 +258,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
         </View>
       ) : null}
 
+      <Field label={es.track.event.layout} placeholder={es.track.event.layoutPlaceholder} value={layout} onChangeText={setLayout} hint={es.track.event.layoutHint} />
       <DateField label={es.track.event.date} value={date} onChange={setDate} />
       <Field label={es.track.event.title} placeholder={es.track.event.titlePlaceholder} value={title} onChangeText={setTitle} />
       <Field label={es.track.event.organizer} value={organizer} onChangeText={setOrganizer} />
@@ -398,7 +402,8 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
     };
   }, [vehicleId, usage]);
 
-  const used = new Set(usage.filter((u) => u.kind === 'ciclo_goma' && u.tireId).map((u) => u.tireId as string));
+  // The day's tick is the event-scoped row; per-session ticks live on the session screen.
+  const used = new Set(usage.filter((u) => u.kind === 'ciclo_goma' && u.tireId && !u.sessionId).map((u) => u.tireId as string));
   const burned = new Set(usage.filter((u) => u.kind === 'goma_quemada' && u.tireId).map((u) => u.tireId as string));
   const burnedAt = new Map(usage.filter((u) => u.kind === 'goma_quemada' && u.tireId).map((u) => [u.tireId as string, u.unit]));
   const tireName = (t: Tire) => {

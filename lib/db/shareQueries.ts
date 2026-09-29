@@ -180,7 +180,7 @@ export async function localRawDossier(
 
   if (flags.track) {
     raw.track = await db.getAllAsync<NonNullable<RawDossier['track']>[number]>(
-      `SELECT e.id, e.occurred_at, e.title, e.discipline, e.venue_id, vn.name AS venue,
+      `SELECT e.id, e.occurred_at, e.title, e.discipline, e.venue_id, vn.name AS venue, e.layout,
               (SELECT COUNT(*) FROM track_session s WHERE s.event_id = e.id AND s.deleted_at IS NULL) AS sessions,
               (SELECT SUM(s.runs) FROM track_session s WHERE s.event_id = e.id AND s.deleted_at IS NULL) AS runs,
               (SELECT MIN(s.best_lap_ms) FROM track_session s WHERE s.event_id = e.id AND s.deleted_at IS NULL AND s.best_lap_ms > 0) AS best_lap_ms
