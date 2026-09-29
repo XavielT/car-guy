@@ -120,8 +120,15 @@ bump of those two packages.
   if someone reports losing an edit.
 - Every Car Guy signup also gets a `public.profiles` row, created by Music Hub's `handle_new_user`
   trigger on `auth.users`. Harmless and left alone per ADR-06.
-- The password-reset email uses x-core's project-level template, shared with Music Hub. Changing it
-  would change Music Hub's email.
+- The password-reset email uses x-core's project-level template, shared with Music Hub (Supabase's
+  generic English "Reset your password"). Changing it would change Music Hub's email. Since 2.1.3 the
+  link itself comes back to Car Guy (`carguy://nueva-contrasena` / `<origin>/nueva-contrasena`, both in
+  x-core's redirect allow list; the Site URL is still Music Hub's).
+- **Car Guy accounts are Car Guy's own** (2.1.3, sql/018): only an account that signed up from Car Guy
+  (it has a `carguy.profiles` row) signs in or reads anything; a Music Hub account is refused even with
+  the right password. One email = one x-core account, so an address already used in Music Hub cannot
+  become a Car Guy account. **Still open:** a Car Guy account can sign in to Music Hub — that check
+  belongs in the Music Hub repo.
 - `seedCatalog()` reads the catalogue at every launch but writes only rows that changed (since
   2026-09-25 — unconditional upserts used to overwrite other devices' edits through sync).
 

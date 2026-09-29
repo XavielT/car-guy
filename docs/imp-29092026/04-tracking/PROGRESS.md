@@ -4,14 +4,14 @@ Claude Code appends a report per phase (block in `00-context/04-conventions.md` 
 sections plus *Design check*, *Flags flipped*, *Notes closed*). "Notes for the next phase" carry
 context between sessions.
 
-**Started:** 2026-09-29 · **Status:** Phase 0 done
+**Started:** 2026-09-29 · **Status:** Phase 1 done (2.1.3 released)
 
 ## Phase status
 
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
 | 0 | Kickoff | ✅ | `imp-29092026/phase-0-kickoff` | package, baseline, audit, portfolio live, seed |
-| 1 | Hotfix 2.1.3 | ⬜ | | |
+| 1 | Hotfix 2.1.3 | ✅ | `fix/2.1.3-hotfix` | photos, cloud in the APK, Car Guy-only accounts, reset link, released |
 | 2 | Schema v6 + liters + refdata | ⬜ | | |
 | 3 | Forms v2 | ⬜ | | |
 | 4 | Carga parcial | ⬜ | | |
@@ -37,12 +37,12 @@ context between sessions.
 | 9 | Portfolio | 0 + 7 | 🟡 live card verified in Phase 0; APK button in 7 |
 | 10 | Several vehicle photos | 3 | ⬜ |
 | 11 | Liters/gallons, colour picker, make/model/year pickers, body types | 3 | ⬜ |
-| 12 | Photo error on Android | 1 | ⬜ |
-| 13 | Sign-in message / accounts configured | 1 | ⬜ |
+| 12 | Photo error on Android | 1 | ✅ compressPhoto + pending result; 8/8 on the Redmi; phone photo *upload* fixed too |
+| 13 | Sign-in message / accounts configured | 1 | ✅ cloud values in every EAS build, user copy, Car Guy-only accounts, reset link to Car Guy |
 | 14 | Garage view with all photos, user-arranged | 6 | ⬜ |
 | 15 | More statuses (the C3 case) | 2 + 3 | ⬜ |
 | 16 | Oil types picker | 3 | ⬜ |
-| 17 | APK from the web page | 1 (name) + 7 | ⬜ |
+| 17 | APK from the web page | 1 (name) + 7 | 🟡 stable `car-guy.apk` asset from 2.1.3; the web button is Phase 7 |
 | 18 | Folder rename | 0 (manual) | ✅ path check done (still `tu-gasolina-rd`); the rename itself is Xaviel's |
 | 19 | Where trips live in the app | 5A | ⬜ |
 
@@ -94,12 +94,25 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 
 ## Decisions made along the way
 
+- **Car Guy accounts are Car Guy's own** (Xaviel, 2026-09-29, Phase 1). x-core has one auth.users, so a
+  Music Hub email + password signed in to Car Guy. A separate Supabase project would give real isolation
+  (same email, two accounts) but the free org is at its 2-project limit (x-core, x-autohub); Xaviel chose
+  "stay on x-core, app-tagged". Marker: a `carguy.profiles` row, created only by the Car Guy signup
+  trigger (sql/002). Consequence: an email already used in another x-core app cannot become a Car Guy
+  account — the user picks another address (Gmail `+carguy` works).
+
 ## Deviations from the package
+
+- **`sql/018` is `018_app_membership.sql`** (Phase 1), not the `schema_hint` column the specs reserved it
+  for. The 2.2 schema file moves to 019+ (update 02-specs/02-cloud-v3.md references when Phase 2 starts).
 
 ## Observed, deferred
 
 | Found in | Issue | Severity | Notes |
 |---|---|---|---|
+| 1 | A Car Guy account can still sign in to **Music Hub** (it checks invites at signup only) | medium | Music Hub repo change: refuse accounts that have a `carguy.profiles` row and no invite. Not done — other repo |
+| 1 | The recovery email is Supabase's generic English template ("Reset your password"), project-level on x-core | low | Changing it changes Music Hub's email too; a neutral Spanish/English one could serve both |
+| 1 | No hook-testing library, so useSession's event-order guard is verified on the phone only | low | add `@testing-library/react-native` when a phase needs hook tests |
 
 ## Blockers
 
@@ -164,3 +177,92 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 ### Notes for the next phase
 - Phase 1: the four developer strings are es.ts:1137–1139, 1153, 1158–1159. eas.json has no env at all.
 - The seed now has a failed check item without a photo — Phase 3 can demo multi-photo on it.
+
+---
+
+## Phase 1 — Hotfix 2.1.3   (branch `fix/2.1.3-hotfix`)
+
+**Status:** complete — v2.1.3 released
+**Commits:** `fix(2.1.3): photos on Android …, Supabase in the APK, no developer text, schema gate` ·
+`docs(2.1.3): how the Supabase values reach an EAS build` · `fix(2.1.3): Car Guy accounts only, and the reset
+link comes back to Car Guy` · `fix(2.1.3): clear the reset tokens …` · `fix(2.1.3): photos upload from
+Android (ArrayBuffer, not Blob); sync failures name their step` · `fix(2.1.3): useSession applies only the
+newest auth event`
+
+### Changed
+- **Photos (note 12):** `lib/media/compress.ts` `compressPhoto()` — context/image held to `saveAsync`,
+  released in `finally` when the methods exist, one retry on JobCancellationException / "has been rejected",
+  then `MediaError('render_cancelled')`; in-flight map per uri. PhotoPicker shows
+  `es.common.photoErrorRetry` + Reintentar with the same photo; raw causes go to `lib/diagnostics.ts`
+  (ring buffer, 20). VehicleForm recovers `getPendingResultAsync()` on mount (native).
+- **Phone photo upload** (found in verification): `uploadMediaBytes` and the public-share upload built a
+  `Blob` from bytes, which React Native refuses — every phone upload threw inside the per-row catch and
+  was skipped silently since sync shipped. They send the `ArrayBuffer` now.
+- **Cloud in the APK (note 13):** `eas.json` `build.base.env` + `environment` per profile; EAS env vars in
+  `preview` and `production`; `app.config.js` refuses an EAS release build without them;
+  `tools/check-bundle-env.mjs`; `tools/release-apk.sh` (build → bundle check → cert → versionName →
+  `--publish` with `car-guy.apk` + `car-guy-vX.Y.Z.apk`).
+- **User copy:** the four developer strings → es.account copy; hints in `es.dev.*` behind `__DEV__` or the
+  7-tap modo diagnóstico (Más → versión, AsyncStorage, not synced); version + build on Cuenta; UserError /
+  userMessage for backup, export, report, template and onboarding errors; a test blocks developer text.
+- **Schema gate:** pulled rows with a newer `schema_hint` are skipped, counted, re-read after an update;
+  Cuenta says "Hay N cambios de una versión más nueva…".
+- **Car Guy-only accounts:** `sql/018_app_membership.sql` (applied to x-core) — `carguy.is_app_user()`,
+  `profiles_own_insert` dropped, restrictive `carguy_app_only` on every carguy table and on the
+  carguy-media / carguy-public objects, `redeem_invite` guarded. Client: `lib/cloud/membership.ts`;
+  `signIn` signs another app's account back out with `es.account.errors.otherApp`; `useSession` hides
+  such sessions and applies only the newest auth event.
+- **Reset link:** `resetPasswordForEmail(…, { redirectTo })` → `carguy://nueva-contrasena` /
+  `<origin>/nueva-contrasena` (added to x-core's redirect allow list; Site URL still Music Hub);
+  `app/nueva-contrasena.tsx` sets the password only for a Car Guy account; web clears the tokens from the
+  address bar.
+- **Sync diagnostics:** a failed sync records `sync <step>: <code · message · details>`; Cuenta lists the
+  last three in modo diagnóstico.
+- Local RLS harness: seed users are Car Guy signups, plus an other-app account `d`; 12 new checks.
+
+### Dependencies added / removed
+- none
+
+### Acceptance criteria
+- [x] Photo on the Redmi, "Don't keep activities" on and off: new vehicle, edit vehicle, check falla item,
+  service record — camera and gallery (12 MP) — 8/8, no MediaError. (The crash did not reproduce on this
+  phone before the fix either: 10/10 on 2.1.2 — the fix is the upstream-recommended defence.)
+- [x] APK bundle carries `nakgrkcqyuycadeuenuw.supabase.co`; EAS cert a16450a0…; versionName 2.1.3.
+- [x] Account from the APK: Xaviel's Car Guy account created on the phone; after the upload fix the sync
+  completes and the photos are in the cloud (meter 2 MB / 300 MB).
+- [x] Reset: email → link → **Car Guy** "Nueva contraseña" on the phone (not Music Hub).
+- [x] Other-app account refused: unit tests + local RLS (12a–12h). Not tried with a live Music Hub account
+  (no password at hand).
+- [x] Web canaries (fuel; weekly check with a photo on the failed item) pass; `/nueva-contrasena` with an
+  expired or bogus link shows the Spanish message and leaves no tokens in the URL.
+- [x] tsc, lint, 855 tests.
+
+### Decisions made (defaults applied)
+- Membership marker = `carguy.profiles` row (already created only for Car Guy signups) rather than JWT
+  app_metadata: no write to auth.users, no new trigger on a shared table.
+- Implicit flow kept for the reset link (tokens in the fragment).
+- The new password on the phone is typed by Xaviel, not by Claude.
+
+### Deviations from the package
+- sql/018 is the membership file (see Deviations above). The account rule was not in the prompt; Xaviel
+  asked for it mid-phase.
+
+### Observed, deferred
+- See the table above (Music Hub reverse direction, generic recovery email, hook tests).
+- The first APK sync ended in "Sin conexión" after "Todo subido"; with the upload fix the same account
+  syncs clean. The cause was not captured (release builds drop console output) — the new diagnostics
+  line would show it if it returns.
+
+### Design check
+- Cuenta and Nueva contraseña reuse Cuenta's type scale, Surface and buttons; checked on the Redmi.
+
+### Flags flipped
+- none
+
+### Notes closed
+- 12, 13. Note 17's asset-name prerequisite done (`car-guy.apk`).
+
+### Notes for the next phase
+- Phase 2's cloud file is **019** (018 is taken).
+- Wi‑Fi adb works on the Redmi (`adb tcpip 5555`, then `adb connect 192.168.0.183:5555`); the USB cable
+  drops every few minutes.
