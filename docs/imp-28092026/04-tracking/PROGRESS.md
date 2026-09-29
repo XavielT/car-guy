@@ -78,7 +78,7 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | 3 | Web thumbs have no blurhash: `Image.generateBlurhashAsync` is Android/iOS only. Web cells show the well colour until the (local, fast) thumb loads | low | a JS blurhash encoder would add ~5 KB if it matters |
 | 3 | "Guardar original en Google Fotos/Drive" opens the share sheet once per photo (expo-sharing shares one file). In the viewer it shares the stored 1600 px copy — the untouched original only exists at import time, so the viewer's label says "copia" | low | a multi-file share needs a native module |
 | 3 | Over-quota refusal verified live against Storage with a 1-byte quota on a throwaway user; the 90 % / 100 % meter states verified in unit tests only (no account holds 270 MB) | low | — |
-| 4–6 | Phases 4, 5 and 6 not yet run on the Redmi (phone not connected at merge time) | medium | install the latest preview build (Phase 6's is built); check share-as-image (specs + day summary), long-press, the ficha's share sheet, the runner's fluid card, WhatsApp/tel links, the CornerGrid keyboard "next" order natively |
+| 4–6 | ~~Phases 4, 5 and 6 not yet run on the Redmi~~ — **done 2026-09-29** on the 2.1.0 preview (Phase 8 report) | closed | install the latest preview build (Phase 6's is built); check share-as-image (specs + day summary), long-press, the ficha's share sheet, the runner's fluid card, WhatsApp/tel links, the CornerGrid keyboard "next" order natively |
 | 6 | Heat cycles count once per tire per **event** (the "Gomas usadas" tick), not per session | low | a per-session tick is a second picker on the session screen if anyone wants it |
 | 6 | Personal bests are per venue; `venue.layout` exists but events do not record which layout was run | low | add `track_event.layout` when a venue with two layouts shows up |
 | 4 | `inventory_item` has no column linking an item to the mod that used it; "Usar en un mod" prefills the mod form and appends "Usado en: <mod>" to the item's notes | low | a `used_in_mod_id` column needs migration v4 + cloud SQL; not worth it until someone filters by it |
@@ -1056,3 +1056,33 @@ phone and for Phase 7's cloud verification + merge.
   expo-sqlite/web/worker.ts". Reproduced with expo-sqlite pinned back to 57.0.1 and with the tslib resolver
   disabled, so it is the expo/metro-config bump. `npm audit fix` pulls the same expo within `~57.0.14`, so it
   breaks too. Both reverted; the lockfile is unchanged. Retry with the next expo patch.
+
+### Android (Redmi Note 10 Pro, 2.1.0 preview APK, 2026-09-29)
+Installed **over the owner's real garage** (the same-cert 2.0.0-named build from 2026-09-28): installed as an
+update, opened on the Tablero with the DS3, El Trueno and C3 intact — the local migrations ran on real data.
+Write paths were tested on a throwaway **QA Prueba** car, removed at the end (garage back to 3).
+
+| Check | Phase | Result |
+|---|---|---|
+| Upgrade over real data, app opens, garage intact | 8 | ✅ |
+| Libro del carro PDF (expo-asset fonts, Buffer polyfill, fontkit) → share sheet `car-guy_el-trueno_20260929.pdf` (21 KB) | 7 | ✅ |
+| Compartir signed out → "Para crear un link necesitas cuenta…" | 7 | ✅ |
+| `carguy://invitacion/ABCD2345` → Aceptar carro with the code, "Entrar o crear cuenta" | 7 | ✅ |
+| Documento → "+ Adjuntar PDF" opens the system picker (PDF filter); cancel returns cleanly | 8 | ✅ (no file picked — the picker shows the owner's files) |
+| `carguy://vehiculo/nuevo`, `carguy://garaje`, `carguy://contactos/nuevo` deep links | — | ✅ |
+| CornerGrid keyboard "next": DI → DD → TI → TD, hot deltas +4/+4/+9/+8 | 6 | ✅ |
+| COPIAR A SESIÓN 2 → "Mismo setup que la sesión 1." → rears 42 → "Cambiaste desde la sesión 1: TI/TD 40 → 42" live | 6 | ✅ |
+| COMPARTIR RESUMEN → share sheet with the PNG, then the text share | 6 | ✅ (file was named `ReactNative-snapshot-…`; now `pista-<date>-…`, needs the next APK to see) |
+| Ficha: Corolla E150 preset → "2 datos del preset", "Ficha lista para el taller" → share sheet | 5 | ✅ |
+| Contact "Llamar" → the dialer with (809) 555-0199 prefilled | 5 | ✅ (WhatsApp not opened: the owner's real account) |
+| Mod row long-press → Quitar del carro · Vender · Se dañó · Cambiar categoría · Editar | 4 | ✅ |
+| Specs "Compartir ficha como imagen" | 4 | not run: disabled on a car without specs; the same capture + share path passed in Phase 6's summary |
+
+Screenshots `docs/qa/imp-28092026-phase-{6,7,8}-android-*.png` (status bar cropped).
+
+### Also found and fixed today
+- **sql/014** — `is_member()` returned NULL for outsiders, so `create_invite`'s owner guard never fired (any account could
+  invite itself to any car id). Found by `tools/local-rls/run.sh` — the cloud SQL on a throwaway local PostgreSQL 16
+  with a Supabase shim, 32 checks as three accounts — before any real account existed. Applied to x-core; 013 fixed in
+  place for fresh installs. The local run covers what `verify-x-core` 15–23 and `verify-sync` 15–17 test, minus the
+  PostgREST/Storage HTTP layer, which those two still need to prove live.
