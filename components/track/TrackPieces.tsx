@@ -154,7 +154,8 @@ export function summaryText(event: TrackEvent, venue: Venue | null, s: EventSumm
 /** Shares the captured card: the share sheet on the phone, a PNG download on web. */
 export async function shareCardImage(ref: React.RefObject<View | null>, name: string): Promise<void> {
   if (!ref.current) return;
-  const uri = await captureRef(ref, { format: 'png', quality: 1, result: Platform.OS === 'web' ? 'data-uri' : 'tmpfile' });
+  // fileName: Android names the temp file after it (plus a numeric suffix) instead of "ReactNative-snapshot-…"; not in the types.
+  const uri = await captureRef(ref, { format: 'png', quality: 1, result: Platform.OS === 'web' ? 'data-uri' : 'tmpfile', fileName: `${name}-` } as Parameters<typeof captureRef>[1]);
   if (!uri) return;
   if (Platform.OS === 'web') {
     const a = document.createElement('a');

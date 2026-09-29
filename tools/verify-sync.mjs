@@ -349,10 +349,70 @@ async function main() {
     `one stamp for all three: ${sameStamp} · after (ts, ${tieIds[0].slice(-1)}) → ${JSON.stringify(afterIds)}`,
   );
 
+  // 15–17 — the shared garage (sql/013), as the engine sees it. B's writes are
+  //          stamped minutes ahead: check 5's tombstone left the car's updated_at a
+  //          minute in the future, and LWW would (rightly) drop anything older. A second
+  //          account B joins the probe's car: its pull cursor is newer than the
+  //          car's rows, so the ordinary pull must miss them — which is why
+  //          lib/sync/members.ts resets the cursors on a grant — and the reset
+  //          pull must bring them. Then B pushes the car the way pushTable does
+  //          (its own user_id) and the car must stay the probe's.
+  const emailB = `carguy-sync-${stamp}-b@example.com`;
+  const signupB = await call('/auth/v1/signup', { method: 'POST', body: { email: emailB, password: 'carguy-sync-probe-8', data: { app: 'carguy' } } });
+  const tokenA = token;
+  const tokenB = signupB.body?.access_token;
+  const userB = signupB.body?.user?.id;
+  if (!tokenB) {
+    check('15–17. second account for the member scenario', false, JSON.stringify(signupB.body).slice(0, 160));
+  } else {
+    const cursorB = iso(1000);
+    const invite = await call('/rest/v1/rpc/create_invite', { method: 'POST', body: { p_vehicle: vehicleId, p_role: 'editor', p_email: null }, headers: { 'Content-Profile': 'carguy' } });
+    token = tokenB;
+    const redeem = await call('/rest/v1/rpc/redeem_invite', { method: 'POST', body: { p_code: invite.body }, headers: { 'Content-Profile': 'carguy' } });
+    const q2 = (v) => `"${String(v).replace(/"/g, '\\"')}"`;
+    const since = await call(`/rest/v1/vehicle?or=(${encodeURIComponent(`server_updated_at.gt.${q2(cursorB)}`)})&id=eq.${vehicleId}&select=id`);
+    const full = await call(`/rest/v1/vehicle?id=eq.${vehicleId}&select=id,name&order=server_updated_at.asc,id.asc`);
+    const member = await call(`/rest/v1/vehicle_member?user_id=eq.${userB}&select=vehicle_id,role,deleted_at,server_updated_at`);
+    check(
+      '15. after a grant, the old cursor misses the car and a reset pull brings it',
+      redeem.body?.ok === true && Array.isArray(since.body) && since.body.length === 0 && full.body?.length === 1 && member.body?.[0]?.role === 'editor',
+      `redeem ${JSON.stringify(redeem.body)} · since cursor ${JSON.stringify(since.body)} · full ${JSON.stringify(full.body)} · member ${JSON.stringify(member.body)}`,
+    );
+
+    const pushB = await call('/rest/v1/vehicle', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
+      body: [{ id: vehicleId, user_id: userB, updated_by: userB, name: 'Corolla de B', type: 'carro', default_fuel_type: 'regular', is_archived: false, sort_order: 0, notes: '', created_at: t1, updated_at: iso(300_000) }],
+    });
+    token = tokenA;
+    const seen = await call(`/rest/v1/vehicle?id=eq.${vehicleId}&select=name,user_id,updated_by`);
+    check(
+      "16. B's push (its own user_id, as pushTable sends it) edits the car; it stays A's",
+      wrote(pushB.status) && seen.body?.[0]?.name === 'Corolla de B' && seen.body?.[0]?.user_id === userId && seen.body?.[0]?.updated_by === userB,
+      `push ${pushB.status} · A reads ${JSON.stringify(seen.body)}`,
+    );
+
+    const removed = await call('/rest/v1/rpc/remove_member', { method: 'POST', body: { p_vehicle: vehicleId, p_user: userB }, headers: { 'Content-Profile': 'carguy' } });
+    token = tokenB;
+    const gone = await call(`/rest/v1/vehicle?id=eq.${vehicleId}&select=id`);
+    const ended = await call(`/rest/v1/vehicle_member?user_id=eq.${userB}&select=deleted_at`);
+    const refused = await call('/rest/v1/vehicle', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
+      body: [{ id: vehicleId, user_id: userB, name: 'Otra vez', type: 'carro', default_fuel_type: 'regular', is_archived: false, sort_order: 0, notes: '', created_at: t1, updated_at: iso(400_000) }],
+    });
+    token = tokenA;
+    check(
+      '17. removed: B stops seeing the car, pulls its ended membership, and a push is refused (42501)',
+      removed.body === true && gone.body?.length === 0 && Boolean(ended.body?.[0]?.deleted_at) && (refused.status === 403 || refused.body?.code === '42501'),
+      `remove ${JSON.stringify(removed.body)} · car ${JSON.stringify(gone.body)} · member ${JSON.stringify(ended.body)} · push ${refused.status}`,
+    );
+  }
+
   const failed = results.filter((r) => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} passed.`);
   console.log('\n--- cleanup ---');
-  console.log(`delete from auth.users where email = '${email}';`);
+  console.log(`delete from auth.users where email = '${email}' or email = '${emailB}';`);
   process.exitCode = failed.length ? 1 : 0;
 }
 

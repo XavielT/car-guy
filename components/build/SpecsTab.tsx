@@ -76,7 +76,7 @@ export function SpecsTab({
 
   async function share() {
     if (!shotRef.current) return;
-    const uri = await captureRef(shotRef, { format: 'png', quality: 1, result: Platform.OS === 'web' ? 'data-uri' : 'tmpfile' });
+    const uri = await captureRef(shotRef, { format: 'png', quality: 1, result: Platform.OS === 'web' ? 'data-uri' : 'tmpfile', fileName: `ficha-${vehicleName.toLowerCase().replace(/\s+/g, '-')}-` } as Parameters<typeof captureRef>[1]);
     if (!uri) return;
     if (Platform.OS === 'web') {
       // html2canvas hands back a data URI on web: download it.

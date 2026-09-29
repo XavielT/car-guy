@@ -20,6 +20,11 @@ where email like 'carguy-test-%@example.com'
    or email like 'carguy-ui-%@example.com';
 
 delete from carguy.vehicle where id like 'veh_test_%' or id like 'sync_probe_%';
+-- Phase 7: shares, memberships and invites of the test cars. (Members and
+-- invites of test users also go with the users below — on delete cascade.)
+delete from carguy.vehicle_share where id like 'veh_test_%' or vehicle_id like 'veh_test_%' or vehicle_id like 'sync_probe_%';
+delete from carguy.vehicle_member where vehicle_id like 'veh_test_%' or vehicle_id like 'sync_probe_%';
+delete from carguy.vehicle_invite where vehicle_id like 'veh_test_%' or vehicle_id like 'sync_probe_%';
 
 -- The probe photos from verify-sync check 8 are NOT deleted here. Supabase
 -- installs `storage.protect_delete()` on storage.objects, which rejects any

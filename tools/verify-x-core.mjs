@@ -323,6 +323,111 @@ async function main() {
       Array.isArray(after.body) && after.body[0]?.media_quota_bytes === 314572800,
       `patch ${raise.status} · now ${JSON.stringify(after.body)}`,
     );
+    // 15–17 — the public page (sql/012): one security-definer RPC for anon.
+    const rpcAnon = (slug) => call('/rest/v1/rpc/public_dossier', { method: 'POST', headers: { 'Content-Profile': 'carguy' }, body: JSON.stringify({ p_slug: slug }) });
+    const slug = `vx${String(stamp).slice(-6).replace(/[01]/g, '2')}`.slice(0, 8).replace(/[^a-hj-km-np-z2-9]/g, 'k');
+    const none = await rpcAnon(slug);
+    const list = await fetch(`${URL_BASE}/storage/v1/object/list/carguy-public`, {
+      method: 'POST',
+      headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix: '' }),
+    }).then((r) => r.json()).catch(() => null);
+    record(
+      '15. anon: unknown slug is null, carguy-public cannot be listed (sql/012)',
+      none.status === 200 && none.body === null && Array.isArray(list) && list.length === 0,
+      `rpc ${none.status} ${JSON.stringify(none.body)} · list ${JSON.stringify(list)}`,
+    );
+
+    await call(`/rest/v1/vehicle?id=eq.${vehicleId}`, { method: 'PATCH', headers: authA, body: JSON.stringify({ vin: 'JT2AE850000000001', plate: 'A700001' }) });
+    await call(`/rest/v1/mod?id=eq.${modId}`, { method: 'PATCH', headers: authA, body: JSON.stringify({ cost_part_dop: 14500 }) });
+    const share = await call('/rest/v1/vehicle_share', {
+      method: 'POST', headers: authA,
+      body: JSON.stringify({ id: `veh_test_share_${stamp}`, vehicle_id: vehicleId, slug, visibility: 'link', published_at: now, show_costs: false, created_at: now, updated_at: now }),
+    });
+    const pub = await rpcAnon(slug);
+    const text = JSON.stringify(pub.body ?? null);
+    record(
+      '16. a published share renders for anon, without costs, VIN/plate masked (sql/012)',
+      share.status === 201 && pub.body?.vehicle?.name === 'Verificación' && !/14500|JT2AE850000000001|A700001/.test(text) && pub.body?.vehicle?.vin === 'JT2••••',
+      `share ${share.status} · ${text.slice(0, 160)}`,
+    );
+
+    const stealShare = await call('/rest/v1/vehicle_share', {
+      method: 'POST', headers: authB,
+      body: JSON.stringify({ id: `veh_test_share_b_${stamp}`, vehicle_id: vehicleId, slug: `${slug.slice(0, 7)}z`, visibility: 'link', published_at: now, created_at: now, updated_at: now }),
+    });
+    const stolen = await rpcAnon(`${slug.slice(0, 7)}z`);
+    await call(`/rest/v1/vehicle_share?id=eq.veh_test_share_${stamp}`, { method: 'PATCH', headers: authA, body: JSON.stringify({ revoked_at: now, slug: null }) });
+    const revoked = await rpcAnon(slug);
+    record(
+      "17. revoke → null; B cannot publish A's car (sql/012, 013)",
+      revoked.body === null && stolen.body === null && stealShare.status >= 400,
+      `revoked ${JSON.stringify(revoked.body)} · B share ${stealShare.status} · B slug ${JSON.stringify(stolen.body)}`,
+    );
+
+    // 18–23 — the shared garage (sql/013).
+    const rpc = (auth, fn, args) => call(`/rest/v1/rpc/${fn}`, { method: 'POST', headers: { ...auth, 'Content-Profile': 'carguy' }, body: JSON.stringify(args) });
+    const inviteByB = await rpc(authB, 'create_invite', { p_vehicle: vehicleId, p_role: 'editor', p_email: null });
+    record("18. B cannot invite to A's car (is_member denies)", inviteByB.status >= 400, `status ${inviteByB.status} · ${JSON.stringify(inviteByB.body?.code ?? inviteByB.body)}`);
+
+    const invite = await rpc(authA, 'create_invite', { p_vehicle: vehicleId, p_role: 'editor', p_email: userB });
+    const redeem = await rpc(authB, 'redeem_invite', { p_code: invite.body });
+    const seeCar = await call(`/rest/v1/vehicle?id=eq.${vehicleId}&select=id,name`, { headers: authB });
+    const seeMod = await call(`/rest/v1/mod?id=eq.${modId}&select=id`, { headers: authB });
+    record(
+      '19. A invites B as editor; B redeems and sees the car and its mod',
+      typeof invite.body === 'string' && redeem.body?.ok === true && seeCar.body?.length === 1 && seeMod.body?.length === 1,
+      `invite ${invite.status} · redeem ${JSON.stringify(redeem.body)} · car ${JSON.stringify(seeCar.body)} · mod ${JSON.stringify(seeMod.body)}`,
+    );
+
+    const modByB = `veh_test_modb_${stamp}`;
+    const bWrites = await call('/rest/v1/mod', {
+      method: 'POST', headers: authB,
+      body: JSON.stringify({ id: modByB, vehicle_id: vehicleId, category_id: 'motor', name: 'Hecho por B', created_at: now, updated_at: now }),
+    });
+    const bUpserts = await call('/rest/v1/vehicle?on_conflict=id', {
+      method: 'POST', headers: { ...authB, Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ id: vehicleId, user_id: b.body?.user?.id, name: 'Verificación', default_fuel_type: 'regular', notes: 'editado por B', created_at: now, updated_at: new Date().toISOString() }),
+    });
+    const aSees = await call(`/rest/v1/mod?id=eq.${modByB}&select=id,user_id`, { headers: authA });
+    const owner = await call(`/rest/v1/vehicle?id=eq.${vehicleId}&select=user_id,notes`, { headers: authA });
+    record(
+      "20. B adds a mod and edits the car; A sees both; the car stays A's (keep_creator)",
+      bWrites.status === 201 && aSees.body?.length === 1 && bUpserts.status < 300 && owner.body?.[0]?.user_id === userIdA && owner.body?.[0]?.notes === 'editado por B',
+      `B mod ${bWrites.status} · B upsert ${bUpserts.status} · A sees ${JSON.stringify(aSees.body)} · car ${JSON.stringify(owner.body)}`,
+    );
+
+    const upV = await fetch(`${URL_BASE}/storage/v1/object/carguy-media/v/${vehicleId}/verify_${stamp}.jpg`, {
+      method: 'POST', headers: { apikey: ANON, ...authB, 'Content-Type': 'image/jpeg' }, body: bytes,
+    });
+    const readV = await fetch(`${URL_BASE}/storage/v1/object/authenticated/carguy-media/v/${vehicleId}/verify_${stamp}.jpg`, { headers: { apikey: ANON, ...authA } });
+    await fetch(`${URL_BASE}/storage/v1/object/carguy-media`, {
+      method: 'DELETE', headers: { apikey: ANON, ...authA, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefixes: [`v/${vehicleId}/verify_${stamp}.jpg`] }),
+    });
+    record('21. B uploads under v/<vehicle>/, A reads it (sql/013 storage)', upV.status === 200 && readV.status === 200, `B up ${upV.status} · A read ${readV.status}`);
+
+    const toViewer = await rpc(authA, 'set_member_role', { p_vehicle: vehicleId, p_user: b.body?.user?.id, p_role: 'viewer' });
+    const viewerWrite = await call('/rest/v1/mod', {
+      method: 'POST', headers: authB,
+      body: JSON.stringify({ id: `veh_test_modv_${stamp}`, vehicle_id: vehicleId, category_id: 'motor', name: 'No debería', created_at: now, updated_at: now }),
+    });
+    const viewerRead = await call(`/rest/v1/mod?vehicle_id=eq.${vehicleId}&select=id`, { headers: authB });
+    record(
+      '22. as viewer B still reads, but cannot write (42501)',
+      toViewer.body === true && (viewerWrite.status === 403 || viewerWrite.body?.code === '42501') && viewerRead.body?.length === 2,
+      `role ${JSON.stringify(toViewer.body)} · write ${viewerWrite.status} · read ${viewerRead.body?.length}`,
+    );
+
+    const removed = await rpc(authA, 'remove_member', { p_vehicle: vehicleId, p_user: b.body?.user?.id });
+    const goneCar = await call(`/rest/v1/vehicle?id=eq.${vehicleId}&select=id`, { headers: authB });
+    const goneMod = await call(`/rest/v1/mod?vehicle_id=eq.${vehicleId}&select=id`, { headers: authB });
+    const myRow = await call(`/rest/v1/vehicle_member?vehicle_id=eq.${vehicleId}&select=role,deleted_at`, { headers: authB });
+    record(
+      '23. A removes B: B sees nothing of the car, only its ended membership',
+      removed.body === true && goneCar.body?.length === 0 && goneMod.body?.length === 0 && myRow.body?.length === 1 && Boolean(myRow.body[0].deleted_at),
+      `remove ${JSON.stringify(removed.body)} · car ${JSON.stringify(goneCar.body)} · mods ${JSON.stringify(goneMod.body)} · member ${JSON.stringify(myRow.body)}`,
+    );
   }
 
   // 7 — anon has no grant at all.
@@ -344,6 +449,9 @@ function printCleanup() {
   console.log(`delete from auth.users where email like 'carguy-test-${stamp}-%';`);
   console.log(`delete from carguy.vehicle where id like 'veh_test_%${stamp}%';`);
   console.log(`delete from carguy.mod where id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.vehicle_share where id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.vehicle_member where vehicle_id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.vehicle_invite where vehicle_id like 'veh_test_%${stamp}%';`);
   console.log('-- and confirm nothing of Music Hub was touched:');
   console.log(`select id, email from public.profiles where email like 'carguy-test-%';`);
 }

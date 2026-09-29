@@ -10,7 +10,7 @@
  * bump: everything under /_expo/static/ is content-hashed, so a new build asks
  * for new filenames and the stale entries are only ever dead weight.
  */
-const CACHE = 'carguy-v3';
+const CACHE = 'carguy-v4';
 
 self.addEventListener('install', () => {
   // Nothing to precache: the export is hashed and the shell is picked up on
@@ -33,6 +33,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // The public car pages (api/c/[slug].ts) are the server's: never cached here,
+  // or a link its owner revoked would keep opening offline from this cache.
+  if (url.pathname.startsWith('/c/') || url.pathname.startsWith('/api/')) return;
 
   // The SQLite engine: never cache-first.
   //

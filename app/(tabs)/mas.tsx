@@ -18,7 +18,7 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { useSession } from '@/lib/cloud/auth';
 import { exportBackup, importBackup } from '@/lib/backup';
-import { FEATURE_DIY, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_DIY, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
@@ -149,6 +149,14 @@ export default function MasScreen() {
             <NavRow label={es.diyMore.contacts} caption={es.diyMore.contactsCaption} onPress={() => router.push('/contactos')} />
             <NavRow label={es.diyMore.obd} caption={es.diyMore.obdCaption} onPress={() => router.push('/obd')} />
             {FEATURE_TRACK ? <NavRow label={es.track.more} caption={es.track.moreCaption} onPress={() => router.push('/pista')} /> : null}
+          </>
+        ) : null}
+
+        {FEATURE_SHARE ? (
+          <>
+            <MoreSection title={es.routes.share} />
+            <NavRow label={es.share.more} caption={es.share.moreCaption} onPress={() => router.push('/compartidos')} />
+            <NavRow label={es.members.haveCode} caption={es.members.acceptIntro} onPress={() => router.push({ pathname: '/invitacion/[code]', params: { code: '-' } })} />
           </>
         ) : null}
 

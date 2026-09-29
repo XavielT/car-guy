@@ -7,6 +7,7 @@ import {
   clearMediaRemotePath,
   deletedMediaInStorage,
   mediaNeedingUpload,
+  mediaVehicleId,
   saveMediaBytes,
   saveMediaThumbBytes,
   setMediaRemotePath,
@@ -14,6 +15,7 @@ import {
   type LocalRow,
 } from '../db/syncOps';
 import { fitsQuota } from '../domain/album';
+import { mediaObjectPath } from './members';
 import { readStorageMeter, writeStorageMeter } from './storageMeter';
 
 /**
@@ -128,6 +130,8 @@ export async function uploadMediaBytes(supabase: StorageClient, userId: string):
     try {
       const id = row.id as string;
       const mime = (row.mime as string) || 'image/jpeg';
+      // Since Phase 7 a car's photos live under v/<vehicle_id>/ so every member reads them.
+      const vehicleId = await mediaVehicleId(row.owner_table as string, row.owner_id as string, id);
 
       if (!row.remote_thumb_path) {
         const thumb = await readLocalBytes(row, true);
@@ -136,7 +140,7 @@ export async function uploadMediaBytes(supabase: StorageClient, userId: string):
             await writeStorageMeter({ paused: true });
             break;
           }
-          const path = `${userId}/${id}.thumb.jpg`;
+          const path = mediaObjectPath(userId, vehicleId, id, 'jpg', true);
           const { error } = await put(path, thumb, 'image/jpeg');
           if (error) {
             if (isQuotaRefusal(error)) {
@@ -157,7 +161,7 @@ export async function uploadMediaBytes(supabase: StorageClient, userId: string):
           await writeStorageMeter({ paused: true });
           break;
         }
-        const path = `${userId}/${id}.${extensionFor(mime)}`;
+        const path = mediaObjectPath(userId, vehicleId, id, extensionFor(mime));
         const { error } = await put(path, bytes, mime);
         if (error) {
           if (isQuotaRefusal(error)) {
@@ -282,5 +286,28 @@ export async function ensureMediaBytesById(mediaId: string, opts: { thumb?: bool
       thumb_blob: row.thumbBlob ?? null,
     },
     opts,
+  );
+}
+
+/**
+ * A photo's bytes, local or fetched from the private bucket first — for the
+ * public-page copy and the car book, which need the JPEG itself rather than a
+ * URI to display.
+ */
+export async function localMediaBytes(mediaId: string, opts: { thumb?: boolean } = {}): Promise<Uint8Array | null> {
+  await ensureMediaBytesById(mediaId, opts);
+  const row = await mediaRepo.getById(mediaId);
+  if (!row) return null;
+  return readLocalBytes(
+    {
+      id: row.id,
+      owner_id: row.ownerId,
+      mime: row.mime,
+      rel_path: row.relPath ?? null,
+      blob: row.blob ?? null,
+      thumb_rel_path: row.thumbRelPath ?? null,
+      thumb_blob: row.thumbBlob ?? null,
+    },
+    Boolean(opts.thumb),
   );
 }

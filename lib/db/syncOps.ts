@@ -199,6 +199,7 @@ export function toCloudShape(
   localOnly: string[],
   userId: string,
   booleanColumns: string[] = [],
+  withUpdatedBy = false,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const skip = new Set(localOnly.map((k) => (k.includes('_') ? k : snake(k))));
@@ -213,7 +214,34 @@ export function toCloudShape(
   // applies to an INSERT, and an upsert taking the UPDATE branch without it is
   // refused by the RLS `with check` with 42501.
   out.user_id = userId;
+  // Who wrote this version, for the shared garage's "editado por". The cloud's
+  // keep_creator trigger (sql/013) pins user_id on update, so the creator stays.
+  if (withUpdatedBy) out.updated_by = userId;
   return out;
+}
+
+/** My memberships and my co-members', as pulled. */
+export async function localMemberRows(): Promise<{ vehicle_id: string; user_id: string; role: 'owner' | 'editor' | 'viewer'; deleted_at: string | null }[]> {
+  const db = await getDb();
+  return db.getAllAsync('SELECT vehicle_id, user_id, role, deleted_at FROM vehicle_member');
+}
+
+/** Mirrors my role into vehicle.garage_role (local-only; does not dirty the row). */
+export async function setGarageRoles(roles: Record<string, string | null>): Promise<void> {
+  const entries = Object.entries(roles);
+  if (!entries.length) return;
+  await enqueue(async (handle) => {
+    for (const [vehicleId, role] of entries) {
+      await handle.runAsync('UPDATE vehicle SET garage_role = ? WHERE id = ?', [role, vehicleId] as never);
+    }
+  });
+}
+
+/** Leaves a row as it is locally but stops pushing it (the server refused it). */
+export async function markRowSynced(table: string, id: string): Promise<void> {
+  await enqueue(async (handle) => {
+    await handle.runAsync(`UPDATE ${table} SET synced_at = updated_at WHERE id = ?`, [id] as never);
+  });
 }
 
 /** Local settings that sync, as `(key, value)` pairs. */
@@ -364,4 +392,25 @@ export async function saveMediaBytes(
       id,
     ] as never);
   });
+}
+
+/**
+ * The vehicle a photo belongs to, from its owner (album photos are owned by the
+ * vehicle; a receipt by its record; a check photo by its result). Null for
+ * photos of things that are not a car's (a contact, a shelf item).
+ */
+export async function mediaVehicleId(ownerTable: string, ownerId: string, mediaId: string): Promise<string | null> {
+  const db = await getDb();
+  if (ownerTable === 'vehicle') return ownerId;
+  const direct = ['service_record', 'expense', 'fuel_log', 'document', 'milestone', 'mod', 'torque_spec', 'fluid_guide_item', 'wheel_set', 'spec_snapshot', 'track_event', 'task'];
+  if (direct.includes(ownerTable)) {
+    const r = await db.getFirstAsync<{ v: string | null }>(`SELECT vehicle_id AS v FROM ${ownerTable} WHERE id = ?`, [ownerId]);
+    if (r?.v) return r.v;
+  }
+  if (ownerTable === 'inspection_result') {
+    const r = await db.getFirstAsync<{ v: string | null }>('SELECT i.vehicle_id AS v FROM inspection_result r JOIN inspection i ON i.id = r.inspection_id WHERE r.id = ?', [ownerId]);
+    if (r?.v) return r.v;
+  }
+  const album = await db.getFirstAsync<{ v: string | null }>('SELECT vehicle_id AS v FROM album_item WHERE media_id = ? LIMIT 1', [mediaId]);
+  return album?.v ?? null;
 }

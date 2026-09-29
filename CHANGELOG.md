@@ -1,5 +1,69 @@
 # Changelog
 
+## 2.1.0 — Hachi-Gō (sin publicar)
+
+El garaje deja de ser una lista de carros y se vuelve la historia de cada uno: las fotos de
+siempre con su fecha, el build con lo que costó, la ficha para el taller, los días de pista y un
+link para enseñarlo. Se actualiza **encima** de la 2.0.0: los datos se quedan y la base de datos
+se migra sola al abrir.
+
+### Look JDM
+
+- Tablero con tacómetro, luces testigo, odómetro LCD y badges (motor, DRIFT, SWAP, EX).
+- Pestaña **Garaje** con portada, apodo en katakana, estado (activo, proyecto, guardado,
+  vendido) y la historia de los que ya se fueron.
+- Encabezados en mayúscula, secciones con eyebrow, carbono y señales de peligro donde tocan.
+
+### Álbum y memoria
+
+- Importar fotos viejas con su fecha real (EXIF), sin duplicados, en una línea de tiempo por año.
+- Hitos (compra, swap, choque, primer track day), "cómo estaba el carro ese día", favoritas.
+- Miniaturas de 400 px y copia de 1600 px; 300 MB de fotos en la nube por cuenta, con medidor.
+
+### Build
+
+- Mods con categoría, marca, costos en RD$ (o en USD con la tasa), instalador y fotos
+  antes/después; STOCK → ACTUAL calculado de los mods; wishlist que se convierte en mod;
+  inventario de piezas, aros y gomas (DOT, ciclos de calor).
+- La ficha técnica se comparte como imagen.
+
+### DIY
+
+- Ficha de servicio con presets por plataforma (AE85, S13, Civic, DS3…), VIN por vPIC, y
+  "verificado por mí" en cada dato. Siempre: *verifica con tu manual*.
+- Guía de fluidos con tus fotos, que sale en el chequeo; códigos OBD en español; contactos con
+  llamada y WhatsApp.
+
+### Pista
+
+- Eventos (track day, drift, drag, autocross, junte) y sesiones con setup completo: presiones
+  frío → caliente por goma (traseras en rojo si suben más de 8 psi), alineación, altura,
+  suspensión, frenos, ángulo y LSD, tiempos en m:ss.mmm.
+- **Copiar a la sesión siguiente** y el aviso "Cambiaste desde la sesión 1: TI/TD 40 → 42".
+- Gomas usadas (ciclos), goma quemada, medida de pastillas con recordatorio "Pastillas (pista)".
+- Resumen del día para compartir como imagen o texto; días de pista y su gasto en Cifras.
+
+### Compartir
+
+- **Ficha pública por link** (`car-guy.vercel.app/c/…`) con vista previa en WhatsApp: tú eliges
+  qué se ve (historia, mods, mantenimiento, pista, km, costos, placa, VIN) y hasta 24 fotos.
+  Se desactiva cuando quieras.
+- **Libro del carro** en PDF: portada, ficha, historia, mods, mantenimiento, documentos, pista y
+  hasta 60 fotos.
+- **Garaje compartido**: invita a alguien a un carro como editor o solo lectura; el dueño cambia
+  roles o lo quita.
+
+### Arreglos
+
+- Documentos en PDF (antes solo fotos).
+- Cifras: el eje empieza en 0; en la computadora la app es una columna centrada.
+- Borrar un carro ahora borra también lo que anotaste de gomas y pastillas en pista.
+
+### Antes de publicar
+
+Pendiente de la prueba en el teléfono (Redmi Note 10 Pro): build, DIY, pista y compartir en
+Android; actualizar encima de la 2.0.0 con datos; el link público en WhatsApp.
+
 ## 2.0.0 — Car Guy (2026-09-25)
 
 Primera versión de Car Guy para Android. Se probó en un teléfono real (Redmi Note 10 Pro, Android

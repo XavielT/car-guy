@@ -96,7 +96,7 @@ export function StackedBars({ months }: { months: MonthlySpend[] }) {
             yAxisTextStyle={{ color: theme.text.muted, fontSize: 9, fontFamily: fonts.mono }}
             xAxisLabelTextStyle={{ color: theme.text.muted, fontSize: 11, fontFamily: fonts.title }}
             yAxisLabelWidth={44}
-            formatYLabel={(value: string) => compact(Number(value))}
+            yAxisLabelTexts={axisLabels(max * 1.15, 3)}
             disablePress
           />
           <Legend months={months} />
@@ -136,6 +136,15 @@ function Legend({ months }: { months: MonthlySpend[] }) {
       ))}
     </View>
   );
+}
+
+/**
+ * The y-axis labels, bottom to top, from our own scale. gifted-charts' own
+ * bottom label came out as "1" on some widths (its rounding of the first
+ * section, not ours), so the axis is labelled explicitly and always starts at 0.
+ */
+export function axisLabels(top: number, sections: number): string[] {
+  return Array.from({ length: sections + 1 }, (_, i) => compact((top / sections) * i));
 }
 
 /** "12.5k" beats "12,500.00" on a 44 px axis. */

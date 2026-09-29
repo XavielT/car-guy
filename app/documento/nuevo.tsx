@@ -7,11 +7,12 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
-import { PrimaryButton } from '@/components/ui';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { saveDocument } from '@/lib/db/documentOps';
-import type { DocumentKind } from '@/lib/db/types';
+import type { DocumentKind, Media } from '@/lib/db/types';
 import { isoFromDateInput } from '@/lib/format';
+import { pickPdf } from '@/lib/media/pdf';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
@@ -30,6 +31,7 @@ export default function NuevoDocumentoScreen() {
   const [expires, setExpires] = useState('');
   const [notes, setNotes] = useState('');
   const [mediaId, setMediaId] = useState<string | null>(null);
+  const [pdf, setPdf] = useState<Media | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [documentId] = useState(() => `doc_${Date.now()}`);
 
@@ -101,13 +103,37 @@ export default function NuevoDocumentoScreen() {
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {es.documents.file}
         </T>
-        <PhotoPicker
-          mediaId={mediaId}
-          ownerTable="document"
-          ownerId={documentId}
-          vehicleId={activeVehicle.id}
-          onChange={setMediaId}
-        />
+        {pdf ? (
+          <View style={[styles.pdf, { borderColor: theme.lineStrong, backgroundColor: theme.bg.raised }]}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }} numberOfLines={1}>
+              {`PDF · ${pdf.caption || es.documents.pdf}`}
+            </T>
+            <GhostButton label={es.common.removePhoto} onPress={() => (setPdf(null), setMediaId(null))} />
+          </View>
+        ) : (
+          <>
+            <PhotoPicker
+              mediaId={mediaId}
+              ownerTable="document"
+              ownerId={documentId}
+              vehicleId={activeVehicle.id}
+              onChange={setMediaId}
+            />
+            {mediaId ? null : (
+              <GhostButton
+                label={es.documents.attachPdf}
+                onPress={() =>
+                  void pickPdf({ ownerTable: 'document', ownerId: documentId, vehicleId: activeVehicle.id }).then((r) => {
+                    if (r.ok) {
+                      setPdf(r.media);
+                      setMediaId(r.media.id);
+                    } else if (r.reason !== 'cancelled') setError(r.reason === 'too-big' ? es.documents.pdfTooBig : es.documents.pdfFailed);
+                  })
+                }
+              />
+            )}
+          </>
+        )}
 
         <Field label={es.documents.notes} value={notes} onChangeText={setNotes} multiline />
 
@@ -126,6 +152,7 @@ const styles = StyleSheet.create({
   pad: { padding: space.gutter, paddingBottom: 40 },
   h: { fontSize: 28, lineHeight: 30, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.lg },
   label: { fontSize: 12, marginBottom: 6 },
+  pdf: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: radius.input, paddingLeft: space.md, marginBottom: space.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md },
   chip: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md, paddingVertical: 6 },
 });

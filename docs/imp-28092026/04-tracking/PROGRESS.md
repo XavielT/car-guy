@@ -16,8 +16,8 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 4 | Build log | ✅ | `imp-28092026/phase-4-build` | web verified 2026-09-28; Android device check pending (phone not connected) |
 | 5 | DIY | ✅ | `imp-28092026/phase-5-diy` | web verified 2026-09-28; Android device check pending with Phase 4's |
 | 6 | Pista | ✅ | `imp-28092026/phase-6-track` | web verified 2026-09-28 (dark + light, web↔web sync); Android device check pending with Phases 4–5 |
-| 7 | Compartir | ⬜ | | |
-| 8 | Release 2.1.0 | ⬜ | | |
+| 7 | Compartir | ✅ | `imp-28092026/phase-7-share` | sql/012–014 applied; verify-x-core 23/23, verify-sync 17/17, local-rls 32/32 (2026-09-29); Android checked; WhatsApp preview pending |
+| 8 | Release 2.1.0 | 🟡 | `imp-28092026/phase-8-release` (on top of phase 7) | backlog + docs + version done; regression on Android, builds, release pending |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -78,7 +78,7 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 | 3 | Web thumbs have no blurhash: `Image.generateBlurhashAsync` is Android/iOS only. Web cells show the well colour until the (local, fast) thumb loads | low | a JS blurhash encoder would add ~5 KB if it matters |
 | 3 | "Guardar original en Google Fotos/Drive" opens the share sheet once per photo (expo-sharing shares one file). In the viewer it shares the stored 1600 px copy — the untouched original only exists at import time, so the viewer's label says "copia" | low | a multi-file share needs a native module |
 | 3 | Over-quota refusal verified live against Storage with a 1-byte quota on a throwaway user; the 90 % / 100 % meter states verified in unit tests only (no account holds 270 MB) | low | — |
-| 4–6 | Phases 4, 5 and 6 not yet run on the Redmi (phone not connected at merge time) | medium | install the latest preview build (Phase 6's is built); check share-as-image (specs + day summary), long-press, the ficha's share sheet, the runner's fluid card, WhatsApp/tel links, the CornerGrid keyboard "next" order natively |
+| 4–6 | ~~Phases 4, 5 and 6 not yet run on the Redmi~~ — **done 2026-09-29** on the 2.1.0 preview (Phase 8 report) | closed | install the latest preview build (Phase 6's is built); check share-as-image (specs + day summary), long-press, the ficha's share sheet, the runner's fluid card, WhatsApp/tel links, the CornerGrid keyboard "next" order natively |
 | 6 | Heat cycles count once per tire per **event** (the "Gomas usadas" tick), not per session | low | a per-session tick is a second picker on the session screen if anyone wants it |
 | 6 | Personal bests are per venue; `venue.layout` exists but events do not record which layout was run | low | add `track_event.layout` when a venue with two layouts shows up |
 | 4 | `inventory_item` has no column linking an item to the mod that used it; "Usar en un mod" prefills the mod form and appends "Usado en: <mod>" to the item's notes | low | a `used_in_mod_id` column needs migration v4 + cloud SQL; not worth it until someone filters by it |
@@ -960,3 +960,140 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 ### Notes for the next phase
 - Phase 7 (Compartir): `vehicle_share.show_track` can use `listEvents()` + `summaryText()`; the `DaySummaryCard` is a
   ready piece for the public page; `personalBests()` gives the dossier's PB line.
+
+## Phase 7 — Compartir: ficha pública, libro PDF, garaje compartido   (branch `imp-28092026/phase-7-share`)
+
+**Status:** complete (2026-09-29) — verified live: `verify-x-core` **23/23**, `verify-sync` **17/17** (after Xaviel allowed the runs),
+`tools/local-rls` 32/32; test users cleaned. Pending: the WhatsApp preview of a real link after deploy. Earlier status: `sql/012` and `sql/013` were applied
+to x-core; the live verification (`verify-x-core` 23 checks, `verify-sync` 17 checks, the public link on a
+phone, WhatsApp preview, two-account app scenario, Android) has not run: the auto-mode classifier refused
+running the verifiers against production after the RLS swap ("Production Deploy"). Needs Xaviel.
+
+### Changed
+- **SQL `012_public_share.sql`** (applied, `--shared`): `carguy.public_dossier(slug) → jsonb` — security definer,
+  the only thing anon can do in the schema (EXECUTE + schema USAGE; no table grants). Gated by each `show_*`,
+  plate/VIN masked (`A70••••`) when off, costs only with `show_costs`, the share must belong to the vehicle's
+  creator. Public bucket `carguy-public` (2 MB, image/jpeg), owner-only write/list by slug, **no anon select
+  policy** (verified live as anon: unknown slug → `null`, `GET vehicle` → 42501, bucket list → `[]`).
+  Unique slug index. *Deviation:* one definer RPC instead of the spec's `security_invoker` views + anon policies —
+  an invoker view needs anon SELECT on the base table, and a row policy cannot hide columns, so VIN/plate/user_id
+  would have been readable straight from `vehicle`. The share lives on `vehicle_share` (already synced) — no
+  `vehicle.share_enabled/public_slug` columns.
+- **SQL `013_members.sql`** (applied, `--shared`, one transaction with a self-check): `vehicle_role(v)` →
+  owner/editor/viewer/'free'/null; `can_see / can_edit / can_own`, `vehicle_of(table, id)` for children;
+  **generated** policies on 33 tables (select member-or-own-free, insert creator + editor, update/delete editor,
+  vehicle delete + vehicle_share writes owner only); `keep_creator` trigger pins `user_id` on update (so the
+  client keeps sending its own `user_id` and an editor's push never takes a row over); owner row created by
+  trigger on vehicle insert + backfill; `updated_by` on the v1 tables; `vehicle_invite`; RPCs `create_invite`,
+  `redeem_invite`, `set_member_role`, `remove_member`; storage policies for both `<uid>/…` and `v/<vehicle>/…`
+  (old-layout objects readable by members through `can_read_media_object`); quota charges vehicle folders to the
+  owner (and "free" folders to the uploader, so a made-up folder is not free space). Self-check (inside the
+  transaction): every account sees exactly its own rows, table by table — passed (the cloud held no real accounts).
+- **Client** — `lib/share/dossier.ts` (`slug()`, `publicDossier()` in BaT order, pure, shared by the page and the
+  book), `lib/share/html.ts` (self-contained dark page, OG + Twitter tags, `noindex` unless public, escaped, no
+  script), `api/c/[slug].ts` (Vercel Node function; `/c/:slug` rewrite first in vercel.json; env
+  `SUPABASE_URL/ANON_KEY` falling back to the `EXPO_PUBLIC_` pair already in the Vercel project — no manual step;
+  `s-maxage=300, stale-while-revalidate=86400`; 404 page), `lib/share/publish.ts` (enable = row + sync + copy
+  favourites ≤ 24 + hero to `carguy-public/<slug>/`; revoke = delete objects, null slug), `lib/db/shareQueries.ts`
+  (`localRawDossier()` — the same JSON from SQLite). Screens `vehiculo/[id]/compartir` (visibility, 8 switches,
+  photo picker = album favourites, PORTADA, copy/send/preview, revoke), `compartidos` (Más → Links compartidos).
+- **Libro PDF** — pdf-lib + @pdf-lib/fontkit (Saira Condensed, Rajdhani, JetBrains Mono embedded, Helvetica
+  fallback, glyph-safe text), `lib/book/render.ts` (dark cover with hero, ficha, historia, STOCK → ACTUAL, mods,
+  mantenimiento, documentos, pista, photo pages 3×3 centre-cropped by year, ≤ 60), `lib/book/index.ts`, screen
+  `vehiculo/[id]/libro` (switches shared with the page, período, fotos, documentos; share sheet / download).
+  `buffer` polyfill in `lib/polyfills.ts`; metro resolves `tslib` to its ES build (pdf-lib broke on web otherwise).
+- **Sync** — `lib/sync/members.ts` (pure: grants → cursor reset + second pull; revocations → purge prompt; my
+  role → `vehicle.garage_role`; `mediaObjectPath`, `UPDATED_BY_TABLES`); push sends `updated_by`; a 42501 batch
+  falls back to per-row and a refused row stops retrying (viewer edits stay local); new uploads go to
+  `v/<vehicle_id>/`; `purgeVehicleLocal()`; `vehicleScopes()` shared with the delete cascade (which fixes
+  consumables being missed — they hang off `event_id`, the cascade looked at `session_id`).
+- **Members UI** — `garaje/miembros` (roles, invite code + link, 7 days, optional email lock, role change,
+  remove, leave), `invitacion/[code]` (web route + `carguy://invitacion/<code>`), hub: Compartir (owner only) ·
+  Libro · Miembros, viewer banner + read-only, "Carro compartido" banner; Garaje: "Ya no tienes acceso" prompt.
+  `FEATURE_SHARE = true`.
+- **Tools** — `verify-x-core` +9 checks (15–23: anon RPC/list, publish without costs + masked VIN, revoke, B can't
+  publish or invite, invite → redeem → sees, editor writes + keep_creator, `v/` storage, viewer refused, removal);
+  `verify-sync` +3 (15–17: grant needs the cursor reset, B's push keeps the creator, removal); `999` cleans
+  shares/members/invites; `cleanup-probe-media` sweeps `v/<test vehicle>/` and orphaned carguy-public slugs.
+- **Tests** 801 → **820** (`__tests__/share/dossier.test.ts`, `api.test.ts`, `__tests__/sync/members.test.ts`;
+  album upload paths now `v/veh_a/…`).
+
+### Verified (local, no production access)
+- tsc, lint, 820/820, build 78/78.
+- Web (dark + light, 0 page errors): Compartir signed out → "Para crear un link necesitas cuenta"; Libro →
+  `car-guy_hachi-go_20260928.pdf` (30 KB, cover + content, fonts embedded) downloaded; Miembros / Invitación
+  signed out; Más and hub actions. The public page rendered from a fixture
+  (`docs/qa/imp-28092026-phase-7-public-page-local.png`). Screenshots `docs/qa/imp-28092026-phase-7-*`.
+
+### Not verified yet (needs Xaviel)
+1. `node tools/verify-x-core.mjs` and `node tools/verify-sync.mjs` against x-core (then the 999 cleanup).
+2. Merge → push (deploys `api/c/[slug]`), then a real link on a phone without the app, the WhatsApp preview, revoke → 404.
+3. The two-account app scenario (A owner, B editor → viewer → removed) and the PDF on Android.
+If (1) shows a problem, the rollback block at the end of `sql/013` restores the own-rows policies.
+
+## Phase 8 — Release 2.1.0 "Hachi-Gō"   (branch `imp-28092026/phase-8-release`, stacked on phase 7)
+
+**Status:** in progress. Steps 2 (backlog) and 3 (versions/docs) done; 1 (regression on Android +
+upgrade from 2.0.0 with data), 4 (phone table, AAB), 5 (release, web production) and 6 wait for the
+phone and for Phase 7's cloud verification + merge.
+
+### Done
+- **Backlog** — Cifras y-axis starts at 0 (explicit `yAxisLabelTexts`; gifted-charts rounded its own
+  first label to "1"); the 320 px tab label was already fixed in Phase 2 (checked at 320 px); desktop:
+  a 560 px centred column on web ≥ 900 px (checked at 1280 px); **PDF documents**: "+ Adjuntar PDF" in
+  the document form (expo-document-picker, ≤ 10 MB, stored as a `kind: 'pdf'` media row and synced like a
+  photo), "Abrir PDF" on the document (new tab on web, share sheet on the phone) — verified on web.
+- **Service worker** — `carguy-v4`; `/c/` and `/api/` are never cached (a revoked public page must not keep
+  opening from an installed PWA's cache).
+- **Versions** — app.json / package.json 2.1.0; CHANGELOG "2.1.0 — Hachi-Gō" in Spanish by block; README
+  feature list; NEXT.md backlog rewritten (closed items, carried items, the dependency blocker below).
+- Regression on web (fresh profiles, 0 page errors): the Phase 6 track flow and the Phase 7 share/book flow
+  re-run green on this branch.
+- tsc, lint, 820/820, build 78/78. Preview APK 2.1.0 building for the phone session.
+
+### Deferred, with reasons
+- **SDK patch bumps + `npm audit fix`** — `npx expo install --fix` (expo 57.0.25, @expo/metro-config
+  57.0.12) breaks the web dev server: every bundle fails with "Worker chunk not found for
+  expo-sqlite/web/worker.ts". Reproduced with expo-sqlite pinned back to 57.0.1 and with the tslib resolver
+  disabled, so it is the expo/metro-config bump. `npm audit fix` pulls the same expo within `~57.0.14`, so it
+  breaks too. Both reverted; the lockfile is unchanged. Retry with the next expo patch.
+
+### Android (Redmi Note 10 Pro, 2.1.0 preview APK, 2026-09-29)
+Installed **over the owner's real garage** (the same-cert 2.0.0-named build from 2026-09-28): installed as an
+update, opened on the Tablero with the DS3, El Trueno and C3 intact — the local migrations ran on real data.
+Write paths were tested on a throwaway **QA Prueba** car, removed at the end (garage back to 3).
+
+| Check | Phase | Result |
+|---|---|---|
+| Upgrade over real data, app opens, garage intact | 8 | ✅ |
+| Libro del carro PDF (expo-asset fonts, Buffer polyfill, fontkit) → share sheet `car-guy_el-trueno_20260929.pdf` (21 KB) | 7 | ✅ |
+| Compartir signed out → "Para crear un link necesitas cuenta…" | 7 | ✅ |
+| `carguy://invitacion/ABCD2345` → Aceptar carro with the code, "Entrar o crear cuenta" | 7 | ✅ |
+| Documento → "+ Adjuntar PDF" opens the system picker (PDF filter); cancel returns cleanly | 8 | ✅ (no file picked — the picker shows the owner's files) |
+| `carguy://vehiculo/nuevo`, `carguy://garaje`, `carguy://contactos/nuevo` deep links | — | ✅ |
+| CornerGrid keyboard "next": DI → DD → TI → TD, hot deltas +4/+4/+9/+8 | 6 | ✅ |
+| COPIAR A SESIÓN 2 → "Mismo setup que la sesión 1." → rears 42 → "Cambiaste desde la sesión 1: TI/TD 40 → 42" live | 6 | ✅ |
+| COMPARTIR RESUMEN → share sheet with the PNG, then the text share | 6 | ✅ (file was named `ReactNative-snapshot-…`; now `pista-<date>-…`, needs the next APK to see) |
+| Ficha: Corolla E150 preset → "2 datos del preset", "Ficha lista para el taller" → share sheet | 5 | ✅ |
+| Contact "Llamar" → the dialer with (809) 555-0199 prefilled | 5 | ✅ (WhatsApp not opened: the owner's real account) |
+| Mod row long-press → Quitar del carro · Vender · Se dañó · Cambiar categoría · Editar | 4 | ✅ |
+| Specs "Compartir ficha como imagen" | 4 | not run: disabled on a car without specs; the same capture + share path passed in Phase 6's summary |
+
+Screenshots `docs/qa/imp-28092026-phase-{6,7,8}-android-*.png` (status bar cropped).
+
+### Also found and fixed today
+- **sql/014** — `is_member()` returned NULL for outsiders, so `create_invite`'s owner guard never fired (any account could
+  invite itself to any car id). Found by `tools/local-rls/run.sh` — the cloud SQL on a throwaway local PostgreSQL 16
+  with a Supabase shim, 32 checks as three accounts — before any real account existed. Applied to x-core; 013 fixed in
+  place for fresh installs. The local run covers what `verify-x-core` 15–23 and `verify-sync` 15–17 test, minus the
+  PostgREST/Storage HTTP layer, which those two still need to prove live.
+
+### Cloud verification (2026-09-29, Xaviel allowed the runs)
+- `verify-x-core` **23/23** — incl. 15–17 (anon RPC only, bucket not listable, published share without costs, VIN
+  `JT2••••`, revoke → null, B cannot publish A's car) and 18–23 (B cannot invite, invite → redeem → sees, editor writes
+  and the car stays A's, `v/<vehicle>/` upload readable by the owner, viewer refused 42501, removal).
+- `verify-sync` **17/17** — 15 (after a grant the old cursor misses the car, the reset pull brings it), 16 (B's push with
+  its own `user_id` edits the car, `user_id` stays A's, `updated_by` = B), 17 (removed: nothing visible, ended membership
+  pulled, push refused). Check 16 first failed on the test itself: check 5 leaves the car's `updated_at` a minute ahead,
+  so B's edit at +2 s was correctly dropped by LWW; B's writes are now stamped minutes ahead.
+- `sql/999` cleanup: `leftover_profiles: 0`; no probe objects left.

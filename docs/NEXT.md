@@ -65,20 +65,29 @@ Tu Combustible RD.
 
 ## 3. Worth doing, not blocking
 
-**Carried several phases, each small:**
+**Closed in 2.1 (IMP 28092026 Phase 8):** PDF documents in the documents screen; the Cifras y-axis
+starting at 1 (explicit labels now); the 320 px tab label (fixed in Phase 2); desktop max width
+(a 560 px column on web ≥ 900 px).
 
-- PDF documents are not wired into the documents screen.
+**Carried:**
+
 - Search: free text still folds ASCII only ("optimo" will not find a note saying "Óptimo"; fuel
   names are matched accent-insensitively since 2026-09-25). Needs an ICU build of SQLite.
-- Cosmetic, from the QA pass: same-day Historial entries list oldest first (needs `created_at` in
-  the `history_feed` view — a migration), the Cifras y-axis starts at 1, a Cifras tab label
-  truncates at 320 px, and screens have no maximum width on desktop.
+- Same-day Historial entries list oldest first (needs `created_at` in the `history_feed` view —
+  a migration).
+- Shared garage: another member's custom venues, mod categories and service types are not shared
+  (they are per-user catalogues), so those names show as "Sin pista"/"Otro" on the member's phone.
+- Heat cycles count once per tire per event; best laps are per venue (no layout on the event).
 
 **Dependencies and noise:**
 
-- 22 npm audit findings (15 moderate, 7 high), all transitive. Untouched all cycle — worth one pass.
-- `npx expo-doctor` reports 15 packages a few patch versions behind SDK 57 (e.g. expo 57.0.14 →
-  57.0.25, react-native 0.86.2 → 0.86.3). Updating needs a retest on the phone.
+- **The SDK 57 patch bumps break the web dev server.** `npx expo install --fix` (expo 57.0.14 →
+  57.0.25, @expo/metro-config 57.0.12) makes every web bundle fail with "Worker chunk not found for
+  expo-sqlite/web/worker.ts" (serializeChunks.js). `npm audit fix` pulls the same expo inside the
+  `~57.0.14` range, so it breaks it too. Both reverted on 2026-09-29; keep the lockfile as is and
+  retry with the next expo patch (check `npx expo start --web` serves `/` before committing).
+- 18 npm audit findings (16 moderate, 2 high), all transitive; the non-forced fix is blocked by
+  the item above.
 - `react-native-gifted-charts` spreads React Native responder props onto DOM nodes, so the web dev
   console logs seven "Unknown event handler property" warnings per chart render. Cosmetic, dev-only.
 
@@ -100,12 +109,12 @@ Tu Combustible RD.
 
 ```bash
 npm start                # dev
-npm test                 # 332 tests
+npm test                 # 820 tests
 npx tsc --noEmit
 npx expo lint
 npm run build            # static web export to dist/
-node tools/verify-x-core.mjs        # cloud schema, 7 checks
-node tools/verify-sync.mjs          # sync protocol against the live schema, 13 checks
+node tools/verify-x-core.mjs        # cloud schema, RLS, public page, shared garage — 23 checks
+node tools/verify-sync.mjs          # sync protocol against the live schema, 17 checks
 node tools/cleanup-probe-media.mjs  # sweep test objects from the Storage bucket
 ```
 
