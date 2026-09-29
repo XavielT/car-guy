@@ -21,6 +21,7 @@ $P -f tools/local-rls/seed.sql
 $P -f sql/013_members.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/014_is_member_null_fix.sql
 $P -f sql/015_member_catalogues.sql
+$P -f sql/016_member_service_types.sql
 OUT=$($P -f tools/local-rls/scenario.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
 echo "$OUT"
 echo "$OUT" | grep -q -E '^(FAIL|ERROR)' && exit 1
