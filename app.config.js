@@ -29,7 +29,29 @@ function gitSha() {
 // Expo reads app.json and passes it in as `config`; building on that (rather
 // than require-ing app.json here) is the documented shape, and the one
 // expo-doctor checks for.
-module.exports = ({ config }) => ({
-  ...config,
-  extra: { ...config.extra, gitSha: gitSha() },
-});
+/**
+ * A release build without the Supabase values ships an app whose Cuenta says
+ * "no disponible" forever — 2.1.0–2.1.2 did exactly that (IMP 29092026 note 13).
+ * EAS evaluates this file inside the build, so an empty value stops it here,
+ * with the variable's name in the build log. eas.json `base.env` and the EAS
+ * environments `preview`/`production` both provide them; development builds and
+ * a plain `expo start` without .env.local stay allowed (cloud off is a
+ * supported state, ADR-05).
+ */
+function assertReleaseEnv() {
+  const isEasRelease = process.env.EAS_BUILD === 'true' && process.env.EAS_BUILD_PROFILE !== 'development';
+  if (!isEasRelease) return;
+  for (const name of ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY']) {
+    if (!process.env[name]) {
+      throw new Error(`[car-guy] ${name} is empty in this ${process.env.EAS_BUILD_PROFILE ?? ''} build — refusing to build without the cloud (see eas.json base.env).`);
+    }
+  }
+}
+
+module.exports = ({ config }) => {
+  assertReleaseEnv();
+  return {
+    ...config,
+    extra: { ...config.extra, gitSha: gitSha() },
+  };
+};

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.3 (2026-09-29)
+
+- **Fotos en Android**: agregar la foto de un carro nuevo (o de un chequeo, un servicio) ya no falla con
+  un error raro. Si una foto no se puede guardar, la app lo dice claro y te deja reintentar con la misma
+  foto.
+- **Cuenta disponible en el APK**: "Iniciar sesión" funciona desde el APK que se descarga de GitHub (hasta
+  la 2.1.2 ese APK salía sin la conexión a la nube).
+- **Mensajes claros**: ningún mensaje de error muestra detalles técnicos. La pantalla de Cuenta dice la
+  versión de la app.
+- Preparación para la 2.2: los cambios que haga una versión más nueva se guardan para cuando actualices,
+  en vez de mezclarse mal.
+- El APK de cada versión se publica también como `car-guy.apk`, con un enlace que siempre apunta a la
+  última.
+
 ## 2.1.2 (2026-09-29)
 
 - Pista: el **trazado** del evento (completo, corto…); las mejores vueltas se comparan en el mismo

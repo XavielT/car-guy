@@ -11,6 +11,7 @@ import { ensureVehicleTemplate, saveTemplate, type TemplateDraftItem } from '@/l
 import { inspectionItems as itemRepo, inspectionTemplates as templateRepo } from '@/lib/db/repos';
 import type { Cadence, OnFail } from '@/lib/db/types';
 import { Alert } from '@/lib/alert';
+import { userMessage } from '@/lib/diagnostics';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -134,7 +135,7 @@ export default function TemplateEditorScreen() {
         router.back();
       } catch (e) {
         setSaving(false);
-        Alert.alert(es.check.editor.title, e instanceof Error ? e.message : String(e));
+        Alert.alert(es.check.editor.title, userMessage('template-save', e, es.check.editor.saveFailed));
       }
     })();
   }

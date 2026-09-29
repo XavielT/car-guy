@@ -267,6 +267,7 @@ export function VehicleForm({
         ownerTable="vehicle"
         ownerId={draftId}
         vehicleId={draftId}
+        recoverPending
         onChange={setPhotoMediaId}
       />
 

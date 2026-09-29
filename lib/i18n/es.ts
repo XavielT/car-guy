@@ -663,6 +663,7 @@ export const es = {
     resultChecked: 'Lo que revisaste',
     elapsed: (min: number, sec: number) => `${min}:${String(sec).padStart(2, '0')}`,
     editor: {
+      saveFailed: 'No se pudo guardar la plantilla. Inténtalo otra vez.',
       title: 'Editar lista',
       name: 'Nombre',
       cadence: 'Cada cuánto',
@@ -922,7 +923,8 @@ export const es = {
     wipeBody: 'Se van vehículos, cargas, mantenimientos y chequeos. No hay marcha atrás.',
     backupTitle: 'Respaldo',
     backupUnsupported: 'Este dispositivo no permite compartir archivos.',
-    backupFailed: (reason: string) => `No se pudo crear el archivo de respaldo.\n\n${reason}`,
+    backupFailed: 'No se pudo crear el archivo de respaldo. Inténtalo otra vez.',
+    restoreFailed: 'No se pudo leer ese respaldo. Inténtalo otra vez.',
     restoredTitle: 'Datos restaurados',
     restoredLegacy: (counts: string) => `Importamos tus datos de Tu Combustible RD: ${counts}.`,
     restoredMerge: (merged: number, tables: number) =>
@@ -1134,9 +1136,12 @@ export const es = {
     wipeLocalTitle: 'Borrar datos locales',
     wipeLocalBody: 'Se van vehículos, cargas, mantenimientos y chequeos de este teléfono. No hay marcha atrás.',
 
-    notConfigured: 'La cuenta todavía no está configurada en esta instalación.',
-    notConfiguredCaption:
-      'Faltan EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY. Mira .env.example.',
+    notConfigured: 'La cuenta no está disponible en esta versión. Actualiza la app.',
+    notConfiguredPill: 'No disponible en esta versión',
+    notConfiguredCaption: 'Actualiza Car Guy a la última versión para crear tu cuenta.',
+    versionLine: (version: string, build: string | null) => `Car Guy ${version}${build ? ` · build ${build}` : ''}`,
+    newerChanges: (n: number) =>
+      `Hay ${n} ${n === 1 ? 'cambio' : 'cambios'} de una versión más nueva de Car Guy. Actualiza la app para ${n === 1 ? 'verlo' : 'verlos'}.`,
 
     onboardingTitle: 'Con cuenta tus datos te siguen',
     onboardingBody: 'Si cambias de teléfono, tu historial va contigo. Puedes crearla después.',
@@ -1150,13 +1155,12 @@ export const es = {
       invalidEmail: 'Ese correo no parece válido.',
       rateLimited: 'Demasiados intentos. Espera un momento.',
       network: 'Sin conexión. Tus datos siguen guardados en el teléfono.',
-      inviteOnly: 'El servidor todavía no acepta cuentas de Car Guy. Falta aplicar sql/001.',
+      inviteOnly: 'Las cuentas de Car Guy no están abiertas ahora mismo. Intenta más tarde.',
       generic: 'No se pudo completar. Intenta de nuevo.',
       emailRequired: 'Escribe tu correo.',
       passwordRequired: 'Escribe tu contraseña.',
       emailNotConfirmed: 'Falta confirmar el correo. Busca el enlace en tu bandeja de entrada.',
-      schemaNotExposed:
-        'El schema carguy no está expuesto en Supabase (Settings → Data API → Exposed schemas).',
+      schemaNotExposed: 'La cuenta no está disponible ahora mismo. Intenta más tarde.',
     },
   },
 
@@ -1186,7 +1190,7 @@ export const es = {
     sharedBody: 'Lo compartimos como PDF.',
     unavailableTitle: 'Reporte',
     unavailableBody: 'Este dispositivo no permite compartir archivos.',
-    failed: (reason: string) => `No se pudo generar el reporte.\n\n${reason}`,
+    failed: 'No se pudo generar el reporte. Inténtalo otra vez.',
   },
 
   export: {
@@ -1214,7 +1218,7 @@ export const es = {
     sharedBody: (file: string) => `Compartimos ${file}.`,
     downloadedBody: (file: string) => `Descargamos ${file}.`,
     unavailableBody: 'Este dispositivo no permite compartir archivos.',
-    failed: (reason: string) => `No se pudo exportar.\n\n${reason}`,
+    failed: 'No se pudo exportar. Inténtalo otra vez.',
     encodingHint:
       'UTF-8 con BOM y separador de coma. Excel en español lo abre con los acentos correctos.',
   },
@@ -1319,6 +1323,11 @@ export const es = {
     removePhoto: 'Quitar foto',
     edit: 'Editar',
     photoError: 'No se pudo usar esa foto.',
+    photoErrorTitle: 'Foto',
+    photoErrorRetry: 'No se pudo guardar la foto. Inténtalo otra vez.',
+    photoPickError: 'No se pudo abrir la cámara o la galería. Inténtalo otra vez.',
+    photoSaving: 'Guardando la foto…',
+    retry: 'Reintentar',
     back: 'Volver',
     missingTitle: 'Ese registro ya no existe',
     missingBody: 'Se borró aquí o en otro dispositivo, o el enlace es de algo que ya no está.',
@@ -2135,5 +2144,18 @@ export const es = {
     specUpdated: (from: string, to: string) => `Ficha actualizada: ${from} → ${to}.`,
     wishlistInstalled: 'Instalado. Eso ta\' clean.',
     publicLinkReady: 'Link listo. Lo que no marcaste no se ve.',
+  },
+
+  /**
+   * Developer hints (IMP 29092026 Phase 1). Never shown on their own: only
+   * appended in `__DEV__` or with "modo diagnóstico" on (lib/diagnosticsMode.ts).
+   */
+  dev: {
+    notConfigured: 'Faltan EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY en este build. Mira .env.example y eas.json.',
+    inviteOnly: 'x-core rechazó el registro con invite-only: falta aplicar sql/001.',
+    schemaNotExposed: 'El schema carguy no está expuesto en Supabase (Settings → Data API → Exposed schemas).',
+    diagnosticsOn: 'Diagnóstico activado',
+    diagnosticsOff: 'Diagnóstico desactivado',
+    tapsLeft: (n: number) => `${n} toques más para el modo diagnóstico`,
   },
 } as const;

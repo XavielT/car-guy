@@ -9,7 +9,7 @@
 import { translateAuthError } from '@/lib/cloud/auth';
 import { es } from '@/lib/i18n/es';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({}));
+jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: async () => null, setItem: async () => {}, removeItem: async () => {} }));
 
 const e = es.account.errors;
 
@@ -26,9 +26,28 @@ describe('translateAuthError', () => {
     ['TypeError: Failed to fetch', e.network],
     ['Network request failed', e.network],
     ['Email not confirmed', e.emailNotConfirmed],
-    ['Database error saving new user: Sign-ups are invite-only. Ask Xaviel for an invite link.', e.inviteOnly],
   ])('%s', (raw, expected) => {
     expect(translateAuthError(raw)).toBe(expected);
+  });
+
+  describe('invite-only (a server that is missing sql/001)', () => {
+    const raw = 'Database error saving new user: Sign-ups are invite-only. Ask Xaviel for an invite link.';
+    const g = globalThis as { __DEV__?: boolean };
+    const dev = g.__DEV__;
+    afterEach(() => {
+      g.__DEV__ = dev;
+    });
+
+    it('tells a user only that accounts are closed (release build)', () => {
+      g.__DEV__ = false;
+      expect(translateAuthError(raw)).toBe(e.inviteOnly);
+      expect(translateAuthError(raw)).not.toMatch(/sql|x-core/);
+    });
+
+    it('adds the developer hint in development / modo diagnóstico', () => {
+      g.__DEV__ = true;
+      expect(translateAuthError(raw)).toBe(`${e.inviteOnly}\n\n${es.dev.inviteOnly}`);
+    });
   });
 
   it('never shows an unrecognised message raw', () => {

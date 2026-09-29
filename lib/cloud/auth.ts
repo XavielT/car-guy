@@ -1,6 +1,8 @@
 import type { Session } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 
+import { recordError } from '../diagnostics';
+import { withDevHint } from '../diagnosticsMode';
 import { es } from '../i18n/es';
 import { getSupabase, isCloudConfigured } from './supabase';
 
@@ -22,7 +24,8 @@ export type AuthResult = { ok: true } | { ok: false; message: string };
 const MIN_PASSWORD = 8;
 
 function notConfigured(): AuthResult {
-  return { ok: false, message: es.account.notConfigured };
+  recordError('auth', es.dev.notConfigured);
+  return { ok: false, message: withDevHint(es.account.notConfigured, es.dev.notConfigured) };
 }
 
 /**
@@ -60,8 +63,11 @@ export function translateAuthError(raw: string): string {
     return es.account.errors.network;
   }
   // The invite trigger on x-core. A Car Guy signup should never see it — if it
-  // does, sql/001 has not been applied, and that is worth saying plainly.
-  if (message.includes('invite-only')) return es.account.errors.inviteOnly;
+  // does, sql/001 has not been applied: plain to the admin, not to the user.
+  if (message.includes('invite-only')) {
+    recordError('auth', es.dev.inviteOnly);
+    return withDevHint(es.account.errors.inviteOnly, es.dev.inviteOnly);
+  }
 
   return es.account.errors.generic;
 }

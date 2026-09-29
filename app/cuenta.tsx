@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,11 +17,14 @@ import {
 } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { appVersion, gitSha } from '@/lib/appVersion';
 import { resetPassword, signIn, signOut, signUp, useSession } from '@/lib/cloud/auth';
+import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { FEATURE_ALBUM, FEATURE_SYNC } from '@/lib/flags';
 import { StorageMeter } from '@/components/album/StorageMeter';
 import { dateLabel } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
+import { newerSchemaCount } from '@/lib/sync/engine';
 import { useSync } from '@/lib/sync/useSync';
 import { wipeCloudData } from '@/lib/sync/wipeCloud';
 import { useStore } from '@/lib/store';
@@ -51,6 +54,12 @@ export default function CuentaScreen() {
   const [reveal, setReveal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const diagnostics = useDiagnosticsMode();
+  // Rows a newer Car Guy wrote, skipped by the schema gate (lib/sync/engine.ts).
+  const [newer, setNewer] = useState(0);
+  useEffect(() => {
+    void newerSchemaCount().then(setNewer);
+  }, [lastSyncAt]);
 
   async function submit() {
     setError(null);
@@ -127,10 +136,18 @@ export default function CuentaScreen() {
 
         {!configured ? (
           <Surface style={styles.card}>
-            <StatusPill status="proximo" label={es.account.notConfigured} />
+            <StatusPill status="proximo" label={es.account.notConfiguredPill} />
+            <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
+              {es.account.versionLine(appVersion, gitSha)}
+            </T>
             <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
               {es.account.notConfiguredCaption}
             </T>
+            {diagnostics ? (
+              <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
+                {es.dev.notConfigured}
+              </T>
+            ) : null}
           </Surface>
         ) : !ready ? (
           <View style={styles.loading}>
@@ -142,6 +159,9 @@ export default function CuentaScreen() {
               <View style={styles.identity}>
                 <View style={{ flex: 1 }}>
                   <StatusPill status="ok" label={es.account.signedInAs} />
+                  <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
+                    {es.account.versionLine(appVersion, gitSha)}
+                  </T>
                   <T face="monoBold" style={[styles.email, { color: theme.text.primary }]}>
                     {session.user.email}
                   </T>
@@ -159,6 +179,12 @@ export default function CuentaScreen() {
                 label={es.sync.pendingLabel}
                 value={pending === 0 ? es.sync.upToDate : es.sync.pending(pending)}
               />
+
+              {newer > 0 ? (
+                <T face="body" accessibilityRole="alert" style={[styles.cardBody, { color: theme.statusText.proximo, marginTop: space.sm }]}>
+                  {es.account.newerChanges(newer)}
+                </T>
+              ) : null}
 
               {status.state === 'error' ? (
                 <T
@@ -224,6 +250,9 @@ export default function CuentaScreen() {
               </T>
               <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
                 {es.account.pitchMore}
+              </T>
+              <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
+                {es.account.versionLine(appVersion, gitSha)}
               </T>
             </Surface>
 
@@ -303,6 +332,7 @@ export default function CuentaScreen() {
 }
 
 const styles = StyleSheet.create({
+  version: { fontSize: 12, marginTop: 4 },
   pad: { padding: space.gutter, paddingBottom: 40 },
   h: { fontSize: 30, lineHeight: 32, textTransform: 'uppercase', letterSpacing: 0.3 },
   sub: { marginTop: 6, lineHeight: 22 },

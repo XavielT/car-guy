@@ -1,6 +1,6 @@
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SyncPill } from '@/components/SyncPill';
@@ -16,7 +16,10 @@ import {
 } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { appVersion, gitSha } from '@/lib/appVersion';
 import { useSession } from '@/lib/cloud/auth';
+import { userMessage } from '@/lib/diagnostics';
+import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { FEATURE_DIY, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
@@ -36,22 +39,38 @@ export default function MasScreen() {
   const archived = data.vehicles.filter((v) => v.isArchived);
   const { session } = useSession();
 
-  const version = Constants.expoConfig?.version ?? '—';
-  // Two sources because neither covers both platforms. `app.config.js` puts the
-  // SHA in `extra`, which is what a native/EAS build reads — but `expo export`
-  // inlines only `extra.router` into the web manifest and drops everything else,
-  // so web reads the EXPO_PUBLIC_ var that `npm run build` sets instead.
-  const gitSha =
-    (Constants.expoConfig?.extra as { gitSha?: string } | undefined)?.gitSha ??
-    process.env.EXPO_PUBLIC_GIT_SHA;
+  const version = appVersion;
+  const diagnostics = useDiagnosticsMode();
+  const taps = useRef({ count: 0, last: 0 });
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showToast(text: string) {
+    setNotice(text);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 2000);
+  }
+
+  // Seven quick taps on the version, like Android's developer options. Only a
+  // release build needs it: in development the hints are always on.
+  function tapVersion() {
+    const now = Date.now();
+    const t = taps.current;
+    t.count = now - t.last < 800 ? t.count + 1 : 1;
+    t.last = now;
+    if (t.count >= 3 && t.count < 7) showToast(es.dev.tapsLeft(7 - t.count));
+    if (t.count >= 7) {
+      t.count = 0;
+      void setDiagnosticsMode(!diagnostics);
+      showToast(diagnostics ? es.dev.diagnosticsOff : es.dev.diagnosticsOn);
+    }
+  }
 
   async function handleExport() {
     try {
       const shared = await exportBackup();
       if (!shared) Alert.alert(es.more.backupTitle, es.more.backupUnsupported);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      Alert.alert(es.more.backupTitle, es.more.backupFailed(reason));
+      Alert.alert(es.more.backupTitle, userMessage('backup', error, es.more.backupFailed));
     }
   }
 
@@ -69,8 +88,7 @@ export default function MasScreen() {
           : es.more.restoredMerge(result.counts.merged, result.counts.tables),
       );
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      Alert.alert(es.more.restoreTitle, reason);
+      Alert.alert(es.more.restoreTitle, userMessage('restore', error, es.more.restoreFailed));
     }
   }
 
@@ -225,9 +243,16 @@ export default function MasScreen() {
 
         <MoreSection title={es.more.about} />
         <Surface>
-          <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
-            {es.more.version(version)}
-          </T>
+          <Pressable onPress={tapVersion} accessibilityRole="text">
+            <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
+              {es.more.version(version)}
+            </T>
+          </Pressable>
+          {notice ? (
+            <T face="body" accessibilityLiveRegion="polite" style={{ color: theme.accent, fontSize: 12, marginTop: 2 }}>
+              {notice}
+            </T>
+          ) : null}
           {gitSha ? (
             <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
               {es.more.build(gitSha)}

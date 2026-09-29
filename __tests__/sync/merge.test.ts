@@ -4,6 +4,10 @@ import {
   cursorAfter,
   decide,
   formatCursor,
+  gateBySchema,
+  hintNumber,
+  isFromNewerSchema,
+  SCHEMA_HINT,
   hasMore,
   isDirty,
   normaliseRow,
@@ -320,3 +324,27 @@ describe('the table declarations', () => {
     expect(cursorKey('fuel_log')).toBe('sync_cursor.fuel_log');
   });
 });
+
+describe('schema gate', () => {
+  it('reads hints as numbers and lets unhinted rows through', () => {
+    expect(hintNumber('v6')).toBe(6);
+    expect(hintNumber(null)).toBeNull();
+    expect(hintNumber(undefined)).toBeNull();
+    expect(isFromNewerSchema({}, 'v5')).toBe(false);
+    expect(isFromNewerSchema({ schema_hint: null }, 'v5')).toBe(false);
+    expect(isFromNewerSchema({ schema_hint: 'v5' }, 'v5')).toBe(false);
+    expect(isFromNewerSchema({ schema_hint: 'v6' }, 'v5')).toBe(true);
+    expect(isFromNewerSchema({ schema_hint: 'v10' }, 'v9')).toBe(true); // integers, not strings
+  });
+
+  it('splits a page', () => {
+    const { accepted, skipped } = gateBySchema([{ id: 'a' }, { id: 'b', schema_hint: 'v6' }, { id: 'c', schema_hint: 'v4' }], 'v5');
+    expect(accepted.map((r) => r.id)).toEqual(['a', 'c']);
+    expect(skipped.map((r) => r.id)).toEqual(['b']);
+  });
+
+  it('ships as v5 in 2.1.3', () => {
+    expect(SCHEMA_HINT).toBe('v5');
+  });
+});
+

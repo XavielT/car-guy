@@ -8,6 +8,7 @@ import { GhostButton, Hanko, PrimaryButton, Surface } from '@/components/ui';
 import { VehicleForm } from '@/components/VehicleForm';
 import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { userMessage } from '@/lib/diagnostics';
 import { importBackup } from '@/lib/backup';
 import { saveVehicleDraft } from '@/lib/db/vehicleOps';
 import { es } from '@/lib/i18n/es';
@@ -58,7 +59,7 @@ export default function OnboardingScreen() {
     } catch (error) {
       Alert.alert(
         es.onboarding.importFailedTitle,
-        error instanceof Error ? error.message : String(error),
+        userMessage('onboarding-import', error, es.more.restoreFailed),
       );
     }
   }
