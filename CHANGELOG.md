@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 (sin publicar)
+
+- La búsqueda ignora acentos y mayúsculas: "optimo" encuentra "Óptimo", en el historial y en los
+  códigos OBD.
+- En un carro compartido, los miembros ven los nombres de las pistas y categorías de mods del dueño.
+
 ## 2.1.0 — Hachi-Gō (2026-09-29)
 
 El garaje deja de ser una lista de carros y se vuelve la historia de cada uno: las fotos de

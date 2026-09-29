@@ -20,6 +20,7 @@ for f in 002_schema_carguy 003_rls 004_storage 005_lww 007_user_cascade 008_cata
 $P -f tools/local-rls/seed.sql
 $P -f sql/013_members.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/014_is_member_null_fix.sql
+$P -f sql/015_member_catalogues.sql
 OUT=$($P -f tools/local-rls/scenario.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
 echo "$OUT"
 echo "$OUT" | grep -q -E '^(FAIL|ERROR)' && exit 1
