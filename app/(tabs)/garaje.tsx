@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { RevokedPrompt } from '@/components/share/RevokedPrompt';
 import { T } from '@/components/T';
 import { Badge, CarbonFrame, Chip, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -16,6 +17,7 @@ import { km as fmtKm } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useStore } from '@/lib/store';
+import { FEATURE_SHARE } from '@/lib/flags';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -86,6 +88,7 @@ export default function GarajeScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
+        {FEATURE_SHARE ? <RevokedPrompt /> : null}
         <View style={styles.brandRow}>
           <T face="eyebrow" style={{ color: theme.accent, fontSize: 12 }}>
             {es.garage.eyebrow}

@@ -6,6 +6,9 @@ import {
   dirtyRows,
   liveVehicleCount,
   localByIds,
+  localMemberRows,
+  markRowSynced,
+  setGarageRoles,
   applyRemoteSetting,
   markSynced,
   now,
@@ -14,6 +17,7 @@ import {
 } from '../db/syncOps';
 import { es } from '../i18n/es';
 import { removeDeletedMediaBytes, uploadMediaBytes } from './mediaBytes';
+import { membershipChanges, UPDATED_BY_TABLES } from './members';
 import { refreshStorageMeter } from './storageMeter';
 import {
   afterCursorFilter,
@@ -75,6 +79,8 @@ export type SyncResult = {
 };
 
 const LAST_SYNC_KEY = 'last_sync_at';
+/** Shared vehicles whose owner removed me (or that I left), waiting for the purge prompt. */
+export const REVOKED_KEY = 'membership_revoked';
 const AUTH_USER_KEY = 'auth_user_id';
 
 /**
@@ -185,14 +191,31 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
     // Counted around the pull, so the first sign-in can say what came down.
     const vehiclesBefore = reason === 'first-login' ? await liveVehicleCount() : 0;
 
+    const membersBefore = await localMemberRows();
     const parked: Parked = {};
-    for (const table of SYNC_TABLES) {
-      if (table.name === 'setting') continue;
-      const outcome = await pullTable(supabase, table.name);
-      pulled += outcome.applied;
-      if (outcome.parked.length) parked[table.name] = outcome.parked as IncomingRow[];
+    const pullAll = async () => {
+      for (const table of SYNC_TABLES) {
+        if (table.name === 'setting') continue;
+        const outcome = await pullTable(supabase, table.name);
+        pulled += outcome.applied;
+        if (outcome.parked.length) parked[table.name] = [...(parked[table.name] ?? []), ...(outcome.parked as IncomingRow[])];
+      }
+    };
+    await pullAll();
+
+    // Shared garage: a new membership makes rows visible that are older than
+    // every cursor — pull again from zero, once. See lib/sync/members.ts.
+    const changes = membershipChanges(membersBefore, await localMemberRows(), userId);
+    if (changes.granted.length) {
+      for (const table of SYNC_TABLES) await settingsRepo.set(cursorKey(table.name), null);
+      await pullAll();
     }
     pulled += await retryParked(parked);
+    await setGarageRoles(changes.roles);
+    if (changes.revoked.length) {
+      const pending = await settingsRepo.get<string[]>(REVOKED_KEY, []);
+      await settingsRepo.set(REVOKED_KEY, [...new Set([...pending, ...changes.revoked])]);
+    }
 
     // No download step: bytes come down lazily, on the first attempt to display
     // the photo (see lib/sync/mediaBytes.ts).
@@ -243,12 +266,30 @@ async function pushTable(supabase: Client, spec: SyncTable, userId: string): Pro
   const booleans = BOOLEAN_COLUMNS[table] ?? [];
   let pushed = 0;
 
+  const withUpdatedBy = UPDATED_BY_TABLES.has(table);
   for (const chunk of batch(rows, PUSH_BATCH)) {
-    const payload = chunk.map((row) => toCloudShape(row, localOnly, userId, booleans));
+    const payload = chunk.map((row) => toCloudShape(row, localOnly, userId, booleans, withUpdatedBy));
 
     const { error } = await supabase
       .from(table as never)
       .upsert(payload as never, { onConflict: conflictTarget(spec) });
+    if (error && (error as { code?: string }).code === '42501') {
+      // Some row in the batch is on a car I may only view (or no longer may
+      // touch). Push one by one; a refused row keeps its local edit and stops
+      // being retried — the cloud copy is the shared truth.
+      for (let i = 0; i < chunk.length; i++) {
+        const { error: rowError } = await supabase
+          .from(table as never)
+          .upsert([payload[i]] as never, { onConflict: conflictTarget(spec) });
+        if (rowError && (rowError as { code?: string }).code !== '42501') throw rowError;
+        if (rowError) await markRowSynced(table, chunk[i].id as string);
+        else {
+          await markSynced(table, [{ id: chunk[i].id as string, updatedAt: chunk[i].updated_at as string }]);
+          pushed += 1;
+        }
+      }
+      continue;
+    }
     if (error) throw error;
 
     // Only after the server has it. A crash between the upsert and this line

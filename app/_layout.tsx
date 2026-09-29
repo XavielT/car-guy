@@ -1,3 +1,4 @@
+import '@/lib/polyfills';
 // Per-weight subpaths, never the package root: importing a package root pulls
 // every weight *and* every italic into the bundle — that once put 8 MB of
 // unused .ttf into dist/.
@@ -244,6 +245,11 @@ function Shell() {
         <Stack.Screen name="contactos/index" options={{ headerShown: true, title: es.routes.contacts }} />
         <Stack.Screen name="contactos/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newContact }} />
         <Stack.Screen name="contactos/[id]" options={{ headerShown: true, title: es.routes.contact }} />
+        <Stack.Screen name="vehiculo/[id]/compartir" options={{ headerShown: true, title: es.routes.share }} />
+        <Stack.Screen name="vehiculo/[id]/libro" options={{ headerShown: true, title: es.routes.book }} />
+        <Stack.Screen name="garaje/miembros" options={{ headerShown: true, title: es.routes.members }} />
+        <Stack.Screen name="invitacion/[code]" options={{ headerShown: true, title: es.routes.invite }} />
+        <Stack.Screen name="compartidos" options={{ headerShown: true, title: es.routes.shares }} />
         <Stack.Screen name="pista/index" options={{ headerShown: true, title: es.routes.track }} />
         <Stack.Screen name="pista/evento/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newTrackEvent }} />
         <Stack.Screen name="pista/evento/[id]" options={{ headerShown: true, title: es.routes.trackEvent }} />

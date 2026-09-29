@@ -29,7 +29,7 @@ export const FEATURE_DIY = true;
 /** Pista: eventos, sesiones, setup sheets — PROMPT-06. */
 export const FEATURE_TRACK = true;
 /** Ficha pública, libro PDF, garaje compartido — PROMPT-07. */
-export const FEATURE_SHARE = false;
+export const FEATURE_SHARE = true;
 
 /**
  * True when the app is running from a dev server. `__DEV__` is inlined by

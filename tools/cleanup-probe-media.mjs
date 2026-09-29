@@ -11,8 +11,11 @@
  * and reaching another user's folder needs the service-role key.
  *
  * Scoped hard, and deliberately so — this key can see Music Hub's buckets too:
- *   · only the `carguy-media` bucket
- *   · only object names containing `sync_probe_`
+ *   · only the `carguy-media` and `carguy-public` buckets
+ *   · in carguy-media: object names containing `sync_probe_`, and the
+ *     `v/<vehicle_id>/` folders of test vehicles (`veh_test_*`, `sync_probe_*`)
+ *   · in carguy-public: slug folders no live vehicle_share points at (a test
+ *     share whose row was deleted, or a revoke that could not finish)
  * Anything else is listed and skipped. Read the listing before passing --delete.
  */
 
@@ -66,8 +69,8 @@ async function api(path, init = {}) {
 }
 
 /** One level at a time: Storage's list is per-prefix, not recursive. */
-async function list(prefix) {
-  const { body } = await api(`/object/list/${BUCKET}`, {
+async function list(prefix, bucket = BUCKET) {
+  const { body } = await api(`/object/list/${bucket}`, {
     method: 'POST',
     body: JSON.stringify({ prefix, limit: 1000, offset: 0 }),
   });
@@ -82,6 +85,17 @@ for (const folder of folders) {
   // A folder entry has no id; a file at the root does. Neither should hold a
   // probe object at the root, but list both so nothing is invisible.
   const prefix = folder.id ? '' : `${folder.name}/`;
+  if (prefix === 'v/') {
+    // Phase 7 layout: v/<vehicle_id>/<media>.jpg — a test vehicle's folder goes whole.
+    for (const vehicle of await list('v/')) {
+      const test = /^(veh_test_|sync_probe_)/.test(vehicle.name);
+      for (const entry of await list(`v/${vehicle.name}/`)) {
+        const name = `v/${vehicle.name}/${entry.name}`;
+        (test || name.includes(MARKER) ? targets : skipped).push(name);
+      }
+    }
+    continue;
+  }
   const entries = prefix ? await list(prefix) : [folder];
   for (const entry of entries) {
     const name = `${prefix}${entry.name}`;
@@ -89,19 +103,42 @@ for (const folder of folders) {
   }
 }
 
+// carguy-public: slug folders without a live share row.
+const PUBLIC = 'carguy-public';
+const shares = await fetch(`${URL_BASE}/rest/v1/vehicle_share?select=slug&slug=not.is.null&revoked_at=is.null`, {
+  headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Accept-Profile': 'carguy' },
+}).then((r) => r.json());
+const live = new Set(Array.isArray(shares) ? shares.map((r) => r.slug) : []);
+const publicTargets = [];
+if (!Array.isArray(shares)) console.log(`carguy-public skipped: could not read vehicle_share (${JSON.stringify(shares).slice(0, 120)})`);
+else {
+  for (const folder of await list('', PUBLIC)) {
+    if (folder.id || live.has(folder.name)) continue;
+    for (const entry of await list(`${folder.name}/`, PUBLIC)) publicTargets.push(`${folder.name}/${entry.name}`);
+  }
+  console.log(`bucket ${PUBLIC} · ${live.size} live slug(s) · ${publicTargets.length} orphaned object(s)`);
+  for (const name of publicTargets) console.log(`  orphan  ${name}`);
+}
+
 console.log(`bucket ${BUCKET} · ${targets.length + skipped.length} object(s)\n`);
 for (const name of targets) console.log(`  probe   ${name}`);
 for (const name of skipped) console.log(`  keep    ${name}`);
 
-if (!targets.length) {
+if (!targets.length && !publicTargets.length) {
   console.log('\nNothing to remove.');
   process.exit(0);
 }
 
 if (!apply) {
-  console.log(`\n${targets.length} probe object(s) would be removed. Re-run with --delete.`);
+  console.log(`\n${targets.length + publicTargets.length} object(s) would be removed. Re-run with --delete.`);
   process.exit(0);
 }
+
+if (publicTargets.length) {
+  const r = await api(`/object/${PUBLIC}`, { method: 'DELETE', body: JSON.stringify({ prefixes: publicTargets }) });
+  console.log(`\nDELETE ${PUBLIC} → ${r.status}`);
+}
+if (!targets.length) process.exit(0);
 
 const { status, body } = await api(`/object/${BUCKET}`, {
   method: 'DELETE',

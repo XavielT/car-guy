@@ -115,10 +115,11 @@ describe('uploads', () => {
     const c = client();
     await uploadMediaBytes(c, 'user1');
     const forP2019 = c.calls.map((x) => x.path).filter((p) => p.includes('p2019'));
-    expect(forP2019).toEqual(['user1/p2019.thumb.jpg', 'user1/p2019.jpg']);
+    // A car's photo goes under v/<vehicle_id>/ since Phase 7 (every member reads it there).
+    expect(forP2019).toEqual(['v/veh_a/p2019.thumb.jpg', 'v/veh_a/p2019.jpg']);
     expect(row("SELECT remote_path, remote_thumb_path FROM media WHERE id = 'p2019'")).toEqual({
-      remote_path: 'user1/p2019.jpg',
-      remote_thumb_path: 'user1/p2019.thumb.jpg',
+      remote_path: 'v/veh_a/p2019.jpg',
+      remote_thumb_path: 'v/veh_a/p2019.thumb.jpg',
     });
     // Nothing left to send.
     const again = client();
@@ -150,10 +151,10 @@ describe('uploads', () => {
   it('deleting a photo removes both objects on the next sync', async () => {
     await deletePhoto('p2019');
     expect(row("SELECT deleted_at IS NOT NULL AS gone FROM album_item WHERE id = 'ai_p2019'")).toEqual({ gone: 1 });
-    expect(await deletedMediaInStorage()).toEqual([{ id: 'p2019', remote_path: 'user1/p2019.jpg', remote_thumb_path: 'user1/p2019.thumb.jpg' }]);
+    expect(await deletedMediaInStorage()).toEqual([{ id: 'p2019', remote_path: 'v/veh_a/p2019.jpg', remote_thumb_path: 'v/veh_a/p2019.thumb.jpg' }]);
     const c = client();
     await removeDeletedMediaBytes(c);
-    expect(c.removed).toEqual([['user1/p2019.jpg', 'user1/p2019.thumb.jpg']]);
+    expect(c.removed).toEqual([['v/veh_a/p2019.jpg', 'v/veh_a/p2019.thumb.jpg']]);
     expect(await deletedMediaInStorage()).toEqual([]);
   });
 });

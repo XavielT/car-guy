@@ -158,7 +158,10 @@ export default function VehicleHubScreen() {
 
   const badges = facts ? vehicleBadges(vehicle, facts) : [];
   const kana = toKatakana(vehicle.nickname);
-  const readOnly = isEx(vehicle.status) && !unlocked;
+  // A shared car I may only view is read-only for good; an Ex until "unlocked".
+  const viewer = vehicle.garageRole === 'viewer';
+  const shared = vehicle.garageRole === 'editor' || viewer;
+  const readOnly = viewer || (isEx(vehicle.status) && !unlocked);
   const ownedLine = ownershipLine(facts?.ownership ?? null);
   // An Ex carries its photo count: "2018 → vendido 2021 · 12 fotos".
   const owned = ownedLine && isEx(vehicle.status) && FEATURE_ALBUM ? `${ownedLine} · ${es.album.photos(facts?.photos ?? 0)}` : ownedLine;
@@ -264,12 +267,24 @@ export default function VehicleHubScreen() {
 
         {/* 2 — the tab's content */}
         <View>
-          {readOnly ? (
+          {viewer ? (
+            <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.accent }]}>
+              <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
+                {es.members.viewerBanner(null)}
+              </T>
+            </View>
+          ) : readOnly ? (
             <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
                 {es.album.readOnly}
               </T>
               <GhostButton label={es.album.unlock} onPress={() => setUnlocked(true)} />
+            </View>
+          ) : shared ? (
+            <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
+              <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
+                {es.members.sharedBanner(es.members.roles.editor)}
+              </T>
             </View>
           ) : null}
           {tab === 'resumen' && FEATURE_BUILD ? <BuildSummary vehicleId={vehicle.id} version={version} /> : null}
@@ -314,14 +329,15 @@ export default function VehicleHubScreen() {
           )}
           {FEATURE_SHARE ? (
             <>
-              <GhostButton label={es.hub.share} onPress={() => {}} />
-              <GhostButton label={es.hub.book} onPress={() => {}} />
+              {shared ? null : <GhostButton label={es.hub.share} onPress={() => router.push({ pathname: '/vehiculo/[id]/compartir', params: { id: vehicle.id } })} />}
+              <GhostButton label={es.hub.book} onPress={() => router.push({ pathname: '/vehiculo/[id]/libro', params: { id: vehicle.id } })} />
+              <GhostButton label={es.members.hub} onPress={() => router.push({ pathname: '/garaje/miembros', params: { vehicleId: vehicle.id } })} />
             </>
           ) : null}
           {activeVehicle?.id === vehicle.id || vehicle.isArchived ? null : (
             <GhostButton label={es.profile.makeActive} onPress={() => setActiveVehicle(vehicle.id)} />
           )}
-          {readOnly ? null : <GhostButton
+          {readOnly || shared ? null : <GhostButton
             danger
             label={es.profile.remove}
             onPress={() =>

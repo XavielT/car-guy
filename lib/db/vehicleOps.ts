@@ -144,18 +144,15 @@ async function applySyntheticOil(vehicleId: string): Promise<void> {
  * Children without a vehicle_id (record items, parts, check results, a
  * vehicle's own checklist items, photos) go through their parent's id.
  */
-export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
-  await enqueue(async (db) => {
-    const stamp = now();
-    const tomb = (table: string, where: string) =>
-      db.runAsync(
-        `UPDATE ${table} SET deleted_at = ?1, updated_at = ?2, synced_at = NULL
-         WHERE deleted_at IS NULL AND ${where}`,
-        [stamp, stamp, vehicleId],
-      );
-
+/**
+ * Every row of one vehicle, as (table, where) pairs with `?3` the vehicle id,
+ * children before parents. Shared by the tombstoning delete and the local purge
+ * of a vehicle someone stopped sharing with me.
+ */
+function vehicleScopes(): [string, string][] {
+  return [
     // Photos first, while their owners are still live rows to select from.
-    await tomb(
+    [
       'media',
       `(owner_table = 'vehicle' AND owner_id = ?3)
         OR (owner_table = 'service_record' AND owner_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3))
@@ -166,23 +163,18 @@ export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
               (SELECT r.id FROM inspection_result r JOIN inspection i ON i.id = r.inspection_id WHERE i.vehicle_id = ?3))
         OR id IN (SELECT media_id FROM album_item WHERE vehicle_id = ?3)
         OR id IN (SELECT mm.media_id FROM mod_media mm JOIN mod ON mod.id = mm.mod_id WHERE mod.vehicle_id = ?3)`,
-    );
+    ],
     // Schema v2 children reached through their parent (IMP 28092026).
-    await tomb('mod_media', 'mod_id IN (SELECT id FROM mod WHERE vehicle_id = ?3)');
-    await tomb(
-      'setup_sheet',
-      'session_id IN (SELECT s.id FROM track_session s JOIN track_event e ON e.id = s.event_id WHERE e.vehicle_id = ?3)',
-    );
-    await tomb(
-      'consumable_usage',
-      'session_id IN (SELECT s.id FROM track_session s JOIN track_event e ON e.id = s.event_id WHERE e.vehicle_id = ?3)',
-    );
-    await tomb('track_session', 'event_id IN (SELECT id FROM track_event WHERE vehicle_id = ?3)');
-    await tomb('service_record_item', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)');
-    await tomb('part', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)');
-    await tomb('inspection_result', 'inspection_id IN (SELECT id FROM inspection WHERE vehicle_id = ?3)');
-    await tomb('inspection_item', 'template_id IN (SELECT id FROM inspection_template WHERE vehicle_id = ?3)');
-    for (const table of [
+    ['mod_media', 'mod_id IN (SELECT id FROM mod WHERE vehicle_id = ?3)'],
+    ['setup_sheet', 'session_id IN (SELECT s.id FROM track_session s JOIN track_event e ON e.id = s.event_id WHERE e.vehicle_id = ?3)'],
+    // Consumables hang off the event (session_id is often null).
+    ['consumable_usage', 'event_id IN (SELECT id FROM track_event WHERE vehicle_id = ?3)'],
+    ['track_session', 'event_id IN (SELECT id FROM track_event WHERE vehicle_id = ?3)'],
+    ['service_record_item', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)'],
+    ['part', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)'],
+    ['inspection_result', 'inspection_id IN (SELECT id FROM inspection WHERE vehicle_id = ?3)'],
+    ['inspection_item', 'template_id IN (SELECT id FROM inspection_template WHERE vehicle_id = ?3)'],
+    ...[
       'vehicle_spec',
       'odometer_reading',
       'fuel_log',
@@ -208,10 +200,40 @@ export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
       'fluid_guide_item',
       'track_event',
       'vehicle_share',
-    ]) {
-      await tomb(table, 'vehicle_id = ?3');
+    ].map((table): [string, string] => [table, 'vehicle_id = ?3']),
+    ['vehicle', 'id = ?3'],
+  ];
+}
+
+export async function deleteVehicleCascade(vehicleId: string): Promise<void> {
+  await enqueue(async (db) => {
+    const stamp = now();
+    for (const [table, where] of vehicleScopes()) {
+      await db.runAsync(
+        `UPDATE ${table} SET deleted_at = ?1, updated_at = ?2, synced_at = NULL
+         WHERE deleted_at IS NULL AND (${where})`,
+        [stamp, stamp, vehicleId],
+      );
     }
-    await tomb('vehicle', 'id = ?3');
+  });
+}
+
+/**
+ * Removes a vehicle from this device only — nothing is tombstoned, nothing is
+ * pushed. For a shared car whose owner removed me (or that I left): the rows
+ * are the owner's, and deleting them in the cloud is not mine to do.
+ */
+export async function purgeVehicleLocal(vehicleId: string): Promise<void> {
+  await enqueue(async (db) => {
+    await db.execAsync('PRAGMA foreign_keys = OFF');
+    try {
+      for (const [table, where] of vehicleScopes()) {
+        await db.runAsync(`DELETE FROM ${table} WHERE (${where.replace(/\?3/g, '?1')})`, [vehicleId]);
+      }
+      await db.runAsync('DELETE FROM vehicle_member WHERE vehicle_id = ?', [vehicleId]);
+    } finally {
+      await db.execAsync('PRAGMA foreign_keys = ON');
+    }
   });
 }
 

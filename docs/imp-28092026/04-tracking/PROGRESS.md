@@ -16,7 +16,7 @@ check* and *Flags flipped*). "Notes for the next phase" carry context between se
 | 4 | Build log | ✅ | `imp-28092026/phase-4-build` | web verified 2026-09-28; Android device check pending (phone not connected) |
 | 5 | DIY | ✅ | `imp-28092026/phase-5-diy` | web verified 2026-09-28; Android device check pending with Phase 4's |
 | 6 | Pista | ✅ | `imp-28092026/phase-6-track` | web verified 2026-09-28 (dark + light, web↔web sync); Android device check pending with Phases 4–5 |
-| 7 | Compartir | ⬜ | | |
+| 7 | Compartir | 🟡 | `imp-28092026/phase-7-share` | code + local web verified; sql/012 + 013 applied; **cloud verification blocked** (verifier runs need Xaviel's OK) — not merged |
 | 8 | Release 2.1.0 | ⬜ | | |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
@@ -960,3 +960,72 @@ Taken 2026-09-28 on `main` @ `9924c03` (before any change), from `~/dev2/tu-gaso
 ### Notes for the next phase
 - Phase 7 (Compartir): `vehicle_share.show_track` can use `listEvents()` + `summaryText()`; the `DaySummaryCard` is a
   ready piece for the public page; `personalBests()` gives the dossier's PB line.
+
+## Phase 7 — Compartir: ficha pública, libro PDF, garaje compartido   (branch `imp-28092026/phase-7-share`)
+
+**Status:** in progress — code complete and green locally; **not merged**. `sql/012` and `sql/013` are applied
+to x-core; the live verification (`verify-x-core` 23 checks, `verify-sync` 17 checks, the public link on a
+phone, WhatsApp preview, two-account app scenario, Android) has not run: the auto-mode classifier refused
+running the verifiers against production after the RLS swap ("Production Deploy"). Needs Xaviel.
+
+### Changed
+- **SQL `012_public_share.sql`** (applied, `--shared`): `carguy.public_dossier(slug) → jsonb` — security definer,
+  the only thing anon can do in the schema (EXECUTE + schema USAGE; no table grants). Gated by each `show_*`,
+  plate/VIN masked (`A70••••`) when off, costs only with `show_costs`, the share must belong to the vehicle's
+  creator. Public bucket `carguy-public` (2 MB, image/jpeg), owner-only write/list by slug, **no anon select
+  policy** (verified live as anon: unknown slug → `null`, `GET vehicle` → 42501, bucket list → `[]`).
+  Unique slug index. *Deviation:* one definer RPC instead of the spec's `security_invoker` views + anon policies —
+  an invoker view needs anon SELECT on the base table, and a row policy cannot hide columns, so VIN/plate/user_id
+  would have been readable straight from `vehicle`. The share lives on `vehicle_share` (already synced) — no
+  `vehicle.share_enabled/public_slug` columns.
+- **SQL `013_members.sql`** (applied, `--shared`, one transaction with a self-check): `vehicle_role(v)` →
+  owner/editor/viewer/'free'/null; `can_see / can_edit / can_own`, `vehicle_of(table, id)` for children;
+  **generated** policies on 33 tables (select member-or-own-free, insert creator + editor, update/delete editor,
+  vehicle delete + vehicle_share writes owner only); `keep_creator` trigger pins `user_id` on update (so the
+  client keeps sending its own `user_id` and an editor's push never takes a row over); owner row created by
+  trigger on vehicle insert + backfill; `updated_by` on the v1 tables; `vehicle_invite`; RPCs `create_invite`,
+  `redeem_invite`, `set_member_role`, `remove_member`; storage policies for both `<uid>/…` and `v/<vehicle>/…`
+  (old-layout objects readable by members through `can_read_media_object`); quota charges vehicle folders to the
+  owner (and "free" folders to the uploader, so a made-up folder is not free space). Self-check (inside the
+  transaction): every account sees exactly its own rows, table by table — passed (the cloud held no real accounts).
+- **Client** — `lib/share/dossier.ts` (`slug()`, `publicDossier()` in BaT order, pure, shared by the page and the
+  book), `lib/share/html.ts` (self-contained dark page, OG + Twitter tags, `noindex` unless public, escaped, no
+  script), `api/c/[slug].ts` (Vercel Node function; `/c/:slug` rewrite first in vercel.json; env
+  `SUPABASE_URL/ANON_KEY` falling back to the `EXPO_PUBLIC_` pair already in the Vercel project — no manual step;
+  `s-maxage=300, stale-while-revalidate=86400`; 404 page), `lib/share/publish.ts` (enable = row + sync + copy
+  favourites ≤ 24 + hero to `carguy-public/<slug>/`; revoke = delete objects, null slug), `lib/db/shareQueries.ts`
+  (`localRawDossier()` — the same JSON from SQLite). Screens `vehiculo/[id]/compartir` (visibility, 8 switches,
+  photo picker = album favourites, PORTADA, copy/send/preview, revoke), `compartidos` (Más → Links compartidos).
+- **Libro PDF** — pdf-lib + @pdf-lib/fontkit (Saira Condensed, Rajdhani, JetBrains Mono embedded, Helvetica
+  fallback, glyph-safe text), `lib/book/render.ts` (dark cover with hero, ficha, historia, STOCK → ACTUAL, mods,
+  mantenimiento, documentos, pista, photo pages 3×3 centre-cropped by year, ≤ 60), `lib/book/index.ts`, screen
+  `vehiculo/[id]/libro` (switches shared with the page, período, fotos, documentos; share sheet / download).
+  `buffer` polyfill in `lib/polyfills.ts`; metro resolves `tslib` to its ES build (pdf-lib broke on web otherwise).
+- **Sync** — `lib/sync/members.ts` (pure: grants → cursor reset + second pull; revocations → purge prompt; my
+  role → `vehicle.garage_role`; `mediaObjectPath`, `UPDATED_BY_TABLES`); push sends `updated_by`; a 42501 batch
+  falls back to per-row and a refused row stops retrying (viewer edits stay local); new uploads go to
+  `v/<vehicle_id>/`; `purgeVehicleLocal()`; `vehicleScopes()` shared with the delete cascade (which fixes
+  consumables being missed — they hang off `event_id`, the cascade looked at `session_id`).
+- **Members UI** — `garaje/miembros` (roles, invite code + link, 7 days, optional email lock, role change,
+  remove, leave), `invitacion/[code]` (web route + `carguy://invitacion/<code>`), hub: Compartir (owner only) ·
+  Libro · Miembros, viewer banner + read-only, "Carro compartido" banner; Garaje: "Ya no tienes acceso" prompt.
+  `FEATURE_SHARE = true`.
+- **Tools** — `verify-x-core` +9 checks (15–23: anon RPC/list, publish without costs + masked VIN, revoke, B can't
+  publish or invite, invite → redeem → sees, editor writes + keep_creator, `v/` storage, viewer refused, removal);
+  `verify-sync` +3 (15–17: grant needs the cursor reset, B's push keeps the creator, removal); `999` cleans
+  shares/members/invites; `cleanup-probe-media` sweeps `v/<test vehicle>/` and orphaned carguy-public slugs.
+- **Tests** 801 → **820** (`__tests__/share/dossier.test.ts`, `api.test.ts`, `__tests__/sync/members.test.ts`;
+  album upload paths now `v/veh_a/…`).
+
+### Verified (local, no production access)
+- tsc, lint, 820/820, build 78/78.
+- Web (dark + light, 0 page errors): Compartir signed out → "Para crear un link necesitas cuenta"; Libro →
+  `car-guy_hachi-go_20260928.pdf` (30 KB, cover + content, fonts embedded) downloaded; Miembros / Invitación
+  signed out; Más and hub actions. The public page rendered from a fixture
+  (`docs/qa/imp-28092026-phase-7-public-page-local.png`). Screenshots `docs/qa/imp-28092026-phase-7-*`.
+
+### Not verified yet (needs Xaviel)
+1. `node tools/verify-x-core.mjs` and `node tools/verify-sync.mjs` against x-core (then the 999 cleanup).
+2. Merge → push (deploys `api/c/[slug]`), then a real link on a phone without the app, the WhatsApp preview, revoke → 404.
+3. The two-account app scenario (A owner, B editor → viewer → removed) and the PDF on Android.
+If (1) shows a problem, the rollback block at the end of `sql/013` restores the own-rows policies.
