@@ -82,12 +82,11 @@ starting at 1 (explicit labels now); the 320 px tab label (fixed in Phase 2); de
 
 **Closed in 2.1.1 (branch `fix/2.1.1-backlog`):** accent-insensitive search in Historial and OBD codes
 (folded in JS — no ICU needed); same-day Historial order (was already newest first since the v2 view; now
-tested); a shared car's custom venues and mod categories readable by its members (sql/015).
+tested); a shared car's custom venues and mod categories readable by its members (sql/015), and
+its custom service types and check templates (sql/016) — seeded rows excluded, so a member keeps its own copy.
 
 **Carried:**
 
-- Shared garage: the owner's custom *service types* are still per-user, so a member's copy of a service
-  item with a custom type parks until the member has one with that id (seeded ids are shared).
 
 - Heat cycles count once per tire per event; best laps are per venue (no layout on the event).
 

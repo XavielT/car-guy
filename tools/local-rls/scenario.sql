@@ -69,6 +69,11 @@ select t_ok('6b. B still cannot see A''s contacts (own rows)', (select count(*) 
 select t_ok('6c. B reads the venue and category the shared car uses, not A''s other venues (015)',
   (select count(*) from carguy.venue where id = 'ven_a') = 1 and (select count(*) from carguy.venue where id = 'ven_private') = 0
   and (select count(*) from carguy.mod_category where id = 'cat_a') = 1);
+select t_ok('6e. B reads the service type and check template the car uses, not A''s others (016)',
+  (select count(*) from carguy.service_type where id = 'st_turbo') = 1 and (select count(*) from carguy.service_type where id = 'st_private') = 0
+  and (select count(*) from carguy.inspection_template where id = 'tpl_a') = 1 and (select count(*) from carguy.inspection_template where id = 'tpl_private') = 0);
+select t_ok('6f. seeded rows are never pulled from the owner (B keeps its own)',
+  (select count(*) from carguy.service_type where user_id = '00000000-0000-0000-0000-00000000000a' and is_seeded) = 0);
 select t_ok('6d. B cannot rename A''s venue', t_denied($q$do $d$ begin update carguy.venue set name = 'x' where id = 'ven_a'; if not found then raise exception 'no rows'; end if; end $d$$q$));
 
 -- 7 editor writes
@@ -114,6 +119,7 @@ select t_ok('10c. B pulls its ended membership (how the device learns)',
   (select deleted_at is not null from carguy.vehicle_member where vehicle_id = 'veh_a' and user_id = '00000000-0000-0000-0000-00000000000b'));
 select t_ok('10d. B''s push of the car is refused', t_denied($q$insert into carguy.vehicle (id, user_id, name, default_fuel_type, created_at, updated_at) values ('veh_a', '00000000-0000-0000-0000-00000000000b', 'x', 'regular', now(), now()) on conflict (id) do update set name = excluded.name$q$));
 select t_ok('10e. B keeps its own car', (select count(*) from carguy.vehicle where id = 'veh_b') = 1);
+select t_ok('10h. removed: the service type and template are gone too', (select count(*) from carguy.service_type where id = 'st_turbo') = 0 and (select count(*) from carguy.inspection_template where id = 'tpl_a') = 0);
 select t_ok('10g. removed: the shared car''s venue and category are gone too', (select count(*) from carguy.venue where id = 'ven_a') = 0 and (select count(*) from carguy.mod_category where id = 'cat_a') = 0);
 select t_ok('10f. a new car of B''s gets B as owner', (select count(*) from carguy.vehicle_member where vehicle_id = 'veh_b' and role = 'owner') = 1);
 reset role;
