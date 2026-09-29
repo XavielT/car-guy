@@ -1131,3 +1131,15 @@ Screenshots `docs/qa/imp-28092026-phase-{6,7,8}-android-*.png` (status bar cropp
 - GitHub release https://github.com/XavielT/car-guy/releases/tag/v2.1.1 — universal APK, versionName 2.1.1,
   cert `a16450a0…`, SHA-256 `d80ebf0a…81f8`. Installed on the Redmi over the owner's garage; on device
   "totalENERGIES" finds the 4 TotalEnergies fill-ups and "gasolina" finds the fill-ups by their label.
+
+### 2.1.2 (2026-09-29)
+- expo 57.0.26 + patch-package patches (metro-config worker assert, react-native-svg web props); audit 18 → 3;
+  per-session heat cycles; best laps per venue + layout (migration v5, sql/017 applied); members read a shared
+  car's custom service types and check templates (sql/016). Tests 826, local-rls 39/39, public-page smoke 6/6 on prod.
+- On the Redmi (arm64 preview over the owner's garage, throwaway car "ZZ PRUEBA 212", deleted after): layout saves
+  and shows in the list, day summary and "Mejores vueltas" (SUNIX · COMPLETO 1:30.500); per-session tick → cycle 1,
+  session 2 → cycle 2, on/off/on does not double count, day tick adds one (3) and untick gives it back (2); the
+  shared image is `pista-2026-09-29…png`.
+- GitHub release https://github.com/XavielT/car-guy/releases/tag/v2.1.2 — universal APK, cert `a16450a0…`,
+  SHA-256 `39ea1ef8…01a1`. The portfolio's `releases/latest` link now lands on it.
+- Distribution: Xaviel's channels only (portfolio, web, direct link). Play Store deferred to a future cycle.

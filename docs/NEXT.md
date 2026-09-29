@@ -13,7 +13,8 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 | Web app | <https://car-guy.vercel.app> — live, installable PWA, Vercel project `car-guy` |
 | Old web app | <https://tu-combustible-rd.vercel.app> — still up, still git-connected to this repo, so it also serves Car Guy. Delete the project when you are ready |
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
-| Android | **2.0.0 released** — GitHub release `v2.0.0` with the APK; EAS project `@xavieldev/car-guy`, EAS-managed keystore; production AAB built for the Play Store |
+| Android | **2.1.2 released** (2026-09-29) — GitHub release `v2.1.2` with the universal APK; EAS project `@xavieldev/car-guy`, EAS-managed keystore |
+| Distribution | **Xaviel's own channels only:** the portfolio card (links `releases/latest`, so every release reaches it with no change there), the web app and the direct APK link. **No Play Store for now** — Xaviel's call (2026-09-29): the app is not ready for it yet; it is a future step |
 | Cloud | Supabase `x-core`, schema `carguy`: v1 tables (19, incl. cloud-only `profiles`) + **schema v2** (`sql/009`–`010`, 23 more, applied 2026-09-28), private `carguy-media` bucket. **A 2.0.0 install signed in to sync cannot pull `vehicle`/`media`/`service_record` any more** (new columns) — ship 2.1 before anyone syncs on 2.0.0 |
 | Local folder | `~/dev2/car-guy`. **Rename pending** (2026-09-28): on this laptop it is still `~/dev2/tu-gasolina-rd` — run `mv ~/dev2/tu-gasolina-rd ~/dev2/car-guy` with no Claude session open there |
 
@@ -41,8 +42,8 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
    already covered by `verify-x-core.mjs`).
 3. **Sync on your own phone:** create your account in the app (Más → Cuenta) — your garage uploads
    on the first sync. It has only ever been exercised on the web and with throwaway accounts.
-4. **Play Store** (when you want it): a Play Console account and a listing; upload the production
-   AAB (`eas submit` can do it). The package is `com.xaviel.carguy`.
+4. **Play Store — future, not now** (Xaviel, 2026-09-29): when the app is ready, a Play Console account
+   and a listing; upload the production AAB (`eas submit` can do it). The package is `com.xaviel.carguy`.
 5. Optional: revoke the Expo token on expo.dev when builds are done for a while.
 
 ## 2. Hand-off to xaviel-web
@@ -62,9 +63,8 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 | Screenshots | `docs/qa/imp-28092026-phase-6-*`, `-phase-7-public-page-local.png`, `-phase-8-android-inicio.png` (2.1, dark) |
 | Public page example | ask Xaviel for a live `/c/<slug>` (his car); there is no permanent demo link |
 
-The old release link keeps working through GitHub's redirect, so nothing is broken in the meantime —
-but `releases/latest` will point at Car Guy v2.0.0 as soon as it ships, under a card that still says
-Tu Combustible RD.
+The card's release link is `releases/latest`, so each new GitHub release reaches the portfolio with no
+change in xaviel-web (checked with v2.1.2: it redirects to `tag/v2.1.2`).
 
 ### Vercel environment (set 2026-09-29, IMP 28092026 Phase 8)
 
