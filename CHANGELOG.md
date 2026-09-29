@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.1 (sin publicar)
+## 2.1.1 (2026-09-29)
 
 - La búsqueda ignora acentos y mayúsculas: "optimo" encuentra "Óptimo", en el historial y en los
   códigos OBD.
