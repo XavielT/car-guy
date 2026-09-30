@@ -11,7 +11,7 @@ phase" carry context between sessions.
 |---|---|---|---|---|
 | 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action, Wheelz walked |
 | 1 | Fix pack 2.3.1 | ✅ | `fix/2.3.1-fixpack` | v2.3.1 released; detail + dedupe, stations, reserve light, ≈ por echada (with a plausibility band), denser routes; trip export carried |
-| 2 | Schema v8 | 🟡 | `imp-30092026/phase-2-schema-v8` | local v8 + sql/025–026 written and green locally; **x-core apply waits for Xaviel's OK** |
+| 2 | Schema v8 | 🟡 | `imp-30092026/phase-2-schema-v8` | local v8 done; sql/025–026 applied to x-core; verifiers + merge pending |
 | 3A | Language es/en | ⬜ | | |
 | 3B | Skeletons | ⬜ | | |
 | 4 | Map · Modo conducir · centre button | ⬜ | | |
@@ -216,7 +216,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | Phase | Blocker | Needs | Status |
 |---|---|---|---|
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel | open |
-| 2 | Apply `sql/025_schema_v4.sql` + `sql/026_rls_v4.sql` to x-core, then `types:gen`, `verify-x-core` (29–32), `verify-sync` (21–23) | Xaviel's OK (the apply was refused without it) | open — **must land before any v8 build reaches a synced phone**: v8 pushes milestone/specsheet columns the cloud does not have yet |
+| 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers still need their own OK |
 
 ---
 
@@ -338,9 +338,12 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
   launch hit the migration race (above) — fixed; second launch migrated with the data and the week intact.
 - [x] Redmi re-run with the fix: 2.3.1-tag test build (clean install, saved "3-9 oct 2026 MICM", regular 312.6)
   → v8 installed over it: first launch clean (no JS error), board "3-9 OCT 2026 MICM" · RD$ 312.60.
-- [ ] Fresh install of the v8 test build — MIUI refused it twice ("INSTALL_FAILED_USER_RESTRICTED": its
-  install-via-USB prompt needs a tap on the phone). The test app is uninstalled meanwhile (test data only).
-- [ ] sql/025 + 026 on x-core, types:gen, verify-x-core, verify-sync — **blocked on Xaviel's OK**.
+- [x] Fresh install of the v8 test build (after Xaviel allowed MIUI's install prompt): onboarding, default
+  board "15–21 ago 2026 (MICM)", no JS error; the MICM fetch stays silent (table not there until Phase 5).
+- [x] sql/025 + sql/026 applied to x-core 2026-09-30 (Xaviel's OK; HTTP 201 each); `types:gen` regenerated
+  `lib/cloud/database.types.ts` (+252 lines); tsc + jest green (1324).
+- [ ] verify-x-core (29–32) + verify-sync (21–23) + sql/999 cleanup — each needs its own OK (they write test
+  accounts to x-core).
 
 ### Notes closed
 - None (groundwork for 1, 3, 5, 6, 10, 15).

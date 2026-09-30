@@ -473,6 +473,57 @@ export type Database = {
         }
         Relationships: []
       }
+      fuel_price: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          fuel_type: string
+          id: string
+          note: string
+          price: number
+          schema_hint: string | null
+          server_updated_at: string
+          source: string
+          station: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          valid_from: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          fuel_type: string
+          id: string
+          note?: string
+          price: number
+          schema_hint?: string | null
+          server_updated_at?: string
+          source?: string
+          station?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          valid_from: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          fuel_type?: string
+          id?: string
+          note?: string
+          price?: number
+          schema_hint?: string | null
+          server_updated_at?: string
+          source?: string
+          station?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          valid_from?: string
+        }
+        Relationships: []
+      }
       inspection: {
         Row: {
           created_at: string
@@ -746,6 +797,51 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_acceptance: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          deleted_at: string | null
+          device_id: string
+          id: string
+          locale: string
+          platform: string
+          server_updated_at: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at: string
+          created_at: string
+          deleted_at?: string | null
+          device_id: string
+          id: string
+          locale: string
+          platform: string
+          server_updated_at?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          deleted_at?: string | null
+          device_id?: string
+          id?: string
+          locale?: string
+          platform?: string
+          server_updated_at?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
       media: {
         Row: {
           blurhash: string | null
@@ -829,14 +925,23 @@ export type Database = {
       }
       milestone: {
         Row: {
+          cost_dop: number | null
           cover_media_id: string | null
           created_at: string
           deleted_at: string | null
+          event_type: string
           id: string
           kind: string
+          linked_inspection_id: string | null
+          linked_mod_id: string | null
+          linked_service_id: string | null
+          location_label: string
           occurred_at: string
           odometer_km: number | null
+          pending: string
+          resolved_at: string | null
           server_updated_at: string
+          severity: string | null
           story: string
           title: string
           updated_at: string
@@ -845,14 +950,23 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          cost_dop?: number | null
           cover_media_id?: string | null
           created_at: string
           deleted_at?: string | null
+          event_type?: string
           id: string
           kind: string
+          linked_inspection_id?: string | null
+          linked_mod_id?: string | null
+          linked_service_id?: string | null
+          location_label?: string
           occurred_at: string
           odometer_km?: number | null
+          pending?: string
+          resolved_at?: string | null
           server_updated_at?: string
+          severity?: string | null
           story?: string
           title: string
           updated_at: string
@@ -861,14 +975,23 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          cost_dop?: number | null
           cover_media_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          event_type?: string
           id?: string
           kind?: string
+          linked_inspection_id?: string | null
+          linked_mod_id?: string | null
+          linked_service_id?: string | null
+          location_label?: string
           occurred_at?: string
           odometer_km?: number | null
+          pending?: string
+          resolved_at?: string | null
           server_updated_at?: string
+          severity?: string | null
           story?: string
           title?: string
           updated_at?: string
@@ -1171,24 +1294,33 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_id: string | null
+          avatar_path: string | null
           created_at: string
           display_name: string | null
+          locale: string | null
           media_quota_bytes: number
           role: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          avatar_id?: string | null
+          avatar_path?: string | null
           created_at?: string
           display_name?: string | null
+          locale?: string | null
           media_quota_bytes?: number
           role?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          avatar_id?: string | null
+          avatar_path?: string | null
           created_at?: string
           display_name?: string | null
+          locale?: string | null
           media_quota_bytes?: number
           role?: string
           updated_at?: string
@@ -2091,6 +2223,7 @@ export type Database = {
           bbox: string | null
           created_at: string
           deleted_at: string | null
+          diagnostics: string | null
           distance_m: number
           duration_s: number
           end_label: string
@@ -2125,6 +2258,7 @@ export type Database = {
           bbox?: string | null
           created_at: string
           deleted_at?: string | null
+          diagnostics?: string | null
           distance_m?: number
           duration_s?: number
           end_label?: string
@@ -2159,6 +2293,7 @@ export type Database = {
           bbox?: string | null
           created_at?: string
           deleted_at?: string | null
+          diagnostics?: string | null
           distance_m?: number
           duration_s?: number
           end_label?: string
@@ -2411,6 +2546,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_fact: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          group_name: string
+          id: string
+          label: string
+          server_updated_at: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          value: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          group_name?: string
+          id: string
+          label: string
+          server_updated_at?: string
+          sort_order?: number
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          value: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          group_name?: string
+          id?: string
+          label?: string
+          server_updated_at?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          value?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
       vehicle_invite: {
         Row: {
           code: string
@@ -2548,6 +2728,7 @@ export type Database = {
       }
       vehicle_share: {
         Row: {
+          costs_summary: string | null
           created_at: string
           deleted_at: string | null
           id: string
@@ -2562,9 +2743,9 @@ export type Database = {
           show_mods: boolean
           show_odometer: boolean
           show_plate: boolean
-          show_story: boolean
           show_status: boolean
-          costs_summary: string | null
+          show_story: boolean
+          show_tires: boolean
           show_track: boolean
           show_vin: boolean
           slug: string | null
@@ -2575,6 +2756,7 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          costs_summary?: string | null
           created_at: string
           deleted_at?: string | null
           id: string
@@ -2589,9 +2771,9 @@ export type Database = {
           show_mods?: boolean
           show_odometer?: boolean
           show_plate?: boolean
-          show_story?: boolean
           show_status?: boolean
-          costs_summary?: string | null
+          show_story?: boolean
+          show_tires?: boolean
           show_track?: boolean
           show_vin?: boolean
           slug?: string | null
@@ -2602,6 +2784,7 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          costs_summary?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -2616,9 +2799,9 @@ export type Database = {
           show_mods?: boolean
           show_odometer?: boolean
           show_plate?: boolean
-          show_story?: boolean
           show_status?: boolean
-          costs_summary?: string | null
+          show_story?: boolean
+          show_tires?: boolean
           show_track?: boolean
           show_vin?: boolean
           slug?: string | null
@@ -2674,9 +2857,14 @@ export type Database = {
       }
       vehicle_specsheet: {
         Row: {
+          air_filter_pn: string | null
+          battery_brand: string | null
           battery_spec: string | null
           bolt_pattern: string | null
           brake_fluid: string | null
+          bulb_high: string | null
+          bulb_low: string | null
+          cabin_filter_pn: string | null
           center_bore_mm: number | null
           coolant_capacity_l: number | null
           coolant_type: string | null
@@ -2685,15 +2873,19 @@ export type Database = {
           diff_oil_l: number | null
           diff_oil_spec: string | null
           field_sources: string
+          fuel_filter_pn: string | null
           fuel_octane: number | null
           fuel_tank_l: number | null
           id: string
           lug_thread: string | null
           lug_torque_nm: number | null
+          oil_brand: string | null
           oil_capacity_filter_l: number | null
           oil_capacity_l: number | null
+          oil_filter_brand: string | null
           oil_filter_pn: string | null
           oil_grade: string | null
+          oil_product: string | null
           oil_spec: string | null
           overrides: string
           plug_gap_mm: number | null
@@ -2704,6 +2896,8 @@ export type Database = {
           server_updated_at: string
           spark_plug_pn: string | null
           stock: string
+          tire_current_f: string | null
+          tire_current_r: string | null
           tire_size_oem_f: string | null
           tire_size_oem_r: string | null
           trans_oil_l: number | null
@@ -2713,11 +2907,18 @@ export type Database = {
           user_id: string
           vehicle_id: string
           verified_fields: string
+          where_bought: string
+          wiper_sizes: string | null
         }
         Insert: {
+          air_filter_pn?: string | null
+          battery_brand?: string | null
           battery_spec?: string | null
           bolt_pattern?: string | null
           brake_fluid?: string | null
+          bulb_high?: string | null
+          bulb_low?: string | null
+          cabin_filter_pn?: string | null
           center_bore_mm?: number | null
           coolant_capacity_l?: number | null
           coolant_type?: string | null
@@ -2726,15 +2927,19 @@ export type Database = {
           diff_oil_l?: number | null
           diff_oil_spec?: string | null
           field_sources?: string
+          fuel_filter_pn?: string | null
           fuel_octane?: number | null
           fuel_tank_l?: number | null
           id: string
           lug_thread?: string | null
           lug_torque_nm?: number | null
+          oil_brand?: string | null
           oil_capacity_filter_l?: number | null
           oil_capacity_l?: number | null
+          oil_filter_brand?: string | null
           oil_filter_pn?: string | null
           oil_grade?: string | null
+          oil_product?: string | null
           oil_spec?: string | null
           overrides?: string
           plug_gap_mm?: number | null
@@ -2745,6 +2950,8 @@ export type Database = {
           server_updated_at?: string
           spark_plug_pn?: string | null
           stock?: string
+          tire_current_f?: string | null
+          tire_current_r?: string | null
           tire_size_oem_f?: string | null
           tire_size_oem_r?: string | null
           trans_oil_l?: number | null
@@ -2754,11 +2961,18 @@ export type Database = {
           user_id?: string
           vehicle_id: string
           verified_fields?: string
+          where_bought?: string
+          wiper_sizes?: string | null
         }
         Update: {
+          air_filter_pn?: string | null
+          battery_brand?: string | null
           battery_spec?: string | null
           bolt_pattern?: string | null
           brake_fluid?: string | null
+          bulb_high?: string | null
+          bulb_low?: string | null
+          cabin_filter_pn?: string | null
           center_bore_mm?: number | null
           coolant_capacity_l?: number | null
           coolant_type?: string | null
@@ -2767,15 +2981,19 @@ export type Database = {
           diff_oil_l?: number | null
           diff_oil_spec?: string | null
           field_sources?: string
+          fuel_filter_pn?: string | null
           fuel_octane?: number | null
           fuel_tank_l?: number | null
           id?: string
           lug_thread?: string | null
           lug_torque_nm?: number | null
+          oil_brand?: string | null
           oil_capacity_filter_l?: number | null
           oil_capacity_l?: number | null
+          oil_filter_brand?: string | null
           oil_filter_pn?: string | null
           oil_grade?: string | null
+          oil_product?: string | null
           oil_spec?: string | null
           overrides?: string
           plug_gap_mm?: number | null
@@ -2786,6 +3004,8 @@ export type Database = {
           server_updated_at?: string
           spark_plug_pn?: string | null
           stock?: string
+          tire_current_f?: string | null
+          tire_current_r?: string | null
           tire_size_oem_f?: string | null
           tire_size_oem_r?: string | null
           trans_oil_l?: number | null
@@ -2795,6 +3015,8 @@ export type Database = {
           user_id?: string
           vehicle_id?: string
           verified_fields?: string
+          where_bought?: string
+          wiper_sizes?: string | null
         }
         Relationships: []
       }
@@ -3010,6 +3232,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_role: {
+        Args: { p_role: string; p_user: string }
+        Returns: string
+      }
+      admin_stats: { Args: never; Returns: Json }
+      admin_users: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          email: string
+          fuel_logs: number
+          last_activity: string
+          last_sign_in_at: string
+          role: string
+          trips: number
+          user_id: string
+          vehicles: number
+        }[]
+      }
       attach_feedback_screenshot: {
         Args: { p_device_id: string; p_id: string }
         Returns: boolean
@@ -3022,7 +3263,11 @@ export type Database = {
         Args: { p_email?: string; p_role?: string; p_vehicle: string }
         Returns: string
       }
-      feedback_upload_allowed: { Args: { object_name: string }; Returns: boolean }
+      feedback_upload_allowed: {
+        Args: { object_name: string }
+        Returns: boolean
+      }
+      is_admin: { Args: never; Returns: boolean }
       is_app_user: { Args: never; Returns: boolean }
       is_member: { Args: { min_role?: string; v: string }; Returns: boolean }
       public_dossier: { Args: { p_slug: string }; Returns: Json }
@@ -3037,23 +3282,6 @@ export type Database = {
       }
       storage_usage_bytes: { Args: never; Returns: number }
       submit_feedback: { Args: { p: Json }; Returns: string }
-      is_admin: { Args: never; Returns: boolean }
-      admin_stats: { Args: never; Returns: Json }
-      admin_users: {
-        Args: { p_limit?: number }
-        Returns: {
-          user_id: string
-          email: string
-          role: string
-          created_at: string
-          last_sign_in_at: string | null
-          vehicles: number
-          fuel_logs: number
-          trips: number
-          last_activity: string | null
-        }[]
-      }
-      admin_set_role: { Args: { p_user: string; p_role: string }; Returns: string }
       vehicle_of: { Args: { row_id: string; tbl: string }; Returns: string }
       vehicle_role: { Args: { v: string }; Returns: string }
     }
