@@ -2,7 +2,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RevokedPrompt } from '@/components/share/RevokedPrompt';
@@ -31,12 +33,10 @@ import { useTheme } from '@/lib/theme/useTheme';
  * (two-up) or Lista (rows). The ones that are gone keep their own section at
  * the bottom in every mode — "Ya no está, pero aquí sigue."
  *
- * Ordenar: up/down arrows plus "Fijar arriba", on both platforms. Drag handles
- * were considered (Reanimated + gesture-handler are installed) and left out:
- * long-press drag is unreliable on web, a 2-up grid makes "up/down" ambiguous
- * while dragging, and a hand-rolled drag list could not be verified at 60 fps
- * on the Redmi here — so Ordenar shows the cars as a list with arrows, the
- * same on the phone and the web. The layout (mode, order, pin) is
+ * Ordenar shows the cars as a list (up/down is ambiguous in a 2-up grid):
+ * hold-and-drag on the phone (DragRow, 2.2.2 — long-press is unreliable on web,
+ * so the web keeps only the arrows), up/down arrows and "Fijar arriba"
+ * everywhere (screen readers, precise moves). The layout (mode, order, pin) is
  * `setting.garage_layout`, synced; the rules live in lib/domain/garageLayout.ts.
  *
  * Badges, lines and counts are all derived (lib/domain/garage.ts); tap any
@@ -150,8 +150,22 @@ export default function GarajeScreen() {
   const openCard = (c: Card) => router.push({ pathname: '/vehiculo/[id]', params: { id: c.vehicle.id } });
   const move = (section: Card[], c: Card, delta: -1 | 1) =>
     dispatch({ type: 'move', id: c.vehicle.id, delta, section: section.map(idOf), all: allIds });
+  /** A drag: `steps` single moves applied in one go, one write. */
+  const moveBy = (section: Card[], c: Card, steps: number) => {
+    const delta = steps < 0 ? -1 : 1;
+    let next = current;
+    for (let i = 0; i < Math.abs(steps); i++) {
+      const after = garageLayoutReducer(next, { type: 'move', id: c.vehicle.id, delta, section: section.map(idOf), all: allIds });
+      if (after === next) break;
+      next = after;
+    }
+    if (next === current) return;
+    setLayout(next);
+    void setGarageLayout(next);
+  };
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
         {FEATURE_SHARE ? <RevokedPrompt /> : null}
@@ -230,16 +244,17 @@ export default function GarajeScreen() {
         {!ready ? null : sorting ? (
           <View style={{ gap: space.sm }}>
             {shown.map((c) => (
-              <SortRow
-                key={c.vehicle.id}
-                card={c}
-                pinned={current.pinned === c.vehicle.id}
-                canUp={canMove(current, c.vehicle.id, -1, shown.map(idOf))}
-                canDown={canMove(current, c.vehicle.id, 1, shown.map(idOf))}
-                onUp={() => move(shown, c, -1)}
-                onDown={() => move(shown, c, 1)}
-                onPin={() => dispatch({ type: 'pin', id: c.vehicle.id })}
-              />
+              <DragRow key={c.vehicle.id} enabled={current.pinned !== c.vehicle.id} onDrop={(steps) => moveBy(shown, c, steps)}>
+                <SortRow
+                  card={c}
+                  pinned={current.pinned === c.vehicle.id}
+                  canUp={canMove(current, c.vehicle.id, -1, shown.map(idOf))}
+                  canDown={canMove(current, c.vehicle.id, 1, shown.map(idOf))}
+                  onUp={() => move(shown, c, -1)}
+                  onDown={() => move(shown, c, 1)}
+                  onPin={() => dispatch({ type: 'pin', id: c.vehicle.id })}
+                />
+              </DragRow>
             ))}
           </View>
         ) : mode === 'covers' ? (
@@ -273,13 +288,15 @@ export default function GarajeScreen() {
             {exShown.map((c) =>
               sorting ? (
                 <View key={c.vehicle.id} style={{ marginBottom: space.sm }}>
-                  <SortRow
-                    card={c}
-                    canUp={canMove(current, c.vehicle.id, -1, exShown.map(idOf))}
-                    canDown={canMove(current, c.vehicle.id, 1, exShown.map(idOf))}
-                    onUp={() => move(exShown, c, -1)}
-                    onDown={() => move(exShown, c, 1)}
-                  />
+                  <DragRow enabled onDrop={(steps) => moveBy(exShown, c, steps)}>
+                    <SortRow
+                      card={c}
+                      canUp={canMove(current, c.vehicle.id, -1, exShown.map(idOf))}
+                      canDown={canMove(current, c.vehicle.id, 1, exShown.map(idOf))}
+                      onUp={() => move(exShown, c, -1)}
+                      onDown={() => move(exShown, c, 1)}
+                    />
+                  </DragRow>
                 </View>
               ) : (
                 <ExCard key={c.vehicle.id} card={c} onPress={() => openCard(c)} />
@@ -301,6 +318,7 @@ export default function GarajeScreen() {
         ) : null}
       </ScrollView>
     </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -536,6 +554,50 @@ const ListRow = memo(function ListRow({ card, pinned, onPress }: { card: Card; p
     </Pressable>
   );
 });
+
+/**
+ * Ordenar on the phone: hold a row (250 ms) and drag it; on release it moves by
+ * as many rows as it travelled. The arrows stay (web, screen readers, precise
+ * moves). Scrolling is untouched: the pan only starts after the long press.
+ */
+function DragRow({ children, enabled, onDrop }: { children: ReactNode; enabled: boolean; onDrop: (steps: number) => void }) {
+  const y = useSharedValue(0);
+  const lifted = useSharedValue(0);
+  const [rowH, setRowH] = useState(64);
+  const pitch = rowH + space.sm;
+  const drop = (dy: number) => {
+    const steps = Math.round(dy / pitch);
+    if (steps !== 0) onDrop(steps);
+  };
+  const pan = Gesture.Pan()
+    .enabled(enabled && Platform.OS !== 'web')
+    .activateAfterLongPress(250)
+    .onStart(() => {
+      lifted.value = withTiming(1, { duration: 120 });
+    })
+    .onUpdate((e) => {
+      y.value = e.translationY;
+    })
+    .onEnd((e) => {
+      runOnJS(drop)(e.translationY);
+    })
+    .onFinalize(() => {
+      y.value = withTiming(0, { duration: 160 });
+      lifted.value = withTiming(0, { duration: 160 });
+    });
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: y.value }, { scale: 1 + lifted.value * 0.03 }],
+    zIndex: lifted.value > 0 ? 10 : 0,
+    opacity: 1 - lifted.value * 0.08,
+  }));
+  return (
+    <GestureDetector gesture={pan}>
+      <Animated.View style={style} onLayout={(e) => setRowH(e.nativeEvent.layout.height)}>
+        {children}
+      </Animated.View>
+    </GestureDetector>
+  );
+}
 
 /** Ordenar: the same row with arrows and, in the garage section, the pin. */
 function SortRow({
