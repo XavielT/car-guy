@@ -701,6 +701,15 @@ over 2.1.3 with Xaviel's data, tag, GitHub release, push to main = production de
   only through the permission flow. The prompt's "Apagado until enabled" is met for everything that uses
   location; "Iniciar viaje" shows but asks for the permission on first tap.
 
+### Code review (2026-09-30, `da2c7da..HEAD`, before the device run)
+Ten findings, all fixed in `e3c5767` / `d8dd03c` (1162 tests, local-rls 14a–14q + 14f2 green): Activar
+automático no-op when already granted; adopted trip kept the auto guess of car/role; single-config fallback
+still switched / retried from the background; manual watcher lost its 5 s batching; feedback rate limit
+only per client-chosen device id (now + per account + anonymous ceiling 30/h, 100/day); "Reportar" on
+unrelated dialogs after background errors (now explicit `recordReportable`, neutral slot on Android); web
+outbox kept dead blob: screenshots; missing rewrite for /admin/comentarios/:id; Cifras recomputed every
+car's lifetime cost on each change.
+
 ### Left for the release (Xaviel present)
 1. Redmi on USB → install `releases/car-guy-test.apk` (5B build) → 5A walk test, 5B background/kill/re-arm,
    Phase 6 cold start (no flash, one sweep), garage scroll.
