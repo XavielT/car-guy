@@ -299,7 +299,27 @@ export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
  * change inside one, and `foreign_keys` is a per-connection setting rather than
  * a schema change.
  */
-export async function migrate(db: SQLiteDatabase): Promise<void> {
+let running: Promise<void> | null = null;
+
+/**
+ * One migration run at a time. `SQLiteProvider`'s `onInit` and `getDb()` both
+ * call this on the same native connection, and on the first launch after an
+ * update they can overlap: both read the old `user_version`, the second
+ * `BEGIN` fails, its rollback ends the first run's transaction, and the store
+ * opens on nothing ("cannot rollback - no transaction is active" — 2.4's v8
+ * on the Redmi's test app, 2026-09-30; the next launch migrated fine, nothing
+ * was lost). A caller that arrives mid-run waits for that run instead.
+ */
+export function migrate(db: SQLiteDatabase): Promise<void> {
+  if (!running) {
+    running = runMigrations(db).finally(() => {
+      running = null;
+    });
+  }
+  return running;
+}
+
+async function runMigrations(db: SQLiteDatabase): Promise<void> {
   // WAL on native, MEMORY on web — and this is not a preference.
   //
   // expo-sqlite's web build stores the database in OPFS through wa-sqlite's
