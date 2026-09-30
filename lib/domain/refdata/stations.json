@@ -1,0 +1,168 @@
+{
+  "source": "Car Guy — Dominican fuel station brands (IMP 30092026 research 03 §B; names from knowledge, Petronan from Xaviel)",
+  "license": "CC0-1.0",
+  "items": [
+    {
+      "id": "texaco",
+      "name": "Texaco",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "shell",
+      "name": "Shell",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "totalenergies",
+      "name": "TotalEnergies",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ],
+      "aliases": [
+        "Total"
+      ]
+    },
+    {
+      "id": "sunix",
+      "name": "Sunix",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "isla",
+      "name": "Isla",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "sigma",
+      "name": "Sigma",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "nativa",
+      "name": "Nativa",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "petronan",
+      "name": "Petronan",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "united-petroleum",
+      "name": "United Petroleum",
+      "fuels": [
+        "gasolina",
+        "gasoil"
+      ],
+      "aliases": [
+        "United"
+      ]
+    },
+    {
+      "id": "next",
+      "name": "Next",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "esso",
+      "name": "Esso",
+      "fuels": [
+        "gasolina",
+        "gasoil"
+      ]
+    },
+    {
+      "id": "pueblo",
+      "name": "Pueblo",
+      "fuels": [
+        "gasolina",
+        "gasoil"
+      ]
+    },
+    {
+      "id": "petromovil",
+      "name": "Petromóvil",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "gulf",
+      "name": "Gulf",
+      "fuels": [
+        "gasolina",
+        "gasoil"
+      ]
+    },
+    {
+      "id": "ecopetroleo",
+      "name": "Ecopetróleo",
+      "fuels": [
+        "gasolina",
+        "gasoil",
+        "glp"
+      ]
+    },
+    {
+      "id": "coastal",
+      "name": "Coastal Petroleum",
+      "fuels": [
+        "gasolina",
+        "gasoil"
+      ],
+      "aliases": [
+        "Coastal"
+      ]
+    },
+    {
+      "id": "propagas",
+      "name": "Propagas",
+      "fuels": [
+        "glp"
+      ]
+    },
+    {
+      "id": "tropigas",
+      "name": "Tropigas",
+      "fuels": [
+        "glp"
+      ]
+    }
+  ]
+}

@@ -3,7 +3,7 @@
  * (IMP 29092026 ADR on developer text): the user sees Spanish copy, the raw
  * message lands here and in the `__DEV__` console, never on screen.
  */
-export type DiagnosticEntry = { at: string; where: string; message: string };
+export type DiagnosticEntry = { at: string; where: string; message: string; kind?: 'note' };
 
 const LIMIT = 20;
 const entries: DiagnosticEntry[] = [];
@@ -13,6 +13,16 @@ export function recordError(where: string, error: unknown): void {
   entries.push({ at: new Date().toISOString(), where, message });
   if (entries.length > LIMIT) entries.splice(0, entries.length - LIMIT);
   if (__DEV__) console.warn(`[car-guy] ${where}:`, error);
+}
+
+/**
+ * A technical fact worth having in a report, not an error — e.g. how many GPS
+ * fixes a finished trip's cleaning dropped (IMP 30092026 ADR-42). Same ring
+ * buffer as recordError, tagged `kind: 'note'`.
+ */
+export function recordNote(where: string, message: string): void {
+  entries.push({ at: new Date().toISOString(), where, message, kind: 'note' });
+  if (entries.length > LIMIT) entries.splice(0, entries.length - LIMIT);
 }
 
 /** Newest last, as a copy. */

@@ -47,7 +47,8 @@ export function GaugePicker({
 }) {
   const { theme } = useTheme();
   const disabled = Boolean(reserve?.on);
-  const needle = value != null && !disabled ? stop(value, R - 26) : null;
+  // Note 12: with only the reserve light on, the needle rests at E (the estimate uses the reserve volume).
+  const needle = disabled ? stop(0, R - 26) : value != null ? stop(value, R - 26) : null;
   const arc = `M ${stop(0).x} ${stop(0).y} A ${R} ${R} 0 0 1 ${stop(8).x} ${stop(8).y}`;
   const reading = disabled ? es.gauge.reserveShort : value == null ? es.gauge.unset : gaugeLabel(value);
 
@@ -57,8 +58,13 @@ export function GaugePicker({
         <T face="eyebrow" style={{ color: theme.text.secondary, fontSize: 12 }}>
           {label}
         </T>
-        {reserve ? <Chip label={es.gauge.reserve} selected={reserve.on} onPress={() => reserve.onToggle(!reserve.on)} /> : null}
+        {reserve ? <Chip label={es.gauge.reserveOnly} selected={reserve.on} onPress={() => reserve.onToggle(!reserve.on)} /> : null}
       </View>
+      {reserve?.on ? (
+        <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginBottom: space.xs }}>
+          {es.gauge.reserveOnlyHint}
+        </T>
+      ) : null}
       <View style={[styles.dial, { opacity: disabled ? 0.4 : 1 }]} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${reading}`}>
         <Svg width={W} height={CY + 8}>
           <Path d={arc} stroke={theme.line} strokeWidth={6} fill="none" strokeLinecap="round" />

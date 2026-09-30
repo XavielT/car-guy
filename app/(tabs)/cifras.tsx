@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DistanceBars } from '@/components/charts/DistanceBars';
 import { GarageCostCard, OwnershipCard } from '@/components/costs/OwnershipCard';
 import { Donut } from '@/components/charts/Donut';
-import { EconomyLegend, EconomyLine } from '@/components/charts/EconomyLine';
+import { EconomyLegend, EconomyLine, PerFillMark } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
 import { T } from '@/components/T';
 import { TripsCifrasBlock } from '@/components/trips/TripPieces';
@@ -17,6 +17,7 @@ import { garageOwnershipCost, vehicleStats, type VehicleStats } from '@/lib/db/s
 import type { GarageCost } from '@/lib/domain/costs';
 import { latestEconomyInsight } from '@/lib/domain/economy';
 import { capacityHint, fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
+import { perFillSeries } from '@/lib/domain/perFillEconomy';
 import { fromLiters } from '@/lib/domain/units';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
@@ -86,6 +87,9 @@ export default function CifrasScreen() {
   const partial = partialEconomy(vehicleFillups, fuelCfgFor(activeVehicle?.detail), { includeEstimates });
   const points = partial.series;
   const hasEstimates = points.some((p) => p.status !== 'measured');
+  // Note 9: "≈ por echada" — every log's km ÷ its volume, dotted and grey; never in the average.
+  const showPerFill = data.settings.perFill !== false;
+  const perFill = perFillSeries(vehicleFillups);
   // §1.4: a tank that keeps taking more than its stated size.
   const capacity = capacityHint(vehicleFillups, fuelCfgFor(activeVehicle?.detail));
   const unitOf = activeVehicle?.detail?.volumeUnit ?? 'gal';
@@ -203,7 +207,33 @@ export default function CifrasScreen() {
                 fuelType={activeVehicle.defaultFuelType}
                 volumeUnit={activeVehicle.detail?.volumeUnit}
                 economyUnit={activeVehicle.detail?.economyUnit}
+                perFill={showPerFill ? perFill : null}
               />
+              {perFill.length > 0 ? (
+                <>
+                  <Pressable
+                    onPress={() => updateSettings({ perFill: !showPerFill })}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: showPerFill }}
+                    style={styles.estimatesToggle}>
+                    <View
+                      style={[
+                        styles.estimatesBox,
+                        { borderColor: showPerFill ? theme.accentFill : theme.lineStrong, backgroundColor: showPerFill ? theme.accentFill : theme.bg.raised },
+                      ]}
+                    />
+                    <PerFillMark />
+                    <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
+                      {es.perFill.series}
+                    </T>
+                  </Pressable>
+                  {showPerFill ? (
+                    <T face="body" style={[styles.perFillCaption, { color: theme.text.muted }]}>
+                      {es.perFill.caption}
+                    </T>
+                  ) : null}
+                </>
+              ) : null}
               {hasEstimates ? (
                 <>
                   <EconomyLegend />
@@ -428,6 +458,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 const styles = StyleSheet.create({
   estimatesToggle: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44, marginTop: space.sm },
   estimatesBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1 },
+  perFillCaption: { fontSize: 12, lineHeight: 17, marginBottom: space.sm },
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 48 },
   periodHint: { fontSize: 13, marginTop: space.sm, marginBottom: space.lg },

@@ -16,6 +16,8 @@ export const TILE_URL = (z: number, x: number, y: number) => `https://tile.opens
 export const OSM_COPYRIGHT_URL = 'https://www.openstreetmap.org/copyright';
 /** Standard tiles go to 19; 17 is street level and plenty for a drive. */
 export const MAX_ZOOM = 17;
+/** Zoom from which the tiles show individual streets; fitTiles reaches it whenever the route fits. */
+export const STREET_ZOOM = 15;
 const MIN_ZOOM = 2;
 /** Web Mercator's latitude limit. */
 const MAX_LAT = 85.05112878;
@@ -46,6 +48,12 @@ export type TileFit = {
  * route centred in it, and the tiles that cover the box. Whole zooms keep the
  * tiles at their native 256 px — no blurry scaling. A route with no extent
  * (one point) gets MAX_ZOOM around it.
+ *
+ * Street level (IMP 30092026 note 16, ADR-42): the search goes down from
+ * MAX_ZOOM (17), so any route that fits at 15 or deeper is drawn at ≥ 15 —
+ * where the tiles show the streets the denser route follows. A route too big
+ * for the box at 15 gets the deepest zoom that still fits it: cropping the
+ * route to force 15 would hide where the trip went.
  */
 export function fitTiles(points: readonly LatLng[], box: Box): TileFit | null {
   if (!points.length || !(box.width > 0) || !(box.height > 0)) return null;

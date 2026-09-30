@@ -31,6 +31,7 @@ import {
   kmLabel,
   monthSummary,
   pathD,
+  routePointsForDrawing,
   thinPoints,
   timeRange,
   timesLabel,
@@ -255,7 +256,7 @@ export function RouteSparkline({ polyline, width = 64, height = 40 }: { polyline
 
 /**
  * The route on the dark card: coloured by speed bucket when the raw points
- * are still on the phone (< 30 days), else the simplified polyline in one
+ * are still on the phone (< 30 days; cleaned like the stats, ADR-42), else the simplified polyline in one
  * colour. Start dot green, end a checkered flag. Always dark, like a cluster.
  * With `map`, OpenStreetMap tiles lie under it (tinted dark) and the route is
  * drawn in their projection; the credit links to OSM's copyright page.
@@ -263,8 +264,10 @@ export function RouteSparkline({ polyline, width = 64, height = 40 }: { polyline
 export function RouteSvg({ trip, points, width, height, map = false }: { trip: Trip; points: Fix[] | null; width: number; height: number; map?: boolean }) {
   const { runs, single, ends, tiles } = useMemo(() => {
     const box = { width, height, pad: 16 };
-    const raw = points && points.length > 1 ? thinPoints(points) : null;
-    const src = raw ?? tripRoute(trip);
+    // Raw points cleaned like the stats (accuracy, jumps, excursions) and thinned; else the polyline.
+    const drawn = routePointsForDrawing(points, trip);
+    const raw = drawn.source === 'points' ? drawn.points : null;
+    const src: LatLng[] = drawn.points;
     const fit = map ? fitTiles(src, box) : null;
     const project = fit ? (pts: readonly LatLng[], b: Box) => fitTiles(pts, b)?.xy ?? [] : fitRoute;
     const xy = fit ? fit.xy : fitRoute(src, box);

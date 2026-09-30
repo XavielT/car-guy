@@ -4,7 +4,7 @@
  *
  * One task ('carguy-trip-location', lib/trips/task.ts) in two intensities —
  * vigilando (Balanced, 50 m / 15 s, batched per minute) and grabando
- * (BestForNavigation, every second, batched per 10 s in the background) —
+ * (BestForNavigation, every second, batched per 5 s in the background) —
  * hosted by Android's foreground service with its fixed notification.
  *
  * Android 12+ does not let an app start a foreground service from the
@@ -44,12 +44,23 @@ export const TASK_OPTIONS: Record<Intensity, Location.LocationTaskOptions> = {
     mayShowUserSettingsDialog: false,
     foregroundService: service(es.trips.serviceWatching),
   },
-  // distanceInterval 0: a parked car still sends fixes, so the 4-minute stop rule can run.
+  // Grabando matches the manual recorder (BestForNavigation, 1 s) — ADR-42 —
+  // except distanceInterval, which stays 0 (a recorded deviation from ADR-42's 3 m):
+  // - density: 0 m at 1 s gives at least as many fixes as 3 m, so 3 m would not
+  //   make the route follow the streets any better (the straight line came from
+  //   the 8 m simplify, fixed in finalize.ts);
+  // - stop rule: in the background there is no 20 s tick (live.ts runs it only in
+  //   the foreground). With 3 m a parked phone with a steady fix gets nothing from
+  //   the OS, so the 4-minute stop close would wait for the next drive's first fix
+  //   or the app coming back to the front — meanwhile the service stays at
+  //   BestForNavigation and the notification says "grabando". With 0 the parked
+  //   fixes keep coming and the machine closes the trip on time.
+  // Deferred delivery ≤ 5 s (research 01-maplibre-expo §4: keep it 1–5 s).
   recording: {
     accuracy: Location.Accuracy.BestForNavigation,
     timeInterval: 1000,
     distanceInterval: 0,
-    deferredUpdatesInterval: 10_000,
+    deferredUpdatesInterval: 5000,
     mayShowUserSettingsDialog: false,
     foregroundService: service(es.trips.serviceRecording),
   },

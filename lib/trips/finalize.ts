@@ -6,12 +6,20 @@
  * Order per step result, as lib/trips/machine.ts requires: open (or merge),
  * adopt, points, state, then the close — and only then any mode switch.
  */
+import { recordNote } from '../diagnostics';
 import { loadTripStateJson, saveTripStateJson, suggestOdometerFromTrip, tripPoints, trips } from '../db/tripOps';
 import type { Trip, TripPoint } from '../db/types';
 import { bbox as bboxOf, encodePolyline, simplify, stats } from './geo';
 import { parseTripState, type StepResult, type TripCloseOut, type TripMachineState } from './machine';
 
 const iso = (t: number) => new Date(t).toISOString();
+
+/**
+ * Douglas–Peucker tolerance for the stored polyline, m (ADR-42; was 8). At 8 m
+ * gentle curves collapsed into chords; 3 m keeps them and is still a fraction
+ * of 1 Hz points. The heatmap and the list sparkline draw this polyline.
+ */
+export const ROUTE_SIMPLIFY_M = 3;
 
 export async function loadState(): Promise<TripMachineState> {
   return parseTripState(await loadTripStateJson());
@@ -95,7 +103,13 @@ export async function finalizeTrip(close: TripCloseOut): Promise<NonNullable<App
     };
   }
 
-  const route = simplify(s.track, 8);
+  const route = simplify(s.track, ROUTE_SIMPLIFY_M);
+  const c = s.cleaning;
+  // What the cleaning dropped, so a straight line on the map can be audited (ADR-42).
+  recordNote(
+    'trip-finalize',
+    `${close.tripId.slice(0, 8)} raw ${c.raw} kept ${c.kept} route ${route.length} · dropped acc ${c.droppedAccuracy} dup ${c.droppedDuplicates} jump ${c.droppedJumps} excursion ${c.droppedExcursions}`,
+  );
   const first = s.track[0];
   const last = s.track[s.track.length - 1];
   const done = await trips.upsert({

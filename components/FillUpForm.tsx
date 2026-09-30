@@ -1,15 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { FuelPicker } from '@/components/FuelPicker';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Segmented } from '@/components/ui';
+import { GhostButton, PrimaryButton, Segmented } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { completeAmounts, odometerBounds, parseDecimal } from '@/lib/domain/economy';
-import { FUEL_CATALOG, perUnitLabelFor, STATIONS, unitLabelFor } from '@/lib/fuel';
+import { FUEL_CATALOG, perUnitLabelFor, unitLabelFor } from '@/lib/fuel';
+import { PickerField, SearchSheet, type SearchItem } from '@/components/pickers';
+import { brandsForFuel, normaliseStation, recentStations } from '@/lib/domain/stations';
+import { foldText } from '@/lib/domain/text';
 import { GaugePicker } from '@/components/fuel/GaugePicker';
 import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtVol } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
@@ -33,12 +36,19 @@ export function FillUpForm({
   lastOdo: number | null;
   initial?: FillUp;
   submitLabel: string;
-  onSubmit: (draft: FillDraft) => void;
+  /**
+   * Return `false` when the save was refused (a duplicate): the button comes back.
+   * Anything else leaves it disabled — the screen moves on (note 8).
+   */
+  onSubmit: (draft: FillDraft) => void | boolean;
   onDelete?: () => void;
 }) {
   const { theme } = useTheme();
   const { data } = useStore();
 
+  // Note 8: one save per tap. The ref blocks a second tap before the disabled button re-renders.
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [date, setDate] = useState(initial ? dateInputFromIso(initial.occurredAt) : todayIsoDate());
   const [odo, setOdo] = useState(initial ? String(initial.odometerKm) : '');
   const [fuel, setFuel] = useState<FuelType>(initial?.fuelType ?? defaultFuel);
@@ -51,15 +61,22 @@ export function FillUpForm({
   const [gaugeBefore, setGaugeBefore] = useState<number | null>(initial?.gaugeBefore8 ?? null);
   const [gaugeAfter, setGaugeAfter] = useState<number | null>(initial?.gaugeAfter8 ?? null);
   const [inReserve, setInReserve] = useState(initial?.inReserve ?? false);
-  const [station, setStation] = useState(initial?.station ?? '');
+  // A saved log keeps the station text it had ("Otra" from before 2.3.1 reads as none).
+  const [station, setStation] = useState(initial?.station && initial.station !== 'Otra' ? initial.station : '');
+  const [stationOpen, setStationOpen] = useState(false);
   const [notes, setNotes] = useState(initial?.notes ?? '');
-  const [customStation, setCustomStation] = useState(
-    initial?.station && !(STATIONS as readonly string[]).includes(initial.station) ? initial.station : '',
-  );
 
   // v6: labels follow the vehicle's volume unit (GNV stays m³).
   const volumeUnit = data.vehicles.find((v) => v.id === vehicleId)?.detail?.volumeUnit ?? 'gal';
   const meta = { unitLabel: unitLabelFor(fuel, volumeUnit), perUnitLabel: perUnitLabelFor(fuel, volumeUnit) };
+  const stationItems = useMemo<SearchItem[]>(() => {
+    const recent = recentStations(data.fillups.filter((f) => f.vehicleId === vehicleId));
+    const brands = brandsForFuel(FUEL_CATALOG[fuel].group).filter((b) => !recent.some((r) => foldText(r) === foldText(b.name)));
+    return [
+      ...recent.map((name) => ({ key: `recent:${name}`, label: name, section: es.fuel.stationRecent })),
+      ...brands.map((b) => ({ key: b.id, label: b.name, keywords: (b.aliases ?? []).join(' '), section: es.fuel.stationBrands })),
+    ];
+  }, [data.fillups, vehicleId, fuel]);
   const amounts = useMemo(
     () =>
       completeAmounts({
@@ -95,8 +112,11 @@ export function FillUpForm({
       Alert.alert(es.fuel.loadKind, es.fuel.amountsRequired);
       return;
     }
-    const chosenStation = station === 'Otra' ? customStation.trim() : station;
-    onSubmit({
+    const chosenStation = station.trim();
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    const accepted = onSubmit({
       vehicleId,
       occurredAt: isoFromDateInput(date),
       odometerKm,
@@ -112,6 +132,10 @@ export function FillUpForm({
       gaugeAfter8: gaugeAfter,
       inReserve,
     });
+    if (accepted === false) {
+      savingRef.current = false;
+      setSaving(false);
+    }
   }
 
   return (
@@ -250,17 +274,25 @@ export function FillUpForm({
         </View>
       </Pressable>
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.fuel.station}
-      </T>
-      <View style={styles.chips}>
-        {STATIONS.map((s) => (
-          <Chip key={s} label={s} selected={station === s} onPress={() => setStation(s)} />
-        ))}
-      </View>
-      {station === 'Otra' ? (
-        <Field label={es.fuel.stationOther} value={customStation} onChangeText={setCustomStation} />
-      ) : null}
+      {/* Note 7: the car's recent stations, then the brands for this fuel, then Otra (free text). */}
+      <PickerField
+        label={es.fuel.station}
+        value={station || null}
+        placeholder={es.fuel.stationPick}
+        onPress={() => setStationOpen(true)}
+      />
+      <SearchSheet
+        visible={stationOpen}
+        title={es.fuel.station}
+        items={stationItems}
+        selectedKey={station || null}
+        otherLabel={es.fuel.stationOther}
+        onPick={(pick) => {
+          setStation('other' in pick ? normaliseStation(pick.other) : pick.label);
+          setStationOpen(false);
+        }}
+        onClose={() => setStationOpen(false)}
+      />
 
       <Field
         label={es.fuel.notes}
@@ -269,7 +301,7 @@ export function FillUpForm({
         placeholder={es.fuel.notesPlaceholder}
       />
 
-      <PrimaryButton label={submitLabel} onPress={save} />
+      <PrimaryButton label={submitLabel} onPress={save} disabled={saving} />
       {onDelete ? <GhostButton danger label={es.fuel.delete} onPress={onDelete} /> : null}
     </ScrollView>
   );

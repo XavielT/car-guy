@@ -545,6 +545,11 @@ export default function HomeScreen() {
           </Surface>
         ) : null}
 
+        {/* Note 8: the last tank opens its fill-up's detail. */}
+        <Pressable
+          disabled={!last}
+          onPress={() => last && router.push({ pathname: '/carga/[id]', params: { id: last.fillUpId } })}
+          accessibilityRole={last ? 'button' : undefined}>
         <Surface>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
             {es.home.lastTank}
@@ -563,6 +568,7 @@ export default function HomeScreen() {
                 : es.home.lastTankEmpty}
           </T>
         </Surface>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

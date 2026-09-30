@@ -31,32 +31,29 @@ const TONES: Record<FillUpReview['status'], Tone> = {
   partial: 'neutral',
 };
 
-export function FillUpReviewSheet({
+/**
+ * The review of one fill-up — the sheet after a save and the fill-up's detail
+ * screen show the same thing (IMP 30092026 note 8). `perFillLine` is the
+ * "≈ por echada" line (note 9), shown muted when there is one.
+ */
+export function FillUpReviewBody({
   review,
   fuelType,
   volumeUnit = 'gal',
   economyUnit,
   missedPrevious,
   estimate,
-  visible,
-  onClose,
-  onSeeHistory,
+  perFillLine,
 }: {
-  review: FillUpReview | null;
+  review: FillUpReview;
   fuelType: FuelType;
-  /** The vehicle's unit (v6); the review's numbers are already in it. */
   volumeUnit?: VolumeUnit;
-  /** L/100 km shows the inverse figures (lib/format.ts economyValue). */
   economyUnit?: EconomyUnit | null;
   missedPrevious: boolean;
-  /** Note 4: this fill-up's gauge segment, when there is one. Only a partial uses it. */
   estimate?: SeriesPoint | null;
-  visible: boolean;
-  onClose: () => void;
-  onSeeHistory: () => void;
+  perFillLine?: string | null;
 }) {
   const { theme } = useTheme();
-  if (!review) return null;
 
   const unitLabel = unitLabelFor(fuelType, volumeUnit);
   const economy = fuelType === 'gnv' ? null : economyUnit;
@@ -102,11 +99,7 @@ export function FillUpReviewSheet({
             : null;
 
   return (
-    <Sheet
-      visible={visible}
-      onClose={onClose}
-      // Same rule as the body: a broken chain is the real story, not "first".
-      title={missedPrevious ? es.fuelReview.chainBrokenTitle : es.fuelReview.titles[review.status]}>
+    <>
       <StatusPill
         status={TONES[review.status]}
         label={es.fuelReview.statusLabels[review.status]}
@@ -142,6 +135,55 @@ export function FillUpReviewSheet({
         </T>
       ) : null}
 
+      {perFillLine ? (
+        <T face="body" style={[styles.perFill, { color: theme.text.muted }]}>
+          {perFillLine}
+        </T>
+      ) : null}
+    </>
+  );
+}
+
+export function FillUpReviewSheet({
+  review,
+  fuelType,
+  volumeUnit = 'gal',
+  economyUnit,
+  missedPrevious,
+  estimate,
+  visible,
+  onClose,
+  onSeeHistory,
+  perFillLine,
+}: {
+  review: FillUpReview | null;
+  fuelType: FuelType;
+  /** The vehicle's unit (v6); the review's numbers are already in it. */
+  volumeUnit?: VolumeUnit;
+  /** L/100 km shows the inverse figures (lib/format.ts economyValue). */
+  economyUnit?: EconomyUnit | null;
+  missedPrevious: boolean;
+  /** Note 4: this fill-up's gauge segment, when there is one. Only a partial uses it. */
+  estimate?: SeriesPoint | null;
+  visible: boolean;
+  onClose: () => void;
+  onSeeHistory: () => void;
+  perFillLine?: string | null;
+}) {
+  if (!review) return null;
+  const title = missedPrevious ? es.fuelReview.chainBrokenTitle : es.fuelReview.titles[review.status];
+  return (
+    // Same rule as the body: a broken chain is the real story, not "first".
+    <Sheet visible={visible} onClose={onClose} title={title}>
+      <FillUpReviewBody
+        review={review}
+        fuelType={fuelType}
+        volumeUnit={volumeUnit}
+        economyUnit={economyUnit}
+        missedPrevious={missedPrevious}
+        estimate={estimate}
+        perFillLine={perFillLine}
+      />
       <PrimaryButton label={es.fuelReview.seeHistory} onPress={onSeeHistory} />
       <GhostButton label={es.fuelReview.close} onPress={onClose} />
     </Sheet>
@@ -151,4 +193,5 @@ export function FillUpReviewSheet({
 const styles = StyleSheet.create({
   rows: { borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: space.sm },
   body: { fontSize: 14, lineHeight: 21, marginTop: space.md, marginBottom: space.lg },
+  perFill: { fontSize: 13, lineHeight: 19, marginTop: space.sm, marginBottom: space.md },
 });

@@ -315,6 +315,8 @@ export const es = {
     after: 'Después',
     reserve: 'En reserva',
     reserveShort: 'RESERVA',
+    reserveOnly: 'Solo la luz de reserva',
+    reserveOnlyHint: 'Para carros con medidor de puntos: cuando se apagan todos y queda la luz. Car Guy cuenta que quedaba la reserva del tanque.',
     unset: '—',
     fullPrompt: '¿Se llenó hasta que la bomba disparó?',
     fullPromptAction: 'Marcar tanque lleno',
@@ -338,6 +340,15 @@ export const es = {
       `Tu tanque parece aceptar ≈ ${extra} ${unit} más de lo indicado (en ${tanks} tanques llenos). Si es así, los estimados mejoran con el tamaño real.`,
     capacityApply: (size: string, unit: string) => `Usar ${size} ${unit} como tamaño del tanque`,
     status: { measured: 'medido', reconciled: 'ajustado', estimated: 'estimado', unknown: 'sin dato' },
+  },
+  /** "≈ por echada" (IMP 30092026 note 9): km since the last log ÷ this log's volume. Never in the average. */
+  perFill: {
+    /** The muted line in the review sheet, Historial rows and the fill-up detail. `value` and `unit` e.g. "27,0" / "km/gal". */
+    line: (value: string, unit: string) => `≈ ${value} ${unit} por echada · aproximado`,
+    short: (value: string, unit: string) => `≈ ${value} ${unit}`,
+    /** Cifras: the dotted series' toggle label. */
+    series: 'Por echada (aprox.)',
+    caption: 'Aproximado: se sabe cuánto echaste, pero no cuánto quedaba en el tanque. No cuenta en el promedio.',
   },
   /** components/pickers (IMP 29092026 Phase 3). */
   pickers: {
@@ -1589,6 +1600,17 @@ export const es = {
   },
 
   fuel: {
+    duplicateTitle: 'Esta echada ya se guardó',
+    duplicateBody: 'Hace un momento guardaste una igual (mismo odómetro, volumen y total). No se guardó otra vez.',
+    duplicateOpen: 'Ver',
+    savedNotice: 'Echada guardada',
+    stationPick: 'Elegir estación',
+    stationRecent: 'Tus estaciones',
+    stationBrands: 'Marcas',
+    detailTitle: 'Echada',
+    edit: 'Editar',
+    fullTankShort: 'Tanque lleno',
+    partialShort: 'Parcial',
     newTitle: 'En la bomba',
     editTitle: 'Editar carga',
     // The unit word follows the fuel: GNV is sold by the cubic metre, not the gallon.

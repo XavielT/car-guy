@@ -96,16 +96,7 @@ export const DEFAULT_REFERENCE_PRICES: ReferencePrices = {
 
 export const DEFAULT_PRICE_WEEK = '15–21 ago 2026 (MICM)';
 
-export const STATIONS = [
-  'Texaco',
-  'Shell',
-  'TotalEnergies',
-  'Next',
-  'Isla',
-  'Esso',
-  'Pueblo',
-  'Otra',
-] as const;
+// Station brands: lib/domain/stations.ts (refdata/stations.json, IMP 30092026 note 7).
 
 export const GROUP_LABEL: Record<FuelGroup, string> = {
   gasolina: 'Gasolina',

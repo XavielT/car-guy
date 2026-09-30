@@ -5,7 +5,7 @@
  * share. Pure — no React, no Expo, no database.
  */
 import type { Trip } from '../db/types';
-import { bucketIndex, centroid, decodePolyline, effectiveSpeed, projector, type Fix, type LatLng, type XY } from './geo';
+import { bucketIndex, centroid, cleanTrack, decodePolyline, effectiveSpeed, projector, simplify, type Fix, type LatLng, type XY } from './geo';
 
 export type Buckets = [number, number, number, number, number];
 
@@ -132,6 +132,43 @@ export function coloredRuns(
     else runs.push({ bucket: b, pts: [xy[i - 1], xy[i]] });
   }
   return runs.map((r) => ({ bucket: r.bucket, d: pathD(r.pts) }));
+}
+
+/** Drawing simplification, m: well under the stored polyline's 3 m, only drops redundant fixes. */
+const DRAW_SIMPLIFY_M = 1;
+/** …but a kept fix at least this often, so the speed colour can still be derived (effectiveSpeed's 30 s window). */
+const DRAW_MAX_DT_MS = 20_000;
+
+export type DrawnRoute = { source: 'points'; points: Fix[] } | { source: 'polyline'; points: LatLng[] };
+
+/**
+ * What the trip map draws (IMP 30092026 note 16, ADR-42): the raw GPS points
+ * while the phone still has them (30 days) — up to the trip's end (a 'stop'
+ * close leaves a parked tail), cleaned exactly as the stats clean them
+ * (accuracy, jumps, excursions: lib/trips/geo.ts cleanTrack), then thinned to
+ * about `maxPoints` (Douglas–Peucker at 1 m first, so corners survive the
+ * every-n-th step). Fewer than two usable points → the stored polyline.
+ */
+export function routePointsForDrawing(
+  points: readonly Fix[] | null | undefined,
+  trip: Pick<Trip, 'polyline'> & { endedAt?: string | null },
+  maxPoints = 900,
+): DrawnRoute {
+  if (points && points.length > 1) {
+    const end = trip.endedAt ? Date.parse(trip.endedAt) : NaN;
+    const upToEnd = Number.isFinite(end) ? points.filter((p) => p.t <= end) : points;
+    const clean = cleanTrack(upToEnd);
+    if (clean.length > 1) {
+      const kept = new Set(simplify(clean, DRAW_SIMPLIFY_M));
+      const dense: Fix[] = [];
+      for (const p of clean) {
+        const last = dense[dense.length - 1];
+        if (kept.has(p) || (last && p.t - last.t >= DRAW_MAX_DT_MS)) dense.push(p);
+      }
+      return { source: 'points', points: thinPoints(dense, maxPoints) };
+    }
+  }
+  return { source: 'polyline', points: tripRoute(trip) };
 }
 
 /** The route of a trip row: its stored (simplified) polyline, decoded. */

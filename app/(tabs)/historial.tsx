@@ -13,7 +13,9 @@ import { radius, space } from '@/constants/theme';
 import { oilSummaries } from '@/lib/db/oilQueries';
 import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
-import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
+import { perFillEconomy, type PerFillEconomy } from '@/lib/domain/perFillEconomy';
+import { dateLabel, economyNumber, economyValue, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
+import { economyLabel } from '@/lib/fuel';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
 import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
@@ -93,6 +95,7 @@ export default function HistorialScreen() {
 
   // km/gal per fill-up, exactly as the old screen showed it.
   const economy = useMemo(() => economyById(vehicleFillups), [vehicleFillups]);
+  const perFillById = useMemo(() => perFillEconomy(vehicleFillups), [vehicleFillups]);
   const fillUpsById = useMemo(() => new Map(vehicleFillups.map((f) => [f.id, f])), [vehicleFillups]);
 
   const months = useMemo(() => groupByMonth(entries), [entries]);
@@ -170,7 +173,7 @@ export default function HistorialScreen() {
                   title={historyTitle(entry)}
                   meta={metaFor(entry, oilLines.get(entry.id))}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
-                  tag={tagFor(entry, economy, fillUpsById, activeVehicle.detail?.volumeUnit ?? 'gal', activeVehicle.detail?.economyUnit)}
+                  tag={tagFor(entry, economy, fillUpsById, activeVehicle.detail?.volumeUnit ?? 'gal', activeVehicle.detail?.economyUnit, perFillById)}
                   onPress={() => openDetail(entry, router)}
                 />
               ))}
@@ -263,10 +266,17 @@ function tagFor(
   fillUps: Map<string, FillUp>,
   volumeUnit: VolumeUnit,
   economyUnit?: EconomyUnit,
+  perFill?: Map<string, PerFillEconomy>,
 ): string | null {
   if (entry.kind !== 'combustible') return null;
   const fill = fillUps.get(entry.id);
-  if (fill && !fill.isFullTank) return es.history.partialTag;
+  if (fill && !fill.isFullTank) {
+    // Note 9: a partial still says roughly how it went, marked approximate.
+    const pf = perFill?.get(entry.id);
+    if (!pf) return es.history.partialTag;
+    const econ = fill.fuelType === 'gnv' ? null : economyUnit;
+    return `${es.history.partialTag} · ${es.perFill.short(economyNumber(economyValue(pf.kmPerUnit, volumeUnit, econ)), economyLabel(fill.fuelType, volumeUnit, econ))}`;
+  }
   const point = economy.get(entry.id);
   return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType, volumeUnit, economyUnit) : null;
 }
