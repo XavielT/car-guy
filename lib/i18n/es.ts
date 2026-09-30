@@ -280,6 +280,9 @@ export const es = {
     permAutoOn: 'Automático activo. Maneja y Car Guy graba solo.',
     permAutoOff: 'Pasar a solo manual',
     miuiTitle: 'Xiaomi / Redmi / POCO',
+    miuiAutostartOn: '✓ Activado en este teléfono',
+    miuiAutostartOff: '✗ Desactivado: Automático se detendrá cuando cierres la app',
+    miuiOpenAutostart: 'Abrir inicio automático',
     miuiIntro: 'MIUI cierra las apps en segundo plano. Para que Automático no se detenga:',
     miuiSteps: [
       'Ajustes › Apps › Car Guy › Inicio automático: activado.',

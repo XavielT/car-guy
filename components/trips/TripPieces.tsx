@@ -17,6 +17,7 @@ import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
+import { getAutostartState, openAutostartSettings, type AutostartState } from '@/modules/miui-autostart';
 import type { Fix, LatLng } from '@/lib/trips/geo';
 import { fitTiles, OSM_COPYRIGHT_URL, TILE_SIZE } from '@/lib/trips/tiles';
 import {
@@ -187,10 +188,21 @@ export function isMiuiPhone(): boolean {
   return /xiaomi|redmi|poco/i.test(`${c.Manufacturer ?? ''} ${c.Brand ?? ''}`);
 }
 
-/** The three MIUI steps (research 01 §1.7), with a button to the app's settings. */
+/**
+ * The three MIUI steps (research 01 §1.7). Step 1 carries the real state when
+ * the phone tells it (modules/miui-autostart, re-read on return from the
+ * settings), with a button straight to MIUI's autostart list.
+ */
 export function MiuiChecklist() {
   const { theme } = useTheme();
+  const [autostart, setAutostart] = useState<AutostartState>(() => getAutostartState());
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && setAutostart(getAutostartState()));
+    return () => sub.remove();
+  }, []);
   if (!isMiuiPhone()) return null;
+  const verdict =
+    autostart === 'enabled' ? { text: es.trips.miuiAutostartOn, color: theme.statusText.ok } : autostart === 'disabled' ? { text: es.trips.miuiAutostartOff, color: theme.statusText.vencido } : null;
   return (
     <Surface padded style={{ gap: space.sm, marginTop: space.md }}>
       <T face="title" style={{ color: theme.text.primary, fontSize: 16, textTransform: 'uppercase' }}>
@@ -200,10 +212,20 @@ export function MiuiChecklist() {
         {es.trips.miuiIntro}
       </T>
       {es.trips.miuiSteps.map((step, i) => (
-        <T key={step} face="body" style={{ color: theme.text.primary, fontSize: 14, lineHeight: 20 }}>
-          {`${i + 1}. ${step}`}
-        </T>
+        <View key={step} style={{ gap: 2 }}>
+          <T face="body" style={{ color: theme.text.primary, fontSize: 14, lineHeight: 20 }}>
+            {`${i + 1}. ${step}`}
+          </T>
+          {i === 0 && verdict ? (
+            <T face="semibold" style={{ color: verdict.color, fontSize: 13 }}>
+              {verdict.text}
+            </T>
+          ) : null}
+        </View>
       ))}
+      {autostart !== 'enabled' ? (
+        <GhostButton label={es.trips.miuiOpenAutostart} onPress={() => void (openAutostartSettings() || Linking.openSettings())} />
+      ) : null}
       <GhostButton label={es.trips.openSettings} onPress={() => void Linking.openSettings()} />
     </Surface>
   );
