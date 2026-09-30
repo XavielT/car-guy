@@ -26,6 +26,7 @@ import { SpeedCluster } from '@/components/ui/SpeedCluster';
 import { Alert } from '@/lib/alert';
 import { startManualTrip, stopTrip } from '@/lib/trips/live';
 import { useLiveTrip } from '@/lib/trips/liveStore';
+import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { tripsKeepAwake, tripsMode, type TripsMode } from '@/lib/trips/settings';
 import { garageFacts, lastWeeklyCheck, type GarageFacts } from '@/lib/db/garageQueries';
 import { lampStates, toKatakana, vehicleBadges } from '@/lib/domain/garage';
@@ -72,6 +73,7 @@ export default function HomeScreen() {
   const [odometerEstimated, setOdometerEstimated] = useState(false);
   // Viajes (Phase 5A): the live trip, the device's trip mode, keep-awake, a short notice.
   const live = useLiveTrip();
+  const installOffer = useInstallOffer();
   const [tripsModeNow, setTripsModeNow] = useState<TripsMode>('manual');
   const [keepAwake, setKeepAwake] = useState(true);
   const [tripNotice, setTripNotice] = useState<string | null>(null);
@@ -289,6 +291,16 @@ export default function HomeScreen() {
             </T>
           </View>
           {/* Signed in only: without an account there is nothing to be in step with. */}
+          {installOffer ? (
+            <Pressable
+              onPress={() => router.push('/instalar')}
+              accessibilityRole="link"
+              style={[styles.installPill, { borderColor: theme.accent }]}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 12 }}>
+                {es.install.pill}
+              </T>
+            </Pressable>
+          ) : null}
           {FEATURE_SYNC && session ? <SyncPill /> : null}
           <Pressable
             onPress={() => router.push('/cuenta')}
@@ -643,6 +655,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipLabel: { fontSize: 14, letterSpacing: 0.8 },
+  installPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginRight: space.sm },
   heroHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.sm },
   pending: { gap: space.sm, marginBottom: space.lg },
   pendingRow: {

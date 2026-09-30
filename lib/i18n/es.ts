@@ -2504,6 +2504,38 @@ export const es = {
   },
 
   /** Enviar comentario + Comentarios recibidos (IMP 29092026 Phase 6, ADR-35). */
+  install: {
+    eyebrow: 'ANDROID · インストール',
+    title: 'Car Guy para Android',
+    intro: 'La app completa: viajes con GPS, fotos, recordatorios y todo lo tuyo sin conexión. Se instala desde aquí, sin Play Store.',
+    download: (version: string, size: string | null) => `Descargar APK v${version}${size ? ` · ${size}` : ''}`,
+    downloadLatest: 'Descargar APK',
+    notAndroid: 'Este archivo es para teléfonos Android. En iPhone o en la computadora, usa Car Guy en el navegador (abajo).',
+    more: 'Instalar en Android',
+    moreCaption: 'Descarga la app para tu teléfono.',
+    pill: 'App Android',
+    stepsTitle: 'Cómo se instala',
+    steps: [
+      {
+        title: 'Descarga el archivo',
+        body: 'Chrome avisa «Este tipo de archivo puede dañar tu dispositivo». Es el aviso de siempre para apps fuera de la Play Store: toca «Descargar de todos modos».',
+      },
+      {
+        title: 'Permite instalar desde Chrome',
+        body: 'Al abrir car-guy.apk, Android dice que no puede instalar apps desconocidas de esta fuente. Toca «Configuración», activa «Permitir desde esta fuente» y vuelve atrás.',
+      },
+      {
+        title: 'Instala',
+        body: 'Toca «Instalar». Si Play Protect pregunta, elige «Instalar de todos modos». Listo: abre Car Guy.',
+      },
+    ],
+    updates: 'Para actualizar, descarga la versión nueva desde aquí e instálala encima: tus datos se quedan.',
+    pwaTitle: 'También en tu navegador',
+    pwaBody: 'Car Guy funciona en la web. En Chrome: menú ⋮ → «Instalar app» (o «Agregar a pantalla de inicio»). En iPhone: Compartir → «Agregar a inicio».',
+    portfolio: 'Más apps de Xaviel',
+    haveIt: 'Ya tienes la app',
+    haveItBody: 'Estás usando Car Guy para Android. Las versiones nuevas se ven en Más → Novedades y versiones.',
+  },
   feedback: {
     title: 'Enviar comentario',
     eyebrow: 'Directo al taller',

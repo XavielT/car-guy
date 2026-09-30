@@ -23,6 +23,7 @@ import { useSession } from '@/lib/cloud/auth';
 import { userMessage } from '@/lib/diagnostics';
 import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
+import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { ADMIN_FEEDBACK_ROUTE, FEEDBACK_ROUTE } from '@/lib/feedback';
 import { es } from '@/lib/i18n/es';
@@ -40,6 +41,7 @@ export default function MasScreen() {
   const { theme, preference, setPreference } = useTheme();
   const { data, activeVehicle, resetAll, refresh } = useStore();
   const archived = data.vehicles.filter((v) => v.isArchived);
+  const installOffer = useInstallOffer();
   const { session } = useSession();
   const { unseen: versionUnseen } = useVersionSeen();
 
@@ -247,6 +249,7 @@ export default function MasScreen() {
         />
 
         <MoreSection title={es.more.about} />
+        {installOffer ? <NavRow label={es.install.more} caption={es.install.moreCaption} onPress={() => router.push('/instalar')} /> : null}
         <NavRow
           label={es.versions.more}
           caption={versionUnseen ? es.versions.moreUnseen : es.versions.moreCaption}

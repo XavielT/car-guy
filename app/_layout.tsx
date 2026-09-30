@@ -341,6 +341,7 @@ function Shell() {
         <Stack.Screen name="cuenta" options={{ headerShown: true, title: es.routes.account }} />
         <Stack.Screen name="nueva-contrasena" options={{ headerShown: true, title: es.routes.newPassword }} />
         <Stack.Screen name="versiones" options={{ headerShown: true, title: es.versions.title }} />
+        <Stack.Screen name="instalar" options={{ headerShown: true, title: es.install.title }} />
       </Stack>
       <NovedadesSheet />
       <FirstSyncBanner />

@@ -5,29 +5,62 @@ import type { ChangelogEntry } from './changelog/parse';
 export const CHANGELOG: ChangelogEntry[] = [
   {
     "version": "2.2.0",
-    "name": null,
+    "name": "Kaidō",
     "date": null,
     "unreleased": true,
     "intro": [],
     "sections": [
       {
-        "title": null,
+        "title": "Viajes",
         "intro": [],
         "items": [
-          "**Litros o galones**: cada vehículo elige su unidad; los datos se guardan en litros por dentro. Tus números de siempre se ven igual.",
+          "**Viajes**: grábalos con \"Iniciar viaje\" y mira la velocidad en vivo en el tablero de Inicio (distancia, tiempo, media y máxima). Cada viaje guarda su ruta, sus números y sus notas, y ajusta el odómetro estimado.",
+          "**Viajes automáticos**: en Android, con el permiso de ubicación \"todo el tiempo\", la app detecta cuando empiezas a manejar y graba el viaje sola; un semáforo no lo corta. Tiene una guía para los teléfonos Xiaomi. Nada se activa solo: tú eliges el modo en Viajes → Ajustes."
+        ]
+      },
+      {
+        "title": "Registro de vehículos",
+        "intro": [],
+        "items": [
           "**Registrar un carro es más rápido**: marca, modelo y año de una lista (con los modelos de aquí: Hilux, Sprinter Trueno, Grand i10…), color con muestras, tipo de carrocería, varias fotos con portada, precio y fecha de compra a la vista.",
           "**Más estados**: en el taller, accidentado, en restauración, prestado… con \"desde\" y una nota.",
           "**Aceite**: viscosidad, tipo, marca y especificación al registrar un cambio de aceite, y \"igual que la última vez\".",
-          "**Chequeos con fotos**: hasta 5 fotos por punto en FALLA y en el nuevo **ATENCIÓN**; se ven en el historial y en el álbum.",
+          "**Chequeos con fotos**: hasta 5 fotos por punto en FALLA y en el nuevo **ATENCIÓN**; se ven en el historial y en el álbum."
+        ]
+      },
+      {
+        "title": "Combustible",
+        "intro": [],
+        "items": [
+          "**Litros o galones**: cada vehículo elige su unidad; los datos se guardan en litros por dentro. Tus números de siempre se ven igual.",
           "**Carga parcial**: con el nivel del medidor antes y después, una carga parcial también da consumo, estimado y con su rango; al llegar el próximo tanque lleno se ajusta a lo medido.",
-          "**Promedio de consumo más justo**: ahora es kilómetros totales entre combustible total, así un tanque corto no pesa lo mismo que uno largo. Tu promedio puede moverse un poco respecto a la 2.1.",
-          "**Viajes**: grábalos con \"Iniciar viaje\" y mira la velocidad en vivo en el tablero de Inicio (distancia, tiempo, media y máxima). Cada viaje guarda su ruta, sus números y sus notas, y ajusta el odómetro estimado.",
-          "**Viajes automáticos**: en Android, con el permiso de ubicación \"todo el tiempo\", la app detecta cuando empiezas a manejar y graba el viaje sola. Tiene una guía para los teléfonos Xiaomi.",
+          "**Promedio de consumo más justo**: ahora es kilómetros totales entre combustible total, así un tanque corto no pesa lo mismo que uno largo. Tu promedio puede moverse un poco respecto a la 2.1."
+        ]
+      },
+      {
+        "title": "Garaje",
+        "intro": [],
+        "items": [
           "**Garaje con fotos**: portadas, cuadrícula o lista, con la foto de cada carro; ordénalos a tu gusto y fija uno arriba. El orden se guarda también en la nube.",
-          "**Arranque animado**: la aguja del ícono sube a 100 al abrir la app.",
+          "**Lo que me ha costado**: en Cifras, cuánto te ha costado cada carro desde que lo tienes (compra, mods, mantenimiento, combustible, pista y lo demás) y por kilómetro; también en el reporte PDF y el CSV.",
+          "**Arranque animado**: la aguja del ícono sube a 100 al abrir la app."
+        ]
+      },
+      {
+        "title": "Novedades y comentarios",
+        "intro": [],
+        "items": [
           "**Novedades y versiones**: en *Más* ves la versión que tienes, buscas la última y lees lo nuevo de cada una. Al actualizar, la app te enseña lo nuevo una sola vez.",
           "**Enviar comentario**: reporta un problema o manda una idea desde *Más*, con captura si quieres. Funciona sin cuenta y sin conexión (se envía cuando vuelva).",
-          "**Lo que me ha costado**: en Cifras, cuánto te ha costado cada carro desde que lo tienes (compra, mods, mantenimiento, combustible, pista y lo demás) y por kilómetro; también en el reporte PDF y el CSV."
+          "**Instalar desde la web**: en car-guy.vercel.app, desde un Android, el botón \"Descargar APK\" baja la última versión, con los pasos para instalarla."
+        ]
+      },
+      {
+        "title": "Arreglos",
+        "intro": [],
+        "items": [
+          "Las fechas sin hora (como la fecha de compra) ya no salen un día antes.",
+          "En la web, \"Iniciar viaje\" puede pedir tu ubicación (el sitio la tenía bloqueada)."
         ]
       }
     ]

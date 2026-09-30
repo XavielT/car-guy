@@ -20,14 +20,18 @@ un extra.
 
 ## Qué hace
 
-- **Garaje**: uno o varios vehículos, cada uno con su perfil, odómetro y foto
+- **Garaje**: uno o varios vehículos con su perfil, odómetro, estado y varias fotos; vista de portadas,
+  cuadrícula o lista en el orden que quieras (2.2)
 - **Mantenimiento**: servicios, reparaciones y mejoras con fecha, odómetro, costo, taller y piezas
 - **Chequeos**: listas diarias, semanales y mensuales; una falla se convierte en tarea
 - **Recordatorios**: por fecha, por kilometraje o lo que llegue primero, con fecha estimada según
   tus km/día. Incluye marbete, seguro y licencia
-- **Combustible**: cargas con fecha, odómetro, estación, tanque lleno o parcial; cuenta automática
-  (llena dos de tres: volumen, precio/unidad, total); consumo brim-to-brim entre tanques llenos;
-  precios oficiales de referencia editables
+- **Combustible**: cargas en litros o galones con fecha, odómetro, estación, tanque lleno o parcial;
+  cuenta automática (llena dos de tres: volumen, precio/unidad, total); consumo medido entre tanques
+  llenos y, con el nivel del medidor, estimado también en las parciales (2.2); precios oficiales de
+  referencia editables
+- **Viajes** (2.2): ruta, km, tiempo y velocidad con el GPS, a mano o detectados solos en Android;
+  velocímetro en vivo en Inicio y odómetro estimado
 - **Historial y estadísticas**: una sola línea de tiempo por vehículo, costo por km, gasto por
   categoría y mes a mes
 - **Álbum** (2.1): fotos con su fecha real, hitos, línea de tiempo por año
@@ -35,6 +39,9 @@ un extra.
 - **DIY** (2.1): ficha de servicio con presets y VIN, fluidos, códigos OBD, contactos
 - **Pista** (2.1): eventos y sesiones con setup, tiempos, gomas y pastillas, resumen del día
 - **Compartir** (2.1): ficha pública por link, libro del carro en PDF, garaje compartido
+- **Lo que me ha costado** (2.2): el costo total de cada carro y por km, en Cifras, el PDF y el CSV
+- **Novedades y comentarios** (2.2): lo nuevo de cada versión y un formulario para reportar problemas,
+  sin cuenta
 
 Todo vive en el teléfono. La cuenta en la nube es opcional y nunca hace falta para usar la app.
 
@@ -54,6 +61,10 @@ npm run build         # export web estático a dist/
 ```
 
 ## Instalar en Android
+
+Desde el teléfono: abre **car-guy.vercel.app/instalar** en Chrome y toca *Descargar APK* (siempre la
+última versión; la página explica los avisos de Android). El enlace fijo es
+`https://github.com/XavielT/car-guy/releases/latest/download/car-guy.apk`.
 
 El identificador Android es `com.xaviel.carguy`. No lo cambies después de publicar: Android lo usa
 para reconocer que una nueva versión pertenece a la misma app.

@@ -666,3 +666,50 @@ Built by five parallel helper agents in one checkout, integrated and re-verified
 ### Notes closed
 - 5, 14, 8 (Cifras half). 6 and 7 close with the cloud apply and the Redmi check.
 
+## Phase 7 — Web APK · portfolio · release 2.2.0   (branch `imp-29092026/phase-7-release`)
+
+**Status:** everything before the release is built; the release itself (regression on the Redmi, upgrade
+over 2.1.3 with Xaviel's data, tag, GitHub release, push to main = production deploy) waits for Xaviel.
+**Commits:** `feat(imp-29092026 phase 7): /api/apk, /instalar, smoke, 2.2.0 notes` (release commit to come)
+
+### Changed
+- `lib/release/apk.ts` (stable URL, `apkFromRelease` picks exactly `car-guy.apk`, `sizeLabel`,
+  `isAndroidBrowser` — client hints, else UA) and `api/apk.ts` (GitHub releases/latest → { version,
+  publishedAt, url, size, notes }; `public, max-age=60, s-maxage=600, stale-while-revalidate=3600,
+  stale-if-error=86400`; 502 + X-Car-Guy-Error, never the token). /api/ was already outside the SW.
+- `app/instalar.tsx`: "Descargar APK vX · NN MB" as a plain link (falls back to releases/latest/download),
+  three install steps in Spanish, PWA hint, portfolio link; native: "Ya tienes la app". Más row
+  "Instalar en Android" and an Inicio pill only in an Android browser.
+- `tools/smoke-apk.mjs` (3 checks; /instalar's copy is looked for in its bundle — the static export serves
+  the shell for every route).
+- **vercel.json: `Permissions-Policy geolocation=()` → `geolocation=(self)`** — production blocked the
+  browser's location, so a manual trip on the web could never start.
+- CHANGELOG 2.2.0 "Kaidō" by block (Viajes, Registro de vehículos, Combustible, Garaje, Novedades y
+  comentarios, Arreglos), regenerated; README feature list and install section.
+- Portfolio (`~/dev2/xaviel-web-v2`, local branch `car-guy-2-2`, commit e47283f, **not pushed**): "Direct
+  APK" link on the Car Guy card, description mentions GPS trips / partial fill-ups / photo garage. The site
+  is English-only (no i18n files, contrary to the prompt). Build ok; 5 unit tests fail on main too
+  (IntersectionObserver missing in the test env). Live site: card present with the 2.1 text.
+
+### Backlog pass
+- npm audit: 3 moderate, all `decode-uri-component` under expo-router's query-string — carried.
+- Deferred items of this cycle: none under 30 min without SQL or the device (dossier estado/costs need SQL;
+  GaugePicker snapshot needs a testing library; the Garaje badge item is superseded by Garaje v2).
+
+### Decisions made (defaults applied)
+- Trips default stays **Solo manual** (Phase 5A): an update never turns on background location — Automático
+  only through the permission flow. The prompt's "Apagado until enabled" is met for everything that uses
+  location; "Iniciar viaje" shows but asks for the permission on first tap.
+
+### Left for the release (Xaviel present)
+1. Redmi on USB → install `releases/car-guy-test.apk` (5B build) → 5A walk test, 5B background/kill/re-arm,
+   Phase 6 cold start (no flash, one sweep), garage scroll.
+2. Approve `sql/021_feedback.sql` + `sql/021_feedback_storage.shared.sql --shared`; run verify-x-core 24–28;
+   sign in → Comentarios recibidos.
+3. The drive (manual checklist) → decide FEATURE_TRIPS for release.
+4. Backup (Más → Datos → Respaldo JSON) → bump to 2.2.0, date the changelog → `bash tools/release-apk.sh`
+   → install over 2.1.3 → garage intact, DS3 km/gal as in 2.1.3, still signed in.
+5. `bash tools/release-apk.sh --skip-build --publish`, merge to main + tag + push (deploys), smoke-public-page
+   6/6 + smoke-apk 3/3, then the portfolio: `cd ~/dev2/xaviel-web-v2 && git checkout main && git merge
+   --ff-only car-guy-2-2 && git push origin main`.
+
