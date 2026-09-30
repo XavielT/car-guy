@@ -4,9 +4,11 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { DtcCard, DtcEventRow, DtcLogSheet } from '@/components/diy/DtcPieces';
 import { Field } from '@/components/Field';
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listDtcEvents } from '@/lib/db/diyQueries';
 import type { VehicleDtcEvent } from '@/lib/db/types';
 import { lookup, normalizeCode } from '@/lib/domain/dtc';
@@ -26,9 +28,15 @@ export default function ObdScreen() {
   const [query, setQuery] = useState('');
   const [events, setEvents] = useState<VehicleDtcEvent[]>([]);
   const [logging, setLogging] = useState(false);
+  // The "no codes logged" line waits for the first read instead of flashing (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
-    setEvents(await listDtcEvents(vehicleId ? { vehicleId } : {}));
+    try {
+      setEvents(await listDtcEvents(vehicleId ? { vehicleId } : {}));
+    } finally {
+      setLoaded(true);
+    }
   }, [vehicleId]);
 
   useFocusEffect(
@@ -36,6 +44,8 @@ export default function ObdScreen() {
       void load();
     }, [load]),
   );
+
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const code = normalizeCode(query);
   const dtc = code ? lookup(code) : null;
@@ -61,12 +71,13 @@ export default function ObdScreen() {
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
         {t.obd.events}
       </T>
-      {!events.length ? (
+      {showSkeleton ? <ListCardsSkeleton n={3} pad={space.md} r={radius.input} titleWidth="30%" lines={2} /> : null}
+      {loaded && !showSkeleton && !events.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
           {t.obd.noEvents}
         </T>
       ) : null}
-      {events.map((e) => (
+      {(showSkeleton ? [] : events).map((e) => (
         <DtcEventRow key={e.id} event={e} vehicleName={names[e.vehicleId]} onChanged={() => void load()} />
       ))}
 

@@ -1,13 +1,16 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
 import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/feedback/present';
+import { AdminFeedbackDetailSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, KeyValueRow, Segmented, StatusPill, Surface } from '@/components/ui';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useAdminGate } from '@/lib/cloud/admin';
 import { FEEDBACK_STATUSES, getFeedback, screenshotUrl, updateFeedback, type FeedbackRow, type FeedbackStatus } from '@/lib/feedback/inbox';
 import { t } from '@/lib/i18n';
@@ -44,12 +47,15 @@ export default function ComentarioDetalle() {
 
   const header = <Stack.Screen options={{ headerShown: true, title: t.feedback.admin.detailTitle }} />;
   const a = t.feedback.admin;
+  // The gate and the comment's read (remote, so the skeleton is really seen).
+  const loading = gate === 'loading' || (admin && row === undefined);
+  const showSkeleton = useDelayedLoading(loading);
 
-  if (gate === 'loading' || (admin && row === undefined)) {
+  if (showSkeleton || loading) {
     return (
-      <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
+      <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
         {header}
-        <ActivityIndicator color={theme.text.muted} />
+        {showSkeleton ? <AdminFeedbackDetailSkeleton /> : null}
       </View>
     );
   }
@@ -134,7 +140,10 @@ export default function ComentarioDetalle() {
           <Image source={{ uri: shot }} style={[styles.shot, { backgroundColor: theme.bg.raised }]} resizeMode="contain" accessibilityIgnoresInvertColors />
         </Pressable>
       ) : (
-        <ActivityIndicator color={theme.text.muted} style={{ marginBottom: space.md }} />
+        // The signed URL is on its way: the screenshot's own outline, not a spinner.
+        <Skeleton padded={false} style={{ flex: 0, marginBottom: space.md }}>
+          <Skeleton.Rect h={360} r={radius.input} />
+        </Skeleton>
       )}
 
       <Field label={a.note} value={note} onChangeText={setNote} placeholder={a.notePlaceholder} multiline textAlignVertical="top" style={{ minHeight: 80 }} />

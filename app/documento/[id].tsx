@@ -4,9 +4,11 @@ import { Image, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { documents as documentRepo, media as mediaRepo } from '@/lib/db/repos';
 import type { Media, VehicleDocument } from '@/lib/db/types';
 import { openPdf } from '@/lib/media/pdf';
@@ -50,9 +52,11 @@ export default function DocumentoScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(doc === undefined);
   if (doc === null) return <MissingRecord />;
-  if (!doc) return null;
+  if (!doc) return showSkeleton ? <RecordSkeleton cards={[28, 320]} buttons={1} /> : null;
   const days = doc.expiresAt ? daysBetween(todayIso(), doc.expiresAt) : null;
 
   return (

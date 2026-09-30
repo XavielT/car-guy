@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordCheckSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { BoostRing, GhostButton, Hanko, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { baseTemplateId, inspectionPhotos } from '@/lib/db/inspectionOps';
 import {
   inspectionResults as resultRepo,
@@ -106,9 +108,11 @@ export default function InspeccionScreen() {
       .catch(() => {});
   }, [fresh, run]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // run on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(run === undefined);
   if (run === null) return <MissingRecord />;
-  if (!run) return null;
+  if (!run) return showSkeleton ? <RecordCheckSkeleton /> : null;
 
   const failures = results.filter((r) => r.result === 'falla');
   // ATENCIÓN: its own group, amber — something to keep an eye on, not a failure.

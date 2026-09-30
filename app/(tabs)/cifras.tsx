@@ -8,11 +8,13 @@ import { GarageCostCard, OwnershipCard } from '@/components/costs/OwnershipCard'
 import { Donut } from '@/components/charts/Donut';
 import { EconomyLegend, EconomyLine, PerFillMark } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
+import { TabsCifrasSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
 import { TripsCifrasBlock } from '@/components/trips/TripPieces';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { garageOwnershipCost, vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
 import type { GarageCost } from '@/lib/domain/costs';
 import { latestEconomyInsight } from '@/lib/domain/economy';
@@ -43,6 +45,10 @@ export default function CifrasScreen() {
 
   const [period, setPeriod] = useState<PeriodKey>('trimestre');
   const [stats, setStats] = useState<VehicleStats | null>(null);
+  // Until the first stats query answers: the KPI tiles' and chart's outline
+  // (ADR-40). A period switch keeps the last numbers up while the next load.
+  const [statsLoaded, setStatsLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!statsLoaded);
   const [garage, setGarage] = useState<GarageCost | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
@@ -57,7 +63,10 @@ export default function CifrasScreen() {
       .then((result) => {
         if (!cancelled) setStats(result);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setStatsLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -122,7 +131,7 @@ export default function CifrasScreen() {
 
   if (!activeVehicle) return null;
 
-  const empty = stats != null && stats.kpis.spend === 0 && points.length === 0;
+  const empty = !showSkeleton && stats != null && stats.kpis.spend === 0 && points.length === 0;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -147,7 +156,9 @@ export default function CifrasScreen() {
           />
         ) : null}
 
-        {stats && !empty ? (
+        {showSkeleton ? <TabsCifrasSkeleton /> : null}
+
+        {stats && !empty && !showSkeleton ? (
           <>
             <View style={styles.kpis}>
               <Kpi

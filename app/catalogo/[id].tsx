@@ -5,8 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { saveServiceTypeInterval } from '@/lib/db/catalogOps';
 import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
@@ -32,6 +34,8 @@ export default function CatalogoItemScreen() {
   const [type, setType] = useState<ServiceType | null>(null);
   const [km, setKm] = useState('');
   const [months, setMonths] = useState('');
+  // True until the first read settles, found or not (ADR-40).
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
@@ -44,12 +48,18 @@ export default function CatalogoItemScreen() {
         setKm(row.defaultIntervalKm != null ? String(row.defaultIntervalKm) : '');
         setMonths(row.defaultIntervalMonths != null ? String(row.defaultIntervalMonths) : '');
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [id]);
 
+  const showSkeleton = useDelayedLoading(loading && !!id);
+
+  if (showSkeleton) return <FormSkeleton fields={2} />;
   if (!type) return null;
 
   function save() {

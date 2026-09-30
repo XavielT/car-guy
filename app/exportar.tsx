@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
 import { fuel as fuelRepo, history } from '@/lib/db/repos';
@@ -41,6 +43,8 @@ export default function ExportarScreen() {
   const [busy, setBusy] = useState(false);
   // Note 8: lifetime and garage-wide, so the period selector does not apply to it.
   const [garage, setGarage] = useState<GarageCost | null>(null);
+  // The first period's read: until it answers the row counts would say 0 (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +73,11 @@ export default function ExportarScreen() {
       if (cancelled) return;
       setRows(feed);
       setLogs(inRange(fuelRows, range.from, range.to));
-    })().catch(() => {});
+    })()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
 
     return () => {
       cancelled = true;
@@ -105,6 +113,8 @@ export default function ExportarScreen() {
     }
   }
 
+  const showSkeleton = useDelayedLoading(!loaded && !!vehicleId);
+
   if (!activeVehicle) return null;
 
   const action = Platform.OS === 'web' ? t.export.download : t.export.share;
@@ -126,6 +136,10 @@ export default function ExportarScreen() {
           onChange={setPeriod}
         />
 
+        {showSkeleton ? (
+          <ListCardsSkeleton n={3} lines={2} buttons={1} spacing={space.md} titleWidth="45%" style={styles.cards} />
+        ) : null}
+        {!loaded || showSkeleton ? null : (
         <View style={styles.cards}>
           <Surface>
             <T face="title" style={[styles.cardTitle, { color: theme.text.primary }]}>
@@ -166,6 +180,7 @@ export default function ExportarScreen() {
             <GhostButton label={action} onPress={() => run('costos')} disabled={busy || !garage?.vehicles.length} />
           </Surface>
         </View>
+        )}
 
         <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
           {t.export.encodingHint}

@@ -4,9 +4,11 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Sheet, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
   inspectionItems as itemRepo,
   inspectionResults as resultRepo,
@@ -63,9 +65,11 @@ export default function TareaScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(task === undefined);
   if (task === null) return <MissingRecord />;
-  if (!task) return null;
+  if (!task) return showSkeleton ? <RecordSkeleton meta={false} cards={[28, 96]} chips={3} buttons={1} /> : null;
 
   async function setStatus(status: Task['status']) {
     await taskRepo.upsert({ id: task!.id, status });

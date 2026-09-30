@@ -9,9 +9,11 @@ import { ZoomableImage } from '@/components/album/ZoomableImage';
 import { vehicleGallery } from '@/lib/db/tripOps';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { PhotoViewerSkeleton } from '@/components/skeletons/PhotoViewerSkeleton';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { palette, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import {
   albumPhotos,
@@ -44,6 +46,8 @@ export default function PhotoViewer() {
   const { width, height } = useWindowDimensions();
 
   const [photos, setPhotos] = useState<AlbumPhoto[] | null>(null);
+  // null until the first read: the frame's outline after 150 ms (ADR-40).
+  const showSkeleton = useDelayedLoading(photos === null);
   // null until the user swipes: the photo they opened is the start.
   const [swiped, setIndex] = useState<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
@@ -72,7 +76,9 @@ export default function PhotoViewer() {
       return row
         ? [{ id: row.id, albumItemId: null, takenAt: row.takenAt, createdAt: row.createdAt, precision: row.datePrecision, blurhash: row.blurhash, isFavorite: row.isFavorite, caption: row.caption, width: row.width, height: row.height }]
         : [];
-    })().then((list) => !cancelled && setPhotos(list));
+    })()
+      .then((list) => !cancelled && setPhotos(list))
+      .catch(() => !cancelled && setPhotos([]));
     return () => {
       cancelled = true;
     };
@@ -202,6 +208,8 @@ export default function PhotoViewer() {
               </View>
             )}
           />
+        ) : showSkeleton ? (
+          <PhotoViewerSkeleton />
         ) : (
           <View style={{ flex: 1 }} />
         )}

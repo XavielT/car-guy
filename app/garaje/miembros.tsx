@@ -4,9 +4,11 @@ import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { GarageMembersSkeleton } from '@/components/skeletons/GarageMembersSkeleton';
 import { T } from '@/components/T';
 import { Badge, Chip, GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import { useSession } from '@/lib/cloud/auth';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
@@ -35,6 +37,9 @@ export default function MembersScreen() {
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // True once the first read answered (ok or not); refocus reloads keep the list up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(() => {
     let cancelled = false;
@@ -42,13 +47,18 @@ export default function MembersScreen() {
       if (cancelled) return;
       setVehicle(v);
       setMembers(m);
-    });
+    })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [vehicleId]);
   useFocusEffect(load);
 
+  if (showSkeleton) return <GarageMembersSkeleton />;
   if (!vehicle) return null;
   const myRole = vehicle.garageRole ?? (members.find((m) => m.userId === me)?.role ?? 'owner');
   const owner = myRole === 'owner';

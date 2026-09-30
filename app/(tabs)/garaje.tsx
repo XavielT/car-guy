@@ -8,9 +8,11 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RevokedPrompt } from '@/components/share/RevokedPrompt';
+import { TabsGarajeSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
 import { Badge, CarbonFrame, Chip, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { garageFacts, type GarageFacts } from '@/lib/db/garageQueries';
 import { currentOdometer } from '@/lib/db/repos';
 import { evaluatedReminders } from '@/lib/db/reminderQueries';
@@ -117,9 +119,14 @@ export default function GarajeScreen() {
           gallery: gallery.length,
         };
       }),
-    ).then((next) => {
-      if (!cancelled) setCards(next);
-    });
+    )
+      .then((next) => {
+        if (!cancelled) setCards(next);
+      })
+      // A failed read shows the garage as empty rather than an outline forever.
+      .catch(() => {
+        if (!cancelled) setCards((prev) => prev ?? []);
+      });
     return () => {
       cancelled = true;
     };
@@ -145,6 +152,10 @@ export default function GarajeScreen() {
   const shown = inGarage.filter(matches);
   const exShown = ex.filter(matches);
   const ready = cards != null && layout != null;
+  // `cards` and `layout` are null only until their first read: a refocus or a
+  // new sync keeps the last cards up, so the outline shows on the first load only.
+  const showSkeleton = useDelayedLoading(!ready);
+  const settled = ready && !showSkeleton;
   const mode = current.mode;
 
   const openCard = (c: Card) => router.push({ pathname: '/vehiculo/[id]', params: { id: c.vehicle.id } });
@@ -221,7 +232,8 @@ export default function GarajeScreen() {
 
         <View style={styles.countRow}>
           <T face="mono" style={{ color: theme.text.muted, fontSize: 12 }}>
-            {t.garage.counts(inGarage.length, ex.length)}
+            {/* "0 en el garaje" is a lie while the cards load; the line keeps its height. */}
+            {settled ? t.garage.counts(inGarage.length, ex.length) : ' '}
           </T>
           {sorting ? (
             <T face="title" style={{ color: theme.accent, fontSize: 10, letterSpacing: 1.4, textTransform: 'uppercase' }}>
@@ -241,7 +253,9 @@ export default function GarajeScreen() {
           ))}
         </View>
 
-        {!ready ? null : sorting ? (
+        {!settled ? (
+          showSkeleton ? <TabsGarajeSkeleton /> : null
+        ) : sorting ? (
           <View style={{ gap: space.sm }}>
             {shown.map((c) => (
               <DragRow key={c.vehicle.id} enabled={current.pinned !== c.vehicle.id} onDrop={(steps) => moveBy(shown, c, steps)}>
@@ -275,7 +289,7 @@ export default function GarajeScreen() {
           </View>
         ) : null}
 
-        {ready && exShown.length ? (
+        {settled && exShown.length ? (
           <>
             <View style={[styles.brandRow, { marginTop: space.xl, marginBottom: space.sm }]}>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
@@ -305,13 +319,13 @@ export default function GarajeScreen() {
           </>
         ) : null}
 
-        {ready && !shown.length && !exShown.length ? (
+        {settled && !shown.length && !exShown.length ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 14, marginVertical: space.xl, textAlign: 'center' }}>
             {t.garage.emptyFilter}
           </T>
         ) : null}
 
-        {!sorting ? (
+        {!sorting && settled ? (
           <View style={{ marginTop: space.xl }}>
             <PrimaryButton label={t.garage.add} onPress={() => router.push('/vehiculo/nuevo')} />
           </View>

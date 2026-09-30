@@ -6,10 +6,12 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
+import { TabsHistorialSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { oilSummaries } from '@/lib/db/oilQueries';
 import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
@@ -59,6 +61,11 @@ export default function HistorialScreen() {
   const [filter, setFilter] = useState<'todo' | RecordKind>('todo');
   const [query, setQuery] = useState('');
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
+  // `entries` starts empty, so "no records yet" would flash before the first
+  // query answers: until then the rows' outline instead (ADR-40). Only the
+  // first load — a filter, a search or a new record keeps the rows up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
   const [limit, setLimit] = useState(PAGE);
   const [hasMore, setHasMore] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -87,7 +94,10 @@ export default function HistorialScreen() {
       if (cancelled) return;
       setOilLines(oil);
       setEntries(page);
-    })().catch(() => {});
+      setLoaded(true);
+    })().catch(() => {
+      if (!cancelled) setLoaded(true);
+    });
 
     return () => {
       cancelled = true;
@@ -113,7 +123,7 @@ export default function HistorialScreen() {
           sub={`${activeVehicle.name}${activeVehicle.plate ? ` · ${activeVehicle.plate}` : ''}`}
         />
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters} contentContainerStyle={styles.filtersRow}>
           {filters().map((f) => {
             const on = filter === f.key;
             return (
@@ -151,7 +161,9 @@ export default function HistorialScreen() {
           }}
         />
 
-        {entries.length === 0 ? (
+        {!loaded || showSkeleton ? (
+          showSkeleton ? <TabsHistorialSkeleton /> : null
+        ) : entries.length === 0 ? (
           <EmptyState
             icon="time-outline"
             message={query.trim() || filter !== 'todo' ? t.history.emptyFiltered : t.history.empty}
@@ -182,7 +194,7 @@ export default function HistorialScreen() {
           ))
         )}
 
-        {hasMore ? <GhostButton label={t.history.loadMore} onPress={() => setLimit((l) => l + PAGE)} /> : null}
+        {hasMore && !showSkeleton ? <GhostButton label={t.history.loadMore} onPress={() => setLimit((l) => l + PAGE)} /> : null}
       </ScrollView>
 
       <Pressable
@@ -321,7 +333,10 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 96 },
-  filters: { marginBottom: space.md },
+  // flexGrow 0 + centred row: on web a horizontal ScrollView otherwise grows into the space a short
+  // list leaves (the skeleton's), and every chip stretches with it.
+  filters: { marginBottom: space.md, flexGrow: 0 },
+  filtersRow: { alignItems: 'center' },
   // Filter pill (Build.dc.html's MODS · SPECS chips): Saira 600 tracked.
   chip: {
     minHeight: 40,

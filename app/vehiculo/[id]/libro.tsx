@@ -2,9 +2,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
+import { VehicleSwitchesSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { Chip, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { deliverBook, generateBook } from '@/lib/book';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import { flagsOf, getShare } from '@/lib/db/shareQueries';
@@ -38,6 +40,9 @@ export default function BookScreen() {
   const [period, setPeriod] = useState<Period>('todo');
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // True once the first read answered (ok or not).
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,12 +50,18 @@ export default function BookScreen() {
       if (cancelled) return;
       setVehicle(v);
       setFlags(flagsOf(s));
-    });
+    })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [id]);
 
+  // The period chips, then the flags plus "documentos" and "fotos".
+  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length + 2} />;
   if (!vehicle || !flags) return null;
 
   async function setFlag(k: keyof ShareFlags, on: boolean) {

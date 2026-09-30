@@ -7,9 +7,11 @@ import { ModRow } from '@/components/build/ModRow';
 import { SpecsTab } from '@/components/build/SpecsTab';
 import { StockActualCard } from '@/components/build/StockActualCard';
 import { Field } from '@/components/Field';
+import { VehicleBuildSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { Chip, EmptyState, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { buildData, lastFxRate, modAction, mountWheelSet, type BuildData } from '@/lib/db/buildQueries';
 import { contacts as contactRepo, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Contact, InventoryItem, Mod, Tire, Vehicle, WheelSet, WishlistItem } from '@/lib/db/types';
@@ -51,6 +53,9 @@ export default function BuildScreen() {
   const [sellPrice, setSellPrice] = useState('');
   const [sellTo, setSellTo] = useState('');
   const [invKind, setInvKind] = useState('todo');
+  // True once the first read answered (ok or not); refocus reloads keep the page up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -63,7 +68,9 @@ export default function BuildScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      load()
+        .catch(() => {})
+        .finally(() => setLoaded(true));
     }, [load]),
   );
 
@@ -72,6 +79,7 @@ export default function BuildScreen() {
     [data],
   );
 
+  if (showSkeleton) return <VehicleBuildSkeleton />;
   if (!vehicle || !data) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   const name = (vehicle.nickname || vehicle.name).toUpperCase();

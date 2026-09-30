@@ -4,9 +4,11 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CompleteReminderSheet } from '@/components/CompleteReminderSheet';
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { reminders as reminderRepo } from '@/lib/db/repos';
 import { evaluatedReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import type { Reminder } from '@/lib/db/types';
@@ -49,6 +51,8 @@ export default function RecordatoriosScreen() {
   const { activeVehicle, refresh, data } = useStore();
   const [rows, setRows] = useState<EvaluatedReminder[]>([]);
   const [completing, setCompleting] = useState<Reminder | null>(null);
+  // The empty state waits for the first read instead of flashing (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const vehicleId = activeVehicle?.id;
 
@@ -59,11 +63,16 @@ export default function RecordatoriosScreen() {
       .then((list) => {
         if (!cancelled) setRows(list);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [vehicleId, data]);
+
+  const showSkeleton = useDelayedLoading(!loaded);
 
   if (!activeVehicle) return null;
 
@@ -82,7 +91,9 @@ export default function RecordatoriosScreen() {
 
         <PrimaryButton label={t.reminders.add} onPress={() => router.push('/recordatorio/nuevo')} />
 
-        {rows.length === 0 ? (
+        {showSkeleton ? (
+          <ListCardsSkeleton section n={4} pill lines={2} />
+        ) : !loaded ? null : rows.length === 0 ? (
           <EmptyState icon="alarm-outline" message={t.reminders.empty} />
         ) : (
           GROUPS.map((group) => {

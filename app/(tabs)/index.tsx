@@ -5,6 +5,7 @@ import { Linking, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDi
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TabsClusterSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import {
@@ -19,6 +20,7 @@ import {
   type Status,
 } from '@/components/ui';
 import { palette, radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
 import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
@@ -95,6 +97,12 @@ export default function HomeScreen() {
   const [modelYear, setModelYear] = useState<number | null>(null);
   const [weekly, setWeekly] = useState<{ lastAt: string | null; lastHadFailures: boolean } | null>(null);
   const [facts, setFacts] = useState<GarageFacts | null>(null);
+  // The cluster is the part of Inicio that waits on queries (odometer,
+  // reminders, the weekly check); everything else is the store's, already in
+  // memory. False until the first read answers — later reloads keep the last
+  // reading on screen instead of flashing the outline (ADR-40).
+  const [clusterLoaded, setClusterLoaded] = useState(false);
+  const showClusterSkeleton = useDelayedLoading(!clusterLoaded);
   const { width } = useWindowDimensions();
   const reduced = useReducedMotion();
 
@@ -120,7 +128,7 @@ export default function HomeScreen() {
     if (!vehicleId) return;
     let cancelled = false;
 
-    (async () => {
+    const odometerRead = (async () => {
       const [odo, readings, vehicle] = await Promise.all([
         odometerNow(vehicleId),
         odometerRepo.list(vehicleId, { orderBy: 'occurred_at', direction: 'DESC' }),
@@ -151,17 +159,22 @@ export default function HomeScreen() {
     // The telltales now come from the real engine rather than the simple date
     // comparison Phase 3 used as a placeholder. Asked for more than four so
     // the merge with tasks below has something to rank.
-    evaluatedReminders(vehicleId)
+    const remindersRead = evaluatedReminders(vehicleId)
       .then((rows) => {
         if (!cancelled) setAllReminders(rows);
       })
       .catch(() => {});
 
-    lastWeeklyCheck(vehicleId)
+    const weeklyRead = lastWeeklyCheck(vehicleId)
       .then((w) => {
         if (!cancelled) setWeekly(w);
       })
       .catch(() => {});
+
+    // The three reads the cluster card is drawn from: once they answered, it is real.
+    void Promise.all([odometerRead, remindersRead, weeklyRead]).then(() => {
+      if (!cancelled) setClusterLoaded(true);
+    });
 
     garageFacts(vehicleId)
       .then((f) => {
@@ -373,6 +386,14 @@ export default function HomeScreen() {
               onStop={() => void finishTrip()}
             />
           </Animated.View>
+        ) : !clusterLoaded || showClusterSkeleton ? (
+          // Before the first read: the cluster's outline after 150 ms, and
+          // until then its footprint, so nothing below it moves (ADR-40).
+          showClusterSkeleton ? (
+            <TabsClusterSkeleton />
+          ) : (
+            <View style={{ height: Math.min(340, Math.max(240, width - 72)) * 0.9 + 170, marginBottom: space.lg }} />
+          )
         ) : (
         <Animated.View key="odo" entering={reduced ? undefined : FadeIn.duration(300)}>
         <ClusterHero

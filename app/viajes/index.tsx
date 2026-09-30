@@ -2,10 +2,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { TripsListSkeleton } from '@/components/skeletons/TripsListSkeleton';
 import { T } from '@/components/T';
 import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions } from '@/components/trips/TripPieces';
 import { Chip, EmptyState, GhostButton, Segmented } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { Trip } from '@/lib/db/types';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
@@ -51,6 +53,8 @@ export default function TripsScreen() {
   const nameOf = (id: string) => vehicles.find((v) => v.id === id)?.name ?? data.vehicles.find((v) => v.id === id)?.name;
   const shown = list ? filterTrips(list, filter) : [];
   const reload = () => setVersion((v) => v + 1);
+  // First load only: later reloads (a write, a scope change) keep the old list up.
+  const showSkeleton = useDelayedLoading(list === null);
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
@@ -70,22 +74,26 @@ export default function TripsScreen() {
         </ScrollView>
       ) : null}
 
-      {list ? <TripsStrip summary={monthSummary(list)} /> : null}
+      {showSkeleton ? <TripsListSkeleton /> : null}
 
-      <Segmented<TripFilter> options={FILTERS.map((key) => ({ key, label: t.trips.filters[key] }))} value={filter} onChange={setFilter} style={{ marginBottom: space.md }} />
+      {list && !showSkeleton ? <TripsStrip summary={monthSummary(list)} /> : null}
 
-      {map && shown.length ? <TripsHeatMap trips={shown} width={width - 2 * space.gutter} height={Math.round((width - 2 * space.gutter) * 0.62)} /> : null}
+      {showSkeleton ? null : (
+        <Segmented<TripFilter> options={FILTERS.map((key) => ({ key, label: t.trips.filters[key] }))} value={filter} onChange={setFilter} style={{ marginBottom: space.md }} />
+      )}
 
-      {list && !list.length ? (
+      {map && shown.length && !showSkeleton ? <TripsHeatMap trips={shown} width={width - 2 * space.gutter} height={Math.round((width - 2 * space.gutter) * 0.62)} /> : null}
+
+      {list && !list.length && !showSkeleton ? (
         <EmptyState icon="navigate-outline" message={t.trips.empty} actionLabel={t.trips.start} onAction={() => router.push('/(tabs)')} />
       ) : null}
-      {list && list.length && !shown.length ? (
+      {list && list.length && !shown.length && !showSkeleton ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginBottom: space.md }}>
           {t.trips.emptyFiltered}
         </T>
       ) : null}
 
-      {shown.map((t) => (
+      {(showSkeleton ? [] : shown).map((t) => (
         <TripRow
           key={t.id}
           trip={t}

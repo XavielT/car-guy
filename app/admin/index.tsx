@@ -1,10 +1,12 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AdminPanelSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, NavRow, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchAdminStats, useAdminGate, type AdminStats } from '@/lib/cloud/admin';
 import { dateLabel, km } from '@/lib/format';
 import { t } from '@/lib/i18n';
@@ -38,12 +40,16 @@ export default function AdminPanel() {
   );
 
   const header = <Stack.Screen options={{ headerShown: true, title: t.admin.title }} />;
+  // The gate and the first stats read; a pull-to-refresh or refocus keeps the old numbers up.
+  const loading = gate === 'loading' || (gate === 'admin' && stats === null);
+  const showSkeleton = useDelayedLoading(loading);
 
-  if (gate === 'loading' || (gate === 'admin' && stats === null)) {
+  if (showSkeleton || loading) {
+    // Remote data, so the skeleton is really seen; a fast answer shows nothing but the header.
     return (
-      <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
+      <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
         {header}
-        <ActivityIndicator color={theme.text.muted} />
+        {showSkeleton ? <AdminPanelSkeleton /> : null}
       </View>
     );
   }

@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
+import { VehicleEstadoSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { LcdDigits, PrimaryButton, Surface } from '@/components/ui';
 import { palette, radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { albumPhotos, odometerReadings, pinSnapshot, stateInputs, type AlbumPhoto } from '@/lib/db/albumQueries';
 import { vehicleOwnership } from '@/lib/db/repos';
 import { photoDate, stateAt, type StateMod } from '@/lib/domain/album';
@@ -42,6 +44,7 @@ export default function EstadoScreen() {
   const [inputs, setInputs] = useState<{ photos: AlbumPhoto[]; mods: StateMod[]; readings: { occurredAt: string; valueKm: number }[]; stock: Record<string, unknown> } | null>(null);
   const [trackWidth, setTrackWidth] = useState(1);
   const [pinned, setPinned] = useState(false);
+  const showSkeleton = useDelayedLoading(inputs === null);
 
   useEffect(() => {
     if (!id) return;
@@ -61,7 +64,7 @@ export default function EstadoScreen() {
       const from = dates.length ? Math.min(...dates, to - DAY) : to - 365 * DAY;
       setRange({ from, to });
       setT(to);
-    })();
+    })().catch(() => setInputs((prev) => prev ?? { photos: [], mods: [], readings: [], stock: {} }));
   }, [id]);
 
   const state = useMemo(() => (inputs ? stateAt(new Date(when).toISOString(), inputs) : null), [inputs, when]);
@@ -91,6 +94,12 @@ export default function EstadoScreen() {
   const ratio = range ? (when - range.from) / Math.max(1, range.to - range.from) : 1;
   const cell = Math.floor((width - space.gutter * 2 - 12) / 3);
   const specEntries = state ? Object.entries(state.specs).filter(([, v]) => v != null && v !== '') : [];
+
+  // `inputs` is null until the first read: the page's outline after 150 ms
+  // (ADR-40) instead of "sin mods · sin specs · sin fotos" flashing first.
+  if (!inputs || showSkeleton) {
+    return showSkeleton ? <VehicleEstadoSkeleton cell={cell} /> : <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
+  }
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>

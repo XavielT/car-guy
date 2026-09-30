@@ -4,9 +4,11 @@ import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
+import { CheckTemplateSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { ensureVehicleTemplate, saveTemplate, type TemplateDraftItem } from '@/lib/db/inspectionOps';
 import { inspectionItems as itemRepo, inspectionTemplates as templateRepo } from '@/lib/db/repos';
 import type { Cadence, OnFail } from '@/lib/db/types';
@@ -45,6 +47,8 @@ export default function TemplateEditorScreen() {
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // True until the first read settles, found or not (ADR-40).
+  const [loading, setLoading] = useState(true);
 
   const vehicleId = activeVehicle?.id;
 
@@ -82,12 +86,25 @@ export default function TemplateEditorScreen() {
           enabled: item.deletedAt == null,
         })),
       );
-    })().catch(() => {});
+    })()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [id, vehicleId]);
 
+  const showSkeleton = useDelayedLoading(loading && !!id && !!vehicleId);
+
+  if (showSkeleton) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
+        <CheckTemplateSkeleton />
+      </SafeAreaView>
+    );
+  }
   if (!templateId) return null;
 
   const patchRow = (key: string, patch: Partial<Row>) =>

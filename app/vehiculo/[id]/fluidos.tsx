@@ -4,9 +4,11 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
+import { VehicleFluidsSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { GhostButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listFluids, saveFluid } from '@/lib/db/diyQueries';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { FluidGuideItem, Vehicle } from '@/lib/db/types';
@@ -26,6 +28,9 @@ export default function FluidsScreen() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [cards, setCards] = useState<Record<string, FluidGuideItem>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // True once the first read answered (ok or not); refocus reloads keep the page up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -38,10 +43,13 @@ export default function FluidsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      load()
+        .catch(() => {})
+        .finally(() => setLoaded(true));
     }, [load]),
   );
 
+  if (showSkeleton) return <VehicleFluidsSkeleton />;
   if (!vehicle) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   async function save(kind: FluidGuideItem['kind'], patch: Partial<FluidGuideItem>) {

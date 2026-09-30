@@ -1,9 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, Tabs } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TabsInicioSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { fonts } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -18,20 +20,12 @@ export default function TabLayout() {
   const { ready, data } = useStore();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  // While the store opens: Inicio's outline (ADR-40), after 150 ms so a fast
+  // open paints straight to the tabs; before that, the bare background.
+  const showSkeleton = useDelayedLoading(!ready);
 
-  if (!ready) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.bg.base,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        <ActivityIndicator color={theme.accent} />
-      </View>
-    );
-  }
+  if (showSkeleton) return <TabsInicioSkeleton />;
+  if (!ready) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   if (data.vehicles.length === 0) {
     return <Redirect href="/onboarding" />;

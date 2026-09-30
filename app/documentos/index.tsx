@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { documents as documentRepo } from '@/lib/db/repos';
 import type { VehicleDocument } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
@@ -19,6 +21,8 @@ export default function DocumentosScreen() {
   const { theme } = useTheme();
   const { activeVehicle, data } = useStore();
   const [rows, setRows] = useState<VehicleDocument[]>([]);
+  // The empty state waits for the first read instead of flashing (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const vehicleId = activeVehicle?.id;
 
@@ -30,11 +34,16 @@ export default function DocumentosScreen() {
       .then((list) => {
         if (!cancelled) setRows(list);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [vehicleId, data]);
+
+  const showSkeleton = useDelayedLoading(!loaded);
 
   if (!activeVehicle) return null;
 
@@ -48,7 +57,9 @@ export default function DocumentosScreen() {
           {t.documents.subtitle}
         </T>
 
-        {rows.length === 0 ? (
+        {showSkeleton ? (
+          <ListCardsSkeleton n={4} pill />
+        ) : !loaded ? null : rows.length === 0 ? (
           <EmptyState icon="document-text-outline" message={t.documents.empty} />
         ) : (
           rows.map((doc) => {

@@ -3,9 +3,11 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { activeShares } from '@/lib/db/shareQueries';
 import type { VehicleShare } from '@/lib/db/types';
 import { shareUrl } from '@/lib/share/publish';
@@ -18,24 +20,31 @@ export default function SharesScreen() {
   const { theme } = useTheme();
   const [list, setList] = useState<(VehicleShare & { vehicleName: string })[] | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  // Settled once the first read answers (or fails): the skeleton is for that read only (ADR-40).
+  const [settled, setSettled] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void activeShares().then((l) => !cancelled && setList(l));
+      void activeShares()
+        .then((l) => !cancelled && setList(l))
+        .finally(() => !cancelled && setSettled(true));
       return () => {
         cancelled = true;
       };
     }, []),
   );
 
+  const showSkeleton = useDelayedLoading(!settled);
+
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
         {t.share.listTitle}
       </T>
-      {list && !list.length ? <EmptyState icon="link-outline" message={t.share.listEmpty} /> : null}
-      {(list ?? []).map((s) => {
+      {showSkeleton ? <ListCardsSkeleton n={3} pad={space.md} r={radius.button} buttons={2} titleWidth="50%" /> : null}
+      {list && !list.length && !showSkeleton ? <EmptyState icon="link-outline" message={t.share.listEmpty} /> : null}
+      {(showSkeleton ? [] : (list ?? [])).map((s) => {
         const url = shareUrl(s.slug!);
         return (
           <View key={s.id} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>

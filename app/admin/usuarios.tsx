@@ -1,11 +1,13 @@
 import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { AdminUsersSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
 import { Badge, EmptyState, Segmented, Sheet } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchAdminUsers, refreshRole, ROLES, setUserRole, useAdminGate, type AdminUser, type Role } from '@/lib/cloud/admin';
 import { useSession } from '@/lib/cloud/auth';
 import { dateLabel } from '@/lib/format';
@@ -45,12 +47,16 @@ export default function AdminUsers() {
   );
 
   const header = <Stack.Screen options={{ headerShown: true, title: t.admin.usersTitle }} />;
+  // The gate and the first list read; a pull-to-refresh or a role change keeps the old list up.
+  const loading = gate === 'loading' || (gate === 'admin' && users === null);
+  const showSkeleton = useDelayedLoading(loading);
 
-  if (gate === 'loading' || (gate === 'admin' && users === null)) {
+  if (showSkeleton || loading) {
+    // Remote data, so the skeleton is really seen; a fast answer shows nothing but the header.
     return (
-      <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
+      <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
         {header}
-        <ActivityIndicator color={theme.text.muted} />
+        {showSkeleton ? <AdminUsersSkeleton /> : null}
       </View>
     );
   }

@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { Linking, Platform, ScrollView, Share, StyleSheet, Switch, View } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
+import { VehicleSwitchesSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Segmented } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import { albumPhotos, setPhotoFavorite, type AlbumPhoto } from '@/lib/db/albumQueries';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
@@ -40,6 +42,9 @@ export default function ShareScreen() {
   const [mode, setMode] = useState<'fotos' | 'portada'>('fotos');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // True once the first read answered (ok or not).
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,12 +55,17 @@ export default function ShareScreen() {
       setFlags(flagsOf(s));
       setVisibility(s?.slug && !s.revokedAt ? s.visibility : 'private');
       setPhotos(p);
-    });
+    })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [id]);
 
+  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length} />;
   if (!vehicle || !flags) return null;
   const live = Boolean(share?.slug && !share.revokedAt && share.publishedAt);
   const url = live && share?.slug ? shareUrl(share.slug) : null;

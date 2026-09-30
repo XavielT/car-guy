@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
 import { MissingRecord } from '@/components/MissingRecord';
+import { DetailTripSkeleton } from '@/components/skeletons/DetailTripSkeleton';
 import { T } from '@/components/T';
 import { shareCardImage, shareSummaryText } from '@/components/track/TrackPieces';
 import { confirmDeleteTrip, DistributionBar, setTripRole, TripShareCard, tripText } from '@/components/trips/TripPieces';
 import { Chip, GhostButton, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { odometer as odometerRepo } from '@/lib/db/repos';
 import { tripPoints, trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
@@ -66,8 +68,11 @@ export default function TripScreen() {
     void tripPoints.forTrip(id).then((p) => setPoints(p.length > 1 ? p : null));
   }, [id]);
 
+  // undefined: still loading · null: gone (or not a finished trip). Later loads
+  // keep the trip on screen, so the skeleton only covers the first read.
+  const showSkeleton = useDelayedLoading(trip === undefined);
   if (trip === null) return <MissingRecord />;
-  if (!trip) return null;
+  if (!trip) return showSkeleton ? <DetailTripSkeleton /> : null;
 
   const vehicles = data.vehicles.filter((v) => !v.isArchived || v.id === trip.vehicleId);
   const vehicleName = data.vehicles.find((v) => v.id === trip.vehicleId)?.name;

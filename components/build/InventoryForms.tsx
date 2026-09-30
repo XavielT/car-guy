@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { space } from '@/constants/theme';
 import { mountWheelSet, saveInventoryItem, saveTire, saveWheelSet } from '@/lib/db/buildQueries';
 import { inventory as inventoryRepo, tires as tireRepo, vehicles as vehicleRepo, wheelSets as wheelSetRepo } from '@/lib/db/repos';
@@ -42,7 +44,7 @@ const ITEM_KINDS: InventoryItem['kind'][] = ['pieza', 'fluido', 'herramienta', '
 const CONDITIONS: InventoryItem['condition'][] = ['nuevo', 'usado', 'core'];
 
 /** A part, fluid, tool or consumable on the shelf; "Usar en un mod" turns it into one. */
-export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: string; itemId?: string; onDone: () => void }) {
+export function InventoryItemForm({ vehicleId, itemId, onDone, skeleton }: { vehicleId: string; itemId?: string; onDone: () => void; skeleton?: ReactNode }) {
   const router = useRouter();
   const [kind, setKind] = useState<InventoryItem['kind']>('pieza');
   const [name, setName] = useState('');
@@ -55,10 +57,14 @@ export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: st
   const [cost, setCost] = useState('');
   const [garage, setGarage] = useState(false);
   const [notes, setNotes] = useState('');
+  // Editing: the screen's `skeleton` until the item is read, not a blank form.
+  const [loaded, setLoaded] = useState(!itemId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     if (!itemId) return;
     void inventoryRepo.getById(itemId).then((i) => {
+      setLoaded(true);
       if (!i) return;
       setKind(i.kind);
       setName(i.name);
@@ -92,6 +98,8 @@ export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: st
     });
   }
 
+  // Not the empty fields of a new one while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <Title>{itemId ? t.inventory.item.editTitle : t.inventory.item.newTitle}</Title>
@@ -145,7 +153,7 @@ export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: st
 const SET_STATUSES: WheelSet['status'][] = ['montado', 'guardado', 'vendido'];
 
 /** A set of wheels ("15x8 ET0 · 4x100 · CB 54.1"), its tires, and "Montar en <vehículo>". */
-export function WheelSetForm({ vehicleId, setId, onDone }: { vehicleId: string; setId?: string; onDone: () => void }) {
+export function WheelSetForm({ vehicleId, setId, onDone, skeleton }: { vehicleId: string; setId?: string; onDone: () => void; skeleton?: ReactNode }) {
   const router = useRouter();
   const { theme } = useTheme();
   const [name, setName] = useState('');
@@ -159,12 +167,16 @@ export function WheelSetForm({ vehicleId, setId, onDone }: { vehicleId: string; 
   const [notes, setNotes] = useState('');
   const [tires, setTires] = useState<Tire[]>([]);
   const [vehicleName, setVehicleName] = useState('');
+  // Editing: the screen's `skeleton` until the set is read, not a blank form.
+  const [loaded, setLoaded] = useState(!setId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     void vehicleRepo.getById(vehicleId).then((v) => setVehicleName(v?.name ?? ''));
     if (!setId) return;
     void (async () => {
       const [w, ts] = await Promise.all([wheelSetRepo.getById(setId), tireRepo.listWhere({ wheelSetId: setId })]);
+      setLoaded(true);
       if (!w) return;
       setName(w.name);
       setSpec(w.widthIn && w.diamIn ? `${w.diamIn}x${w.widthIn}${w.offsetMm != null ? ` ET${w.offsetMm}` : ''}` : '');
@@ -200,6 +212,8 @@ export function WheelSetForm({ vehicleId, setId, onDone }: { vehicleId: string; 
     });
   }
 
+  // Not the empty fields of a new one while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <Title>{setId ? t.inventory.wheel.editTitle : t.inventory.wheel.newTitle}</Title>
@@ -260,7 +274,19 @@ const POSITIONS: Tire['position'][] = ['fl', 'fr', 'rl', 'rr', 'spare', 'unmount
 const TIRE_STATUSES: Tire['status'][] = ['nueva', 'en_uso', 'guardada', 'quemada', 'vendida'];
 
 /** One tire: size parsed as you type, the DOT decoded ("sem 23/2023 · 3.3 años"), set and corner. */
-export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleId: string; tireId?: string; initialSetId?: string | null; onDone: () => void }) {
+export function TireForm({
+  vehicleId,
+  tireId,
+  initialSetId,
+  onDone,
+  skeleton,
+}: {
+  vehicleId: string;
+  tireId?: string;
+  initialSetId?: string | null;
+  onDone: () => void;
+  skeleton?: ReactNode;
+}) {
   const { theme } = useTheme();
   const [sets, setSets] = useState<WheelSet[]>([]);
   const [size, setSize] = useState('');
@@ -276,11 +302,15 @@ export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleI
   const [position, setPosition] = useState<Tire['position']>('unmounted');
   const [status, setStatus] = useState<Tire['status']>('nueva');
   const [cost, setCost] = useState('');
+  // Editing: the screen's `skeleton` until the tire is read, not a blank form.
+  const [loaded, setLoaded] = useState(!tireId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     void wheelSetRepo.listWhere({ vehicleId }).then(setSets);
     if (!tireId) return;
     void tireRepo.getById(tireId).then((t) => {
+      setLoaded(true);
       if (!t) return;
       setSize(t.size ?? '');
       setBrand(t.brand ?? '');
@@ -331,6 +361,8 @@ export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleI
     onDone();
   }
 
+  // Not the empty fields of a new one while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <Title>{tireId ? t.inventory.tire.editTitle : t.inventory.tire.newTitle}</Title>

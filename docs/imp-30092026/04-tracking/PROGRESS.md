@@ -12,8 +12,8 @@ phase" carry context between sessions.
 | 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action, Wheelz walked |
 | 1 | Fix pack 2.3.1 | ✅ | `fix/2.3.1-fixpack` | v2.3.1 released; detail + dedupe, stations, reserve light, ≈ por echada (with a plausibility band), denser routes; trip export carried |
 | 2 | Schema v8 | ✅ | `imp-30092026/phase-2-schema-v8` | v8 + sql/025–026 on x-core; verifiers 32/32 + 24/24; merged (no release — no screens) |
-| 3A | Language es/en | ⬜ | | |
-| 3B | Skeletons | ⬜ | | |
+| 3A | Language es/en | ✅ | `imp-30092026/phase-3-i18n-skeletons` | en.ts complete (typed), live `t`, Más → Idioma, catalogue, dates; web sweep clean |
+| 3B | Skeletons | 🟡 | `imp-30092026/phase-3-i18n-skeletons` | foundation in; 50 twins in progress |
 | 4 | Map · Modo conducir · centre button | ⬜ | | |
 | 5 | Eventos · memoria · gomas · precios | ⬜ | | |
 | 6 | Perfil · bienvenida · legal · release 2.4.0 | ⬜ | | |
@@ -182,6 +182,18 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
   `profile_avatar_rel_path`, `profile_display_name` need no schema (the `setting` table is key/value); they are
   reserved here and written by Phases 3A/6. `economy_per_fill` exists since 2.3.1.
 
+- Phase 3A: no Zustand — the language store is a tiny external store (useSyncExternalStore) in
+  lib/i18n/index.ts, persisted in AsyncStorage `car-guy/language` like the theme. `t` is a Proxy over the current
+  dictionary, so every call site reads the language at the moment of use; the root navigator is keyed on the
+  language, so a switch re-renders everything (it lands on Inicio, and Más navigates itself back).
+- Phase 3A: numbers and money are identical in es-DO and en-US (1,234.50; "RD$ 1,234.50"), so only dates
+  follow the language. Stored text keeps the language it was written in (a pad reminder's title, a reminder
+  note, a check's task title "Revisar …", a DTC repair title).
+- Phase 3A: DTC descriptions — the bundled table already has each code's English (`descEn`); English users read
+  that, and "(description in Spanish)" appears only where a code has none.
+- Phase 3A: release notes (CHANGELOG.md → Novedades / Versiones) stay Spanish; English readers get "Release
+  notes are written in Spanish."
+
 ## Deviations from the package
 
 - Phase 1 (5b): auto mode's recording options match manual's interval (1 s, BestForNavigation) but keep
@@ -209,7 +221,10 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 0 | Disk 90 % (12 GB free) | medium | Phase 4's native rebuild needs room; clear `~/.gradle/caches` if short |
 | 2 | `migrate()` ran twice at once (SQLiteProvider `onInit` + `getDb()`) on the first launch after an update → rollback, empty store for that launch | **high** | ✅ fixed in Phase 2 (`66f233e`, test reproduces it); it existed since 2.0 — 2.2.x upgrades were lucky on timing |
 | 2 | Gradle output of `modules/miui-autostart` was committed in 2.2.2 (156 files dirtied by every build) | low | ✅ untracked + ignored (`2b19c98`) |
-| 2 | Domain copy (price sources, event types/severities, memory sections, tire badges/messages) is in module constants, not `lib/i18n/es.ts` | low | Phase 3A moves them with the es/en split |
+| 2 | Domain copy (price sources, event types/severities, memory sections, tire badges/messages) is in module constants, not `lib/i18n/es.ts` | low | ✅ moved in Phase 3A |
+| 3A | The public page `/c/<slug>` (lib/share/html.ts, dossier.ts) renders Spanish always | low | needs `vehicle_share.locale` (the owner's language at publish) — a later cycle |
+| 3A | `npm audit`: 3 moderate (decode-uri-component ≤ 0.4.2 via expo-router → query-string 7) | low | pre-existing; the only fix (0.5.0) is ESM-only and query-string 7 `require`s it — wait for expo-router |
+| 3A | OBD search matches `descEs` only | low | English search of codes by description — later |
 
 ## Blockers
 
@@ -354,4 +369,39 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
   memory sections, tire badges/messages) into `lib/i18n/es.ts` with their en twins; `app_language` is reserved.
 - Phase 3B (skeletons): nothing from here blocks it.
 - `.env.supabase` is not shell-sourceable — read `ACCESS_TOKEN` / `SERVICE_ROLE_KEY` by pattern, never `.` it.
+
+## Phase 3A — Language es/en   (branch `imp-30092026/phase-3-i18n-skeletons`)
+
+**Status:** complete (native check rides with 3B's build)
+**Commits:** `c44ada1` dictionary + store · `72ce3c6` codemod · `9219d6b` Phase 3A
+
+### Changed
+- `lib/i18n/dict.ts` (`Dict` = es widened), `lib/i18n/en.ts` from six typed parts (`en/part1..6.ts`,
+  `Pick<Dict,…>` each — a missing key or wrong signature is a build error), `lib/i18n/index.ts` (`t`, `useT`,
+  `useLanguage`, `initLanguage`, `setLanguagePreference`, `refreshSystemLanguage`, `localeTag`).
+- Codemod over 135 files (`es.` → `t.`); locals named `t` renamed; `tools/i18n-shadow.mjs` (type checker: no local
+  shadows the dictionary) and `tools/i18n-frozen.mjs` (0 module-level reads) keep it honest; ESLint forbids
+  importing `es.ts` outside lib/i18n.
+- Root layout: stored language read before the splash; navigator keyed on it; foreground re-check; `<html lang>`.
+  Headless trip task reads the stored language; the trip service notification is built when the service starts.
+- Every remaining display string moved into es/en (`tools/i18n-literals.mjs` sweep: domain labels, legal
+  notices, notifications, importer, PDF book, inline JSX); fuel / expense / period labels read the dictionary.
+- Catalogue: `lib/i18n/catalogTranslations.en.json` (service types, templates + items with how/warning, mod
+  categories, fluids, spec presets and fields, oil types, lamps, badges…) + `catalogLabel` / `catalogText` /
+  `refLabel`; refdata gained `en` (colors, body types, oil, fluids). Edited seeds keep the user's text.
+- Dates via `localeTag()` (es-DO / en-US). `expo-localization` (~57.0.2) with `supportedLocales` es/en and
+  `supportsRTL: false`; `locales/es.json`, `locales/en.json` (app name).
+- Más → Idioma (Sistema · Español · English); `FEATURE_I18N` true.
+
+### Acceptance criteria
+- [x] tsc, lint, jest green (parity, store, catalog suites; the existing suites still pass in Spanish).
+- [x] Web, one profile, both languages over 23 routes (tabs, fill-up, check, catalogue, vehicle hub, build,
+  ficha, Viajes, Pista, feedback, versions, reminders, documents, tasks, account, export, contacts): English has
+  no Spanish left except user data ("el daily") and the release notes (with the note). 0 page errors.
+  Screenshots `docs/qa/imp-30092026-phase-3a-{es,en}-{inicio,garaje,historial}.png`.
+- [ ] Android: switch in Más, a notification, the PDF header, Sistema follows the phone on foreground — with the
+  Phase 3B build.
+
+### Notes closed
+- 2.
 

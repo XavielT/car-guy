@@ -1,11 +1,13 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AdminFeedbackListSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
 import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/feedback/present';
 import { Chip, EmptyState, StatusPill } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useAdminGate } from '@/lib/cloud/admin';
 import { t } from '@/lib/i18n';
 import { FEEDBACK_STATUSES, listFeedback, type FeedbackListRow, type FeedbackStatus } from '@/lib/feedback/inbox';
@@ -37,12 +39,16 @@ export default function ComentariosRecibidos() {
   );
 
   const header = <Stack.Screen options={{ headerShown: true, title: t.feedback.admin.title }} />;
+  // The gate and the first inbox read; back from a detail reloads behind the old list.
+  const loading = gate === 'loading' || (admin && rows === undefined);
+  const showSkeleton = useDelayedLoading(loading);
 
-  if (gate === 'loading' || (admin && rows === undefined)) {
+  if (showSkeleton || loading) {
+    // Remote data, so the skeleton is really seen; a fast answer shows nothing but the header.
     return (
-      <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
+      <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
         {header}
-        <ActivityIndicator color={theme.text.muted} />
+        {showSkeleton ? <AdminFeedbackListSkeleton /> : null}
       </View>
     );
   }

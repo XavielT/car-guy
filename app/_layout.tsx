@@ -14,15 +14,16 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, AppState, Platform, useWindowDimensions, View } from 'react-native';
+import { AppState, Platform, useWindowDimensions, View } from 'react-native';
 
 import { AlertHost } from '@/components/AlertHost';
 import { clearBootAttempts, DatabaseBoundary } from '@/components/BootError';
 import { NovedadesSheet } from '@/components/changelog/NovedadesSheet';
 import { FirstSyncBanner } from '@/components/FirstSyncBanner';
 import { launchAlreadyRan, LaunchOverlay, markLaunchAppReady } from '@/components/LaunchOverlay';
+import { TabsBootSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { T } from '@/components/T';
-import { fonts, palette } from '@/constants/theme';
+import { fonts } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
 import { FEATURE_LAUNCH_ANIM } from '@/lib/flags';
@@ -238,12 +239,9 @@ function useNotifications() {
   }, []);
 }
 
+/** The boot frame: Inicio's outline, still (ADR-40) — no theme, navigator or database yet. */
 function Booting() {
-  return (
-    <View style={{ flex: 1, backgroundColor: palette.dark.bg.base, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator color={palette.dark.accent} />
-    </View>
-  );
+  return <TabsBootSkeleton />;
 }
 
 function Shell() {

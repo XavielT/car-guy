@@ -1,11 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListKeyValueSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { KeyValueRow, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
 import { history } from '@/lib/db/repos';
@@ -44,6 +46,8 @@ export default function ReporteScreen() {
   const [stats, setStats] = useState<VehicleStats | null>(null);
   const [rows, setRows] = useState<HistoryEntry[]>([]);
   const [busy, setBusy] = useState(false);
+  // The first period's read, found or not; a period change keeps the old card up (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const vehicleId = activeVehicle?.id;
 
@@ -61,7 +65,11 @@ export default function ReporteScreen() {
       if (cancelled) return;
       setStats(result);
       setRows(feed);
-    })().catch(() => {});
+    })()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
 
     return () => {
       cancelled = true;
@@ -99,6 +107,8 @@ export default function ReporteScreen() {
     }
   }
 
+  const showSkeleton = useDelayedLoading(!loaded && !!vehicleId);
+
   if (!activeVehicle) return null;
 
   return (
@@ -118,7 +128,9 @@ export default function ReporteScreen() {
           onChange={setPeriod}
         />
 
-        {stats ? (
+        {showSkeleton ? (
+          <ListKeyValueSkeleton rows={4} style={styles.summary} />
+        ) : stats ? (
           <Surface style={styles.summary}>
             <T face="eyebrow" style={[styles.eyebrow, { color: theme.text.muted }]}>
               {stats.vehicle.name}
@@ -142,11 +154,7 @@ export default function ReporteScreen() {
             />
             <KeyValueRow label={t.report.historyTitle} value={t.report.rows(rows.length)} />
           </Surface>
-        ) : (
-          <View style={styles.loading}>
-            <ActivityIndicator color={theme.accent} />
-          </View>
-        )}
+        ) : null}
 
         {Platform.OS === 'web' ? (
           <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
@@ -173,7 +181,6 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11 },
   range: { fontSize: 12, marginTop: 4 },
   rule: { height: 1, marginVertical: space.md },
-  loading: { paddingVertical: space.xxxl, alignItems: 'center' },
   hint: { fontSize: 13, lineHeight: 18, marginBottom: space.md },
 });
 

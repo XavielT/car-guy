@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { MissingRecord } from '@/components/MissingRecord';
+import { VehicleHubSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import {
   Badge,
@@ -20,6 +21,7 @@ import {
   type Tone,
 } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { garageFacts, type GarageFacts } from '@/lib/db/garageQueries';
 import {
   currentOdometer as currentOdometerQuery,
@@ -164,16 +166,23 @@ export default function VehicleHubScreen() {
         fillups: fuels.length,
         services: services.length,
       });
-    })().catch(() => {});
+    })().catch(() => {
+      // A read that failed before the first answer is a record we cannot show.
+      if (!cancelled) setVehicle((prev) => (prev === undefined ? null : prev));
+    });
 
     return () => {
       cancelled = true;
     };
   }, [id, version, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. While loading,
+  // the hub's outline after 150 ms (ADR-40); MissingRecord only once the read
+  // answered empty. Reloads keep the loaded vehicle, so only the first load.
+  const showSkeleton = useDelayedLoading(vehicle === undefined);
+  if (showSkeleton) return <VehicleHubSkeleton />;
   if (vehicle === null) return <MissingRecord />;
-  if (!vehicle) return null;
+  if (!vehicle) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   const badges = facts ? vehicleBadges(vehicle, facts) : [];
   const kana = toKatakana(vehicle.nickname);

@@ -1,12 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, CornerGrid, GhostButton, PrimaryButton } from '@/components/ui';
 import type { Corner, CornerValues } from '@/components/ui/CornerGrid';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { wheelSets as wheelSetRepo } from '@/lib/db/repos';
@@ -80,8 +82,24 @@ function LapField({ label, value, onChange, seconds }: { label: string; value: n
  * grids (cold → hot, rear growth over 8 psi in red), the drift or timed block,
  * feel and notes, the live "Cambiaste desde la sesión N" note, and the day's
  * summary with COPIAR A SESIÓN N+1 · COMPARTIR RESUMEN.
+ *
+ * Until the session (or the new one's draft) and its event are read it is a
+ * `skeleton` (the screen's twin) — at once when the screen was already showing
+ * it (`skeletonContinued`).
  */
-export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessionId?: string; eventId?: string; onDone: () => void }) {
+export function SessionForm({
+  sessionId,
+  eventId: givenEvent,
+  onDone,
+  skeleton,
+  skeletonContinued,
+}: {
+  sessionId?: string;
+  eventId?: string;
+  onDone: () => void;
+  skeleton?: ReactNode;
+  skeletonContinued?: boolean;
+}) {
   const router = useRouter();
   const { theme } = useTheme();
   const { data, refresh } = useStore();
@@ -145,7 +163,9 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
     };
   }, [sessionId, givenEvent]);
 
-  if (!loaded || !event || !eventId) return null;
+  const loading = !loaded || !event || !eventId;
+  const showSkeleton = useFormSkeleton(loading, skeletonContinued);
+  if (loading) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
 
   const discipline = event.event.discipline;
   const drift = discipline === 'drift' || discipline === 'junte';

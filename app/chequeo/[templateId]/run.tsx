@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CheckPhotoStrip } from '@/components/checks/CheckPhotoStrip';
 import { Field } from '@/components/Field';
+import { CheckRunSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
 import { BoostRing, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
   currentOdometer as currentOdometerQuery,
   inspectionItems as itemRepo,
@@ -62,6 +64,8 @@ export default function RunScreen() {
   // Lazy initialiser, not a bare Date.now() in the render body: the clock is
   // impure and the lint rightly refuses to have it read on every render.
   const [startedAt] = useState(() => Date.now());
+  // True until the template and its items are read, found or not (ADR-40).
+  const [loading, setLoading] = useState(true);
 
   // The timer is a gentle one: it shows the check really is two minutes, and
   // feeds duration_sec. It never hurries anyone.
@@ -98,12 +102,25 @@ export default function RunScreen() {
       setTemplate(tpl);
       setItems(rows);
       if (km != null) setOdometer(String(Math.round(km)));
-    })().catch(() => {});
+    })()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [templateId, vehicleId]);
 
+  const showSkeleton = useDelayedLoading(loading && !!templateId && !!vehicleId);
+
+  if (showSkeleton) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
+        <CheckRunSkeleton />
+      </SafeAreaView>
+    );
+  }
   if (!template || !activeVehicle) return null;
 
   const answered = items.filter((i) => answers[i.id]).length;

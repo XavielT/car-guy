@@ -3,9 +3,11 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { BestsStrip, EventCard } from '@/components/track/TrackPieces';
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { Chip, EmptyState, PrimaryButton } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listEvents, vehicleBests, type EventCard as Card, type PersonalBest } from '@/lib/db/trackQueries';
 import { todayIso } from '@/lib/domain/dates';
 import { t } from '@/lib/i18n';
@@ -25,6 +27,8 @@ export default function TrackIndexScreen() {
   const [filter, setFilter] = useState<string | null>(vehicleId ?? null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [bests, setBests] = useState<PersonalBest[]>([]);
+  // Settled once the first read answers (or fails): the skeleton is for that read only (ADR-40).
+  const [settled, setSettled] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,16 +37,18 @@ export default function TrackIndexScreen() {
         if (cancelled) return;
         setCards(c);
         setBests(b);
-      });
+      }).finally(() => !cancelled && setSettled(true));
       return () => {
         cancelled = true;
       };
     }, [filter]),
   );
 
+  const showSkeleton = useDelayedLoading(!settled);
+
   const today = todayIso().slice(0, 10);
-  const upcoming = (cards ?? []).filter((c) => c.event.occurredAt.slice(0, 10) > today).reverse();
-  const past = (cards ?? []).filter((c) => c.event.occurredAt.slice(0, 10) <= today);
+  const upcoming = (showSkeleton ? [] : (cards ?? [])).filter((c) => c.event.occurredAt.slice(0, 10) > today).reverse();
+  const past = (showSkeleton ? [] : (cards ?? [])).filter((c) => c.event.occurredAt.slice(0, 10) <= today);
   const vehicles = data.vehicles.filter((v) => !v.isArchived);
   const open = (id: string) => router.push({ pathname: '/pista/evento/[id]', params: { id } });
 
@@ -62,8 +68,8 @@ export default function TrackIndexScreen() {
           ))}
         </ScrollView>
       ) : null}
-      <BestsStrip bests={bests} />
-      {cards && !cards.length ? <EmptyState icon="speedometer-outline" message={t.track.empty} /> : null}
+      {showSkeleton ? <ListCardsSkeleton section n={4} pad={space.md} r={radius.button} eyebrow lines={1} titleWidth="65%" /> : <BestsStrip bests={bests} />}
+      {cards && !cards.length && !showSkeleton ? <EmptyState icon="speedometer-outline" message={t.track.empty} /> : null}
       {upcoming.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
           {t.track.upcoming}

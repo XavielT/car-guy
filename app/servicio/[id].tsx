@@ -4,9 +4,11 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, Hanko, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, categoryInkLight, radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
   inspections as inspectionRepo,
   media as mediaRepo,
@@ -91,9 +93,11 @@ export default function ServicioDetalleScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(record === undefined);
   if (record === null) return <MissingRecord />;
-  if (!record) return null;
+  if (!record) return showSkeleton ? <RecordSkeleton pill stamp cards={[96, 72]} /> : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>

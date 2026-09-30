@@ -5,9 +5,11 @@ import { FlatList, Pressable, ScrollView, StyleSheet, View, useWindowDimensions 
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { StorageMeter } from '@/components/album/StorageMeter';
+import { VehicleAlbumSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { Badge, EmptyState, GhostButton, HazardDivider, Segmented, type BadgeTone } from '@/components/ui';
 import { categoryColors, categoryInkLight, radius, space, type CategoryKey } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { albumPhotos, modPairs, odometerReadings, timelineEvents, type AlbumPhoto } from '@/lib/db/albumQueries';
 import { vehicleOwnership, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Vehicle } from '@/lib/db/types';
@@ -53,6 +55,7 @@ export default function AlbumScreen() {
   const [mode, setMode] = useState<Mode>('timeline');
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [photos, setPhotos] = useState<AlbumPhoto[] | null>(null);
+  const showSkeleton = useDelayedLoading(photos === null);
   const [sections, setSections] = useState<TimelineSection[]>([]);
   const [years, setYears] = useState<number[]>([]);
   const [activeYear, setActiveYear] = useState<number | null>(null);
@@ -87,7 +90,8 @@ export default function AlbumScreen() {
   // Back from the importer, the viewer or a hito: re-read.
   useFocusEffect(
     useCallback(() => {
-      void load();
+      // A failed first read shows the empty album rather than an outline forever.
+      load().catch(() => setPhotos((prev) => prev ?? []));
     }, [load]),
   );
 
@@ -177,9 +181,12 @@ export default function AlbumScreen() {
     </View>
   );
 
+  // `photos` is null until the first read (a refocus keeps the last ones up):
+  // the grid's outline under the real header after 150 ms (ADR-40).
   const footer = <StorageMeter vehicleId={id} style={{ marginTop: space.xl }} />;
-  const empty =
-    photos && !photos.length && !sections.length ? (
+  const empty = showSkeleton ? (
+    <VehicleAlbumSkeleton cell={cell} gap={GAP} />
+  ) : photos && !photos.length && !sections.length ? (
       <EmptyState icon="images-outline" message={t.album.empty} actionLabel={t.album.import} onAction={() => router.push({ pathname: '/album/importar', params: { vehicleId: id } })} />
     ) : null;
 
@@ -189,7 +196,7 @@ export default function AlbumScreen() {
         ref={gridRef}
         style={{ backgroundColor: theme.bg.base }}
         contentContainerStyle={styles.pad}
-        data={gridRows}
+        data={showSkeleton ? [] : gridRows}
         keyExtractor={(r) => r.key}
         ListHeaderComponent={header}
         ListFooterComponent={footer}
@@ -226,7 +233,7 @@ export default function AlbumScreen() {
       ref={listRef}
       style={{ backgroundColor: theme.bg.base }}
       contentContainerStyle={styles.pad}
-      data={rows}
+      data={showSkeleton ? [] : rows}
       keyExtractor={(r) => r.key}
       ListHeaderComponent={header}
       ListFooterComponent={footer}

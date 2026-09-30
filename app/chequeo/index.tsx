@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CheckSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, GaugeRing, GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { baseTemplateId, setTemplateEnabled, templatesForVehicle } from '@/lib/db/inspectionOps';
 import { inspections as inspectionRepo, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Inspection, InspectionTemplate } from '@/lib/db/types';
@@ -31,6 +33,9 @@ export default function ChequeoScreen() {
 
   const [templates, setTemplates] = useState<InspectionTemplate[]>([]);
   const [runs, setRuns] = useState<Inspection[]>([]);
+  // The first read only: "nothing due" and the empty state wait for it, so they
+  // no longer flash before the templates arrive (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const vehicleId = activeVehicle?.id;
 
@@ -49,13 +54,25 @@ export default function ChequeoScreen() {
       if (cancelled) return;
       setTemplates(mine);
       setRuns(history);
-    })().catch(() => {});
+      setLoaded(true);
+    })().catch(() => {
+      if (!cancelled) setLoaded(true);
+    });
     return () => {
       cancelled = true;
     };
   }, [vehicleId, data]);
 
+  const showSkeleton = useDelayedLoading(!loaded);
+
   if (!activeVehicle) return null;
+  if (showSkeleton || !loaded) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['bottom']}>
+        {showSkeleton ? <CheckSkeleton /> : null}
+      </SafeAreaView>
+    );
+  }
 
   const today = todayIso();
   const mine = templates;

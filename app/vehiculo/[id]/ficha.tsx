@@ -6,9 +6,11 @@ import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
+import { VehicleFichaSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
   applyVin,
   listDtcEvents,
@@ -53,6 +55,9 @@ export default function FichaScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [vinBusy, setVinBusy] = useState(false);
   const [torque, setTorque] = useState<(Partial<TorqueSpec> & { id: string }) | null>(null);
+  // True once the first read answered (ok or not); refocus reloads keep the page up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -65,10 +70,13 @@ export default function FichaScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      load()
+        .catch(() => {})
+        .finally(() => setLoaded(true));
     }, [load]),
   );
 
+  if (showSkeleton) return <VehicleFichaSkeleton />;
   if (!vehicle || !ficha) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   async function saveValue(clear = false) {

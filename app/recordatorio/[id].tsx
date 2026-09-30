@@ -8,9 +8,11 @@ import { oilSummary } from '@/lib/domain/oil';
 import { CompleteReminderSheet } from '@/components/CompleteReminderSheet';
 import { ReminderForm } from '@/components/ReminderForm';
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, SectionHeader, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { evaluatedReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import { reminders as reminderRepo, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Vehicle } from '@/lib/db/types';
@@ -65,9 +67,11 @@ export default function RecordatorioScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(row === undefined);
   if (row === null) return <MissingRecord />;
-  if (!row || !vehicle) return null;
+  if (!row || !vehicle) return showSkeleton ? <RecordSkeleton meta={false} cards={[96]} buttons={3} /> : null;
   const { reminder, status } = row;
 
   const setEnabled = (isEnabled: boolean) =>

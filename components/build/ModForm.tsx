@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import {
@@ -54,12 +56,17 @@ export function ModForm({
   modId,
   draft,
   onDone,
+  skeleton,
+  skeletonContinued,
 }: {
   vehicleId: string;
   modId?: string;
   draft?: Partial<Mod> & { fromWishlistId?: string };
   /** The saved mod — "Usar en un mod" links the inventory item to it. */
   onDone: (saved?: { id: string }) => void;
+  /** Editing: the screen's twin, shown until the mod is read (at once when the screen already showed it). */
+  skeleton?: ReactNode;
+  skeletonContinued?: boolean;
 }) {
   const { theme } = useTheme();
   // Known before the first save, so photos can be attached right away.
@@ -97,6 +104,8 @@ export function ModForm({
   const [notes, setNotes] = useState(draft?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
   const [soldPrice, setSoldPrice] = useState<number | null>(draft?.soldPriceDop ?? null);
+  const [loaded, setLoaded] = useState(!modId);
+  const showSkeleton = useFormSkeleton(!loaded, skeletonContinued);
 
   useEffect(() => {
     void (async () => {
@@ -114,6 +123,7 @@ export function ModForm({
       if (!rate && r) setRate(String(r));
       if (!modId) return;
       const m = await modRepo.getById(modId);
+      setLoaded(true);
       if (!m) return;
       setCategoryId(m.categoryId);
       setName(m.name);
@@ -232,6 +242,8 @@ export function ModForm({
     </T>
   );
 
+  // Not the empty fields of a new mod while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.sm }}>

@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { space } from '@/constants/theme';
 import { lastFxRate, saveWishlistItem } from '@/lib/db/buildQueries';
 import { modCategories, wishlist as wishlistRepo } from '@/lib/db/repos';
@@ -25,8 +27,9 @@ const numOrNull = (s: string) => (s.trim() ? parseDecimal(s) : null);
  * A wishlist item: what, how badly (PRÓXIMO · PRONTO · ALGÚN DÍA), and what it
  * really costs to bring it — the foreign price at the last rate + envío +
  * aduana. "Convertir a mod" opens the mod form prefilled and links the two.
+ * Editing, its fields stay a `skeleton` (the screen's twin) until the item is read.
  */
-export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string; itemId?: string; onDone: () => void }) {
+export function WishlistForm({ vehicleId, itemId, onDone, skeleton }: { vehicleId: string; itemId?: string; onDone: () => void; skeleton?: ReactNode }) {
   const router = useRouter();
   const { theme } = useTheme();
   const [categories, setCategories] = useState<ModCategory[]>([]);
@@ -46,6 +49,8 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
   const [status, setStatus] = useState<WishlistItem['status']>('idea');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(!itemId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     void (async () => {
@@ -54,6 +59,7 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
       setRate(r);
       if (!itemId) return;
       const w = await wishlistRepo.getById(itemId);
+      setLoaded(true);
       if (!w) return;
       setCategoryId(w.categoryId);
       setName(w.name);
@@ -106,6 +112,8 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
     </T>
   );
 
+  // Not the empty fields of a new item while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.md }}>

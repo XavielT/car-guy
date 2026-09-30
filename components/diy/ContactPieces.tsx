@@ -1,11 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { contactLinks, listContacts, saveContact, type ContactLink } from '@/lib/db/diyQueries';
 import { contacts as contactRepo } from '@/lib/db/repos';
@@ -40,8 +42,11 @@ function IconButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyp
   );
 }
 
-/** The contact form, with what the contact has done for the garage underneath. */
-export function ContactForm({ contactId, onDone }: { contactId?: string; onDone: () => void }) {
+/**
+ * The contact form, with what the contact has done for the garage underneath.
+ * Editing, its fields stay a `skeleton` (the screen's twin) until the contact is read.
+ */
+export function ContactForm({ contactId, onDone, skeleton }: { contactId?: string; onDone: () => void; skeleton?: ReactNode }) {
   const router = useRouter();
   const { theme } = useTheme();
   const [name, setName] = useState('');
@@ -53,6 +58,8 @@ export function ContactForm({ contactId, onDone }: { contactId?: string; onDone:
   const [notes, setNotes] = useState('');
   const [links, setLinks] = useState<ContactLink[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(!contactId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     if (!contactId) return;
@@ -68,6 +75,7 @@ export function ContactForm({ contactId, onDone }: { contactId?: string; onDone:
         setNotes(c.notes);
       }
       setLinks(l);
+      setLoaded(true);
     })();
   }, [contactId]);
 
@@ -77,6 +85,8 @@ export function ContactForm({ contactId, onDone }: { contactId?: string; onDone:
     onDone();
   }
 
+  // Not the empty fields of a new contact while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.md }}>

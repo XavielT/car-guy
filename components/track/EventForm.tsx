@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import {
@@ -48,8 +50,24 @@ const str = (n: number | null | undefined): string => (n == null ? '' : String(n
  * saved, its sessions, the tires and pads it used, the day's summary and its
  * photos (album items owned by the event, so they show on the Álbum timeline
  * under a PISTA/JUNTE card).
+ *
+ * Opening a saved one, it is a `skeleton` until the event is read — at once when
+ * the screen was already showing it (`skeletonContinued`); `skeleton={null}` for
+ * a remount that is only a refresh (nothing, not the twin, for those few ms).
  */
-export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventId?: string; vehicleId?: string; onDone: () => void }) {
+export function EventForm({
+  eventId,
+  vehicleId: givenVehicle,
+  onDone,
+  skeleton,
+  skeletonContinued,
+}: {
+  eventId?: string;
+  vehicleId?: string;
+  onDone: () => void;
+  skeleton?: ReactNode;
+  skeletonContinued?: boolean;
+}) {
   const router = useRouter();
   const { theme } = useTheme();
   const { data, activeVehicle, refresh } = useStore();
@@ -83,6 +101,8 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const shotRef = useRef<View>(null);
+  const [loaded, setLoaded] = useState(!eventId);
+  const showSkeleton = useFormSkeleton(!loaded, skeletonContinued);
 
   const reload = useCallback(async () => {
     const [d, p] = await Promise.all([eventDetail(id), eventPhotos(id)]);
@@ -95,6 +115,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
     void listVenues().then(setVenues);
     if (!eventId) return;
     void Promise.all([eventDetail(eventId), eventPhotos(eventId)]).then(([d, p]) => {
+      setLoaded(true);
       setDetail(d);
       setPhotos(p);
       if (!d) return;
@@ -218,6 +239,8 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
   const vehicleName = vehicles.find((v) => v.id === vehicleId)?.name;
   const venue = venues.find((v) => v.id === venueId) ?? null;
 
+  // Not the empty fields of a new event while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton === undefined ? <FormSkeleton /> : skeleton) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>

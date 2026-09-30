@@ -4,9 +4,11 @@ import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, categoryInkLight, radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { expenses as expenseRepo, media as mediaRepo } from '@/lib/db/repos';
 import { EXPENSE_CATEGORY_LABELS, type Expense } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, money } from '@/lib/format';
@@ -52,9 +54,11 @@ export default function GastoDetalleScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(expense === undefined);
   if (expense === null) return <MissingRecord />;
-  if (!expense) return null;
+  if (!expense) return showSkeleton ? <RecordSkeleton pill cards={[64]} /> : null;
 
   const label = EXPENSE_CATEGORY_LABELS[expense.category];
 

@@ -3,9 +3,11 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ContactButtons } from '@/components/diy/ContactPieces';
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listContacts } from '@/lib/db/diyQueries';
 import type { Contact } from '@/lib/db/types';
 import { CONTACT_KINDS, formatPhone } from '@/lib/domain/contacts';
@@ -17,12 +19,18 @@ export default function ContactsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const [contacts, setContacts] = useState<Contact[] | null>(null);
+  // Settled once the first read answers (or fails): the skeleton is for that read only (ADR-40).
+  const [settled, setSettled] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      void listContacts().then(setContacts);
+      void listContacts()
+        .then(setContacts)
+        .finally(() => setSettled(true));
     }, []),
   );
+
+  const showSkeleton = useDelayedLoading(!settled);
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
@@ -32,9 +40,10 @@ export default function ContactsScreen() {
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
         {t.contacts.title}
       </T>
-      {contacts && !contacts.length ? <EmptyState icon="people-outline" message={t.contacts.empty} /> : null}
+      {showSkeleton ? <ListCardsSkeleton section n={3} pad={space.md} r={radius.button} buttons={2} titleWidth="50%" style={{ marginBottom: space.md }} /> : null}
+      {contacts && !contacts.length && !showSkeleton ? <EmptyState icon="people-outline" message={t.contacts.empty} /> : null}
       {CONTACT_KINDS.map((k) => {
-        const list = (contacts ?? []).filter((c) => c.kind === k);
+        const list = showSkeleton ? [] : (contacts ?? []).filter((c) => c.kind === k);
         if (!list.length) return null;
         return (
           <View key={k} style={{ marginBottom: space.md }}>
