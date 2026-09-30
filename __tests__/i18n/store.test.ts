@@ -16,8 +16,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 let mockDevice = 'es';
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: mockDevice }] }));
+let mockVehicles = 0;
+jest.mock('@/lib/db/client', () => ({ getDb: async () => ({ getFirstAsync: async () => ({ n: mockVehicles }) }) }));
 
 afterEach(() => {
+  mockVehicles = 0;
   mockStore.clear();
   mockDevice = 'es';
   __setLanguageForTests('es', 'system');
@@ -74,3 +77,30 @@ it('formats dates in the language; money is RD$ in both', () => {
   expect(money(1234.5)).toBe(esMoney);
   expect(esMoney).toMatch(/^RD\$ 1,234\.50$/);
 });
+
+describe('first run of the English-capable version', () => {
+  it('an install that already has a garage stays Spanish on an English phone', async () => {
+    mockDevice = 'en';
+    mockVehicles = 3;
+    __setLanguageForTests('en', 'system');
+    expect(await initLanguage()).toBe('es');
+    expect(mockStore.get('car-guy/language')).toBe('es');
+  });
+
+  it('a new install follows the phone', async () => {
+    mockDevice = 'en';
+    mockVehicles = 0;
+    __setLanguageForTests('es', 'system');
+    expect(await initLanguage()).toBe('en');
+    expect(mockStore.get('car-guy/language')).toBeUndefined();
+  });
+
+  it('runs once: a later English choice is not undone', async () => {
+    mockDevice = 'en';
+    mockVehicles = 3;
+    mockStore.set('car-guy/language-migrated', '1');
+    mockStore.set('car-guy/language', 'en');
+    expect(await initLanguage()).toBe('en');
+  });
+});
+

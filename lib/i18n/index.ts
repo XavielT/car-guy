@@ -82,10 +82,36 @@ export function localeTag(lang: Lang = resolved): 'es-DO' | 'en-US' {
   return lang === 'en' ? 'en-US' : 'es-DO';
 }
 
+const MIGRATED_KEY = 'car-guy/language-migrated';
+
+/**
+ * 2.4 is the first version with English. Someone who already has a garage
+ * chose a Spanish app — their phone being set to English should not flip it
+ * on the day they update — so an install that has vehicles the first time
+ * this runs is pinned to Spanish; a new install follows the device. Once.
+ * Más → Idioma changes either.
+ */
+async function keepSpanishForExistingInstall(kv: KeyValue): Promise<void> {
+  if (await kv.getItem(MIGRATED_KEY)) return;
+  await kv.setItem(MIGRATED_KEY, '1');
+  if (await kv.getItem(KEY)) return;
+  // Lazy: lib/db imports this module (a cycle at load time otherwise).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getDb } = require('../db/client') as typeof import('../db/client');
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM vehicle');
+  if ((row?.n ?? 0) > 0) {
+    preference = 'es';
+    await kv.setItem(KEY, 'es');
+  }
+}
+
 /** Reads the stored preference. Called once before the splash hides, and by headless tasks. */
 export async function initLanguage(): Promise<Lang> {
   try {
-    const raw = await (await storage()).getItem(KEY);
+    const kv = await storage();
+    await keepSpanishForExistingInstall(kv).catch(() => {});
+    const raw = await kv.getItem(KEY);
     if (raw && (PREFERENCES as string[]).includes(raw)) preference = raw as LanguagePreference;
   } catch {
     // Storage unavailable (private window, headless start): stay on the device language.
