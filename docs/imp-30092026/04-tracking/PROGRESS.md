@@ -13,7 +13,7 @@ phase" carry context between sessions.
 | 1 | Fix pack 2.3.1 | ✅ | `fix/2.3.1-fixpack` | v2.3.1 released; detail + dedupe, stations, reserve light, ≈ por echada (with a plausibility band), denser routes; trip export carried |
 | 2 | Schema v8 | ✅ | `imp-30092026/phase-2-schema-v8` | v8 + sql/025–026 on x-core; verifiers 32/32 + 24/24; merged (no release — no screens) |
 | 3A | Language es/en | ✅ | `imp-30092026/phase-3-i18n-skeletons` | en.ts complete (typed), live `t`, Más → Idioma, catalogue, dates; web sweep clean |
-| 3B | Skeletons | 🟡 | `imp-30092026/phase-3-i18n-skeletons` | foundation in; 50 twins in progress |
+| 3B | Skeletons | ✅ | `imp-30092026/phase-3-i18n-skeletons` | 50/50 data screens with their twin; no flash on the fast path (Redmi 56 fps capture) |
 | 4 | Map · Modo conducir · centre button | ⬜ | | |
 | 5 | Eventos · memoria · gomas · precios | ⬜ | | |
 | 6 | Perfil · bienvenida · legal · release 2.4.0 | ⬜ | | |
@@ -399,9 +399,58 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
   ficha, Viajes, Pista, feedback, versions, reminders, documents, tasks, account, export, contacts): English has
   no Spanish left except user data ("el daily") and the release notes (with the note). 0 page errors.
   Screenshots `docs/qa/imp-30092026-phase-3a-{es,en}-{inicio,garaje,historial}.png`.
-- [ ] Android: switch in Más, a notification, the PDF header, Sistema follows the phone on foreground — with the
-  Phase 3B build.
+- [x] Android (Redmi, test variant): Más → Idioma switches instantly and stays on Más (tab bar included — after
+  the fix below); Sistema follows the app's locale when it comes back to the foreground (per-app locale es-DO ↔
+  en-US via `cmd locale set-app-locales`, his phone's own language untouched); the test notification's body
+  arrived in English. The PDF book header was not opened on the device (its strings are the parity-tested
+  `book.pdf` keys).
+- Found on the Redmi and fixed: the switch did not re-render the tab bar or unsubscribed screens —
+  expo-sqlite's `SQLiteProvider` is memoized with a comparator that ignores `children`, so the language key set
+  above it never reached the tree (`58f8ef3`: the key now lives in `ShellInLanguage`, inside the provider). The
+  web sweep had missed it because it set the language and reloaded.
+- Decision: his phone is set to English, so "Sistema" would have flipped his Spanish app the day he updates. An
+  install that already has vehicles the first time 2.4 runs is pinned to Spanish; new installs follow the device
+  (`8e32263`, tested).
 
 ### Notes closed
 - 2.
+
+## Phase 3B — Skeletons   (branch `imp-30092026/phase-3-i18n-skeletons`)
+
+**Status:** complete
+**Commits:** `17ee7e4` foundation · `c005bbe` Phase 3B
+
+### Changed
+- `components/ui/Skeleton.tsx`: `<Skeleton>` root (one shimmer clock per screen through context, only on the
+  focused screen, static under reduced motion; a11y progressbar + "Cargando…/Loading…"), blocks Rect / Circle /
+  Lines / Card / Row / Title / Tiles / Fields, generic ListSkeleton / DetailSkeleton / FormSkeleton.
+- `hooks/useDelayedLoading.ts` (150 ms delay, 300 ms minimum).
+- 50 route twins in `components/skeletons/` (Tabs*, Vehicle*, List*/Admin*/Check*/Trips*, Record*/DetailTrip*,
+  form outlines via `useFormSkeleton`), first load only; boot spinners → Inicio-shaped skeletons.
+- Flashes removed: EmptyState before the first read (Historial, chequeo, documentos, recordatorios, tareas,
+  viajes, compartidos, contactos, pista, OBD, exportar counts), MissingRecord before the read resolved (10 detail
+  screens), Inicio's "—" cluster, Garaje's "0 in the garage" + Add vehicle, admin/reporte spinners. hito/[id]
+  now shows MissingRecord for a deleted milestone (was a blank screen forever).
+- `lib/dev/slowQueries.ts` — SLOW_QUERIES (dev only): `localStorage['car-guy/dev-slow-queries'] = '800'`, armed
+  after the store's first load (boot is ~100 small reads; slowing them made boot take minutes). A `?slow=` URL
+  param is read too but expo-router rewrites the URL during startup, so it is unreliable.
+- `__tests__/ui/skeletons.test.ts`: every route in app/ renders a `…Skeleton` or is in NO_SKELETON with a reason.
+
+### Acceptance criteria
+- [x] **Screens with skeleton: 50/50** (34 exempt with reasons: store-backed, static, create forms, dev).
+- [x] Web, slow mode, warm navigation into 22 screens: each shows its skeleton, then its content; no stretched
+  rows (a Historial chip row stretched under the skeleton — fixed). Pairs
+  `docs/qa/imp-30092026-phase-3b-{skeleton,loaded}-{historial,cifras,garaje,vehiculo}.png` + 18 skeleton shots.
+- [x] Fast path, warm app: tab switches, vehicle hub, a fill-up detail — 0 skeleton flashes (DOM observer).
+- [x] Redmi: 12 s screen capture switching Inicio / Historial / Garaje / Cifras — 674 frames (~56 fps), no frame
+  with a skeleton tone spike (per-frame raised-tone share, median 4.9 %, max 6.4 %).
+- [x] tsc, lint, jest (1,767), i18n-frozen 0.
+
+### Notes closed
+- 4.
+
+### Notes for the next phase
+- Phase 4 (map · Modo conducir): the trip detail's twin (`DetailTripSkeleton`) has a map box at the card's ratio —
+  keep it when MapLibre replaces the mosaic. New screens need a twin or a NO_SKELETON reason, and every string in
+  es + en (parity test), read at render time (i18n-frozen).
 
