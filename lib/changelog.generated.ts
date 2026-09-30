@@ -4,6 +4,23 @@ import type { ChangelogEntry } from './changelog/parse';
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "2.3.0",
+    "name": null,
+    "date": "2026-09-30",
+    "unreleased": false,
+    "intro": [],
+    "sections": [
+      {
+        "title": null,
+        "intro": [],
+        "items": [
+          "**Roles**: cada cuenta es Miembro; Premium ya existe pero todavía no desbloquea nada (no hay membresías). Tu rol se ve en Cuenta.",
+          "**Panel de administración** (solo para el administrador): usuarios, actividad y comunidad en cifras; la lista de usuarios con su rol y cuánto usan la app (solo conteos, nunca el contenido de su garaje); cambiar el rol de una cuenta; y los comentarios recibidos."
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.2.3",
     "name": null,
     "date": "2026-09-30",

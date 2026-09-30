@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.0 (2026-09-30)
+
+- **Roles**: cada cuenta es Miembro; Premium ya existe pero todavía no desbloquea nada (no hay membresías).
+  Tu rol se ve en Cuenta.
+- **Panel de administración** (solo para el administrador): usuarios, actividad y comunidad en cifras;
+  la lista de usuarios con su rol y cuánto usan la app (solo conteos, nunca el contenido de su garaje);
+  cambiar el rol de una cuenta; y los comentarios recibidos.
+
 ## 2.2.3 (2026-09-30)
 
 - **Consumo en L/100 km**: en el formulario del vehículo elige "Consumo en" km/gal (o km/L) o L/100 km; Inicio,
