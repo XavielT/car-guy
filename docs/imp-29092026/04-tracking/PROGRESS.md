@@ -766,3 +766,17 @@ car's lifetime cost on each change.
 Every note of the brief is closed except **1 (Wheelz-style trips)**, whose automatic half shipped and waits
 for Xaviel's real drive to be called done. Hand-off: `docs/NEXT.md` → "Carried to the next cycle".
 
+## Release 2.2.1 — 2026-09-30 (backlog pass after 2.2.0)
+
+- Excursion filter in `cleanTrack` (out-and-back runs > 300 m at > 40 m/s dropped from saved tracks).
+- Public page: status (`show_status`, default off) and "lo que me ha costado" from the phone's own figure
+  (`costs_summary`, refreshed before each sync) — sql/022 applied; local-rls 2c–2f.
+- Inventory `used_in_mod_id` (sql/023 applied); costs read the link, old items keep the note rule.
+- Local schema v7. 1173 tests, lint clean, local-rls all passed.
+- `car-guy-v2.2.1.apk` (versionCode 6, EAS key a16450a0…, sha256 7dced838…d072973) installed over 2.2.0 on
+  the Redmi with Xaviel's data: Novedades 2.2.1 once, 19.9 / 30.2 km/gal unchanged, 3 cars, signed in, "Todo
+  subido" (the new columns sync). GitHub v2.2.1 published; main pushed; smoke-apk 3/3, smoke-public-page 6/6,
+  sql/999 cleanup (0 leftover profiles).
+- Left, needing Xaviel only: the real drive; the admin inbox sign-in; decisions on a map provider, a MIUI
+  native module and native drag (docs/NEXT.md).
+
