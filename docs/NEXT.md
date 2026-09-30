@@ -6,12 +6,28 @@ still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
-## Cycle 3 — IMP 29092026 (Car Guy 2.2 "Kaidō")
+## Cycle 3 — IMP 29092026 (Car Guy 2.2 "Kaidō") — released 2026-09-30
 
-Started 2026-09-29 from v2.1.2: nineteen notes from Xaviel's use of 2.1.x → hotfix 2.1.3, schema v6
-(liters canonical), forms v2, partial fills, Viajes (manual + automatic), Garaje v2 / launch / versions /
-feedback / costs, web APK + 2.2.0. Package: [`imp-29092026/`](imp-29092026/README.md), log:
+From v2.1.2: nineteen notes from Xaviel's use of 2.1.x → hotfix 2.1.3, schema v6 (liters canonical),
+forms v2, partial fills with gauge estimates, Viajes (manual + automatic, live speed cluster), Garaje v2,
+animated launch, Novedades y versiones, Enviar comentario + admin inbox (sql/021), "Lo que me ha
+costado", /instalar + /api/apk. Package: [`imp-29092026/`](imp-29092026/README.md), log:
 [`imp-29092026/04-tracking/PROGRESS.md`](imp-29092026/04-tracking/PROGRESS.md).
+
+### Carried to the next cycle
+- **Xaviel's real drive** with Automático (traffic lights, km vs odometer, battery). The mock run on the
+  Redmi showed the 70 m/s jump filter can be fooled by a track that alternates slowly between two
+  places (Play Services fusing a fake GPS with the real Wi-Fi position); if a real drive shows spikes,
+  add an A→B→A return rule to `lib/trips/geo.ts` / `machine.ts`.
+- `tools/verify-x-core.mjs` checks 24–28 (feedback) — written, not run (they write test rows on x-core).
+- Admin inbox confirmed by Xaviel signing in with the admin email (must be a Car Guy account).
+- Real map under the route (the SVG is bbox-fitted, no tiles), speed heatmap by street.
+- Public dossier page: costs and vehicle status need `public_dossier()` changes (a new sql/022).
+- Inventory `used_in_mod_id` instead of the "Usado en:" note stamp that costs.ts parses.
+- MIUI autostart detection (a small native module; today the app only shows the checklist).
+- Garage drag-to-reorder on native (arrows today), estimate whisker on the economy chart, capacity
+  calibration hint after several full tanks.
+- Play Store: not now (Xaviel's call).
 
 ## Where things stand
 
@@ -20,7 +36,7 @@ feedback / costs, web APK + 2.2.0. Package: [`imp-29092026/`](imp-29092026/READM
 | Web app | <https://car-guy.vercel.app> — live, installable PWA, Vercel project `car-guy` |
 | Old web app | <https://tu-combustible-rd.vercel.app> — still up, still git-connected to this repo, so it also serves Car Guy. Delete the project when you are ready |
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
-| Android | **2.1.3 released** (2026-09-29) — GitHub release `v2.1.3` with `car-guy.apk` (stable name, always the latest: `…/releases/latest/download/car-guy.apk`) and `car-guy-v2.1.3.apk`; EAS project `@xavieldev/car-guy`, EAS-managed keystore. Release with `bash tools/release-apk.sh --publish` |
+| Android | **2.2.0 released** (2026-09-30) — GitHub release `v2.2.0` with `car-guy.apk` (stable name, always the latest: `…/releases/latest/download/car-guy.apk`) and `car-guy-v2.2.0.apk`; the web page car-guy.vercel.app/instalar offers it on Android (`/api/apk`); EAS project `@xavieldev/car-guy`, EAS-managed keystore. Release with `bash tools/release-apk.sh --publish` |
 | Cloud in the APK | Until 2.1.2 the APKs had **no** Supabase values (EAS packs by .gitignore, so `.env.local` never reached a build) — Cuenta said "no configurada". Since 2.1.3: `eas.json` `build.base.env` carries the two public values (URL + anon key — public by design, RLS protects the data; no service-role key anywhere), the EAS environments `preview`/`production` carry them too (`eas env:list production`), `app.config.js` refuses an EAS release build without them, and `tools/check-bundle-env.mjs` refuses an APK whose bundle lacks the project URL (the release script runs it) |
 | Distribution | **Xaviel's own channels only:** the portfolio card (links `releases/latest`, so every release reaches it with no change there), the web app and the direct APK link. **No Play Store for now** — Xaviel's call (2026-09-29): the app is not ready for it yet; it is a future step |
 | Cloud | Supabase `x-core`, schema `carguy`: v1 tables (19, incl. cloud-only `profiles`) + **schema v2** (`sql/009`–`010`, 23 more, applied 2026-09-28), private `carguy-media` bucket. **A 2.0.0 install signed in to sync cannot pull `vehicle`/`media`/`service_record` any more** (new columns) — ship 2.1 before anyone syncs on 2.0.0 |
