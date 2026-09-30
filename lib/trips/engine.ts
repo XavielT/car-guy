@@ -18,7 +18,7 @@ import { settings as settingsRepo } from '../db/repos';
 import { trips } from '../db/tripOps';
 import type { Trip } from '../db/types';
 import { applyStep, loadState, type Applied } from './finalize';
-import { displayKmh, effectiveSpeed, haversine, type Fix } from './geo';
+import { displayKmh, effectiveSpeed, haversine, isJump, type Fix } from './geo';
 import { resolveTripCfg, stepAll, type TripCfg, type TripInput, type TripMachineState } from './machine';
 import { getLiveTrip, reduceLive, setLiveTrip, type LiveTrip } from './liveStore';
 import { tripsMode } from './settings';
@@ -148,14 +148,18 @@ async function syncLive(state: TripMachineState, applied: Applied[], fixes: Fix[
     return;
   }
   for (const fix of fixes) live = advanceLive(live, fix);
-  setLiveTrip(live);
+  // The machine's distance is the truth (jump filter, accuracy rules); the live
+  // one only fills the gaps between batches.
+  setLiveTrip({ ...live, distanceM: open.distanceM });
 }
 
 function advanceLive(live: LiveTrip, fix: Fix): LiveTrip {
-  const speedMs = effectiveSpeed(prevFix, fix);
+  // A teleport (GPS glitch, a mock provider switched off) is neither distance nor speed.
+  const jump = prevFix != null && isJump(prevFix, fix);
+  const speedMs = jump ? fix.speed : effectiveSpeed(prevFix, fix);
   let next = live;
   if (speedMs != null) {
-    const stepM = prevFix ? haversine(prevFix, fix) : 0;
+    const stepM = prevFix && !jump ? haversine(prevFix, fix) : 0;
     // Jitter under the accuracy radius is not distance.
     const jitter = stepM < Math.max(fix.acc ?? 0, prevFix?.acc ?? 0) && speedMs < 1;
     next = reduceLive(live, { t: fix.t, speedKmh: displayKmh(speedMs), accM: fix.acc, stepM: jitter ? 0 : stepM, moving: speedMs >= MOVING_MS });

@@ -20,7 +20,7 @@ import { AlertHost } from '@/components/AlertHost';
 import { clearBootAttempts, DatabaseBoundary } from '@/components/BootError';
 import { NovedadesSheet } from '@/components/changelog/NovedadesSheet';
 import { FirstSyncBanner } from '@/components/FirstSyncBanner';
-import { LaunchOverlay, markLaunchAppReady } from '@/components/LaunchOverlay';
+import { launchAlreadyRan, LaunchOverlay, markLaunchAppReady } from '@/components/LaunchOverlay';
 import { T } from '@/components/T';
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
@@ -102,7 +102,10 @@ export default function RootLayout() {
     if (loaded && !FEATURE_LAUNCH_ANIM) SplashScreen.hideAsync();
   }, [loaded]);
 
-  const [launching, setLaunching] = useState(FEATURE_LAUNCH_ANIM);
+  // Once per process: a root rebuilt later (the activity recreated after a swipe
+  // from Recents while the trip service kept the process, an error boundary's
+  // retry) is not a launch — there is no native splash to take over from.
+  const [launching, setLaunching] = useState(FEATURE_LAUNCH_ANIM && !launchAlreadyRan());
   const endLaunch = useCallback(() => setLaunching(false), []);
   // Always the second child of the same fragment, so it keeps its state while
   // the first child goes from nothing to the boot screen to the app.

@@ -190,6 +190,22 @@ it('the cluster distance of a background trip matches the machine (no double cou
   await disarmAuto();
 });
 
+it('a teleport (glitch, mock GPS switched off) adds nothing to the cluster', async () => {
+  await settingsRepo.set('trips_enabled', 'auto');
+  await armAuto();
+  const drive = loadDrive(8).slice(0, 210);
+  await deliver(drive);
+  const before = getLiveTrip()!.distanceM;
+  const last = drive[drive.length - 1];
+  // 175 km away, then staying there: the machine's recovery restarts from the new place.
+  const far = Array.from({ length: 8 }, (_, i) => ({ ...last, t: last.t + (i + 1) * 2000, lat: last.lat + 1.6, speed: 0 }));
+  await deliver(far);
+  const live = getLiveTrip()!;
+  expect(live.distanceM - before).toBeLessThan(100);
+  expect(live.maxKmh).toBeLessThan(150);
+  await disarmAuto();
+});
+
 it('leaving Automático closes an open automatic trip instead of leaving it hanging', async () => {
   await settingsRepo.set('trips_enabled', 'auto');
   await armAuto();

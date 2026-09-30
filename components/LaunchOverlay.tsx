@@ -169,8 +169,27 @@ function whenAppReady(cb: () => void): () => void {
   };
 }
 
+let ranThisProcess = false;
+
+/** True once an overlay mounted in this JS context: later roots skip it. */
+export function launchAlreadyRan(): boolean {
+  return ranThisProcess;
+}
+
+/**
+ * Whatever happens (fonts that never load, a frame callback that never comes),
+ * the overlay is gone after this: a stuck launch frame over a working app is
+ * worse than no animation.
+ */
+export const LAUNCH_SAFETY_MS = 4000;
+
 /** `onDone` should be stable (useCallback): a new one restarts the fade wait. */
 export function LaunchOverlay({ ready, onDone }: { ready: boolean; onDone: () => void }) {
+  useEffect(() => {
+    ranThisProcess = true;
+    const t = setTimeout(onDone, LAUNCH_SAFETY_MS);
+    return () => clearTimeout(t);
+  }, [onDone]);
   const reduced = useReducedMotion();
   // Always the rest frame on the first render: it is what the native splash
   // shows, and on web it is what the static HTML was rendered with.
