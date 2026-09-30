@@ -269,12 +269,14 @@ export const MIGRATIONS: Migration[] = [
   { version: 5, up: [`ALTER TABLE track_event ADD COLUMN layout TEXT`] },
   // v6 (2.2, IMP 29092026): liters, statuses, gauges, oil, trips, history_feed v5 — ./migrationV6.ts.
   { version: 6, up: migrationV6() },
-  // v7 (2.2.1): the public page's status switch and the phone's cost summary for it (sql/022).
+  // v7 (2.2.1): the public page's status switch and cost summary (sql/022), inventory → mod link (sql/023).
   {
     version: 7,
     up: [
       `ALTER TABLE vehicle_share ADD COLUMN show_status INTEGER NOT NULL DEFAULT 0`,
       `ALTER TABLE vehicle_share ADD COLUMN costs_summary TEXT`,
+      // sql/023: the inventory item a mod was made from (was only a "Usado en:" line in the notes).
+      `ALTER TABLE inventory_item ADD COLUMN used_in_mod_id TEXT`,
     ],
   },
 ];

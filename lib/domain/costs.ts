@@ -166,9 +166,14 @@ export function isEmptyCost(cost: OwnershipCost): boolean {
  */
 export const USED_IN_MOD_PREFIX = 'Usado en:';
 
-/** An inventory item counts toward a car when it belongs to it, cost something and was not used in a mod. */
-export function inventoryCounts(item: { costDop: number | null; notes: string | null }): boolean {
+/**
+ * An inventory item counts toward a car when it belongs to it, cost something
+ * and was not used in a mod — by the link (2.2.1, used_in_mod_id) or, for items
+ * used before it existed, by the note's stamp.
+ */
+export function inventoryCounts(item: { costDop: number | null; notes: string | null; usedInModId?: string | null }): boolean {
   if (item.costDop == null || item.costDop <= 0) return false;
+  if (item.usedInModId) return false;
   return !(item.notes ?? '').split('\n').some((line) => line.startsWith(USED_IN_MOD_PREFIX));
 }
 

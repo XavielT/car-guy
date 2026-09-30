@@ -559,6 +559,8 @@ export type InventoryItem = Syncable & {
   fitsVehicleIds: string;
   mediaId: string | null;
   notes: string;
+  /** v7 / sql/023: the mod "Usar en un mod" put it into — its cost is then the mod's. */
+  usedInModId: string | null;
 };
 
 export type WheelSet = Syncable & {

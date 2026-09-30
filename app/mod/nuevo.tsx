@@ -42,10 +42,16 @@ export default function NewModScreen() {
       <ModForm
         vehicleId={target}
         draft={draft ?? undefined}
-        onDone={async () => {
+        onDone={async (saved) => {
           if (fromInventory && draft?.name) {
             const i = await inventoryRepo.getById(fromInventory);
-            if (i) await inventoryRepo.upsert({ id: i.id, notes: [i.notes, es.inventory.usedIn(draft.name)].filter(Boolean).join('\n') });
+            // The link is what the cost rule reads (its money is the mod's now); the note is for people.
+            if (i)
+              await inventoryRepo.upsert({
+                id: i.id,
+                usedInModId: saved?.id ?? null,
+                notes: [i.notes, es.inventory.usedIn(draft.name)].filter(Boolean).join('\n'),
+              });
           }
           refresh();
           router.back();

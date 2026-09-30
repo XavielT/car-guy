@@ -29,6 +29,7 @@ $P -f sql/020_rls_v3.sql
 $P -f sql/021_feedback.sql
 $P -f sql/021_feedback_storage.shared.sql
 $P -f sql/022_dossier_status_costs.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+$P -f sql/023_inventory_used_in_mod.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 OUT=$($P -f tools/local-rls/scenario.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
 echo "$OUT"
 echo "$OUT" | grep -q -E '^(FAIL|ERROR)' && exit 1

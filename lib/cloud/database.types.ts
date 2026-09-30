@@ -693,6 +693,7 @@ export type Database = {
           unit: string | null
           updated_at: string
           updated_by: string | null
+          used_in_mod_id: string | null
           user_id: string
         }
         Insert: {
@@ -716,6 +717,7 @@ export type Database = {
           unit?: string | null
           updated_at: string
           updated_by?: string | null
+          used_in_mod_id?: string | null
           user_id?: string
         }
         Update: {
@@ -739,6 +741,7 @@ export type Database = {
           unit?: string | null
           updated_at?: string
           updated_by?: string | null
+          used_in_mod_id?: string | null
           user_id?: string
         }
         Relationships: []
