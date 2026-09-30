@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.2 (2026-09-30)
+
+- **Mapa en tus viajes**: cada viaje se ve sobre las calles de OpenStreetMap, con la ruta coloreada por
+  velocidad. Se puede apagar en Viajes → Ajustes.
+- **Por dónde manejas**: en Viajes, un mapa con todos tus viajes juntos; la calle que más repites brilla más.
+- **Ordenar el garaje arrastrando**: en Garaje → Ordenar, mantén un carro presionado y arrástralo. Las
+  flechas siguen ahí.
+- **Xiaomi**: la guía de Automático ahora te dice si el "Inicio automático" de Car Guy está activado, y
+  abre esa pantalla directo.
+
 ## 2.2.1 (2026-09-30)
 
 - **Viajes más exactos**: si el GPS salta a otro sitio y vuelve (pasa cuando el teléfono mezcla GPS y Wi‑Fi),

@@ -4,6 +4,25 @@ import type { ChangelogEntry } from './changelog/parse';
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "2.2.2",
+    "name": null,
+    "date": "2026-09-30",
+    "unreleased": false,
+    "intro": [],
+    "sections": [
+      {
+        "title": null,
+        "intro": [],
+        "items": [
+          "**Mapa en tus viajes**: cada viaje se ve sobre las calles de OpenStreetMap, con la ruta coloreada por velocidad. Se puede apagar en Viajes → Ajustes.",
+          "**Por dónde manejas**: en Viajes, un mapa con todos tus viajes juntos; la calle que más repites brilla más.",
+          "**Ordenar el garaje arrastrando**: en Garaje → Ordenar, mantén un carro presionado y arrástralo. Las flechas siguen ahí.",
+          "**Xiaomi**: la guía de Automático ahora te dice si el \"Inicio automático\" de Car Guy está activado, y abre esa pantalla directo."
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.2.1",
     "name": null,
     "date": "2026-09-30",

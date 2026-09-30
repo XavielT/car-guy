@@ -2,7 +2,7 @@
   "expo": {
     "name": "Car Guy",
     "slug": "car-guy",
-    "version": "2.2.1",
+    "version": "2.2.2",
     "description": "Tu carro, al día. Mantenimiento, chequeos, combustible e historial de tus vehículos.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
