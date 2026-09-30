@@ -757,8 +757,9 @@ car's lifetime cost on each change.
 - `tools/verify-x-core.mjs` **28/28** on x-core (24–28 feedback: anon RPC + idempotent retry, rate limit, no
   anon select, own rows only, screenshot upload rules) — Xaviel's OK 2026-09-30.
 - `sql/999 --shared` applied after it (0 leftover profiles): every carguy-test-* account, test car and the
-  verify run's feedback rows (device `0000feed-%`, a line added to 999). One test screenshot object stays in
-  the private carguy-feedback bucket — Supabase only deletes storage rows through the Storage API.
+  verify run's feedback rows (device `0000feed-%`, a line added to 999). Its one test screenshot was then
+  deleted through the Storage API (service key fetched from the Management API, never printed); the
+  carguy-feedback bucket is empty.
 
 ## Final state
 
