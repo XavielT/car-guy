@@ -14,7 +14,7 @@ import { vehicleOwnershipCost } from './statsQueries';
 
 export const shareId = (vehicleId: string) => `share_${vehicleId}`;
 
-export const DEFAULT_FLAGS: ShareFlags = { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true };
+export const DEFAULT_FLAGS: ShareFlags = { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true, status: false };
 
 export function flagsOf(s: VehicleShare | null): ShareFlags {
   if (!s) return { ...DEFAULT_FLAGS };
@@ -27,6 +27,7 @@ export function flagsOf(s: VehicleShare | null): ShareFlags {
     mods: s.showMods,
     track: s.showTrack,
     story: s.showStory,
+    status: s.showStatus,
   };
 }
 
@@ -40,6 +41,7 @@ export function flagsPatch(f: ShareFlags): Partial<VehicleShare> {
     showMods: f.mods,
     showTrack: f.track,
     showStory: f.story,
+    showStatus: f.status,
   };
 }
 
@@ -117,6 +119,7 @@ export async function localRawDossier(
       color: v.color,
       nickname: v.nickname,
       status: v.status,
+      ...(flags.status ? { status_note: v.statusNote || null, status_since: v.statusSince ?? null } : {}),
       chassis_code: v.chassisCode,
       engine_code: v.engineCode,
       transmission: v.transmission,
@@ -194,20 +197,7 @@ export async function localRawDossier(
   }
 
   // Note 8: "lo que me ha costado", the same ownershipCost figure as Cifras — only with "costos" on.
-  if (flags.costs) {
-    const cost = await vehicleOwnershipCost(vehicleId);
-    raw.costs =
-      cost && !isEmptyCost(cost)
-        ? {
-            purchase_dop: cost.purchasePrice,
-            sold_dop: cost.soldPrice,
-            by_category: cost.byCategory,
-            total_dop: cost.total,
-            per_km_dop: cost.perKm,
-            since: cost.since,
-          }
-        : null;
-  }
+  if (flags.costs) raw.costs = await costsSummaryFor(vehicleId);
 
   if (flags.story) {
     raw.milestones = await db.getAllAsync<NonNullable<RawDossier['milestones']>[number]>(
@@ -216,4 +206,51 @@ export async function localRawDossier(
     );
   }
   return raw;
+}
+
+/**
+ * "Lo que me ha costado" in the page's shape — the same ownershipCost figure as
+ * Cifras. The book and the preview read it here; the public page gets the copy
+ * the phone publishes in `vehicle_share.costs_summary` (lib/share/publish.ts).
+ */
+export async function costsSummaryFor(vehicleId: string): Promise<RawDossier['costs']> {
+  const cost = await vehicleOwnershipCost(vehicleId);
+  return cost && !isEmptyCost(cost)
+    ? {
+        purchase_dop: cost.purchasePrice,
+        sold_dop: cost.soldPrice,
+        by_category: cost.byCategory,
+        total_dop: cost.total,
+        per_km_dop: cost.perKm,
+        since: cost.since,
+      }
+    : null;
+}
+
+/** The summary as the share row stores it: JSON text, or null when "costos" is off or nothing is recorded. */
+export async function costsSummaryText(vehicleId: string, showCosts: boolean): Promise<string | null> {
+  if (!showCosts) return null;
+  const summary = await costsSummaryFor(vehicleId);
+  return summary ? JSON.stringify(summary) : null;
+}
+
+/**
+ * Before every sync: a published car's cost summary follows its data (a new
+ * fill-up, a mod sold), so the page never shows a figure the phone no longer
+ * has. Writes only the rows whose summary changed.
+ */
+export async function refreshShareSummaries(): Promise<number> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ id: string; vehicle_id: string; show_costs: number; costs_summary: string | null }>(
+    `SELECT id, vehicle_id, show_costs, costs_summary FROM vehicle_share
+      WHERE deleted_at IS NULL AND slug IS NOT NULL AND revoked_at IS NULL`,
+  );
+  let changed = 0;
+  for (const r of rows) {
+    const next = await costsSummaryText(r.vehicle_id, r.show_costs === 1);
+    if (next === r.costs_summary) continue;
+    await vehicleShares.upsert({ id: r.id, costsSummary: next });
+    changed++;
+  }
+  return changed;
 }

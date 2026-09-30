@@ -1,3 +1,4 @@
+import { refreshShareSummaries } from '../db/shareQueries';
 import { recordError } from '../diagnostics';
 import { getSupabase, describeSchemaError } from '../cloud/supabase';
 import { settings as settingsRepo } from '../db/repos';
@@ -172,6 +173,8 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
 
   emit({ state: 'running', reason });
   await rereadAfterUpgrade();
+  // A published car's cost summary follows its data (sql/022); never blocks the sync.
+  await refreshShareSummaries().catch((e) => recordError('share-summary', e));
 
   let pushed = 0;
   let pulled = 0;

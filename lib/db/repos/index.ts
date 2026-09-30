@@ -113,6 +113,7 @@ export const vehicleShares = makeRepo<VehicleShare>({
     'showMods',
     'showTrack',
     'showDocs',
+    'showStatus',
     'showStory',
   ],
 });

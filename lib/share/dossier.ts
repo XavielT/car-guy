@@ -10,6 +10,7 @@
  */
 import { currentSpecs, formatSpec, modBadge, parseTags, SPEC_FIELDS } from '../domain/build';
 import { formatLap, isTimed } from '../domain/track';
+import { isVehicleStatus, statusLabel } from '../domain/vehicleStatus';
 
 export const SLUG_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 
@@ -32,6 +33,8 @@ export type ShareFlags = {
   mods: boolean;
   track: boolean;
   story: boolean;
+  /** The car's status (en el taller, accidentado…) with its note and since — off unless chosen (sql/022). */
+  status: boolean;
 };
 
 /** `public_dossier()`'s JSON (snake_case, as it comes over the wire). */
@@ -50,6 +53,9 @@ export type RawDossier = {
     color: string | null;
     nickname: string | null;
     status?: string | null;
+    /** Only with `show.status` (sql/022). */
+    status_note?: string | null;
+    status_since?: string | null;
     chassis_code: string | null;
     engine_code: string | null;
     transmission?: string | null;
@@ -85,8 +91,8 @@ export type RawDossier = {
   /**
    * "Lo que me ha costado" (IMP 29092026 note 8), precomputed by
    * `ownershipCost` on the phone — present only when the owner turned "costos"
-   * on. `public_dossier()` (sql/017) does not send it yet, so the web page
-   * simply shows nothing here.
+   * on. The phone publishes it with the share (`vehicle_share.costs_summary`) and
+   * `public_dossier()` sends it back (sql/022), so the page and the book agree.
    */
   costs?: {
     purchase_dop: number | null;
@@ -207,6 +213,11 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
   add('Origen', v.origin ? LABELS.origin[v.origin] ?? v.origin : null);
   add('Importado', v.imported_year);
   add('Color', v.color);
+  if (raw.show.status && v.status && isVehicleStatus(v.status)) {
+    const since = v.status_since ? ` · desde ${monthYear(v.status_since)}` : '';
+    const note = v.status_note ? ` · ${v.status_note}` : '';
+    add('Estado', `${statusLabel(v.status)}${since}${note}`);
+  }
   if (raw.odometer_km != null) add('Odómetro', km(raw.odometer_km));
   add('Placa', v.plate);
   add('VIN', v.vin);

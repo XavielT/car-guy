@@ -2557,6 +2557,8 @@ export type Database = {
           show_odometer: boolean
           show_plate: boolean
           show_story: boolean
+          show_status: boolean
+          costs_summary: string | null
           show_track: boolean
           show_vin: boolean
           slug: string | null
@@ -2582,6 +2584,8 @@ export type Database = {
           show_odometer?: boolean
           show_plate?: boolean
           show_story?: boolean
+          show_status?: boolean
+          costs_summary?: string | null
           show_track?: boolean
           show_vin?: boolean
           slug?: string | null
@@ -2607,6 +2611,8 @@ export type Database = {
           show_odometer?: boolean
           show_plate?: boolean
           show_story?: boolean
+          show_status?: boolean
+          costs_summary?: string | null
           show_track?: boolean
           show_vin?: boolean
           slug?: string | null

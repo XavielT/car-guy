@@ -785,6 +785,10 @@ export type VehicleShare = Syncable & {
   showTrack: boolean;
   showDocs: boolean;
   showStory: boolean;
+  /** v7 / sql/022: the car's status on the page (off unless chosen). */
+  showStatus: boolean;
+  /** v7 / sql/022: "lo que me ha costado" as the phone computed it (JSON), published only with showCosts. */
+  costsSummary: string | null;
   ogMediaId: string | null;
   publishedAt: string | null;
   revokedAt: string | null;
