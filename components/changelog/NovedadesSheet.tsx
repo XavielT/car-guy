@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { CHANGELOG } from '@/lib/changelog.generated';
@@ -9,6 +10,7 @@ import { markVersionSeen, useNovedadesCheck, useVersionSeen } from '@/lib/change
 import { installedVersion } from '@/lib/changelog/version';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
+import { useTheme } from '@/lib/theme/useTheme';
 
 import { ChangelogEntryView } from './ChangelogEntryView';
 
@@ -23,6 +25,7 @@ export function NovedadesSheet() {
   useNovedadesCheck(ready, data.vehicles.length > 0);
   const { sheetOpen } = useVersionSeen();
   const { height } = useWindowDimensions();
+  const { theme } = useTheme();
   const entry = findEntry(CHANGELOG, installedVersion);
 
   if (!entry) return null;
@@ -30,6 +33,11 @@ export function NovedadesSheet() {
   return (
     <Sheet visible={sheetOpen} onClose={() => void markVersionSeen()} title={t.versions.sheetTitle(entry.version)}>
       <ScrollView style={{ maxHeight: height * 0.55 }} contentContainerStyle={styles.body}>
+        {t.versions.notesLanguage ? (
+          <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginBottom: 8 }}>
+            {t.versions.notesLanguage}
+          </T>
+        ) : null}
         <ChangelogEntryView entry={entry} />
       </ScrollView>
       <View style={styles.actions}>

@@ -12,6 +12,7 @@ import { todayIso } from '@/lib/domain/dates';
 import { completeReminder, describeReset } from '@/lib/domain/reminders';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -83,7 +84,7 @@ export function CompleteReminderSheet({
   }
 
   return (
-    <Sheet visible={reminder != null} onClose={onClose} title={reminder?.title ?? t.reminders.completeTitle}>
+    <Sheet visible={reminder != null} onClose={onClose} title={reminder ? catalogLabel('reminder', reminder, 'title') : t.reminders.completeTitle}>
       <DateField label={t.reminders.completeDate} value={date} onChange={setDate} noFuture />
       <Field label={t.reminders.completeKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
       <View style={{ gap: space.xs }}>

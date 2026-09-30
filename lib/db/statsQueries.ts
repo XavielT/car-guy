@@ -23,6 +23,7 @@ import {
   type StatCategory,
 } from '../domain/stats';
 import { garageCost, inventoryCounts, isEmptyCost, ownershipCost, type DatedAmount, type GarageCost, type OwnershipCost } from '../domain/costs';
+import { catalogLabel } from '../i18n/catalog';
 
 /**
  * The database half of the statistics: one pass over the tables that cost
@@ -221,7 +222,7 @@ export async function vehicleStats(
       });
       return {
         id: reminder.id,
-        title: reminder.title,
+        title: catalogLabel('reminder', reminder, 'title'),
         dueDate: reminder.dueDate,
         lastCostDop: costs.get(reminder.id) ?? null,
         isDue: status.status === 'proximo' || status.status === 'urgente' || status.status === 'vencido',

@@ -3,7 +3,7 @@ import { StyleSheet, TextInput, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 
 import { fonts, radius, space } from "@/constants/theme";
-import { es } from "@/lib/i18n/es";
+import { t } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme/useTheme";
 import { T } from "../T";
 
@@ -60,7 +60,7 @@ export function CornerGrid({
         ]}
       >
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
-          {es.corners[corner]}
+          {t.corners[corner]}
         </T>
         <TextInput
           ref={(r) => {
@@ -81,7 +81,7 @@ export function CornerGrid({
           blurOnSubmit={!next}
           placeholder="—"
           placeholderTextColor={theme.text.disabled}
-          accessibilityLabel={`${es.corners.long[corner]} (${unit})`}
+          accessibilityLabel={`${t.corners.long[corner]} (${unit})`}
           style={[
             styles.input,
             { color: theme.text.primary, fontFamily: fonts.monoBold },

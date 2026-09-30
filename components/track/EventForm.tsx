@@ -462,7 +462,7 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
           </View>
           {burned.has(x.id) ? null : (
             <>
-              <Chip label={used.has(x.id) ? '✓ USADA' : 'USADA'} selected={used.has(x.id)} onPress={() => void setTireUsed(eventId, x, !used.has(x.id)).then(onChanged)} />
+              <Chip label={used.has(x.id) ? t.track.consumables.usedChipOn : t.track.consumables.usedChip} selected={used.has(x.id)} onPress={() => void setTireUsed(eventId, x, !used.has(x.id)).then(onChanged)} />
               <Chip label="🔥" onPress={() => burn(x)} />
             </>
           )}

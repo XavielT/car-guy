@@ -179,7 +179,7 @@ async function applySyntheticOil(vehicleId: string): Promise<void> {
     intervalMonths: SYNTHETIC_MONTHS,
     dueKm: reminder.dueKm != null ? baseKm + SYNTHETIC_KM : null,
     dueDate: reminder.dueDate ? addMonths(todayIso(), SYNTHETIC_MONTHS) : null,
-    notes: 'Aceite sintético: 10,000 km o 12 meses.',
+    notes: t.oil.syntheticNote,
   });
 }
 

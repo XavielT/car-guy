@@ -13,6 +13,7 @@ import type { Cadence, OnFail } from '@/lib/db/types';
 import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -185,10 +186,10 @@ export default function TemplateEditorScreen() {
               />
               <View style={{ flex: 1 }}>
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-                  {row.label || t.check.editor.newTitle}
+                  {catalogLabel('checkItem', row, 'label') || t.check.editor.newTitle}
                 </T>
                 <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                  {row.enabled ? row.groupName : t.check.editor.removed}
+                  {row.enabled ? catalogLabel('checkItem', row, 'groupName') : t.check.editor.removed}
                 </T>
               </View>
               <Pressable

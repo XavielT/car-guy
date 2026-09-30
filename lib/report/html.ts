@@ -3,7 +3,7 @@ import type { EconomyPoint } from '../types';
 import type { VehicleStats } from '../db/statsQueries';
 import type { HistoryEntry } from '../db/types';
 import { dateLabel, km, money } from '../format';
-import { t } from '../i18n';
+import { localeTag, t } from '../i18n';
 import { historyKindLabel, historyTitle } from '../domain/history';
 import { COST_CATEGORIES, type OwnershipCost } from '../domain/costs';
 
@@ -72,7 +72,7 @@ export function reportHtml(input: ReportInput): string {
   const economyUnit = economyLabel(vehicle.defaultFuelType, vehicle.volumeUnit ?? 'gal');
 
   return `<!DOCTYPE html>
-<html lang="es-DO">
+<html lang="${localeTag()}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />

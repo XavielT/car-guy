@@ -12,6 +12,7 @@
  */
 import { addMonths, dayKey } from './dates';
 import { roundMoney } from './economy';
+import { t } from '../i18n';
 
 /**
  * The six buckets the charts and the donut speak in.
@@ -69,12 +70,10 @@ const PERIOD_DAYS: Record<Exclude<PeriodKey, 'todo'>, number> = {
   ano: 365,
 };
 
-const PERIOD_LABEL: Record<PeriodKey, string> = {
-  mes: 'Mes',
-  trimestre: '3 meses',
-  ano: 'Año',
-  todo: 'Todo',
-};
+/** Read at the moment of use, so it follows the language (ADR-39). */
+const PERIOD_LABEL: Record<PeriodKey, string> = new Proxy({} as Record<PeriodKey, string>, {
+  get: (_target, key) => (t.stats.periods as Record<string, string>)[key as string],
+});
 
 /**
  * The four windows the period selector offers.

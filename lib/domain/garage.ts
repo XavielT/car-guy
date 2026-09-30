@@ -1,3 +1,5 @@
+import { localeTag, t } from '../i18n';
+import { catalogText } from '../i18n/catalog';
 import { statusBadgeLabel } from './vehicleStatus';
 import type { Reminder, Vehicle, VehicleOwnership, VehicleStatus } from '../db/types';
 import type { ReminderState, ReminderStatus } from './reminders';
@@ -70,7 +72,6 @@ export { isArchivedFor, isEx } from './vehicleStatus';
 
 // ------------------------------------------------------- ownership line ---
 
-const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
 
 /**
  * "Desde jun 2019 · 3 años contigo" for a car you have; "2018 → vendido 2021"
@@ -84,17 +85,18 @@ export function ownershipLine(
   const acquired = own.acquiredAt ? new Date(own.acquiredAt) : null;
   if (own.soldAt) {
     const sold = new Date(own.soldAt);
-    return acquired ? `${acquired.getUTCFullYear()} → vendido ${sold.getUTCFullYear()}` : `Vendido ${sold.getUTCFullYear()}`;
+    return acquired ? t.garage.ownership.soldRange(acquired.getUTCFullYear(), sold.getUTCFullYear()) : t.garage.ownership.sold(sold.getUTCFullYear());
   }
   if (!acquired) return null;
   const yearOnly = acquired.getUTCMonth() === 0 && acquired.getUTCDate() === 1;
-  const since = yearOnly ? String(acquired.getUTCFullYear()) : `${MONTHS[acquired.getUTCMonth()]} ${acquired.getUTCFullYear()}`;
+  const month = new Date(Date.UTC(2000, acquired.getUTCMonth(), 15)).toLocaleDateString(localeTag(), { month: 'short', timeZone: 'UTC' }).replace('.', '');
+  const since = yearOnly ? String(acquired.getUTCFullYear()) : `${month} ${acquired.getUTCFullYear()}`;
   const months =
     (today.getFullYear() - acquired.getUTCFullYear()) * 12 + (today.getMonth() - acquired.getUTCMonth());
   const years = Math.floor(months / 12);
   const tenure =
-    years >= 1 ? `${years} ${years === 1 ? 'año' : 'años'} contigo` : months >= 1 ? `${months} ${months === 1 ? 'mes' : 'meses'} contigo` : 'recién llegado';
-  return `Desde ${since} · ${tenure}`;
+    years >= 1 ? t.garage.ownership.years(years) : months >= 1 ? t.garage.ownership.months(months) : t.garage.ownership.justArrived;
+  return t.garage.ownership.since(since, tenure);
 }
 
 // -------------------------------------------------------------- katakana ---
@@ -198,7 +200,7 @@ export function lampStates(
 ): { icon: LampSource; label: string; state: LampState }[] {
   return LAMP_SOURCES.map((source) => {
     if (source.icon === 'checklist') {
-      return { icon: source.icon, label: source.label, state: weeklyState(weekly, today) };
+      return { icon: source.icon, label: catalogText('lamp', source.icon, 'label', source.label), state: weeklyState(weekly, today) };
     }
     let state: LampState = 'off';
     for (const { reminder, status } of evaluated) {
@@ -210,7 +212,7 @@ export function lampStates(
       const s = status.snoozed ? 'ok' : fromReminder(status.status);
       if (RANK[s] > RANK[state]) state = s;
     }
-    return { icon: source.icon, label: source.label, state };
+    return { icon: source.icon, label: catalogText('lamp', source.icon, 'label', source.label), state };
   });
 }
 

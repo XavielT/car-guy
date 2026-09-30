@@ -3,6 +3,7 @@ import type { HistoryEntry } from '../db/types';
 import { FUEL_CATALOG } from '../fuel';
 import { EXPENSE_CATEGORY_LABELS } from '../db/types';
 import { t } from '../i18n';
+import { dtcText } from '../i18n/catalog';
 
 /**
  * Turning a `history_feed` row into words.
@@ -64,7 +65,7 @@ function baseSubtitle(entry: HistoryEntry): string | null {
   if (entry.kind === 'obd') {
     const d = lookup(entry.title);
     const state = entry.subtitle === 'resuelto' ? 'Resuelto' : 'Abierto';
-    return [state, d?.descEs].filter(Boolean).join(' · ');
+    return [state, dtcText(d)].filter(Boolean).join(' · ');
   }
   if (entry.kind === 'viaje') {
     const [, from, to] = (entry.subtitle ?? '').split('|');

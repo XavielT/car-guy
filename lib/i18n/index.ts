@@ -30,8 +30,10 @@ export type LanguagePreference = 'system' | Lang;
 const KEY = 'car-guy/language';
 
 /** Loaded on first use, so plain-node code (tests, the data layer) can import this module. */
-async function storage() {
-  return (await import('@react-native-async-storage/async-storage')).default;
+type KeyValue = { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void> };
+async function storage(): Promise<KeyValue> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy on purpose (see above)
+  return require('@react-native-async-storage/async-storage').default as KeyValue;
 }
 const PREFERENCES: LanguagePreference[] = ['system', 'es', 'en'];
 const DICTS: Record<Lang, Dict> = { es, en };

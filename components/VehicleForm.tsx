@@ -19,6 +19,7 @@ import { convertTankText, tankCaption, yearError } from '@/lib/domain/vehicleFor
 import { statusLabel } from '@/lib/domain/vehicleStatus';
 import { useTheme } from '@/lib/theme/useTheme';
 import { t } from '@/lib/i18n';
+import { refLabel } from '@/lib/i18n/catalog';
 import type { FuelType } from '@/lib/types';
 import type { Drivetrain, Transmission, VehicleOrigin, VehicleStatus, VehicleType } from '@/lib/db/types';
 
@@ -75,7 +76,7 @@ export type VehicleDraft = {
 const STATUSES: VehicleStatus[] = ['activo', 'proyecto', 'en_taller', 'accidentado', 'guardado', 'restauracion', 'prestado'];
 
 const MATERIALS = colors('material').filter((m) => m.id !== 'material-otro');
-const swatches = (kind: 'exterior' | 'interior') => colors(kind).map((c) => ({ id: c.id, label: c.es, hex: c.hex, light: c.light }));
+const swatches = (kind: 'exterior' | 'interior') => colors(kind).map((c) => ({ id: c.id, label: refLabel(c), hex: c.hex, light: c.light }));
 
 /**
  * The vehicle form v2 (IMP 29092026 Phase 3, 03-screens.md "Phase 3"): the
@@ -249,7 +250,7 @@ export function VehicleForm({
       </T>
       <View style={styles.row}>
         {bodyTypes().map((b) => (
-          <Chip key={b.id} label={b.es} selected={bodyType === b.id} onPress={() => setBodyType(bodyType === b.id ? null : b.id)} />
+          <Chip key={b.id} label={refLabel(b)} selected={bodyType === b.id} onPress={() => setBodyType(bodyType === b.id ? null : b.id)} />
         ))}
       </View>
 
@@ -262,7 +263,7 @@ export function VehicleForm({
       <View style={styles.row}>
         {MATERIALS.map((m) => {
           const id = m.id.replace(/^material-/, '');
-          return <Chip key={m.id} label={m.es} selected={material === id} onPress={() => setMaterial(material === id ? null : id)} />;
+          return <Chip key={m.id} label={refLabel(m)} selected={material === id} onPress={() => setMaterial(material === id ? null : id)} />;
         })}
       </View>
 

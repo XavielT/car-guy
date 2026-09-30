@@ -12,6 +12,7 @@ import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { FluidGuideItem, Vehicle } from '@/lib/db/types';
 import { FLUID_KINDS } from '@/lib/domain/fluids';
 import { t } from '@/lib/i18n';
+import { catalogText } from '@/lib/i18n/catalog';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -65,7 +66,7 @@ export default function FluidsScreen() {
         return (
           <View key={f.kind} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: card?.mediaId ? theme.accentFill : theme.lineStrong }]}>
             <T face="title" style={{ color: theme.text.primary, fontSize: 17, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-              {f.label}
+              {catalogText('fluid', f.kind, 'label', f.label)}
             </T>
             <PhotoPicker
               mediaId={card?.mediaId ?? null}
@@ -79,7 +80,7 @@ export default function FluidsScreen() {
               {t.fluids.how}
             </T>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>
-              {f.how}
+              {catalogText('fluid', f.kind, 'how', f.how)}
             </T>
             <Field label={t.fluids.notes} placeholder={t.fluids.notesPlaceholder} value={notes[f.kind] ?? ''} onChangeText={(t) => setNotes((n) => ({ ...n, [f.kind]: t }))} multiline />
             {(notes[f.kind] ?? '') !== (card?.notes ?? '') ? <GhostButton label={t.fluids.save} onPress={() => void save(f.kind, { notes: notes[f.kind] ?? '' })} /> : null}

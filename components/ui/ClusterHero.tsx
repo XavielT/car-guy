@@ -6,7 +6,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, Stop, Text as S
 import { fonts, palette, radius, space } from '@/constants/theme';
 import type { ClusterReading } from '@/lib/domain/cluster';
 import { km as formatKm } from '@/lib/format';
-import { t } from '@/lib/i18n';
+import { localeTag, t } from '@/lib/i18n';
 import { useGaugeSweep } from '@/lib/motion/gaugeSweep';
 import { T } from '../T';
 import { LcdDigits } from './LcdDigits';
@@ -211,7 +211,7 @@ export function ClusterHero({
 
 function nextText(reading: ClusterReading): string {
   const when = reading.predictedDueDate
-    ? new Date(reading.predictedDueDate).toLocaleDateString('es-DO', { day: 'numeric', month: 'short' })
+    ? new Date(reading.predictedDueDate).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })
     : null;
   const left =
     'km' in reading.remaining

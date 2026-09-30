@@ -6,7 +6,7 @@ import { categoryColors, categoryInkLight, fonts, space } from '@/constants/them
 import type { EconomyStatus } from '@/lib/domain/partialEconomy';
 import type { EconomyPoint, FuelType } from '@/lib/types';
 import { economyLabel } from '@/lib/fuel';
-import { t } from '@/lib/i18n';
+import { localeTag, t } from '@/lib/i18n';
 import { economyNumber, economyValue } from '@/lib/format';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
@@ -156,7 +156,7 @@ export function EconomyLine({
     return {
       // An unknown segment has no number: a gap in the line (interpolateMissingValues off).
       value: bridged[i],
-      label: new Date(slot.occurredAt).toLocaleDateString('es-DO', { month: 'short' }),
+      label: new Date(slot.occurredAt).toLocaleDateString(localeTag(), { month: 'short' }),
       ...(!point ? { hideDataPoint: true } : {}),
       ...(point && styled && point.status !== 'unknown' ? { customDataPoint: () => dot(point) } : {}),
     };

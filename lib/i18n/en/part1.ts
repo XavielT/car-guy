@@ -152,6 +152,7 @@ export const enPart1: Pick<
   trips: {
     title: 'Trips',
     lcd: { km: 'TRIP KM', time: 'MINUTES', avg: 'AVG KM/H', max: 'MAX KM/H' },
+    geojsonDialog: 'Trip GPS points',
     lcdA11y: (what: string, value: string) => `${what}: ${value}. Tap to switch`,
     gps: { good: 'GPS signal good', weak: 'GPS signal weak', none: 'No GPS signal' },
     recording: 'Recording trip',
@@ -414,6 +415,14 @@ export const enPart1: Pick<
   },
 
   garage: {
+    ownership: {
+      since: (when: string, tenure: string) => `Since ${when} · ${tenure}`,
+      soldRange: (from: number, to: number) => `${from} → sold ${to}`,
+      sold: (year: number) => `Sold ${year}`,
+      years: (n: number) => `${n} ${n === 1 ? 'year' : 'years'} together`,
+      months: (n: number) => `${n} ${n === 1 ? 'month' : 'months'} together`,
+      justArrived: 'just arrived',
+    },
     eyebrow: 'My garage',
     title: 'Garage',
     counts: (active: number, ex: number) =>

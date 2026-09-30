@@ -9,7 +9,7 @@ import { radius, space } from '@/constants/theme';
 import { pinSnapshot } from '@/lib/db/albumQueries';
 import { deleteSnapshot, saveStock, setOverride } from '@/lib/db/buildQueries';
 import type { SpecSnapshot } from '@/lib/db/types';
-import { formatSpec, SPEC_FIELDS, SPEC_GROUPS, specValues, type CurrentSpec, type SpecField, type Specs } from '@/lib/domain/build';
+import { type CurrentSpec, formatSpec, SPEC_FIELDS, SPEC_GROUPS, type SpecField, specFieldLabel, specGroupLabel, type Specs, specValues } from '@/lib/domain/build';
 import { dateLabel } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -108,7 +108,7 @@ export function SpecsTab({
           <View key={g.key} style={[styles.group, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
             <View style={styles.headRow}>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, flex: 1.2 }}>
-                {g.label}
+                {specGroupLabel(g)}
               </T>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, flex: 1, textAlign: 'right' }}>
                 {t.specs.stock}
@@ -127,10 +127,10 @@ export function SpecsTab({
                   key={f.key}
                   onPress={() => openOverride(f)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${f.label}: stock ${formatSpec(f.key, c?.stock ?? null)}, actual ${formatSpec(f.key, c?.value ?? null)}${chip ? `, ${chip}` : ''}`}
+                  accessibilityLabel={`${specFieldLabel(f)}: stock ${formatSpec(f.key, c?.stock ?? null)}, actual ${formatSpec(f.key, c?.value ?? null)}${chip ? `, ${chip}` : ''}`}
                   style={[styles.row, { borderTopColor: theme.line }]}>
                   <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1.2 }}>
-                    {f.label}
+                    {specFieldLabel(f)}
                   </T>
                   <T face="mono" numberOfLines={1} style={{ color: theme.text.muted, fontSize: 12, flex: 1, textAlign: 'right' }}>
                     {formatSpec(f.key, c?.stock ?? null)}
@@ -182,7 +182,7 @@ export function SpecsTab({
         </T>
       )}
 
-      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? t.specs.overrideTitle(editing.label) : ''}>
+      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? t.specs.overrideTitle(specFieldLabel(editing)) : ''}>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.md }}>
           {t.specs.overrideHint}
         </T>
@@ -205,7 +205,7 @@ export function SpecsTab({
           {SPEC_FIELDS.map((f) => (
             <Field
               key={f.key}
-              label={f.unit ? `${f.label} (${f.unit})` : f.label}
+              label={f.unit ? `${specFieldLabel(f)} (${f.unit})` : specFieldLabel(f)}
               value={stockDraft[f.key] ?? ''}
               onChangeText={(t) => setStockDraft((d) => ({ ...d, [f.key]: t }))}
               keyboardType={f.kind === 'number' ? 'decimal-pad' : 'default'}

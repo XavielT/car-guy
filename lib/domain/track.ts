@@ -7,6 +7,7 @@
  * runs or incidents, which belong to the session they happened in.
  */
 import type { ConsumableUsage, SetupSheet, TrackDiscipline, TrackEvent, TrackSession } from '../db/types';
+import { catalogText } from '../i18n/catalog';
 
 // ----------------------------------------------------------------- times ---
 
@@ -108,10 +109,12 @@ const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null) || (a === f
 /** What changed from `prev` to `next`, in field order. */
 export function diffSheets(prev: Partial<SetupSheet> | null, next: Partial<SetupSheet>): SheetChange[] {
   if (!prev) return [];
-  return SHEET_FIELDS.filter((f) => !same(prev[f.key], next[f.key])).map((f) => ({ key: f.key, label: f.label, from: prev[f.key] ?? null, to: next[f.key] ?? null }));
+  return SHEET_FIELDS.filter((f) => !same(prev[f.key], next[f.key])).map((f) => ({ key: f.key, label: catalogText('sheetField', f.key, 'label', f.label), from: prev[f.key] ?? null, to: next[f.key] ?? null }));
 }
 
 const CORNER_LABEL: Record<string, string> = { Fl: 'DI', Fr: 'DD', Rl: 'TI', Rr: 'TD' };
+/** The note's words, in the app's language (lib/i18n/catalogTranslations.en.json `sheetWord`). */
+const word = (id: string, es: string) => catalogText('sheetWord', id, 'label', es);
 
 /**
  * The artboard's note: "TI/TD 40 → 42". A pair of corners that moved together
@@ -120,7 +123,8 @@ const CORNER_LABEL: Record<string, string> = { Fl: 'DI', Fr: 'DD', Rl: 'TI', Rr:
 export function describeChanges(changes: SheetChange[]): string[] {
   const out: string[] = [];
   const used = new Set<string>();
-  const fmt = (v: unknown) => (v == null || v === '' ? '—' : v === true ? 'sí' : v === false ? 'no' : String(v));
+  const fmt = (v: unknown) => (v == null || v === '' ? '—' : v === true ? word('yes', 'sí') : v === false ? word('no', 'no') : String(v));
+  const what = (k: string) => (k === 'psiHot' ? word('hot', ' caliente') : k === 'camber' ? word('camber', ' camber') : k === 'rh' ? word('height', ' altura') : '');
   for (const c of changes) {
     if (used.has(c.key)) continue;
     const m = String(c.key).match(/^(psiCold|psiHot|camber|rh)(Fl|Fr|Rl|Rr)(Mm)?$/);
@@ -128,14 +132,13 @@ export function describeChanges(changes: SheetChange[]): string[] {
       const partner = `${m[1]}${m[2] === 'Fl' ? 'Fr' : m[2] === 'Fr' ? 'Fl' : m[2] === 'Rl' ? 'Rr' : 'Rl'}${m[3] ?? ''}`;
       const p = changes.find((x) => x.key === partner);
       if (p && same(p.from, c.from) && same(p.to, c.to)) {
-        const pair = m[2].startsWith('F') ? 'DI/DD' : 'TI/TD';
-        const what = m[1] === 'psiHot' ? ' caliente' : m[1] === 'camber' ? ' camber' : m[1] === 'rh' ? ' altura' : '';
-        out.push(`${pair}${what} ${fmt(c.from)} → ${fmt(c.to)}`);
+        const pair = m[2].startsWith('F') ? word('front', 'DI/DD') : word('rear', 'TI/TD');
+        out.push(`${pair}${what(m[1])} ${fmt(c.from)} → ${fmt(c.to)}`);
         used.add(c.key);
         used.add(partner);
         continue;
       }
-      out.push(`${CORNER_LABEL[m[2]]}${m[1] === 'psiHot' ? ' caliente' : m[1] === 'camber' ? ' camber' : m[1] === 'rh' ? ' altura' : ''} ${fmt(c.from)} → ${fmt(c.to)}`);
+      out.push(`${word(m[2], CORNER_LABEL[m[2]])}${what(m[1])} ${fmt(c.from)} → ${fmt(c.to)}`);
       used.add(c.key);
       continue;
     }

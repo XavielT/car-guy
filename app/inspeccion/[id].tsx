@@ -20,6 +20,7 @@ import { todayIso } from '@/lib/domain/dates';
 import { weeklyStreak } from '@/lib/domain/inspections';
 import { dateLabel, km as fmtKm } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { offerAfterFirstInspection } from '@/lib/notifications';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -74,7 +75,7 @@ export default function InspeccionScreen() {
       setRun(row);
       setResults(rows);
       setPhotos(byResult);
-      setTemplateName(template?.name ?? '');
+      setTemplateName(catalogLabel('inspectionTemplate', template));
       setOpenTasks(tasks.filter((t) => t.sourceInspectionResultId && sources.has(t.sourceInspectionResultId)));
       setStreak(
         template?.cadence === 'semanal'
@@ -264,7 +265,7 @@ function ResultCard({
     <Surface style={{ marginBottom: space.sm }}>
       <View style={styles.row}>
         <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-          {result.labelSnapshot}
+          {catalogLabel('checkItem', { id: result.itemId, label: result.labelSnapshot }, 'label')}
         </T>
         <StatusPill status={pill.status} label={pill.label} />
       </View>
@@ -281,7 +282,7 @@ function ResultCard({
               mediaId={mediaId}
               size={96}
               onPress={() => onPhoto(mediaId)}
-              accessibilityLabel={t.check.photoOpen(result.labelSnapshot, i + 1)}
+              accessibilityLabel={t.check.photoOpen(catalogLabel('checkItem', { id: result.itemId, label: result.labelSnapshot }, 'label'), i + 1)}
             />
           ))}
         </ScrollView>

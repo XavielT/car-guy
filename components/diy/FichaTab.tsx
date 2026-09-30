@@ -7,7 +7,7 @@ import { GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { listDtcEvents, readFicha, type Ficha } from '@/lib/db/diyQueries';
 import type { VehicleDtcEvent } from '@/lib/db/types';
-import { FICHA_FIELDS, formatFicha } from '@/lib/domain/specPresets';
+import { FICHA_FIELDS, fichaFieldLabel, formatFicha } from '@/lib/domain/specPresets';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -45,7 +45,7 @@ export function FichaTab({ vehicleId, version }: { vehicleId: string; version: n
         {rows.map((f) => (
           <View key={f.key} style={styles.row}>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-              {f.label}
+              {fichaFieldLabel(f)}
             </T>
             <T face="mono" style={{ color: ficha.values[f.key] != null ? theme.text.primary : theme.text.muted, fontSize: 13 }}>
               {formatFicha(f.key, ficha.values[f.key])}

@@ -1,6 +1,9 @@
 import { displayUnitLabel, economyFromKmPerLiter, economyUnitLabel, GAL_L, type EconomyUnit, type VolumeUnit } from './domain/units';
 import type { FuelType } from './types';
+import { localeTag } from './i18n';
 
+// Numbers and money read the same in es-DO and en-US (1,234.50) and RD$ stays RD$ in
+// English too, so these stay es-DO; dates follow the language (ADR-39).
 const dop = new Intl.NumberFormat('es-DO', {
   style: 'currency',
   currency: 'DOP',
@@ -65,7 +68,7 @@ export function dateLabel(iso: string): string {
   // in Santo Domingo. Read it as a local calendar day instead.
   const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   const date = day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(iso);
-  return date.toLocaleDateString('es-DO', {
+  return date.toLocaleDateString(localeTag(), {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -73,7 +76,7 @@ export function dateLabel(iso: string): string {
 }
 
 export function monthTitle(year: number, month: number): string {
-  const label = new Date(year, month, 1).toLocaleDateString('es-DO', {
+  const label = new Date(year, month, 1).toLocaleDateString(localeTag(), {
     month: 'long',
     year: 'numeric',
   });

@@ -23,6 +23,7 @@ import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { id as newId } from '@/lib/format';
 import { todayIso } from '@/lib/domain/dates';
 import { t } from '@/lib/i18n';
+import { catalogLabel, catalogText } from '@/lib/i18n/catalog';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -159,7 +160,7 @@ export default function RunScreen() {
               {t.check.cadences[template.cadence]}
             </T>
             <T face="display" style={[styles.title, { color: theme.text.primary }]}>
-              {template.name}
+              {catalogLabel('inspectionTemplate', template)}
             </T>
             <T face="mono" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4 }}>
               {answered}/{items.length} · {t.check.elapsed(Math.floor(elapsed / 60), elapsed % 60)}
@@ -185,7 +186,7 @@ export default function RunScreen() {
         {Object.entries(groups).map(([group, groupItems]) => (
           <View key={group}>
             <T face="eyebrow" accessibilityRole="header" style={[styles.group, { color: theme.text.muted }]}>
-              {group}
+              {catalogLabel('checkItem', groupItems[0], 'groupName') || group}
             </T>
             {groupItems.map((item) => {
               const verdict = answers[item.id];
@@ -193,7 +194,7 @@ export default function RunScreen() {
                 <Surface key={item.id} style={{ marginBottom: space.sm }}>
                   <View style={styles.itemHeader}>
                     <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-                      {item.label}
+                      {catalogLabel('checkItem', item, 'label')}
                     </T>
                     {item.requiresColdEngine ? (
                       <T face="eyebrow" style={{ color: theme.statusText.proximo, fontSize: 10 }}>
@@ -215,8 +216,8 @@ export default function RunScreen() {
                   ) : null}
                   {expanded[item.id] ? (
                     <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 6, lineHeight: 19 }}>
-                      {item.how}
-                      {item.warning ? `\n\n${item.warning}` : ''}
+                      {catalogLabel('checkItem', item, 'how')}
+                      {item.warning ? `\n\n${catalogLabel('checkItem', item, 'warning')}` : ''}
                     </T>
                   ) : null}
                   {FEATURE_DIY && isTirePressureItem(item.label) && (psi.f != null || psi.r != null) ? (
@@ -231,7 +232,7 @@ export default function RunScreen() {
                     return (
                       <View style={[styles.fluid, { borderColor: theme.accentFill, backgroundColor: theme.bg.raised }]}>
                         <T face="eyebrow" style={{ color: theme.accent, fontSize: 10 }}>
-                          {t.fluids.inCheck(fluidInfo(card.kind)?.label ?? item.label, activeVehicle?.name ?? '')}
+                          {t.fluids.inCheck(catalogText('fluid', card.kind, 'label', fluidInfo(card.kind)?.label ?? item.label), activeVehicle?.name ?? '')}
                         </T>
                         {card.mediaId ? <PhotoThumb mediaId={card.mediaId} height={150} /> : null}
                         {card.notes ? (
@@ -306,7 +307,7 @@ export default function RunScreen() {
                         mediaIds={photos[item.id] ?? []}
                         ownerId={resultIdFor(inspectionId, item.id)}
                         vehicleId={activeVehicle.id}
-                        label={item.label}
+                        label={catalogLabel('checkItem', item, 'label')}
                         onChange={(ids) => setPhotos((p) => ({ ...p, [item.id]: ids }))}
                       />
                       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: 6 }}>

@@ -11,6 +11,7 @@ import { saveServiceTypeInterval } from '@/lib/db/catalogOps';
 import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -69,7 +70,7 @@ export default function CatalogoItemScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {type.name}
+          {catalogLabel('serviceType', type)}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
           {t.catalog.hint}

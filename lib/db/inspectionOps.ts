@@ -21,6 +21,7 @@ import {
   type Verdict,
 } from '../domain/inspections';
 import { t } from '../i18n';
+import { catalogLabel } from '../i18n/catalog';
 
 export { baseTemplateId, scopedTemplateId };
 import { id as newId } from '../format';
@@ -150,7 +151,7 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
     // the user may still ask for a task or a reminder.
     for (const failure of [...failures, ...warnings]) {
       if (failure.action === 'none') continue;
-      const title = `Revisar ${failure.item.label.toLowerCase()}`;
+      const title = t.check.reviewTask(catalogLabel('checkItem', failure.item, 'label').toLowerCase());
       if (failure.action === 'reminder') {
         await reminderRepo.upsert(
           {

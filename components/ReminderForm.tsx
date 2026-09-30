@@ -11,6 +11,7 @@ import type { Reminder, ReminderMetric, ServiceType, Vehicle } from '@/lib/db/ty
 import { addMonths, todayIso } from '@/lib/domain/dates';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { parseDecimal } from '@/lib/math';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -92,7 +93,7 @@ export function ReminderForm({
     setServiceTypeId(type?.id ?? null);
     if (!type || editing) return;
     // Only fills what the user has not already typed.
-    if (!title.trim()) setTitle(type.name);
+    if (!title.trim()) setTitle(catalogLabel('serviceType', type));
     if (!intervalKm && type.defaultIntervalKm != null) setIntervalKm(String(type.defaultIntervalKm));
     if (!intervalMonths && type.defaultIntervalMonths != null) {
       setIntervalMonths(String(type.defaultIntervalMonths));
@@ -155,7 +156,7 @@ export function ReminderForm({
         {catalog.map((type) => (
           <Chip
             key={type.id}
-            label={type.name}
+            label={catalogLabel('serviceType', type)}
             selected={serviceTypeId === type.id}
             onPress={() => pickType(type)}
           />

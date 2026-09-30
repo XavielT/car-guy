@@ -40,7 +40,7 @@ export const enPart3: Pick<
             'Look at the translucent plastic tank: the level sits between Min and Max.\n\n',
         },
         { text: 'Never open the radiator cap or the tank cap with the engine hot.', strong: true },
-        { text: ' The system is pressurised and it comes out boiling.' },
+        { text: ' The system is pressurized and it comes out boiling.' },
       ],
     },
 
@@ -75,7 +75,7 @@ export const enPart3: Pick<
         { text: 'corrosion inhibitors', strong: true },
         {
           text:
-            ' that protect the aluminium head, the radiator and the water pump. Tap water ' +
+            ' that protect the aluminum head, the radiator and the water pump. Tap water ' +
             'corrodes and leaves scale.\n· ',
         },
         { text: 'It lubricates the water pump seal.', strong: true },
@@ -190,7 +190,7 @@ export const enPart3: Pick<
     history: 'See the history',
     historyCaption: "Everything you've done to the car, in order.",
     reminders: 'Reminders',
-    remindersCaption: "What's due and when, by your kilometres.",
+    remindersCaption: "What's due and when, by your kilometers.",
     tasks: 'Pending tasks',
     tasksCaption: "What the car needs and you haven't done yet.",
 
@@ -201,10 +201,10 @@ export const enPart3: Pick<
     pricesCaption: (week: string) => `${week}. Good for comparing; each fill-up keeps what you paid.`,
 
     expense: 'Log an expense',
-    expenseCaption: 'Insurance, road tax sticker, tolls, car wash and the rest.',
+    expenseCaption: 'Insurance, marbete, tolls, car wash and the rest.',
 
     documents: 'Documents',
-    documentsCaption: 'Insurance, road tax sticker, title and invoices.',
+    documentsCaption: 'Insurance, marbete, registration and invoices.',
 
     account: 'Account',
     accountSoon: 'Coming soon',
@@ -250,6 +250,15 @@ export const enPart3: Pick<
     notBackup: "The file doesn't look like a Car Guy or Tu Combustible RD backup.",
     unknownVersion: (version: string) =>
       `This backup is from another version of Car Guy (format ${version}). Update the app and try again.`,
+    legacyEmpty: "The file is empty or isn't valid JSON.",
+    legacyNotBackup: "The file doesn't look like a Tu Combustible RD backup: it has no vehicles or fill-ups.",
+    legacyCounts: {
+      vehicles: (n: number) => (n === 1 ? '1 vehicle' : `${n} vehicles`),
+      fuelLogs: (n: number) => (n === 1 ? '1 fill-up' : `${n} fill-ups`),
+      serviceRecords: (n: number) => (n === 1 ? '1 service' : `${n} services`),
+      expenses: (n: number) => (n === 1 ? '1 expense' : `${n} expenses`),
+      reminders: (n: number) => (n === 1 ? '1 reminder' : `${n} reminders`),
+    },
   },
 
   onboarding: {
@@ -297,7 +306,7 @@ export const enPart3: Pick<
       reparacion: 'Repairs',
       mejora: 'Upgrades',
       pista: 'Track',
-      legal: 'Insurance and road tax',
+      legal: 'Insurance and marbete',
       otros: 'Other',
     },
 
@@ -327,7 +336,7 @@ export const enPart3: Pick<
     economyCaption: (unit: string) => `${unit} per tank, and per partial fill with the gauge. The dotted line is your average.`,
     economyEmpty: 'You need two full tanks, or fill-ups with the gauge level, to see the line.',
 
-    kmPerMonth: 'Kilometres per month',
+    kmPerMonth: 'Kilometers per month',
     kmPerMonthCaption: 'From your odometer readings.',
     kmPerMonthEmpty: "Log the odometer at every fill-up and you'll see how much you drive.",
 
@@ -581,7 +590,7 @@ export const enPart3: Pick<
     partialShort: 'Partial',
     newTitle: 'At the gas station',
     editTitle: 'Edit fill-up',
-    unitWord: (unit: 'gal' | 'l' | 'm3') => (unit === 'm3' ? 'cubic metres' : unit === 'l' ? 'litres' : 'gallons'),
+    unitWord: (unit: 'gal' | 'l' | 'm3') => (unit === 'm3' ? 'cubic meters' : unit === 'l' ? 'liters' : 'gallons'),
     intro: (units: string) =>
       `Enter two of three (${units}, price, total) and the third one works itself out. Economy shows up when you mark full tank.`,
     date: 'Date',
@@ -598,7 +607,7 @@ export const enPart3: Pick<
       `Between two full tanks the km/${unit} is measured. A partial adds to the next full one; with the gauge level before and after, it also gives an estimate.`,
     missedPrevious: 'I forgot to log an earlier fill-up',
     missedPreviousHint: (units: string) =>
-      `If a fill-up is missing in between, the kilometres won't line up with the ${units}. Checking this restarts the count from here, like with the first full tank.`,
+      `If a fill-up is missing in between, the kilometers won't line up with the ${units}. Checking this restarts the count from here, like with the first full tank.`,
     station: 'Station',
     stationOther: 'Station name',
     notes: 'Note (optional)',
@@ -687,6 +696,7 @@ export const enPart3: Pick<
     missingAction: 'Go home',
     invalidNumber: (field: string) => `Check “${field}”: it has to be a number zero or greater.`,
     minutes: (n: number) => `${n} min`,
+    loading: 'Loading…',
   },
 
   identity: {

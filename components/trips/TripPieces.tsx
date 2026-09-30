@@ -13,7 +13,7 @@ import { odometer as odometerRepo } from '@/lib/db/repos';
 import { trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
 import { Alert } from '@/lib/alert';
-import { t } from '@/lib/i18n';
+import { localeTag, t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
@@ -233,7 +233,7 @@ export function MiuiChecklist() {
 }
 
 const dayLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'short' });
+  new Date(iso).toLocaleDateString(localeTag(), { weekday: 'short', day: 'numeric', month: 'short' });
 
 // ---------------------------------------------------------------------------
 // Route drawings

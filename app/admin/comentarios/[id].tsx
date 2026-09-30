@@ -114,7 +114,7 @@ export default function ComentarioDetalle() {
         <KeyValueRow label={t.feedback.fields.device} value={row.device ?? '—'} />
         <KeyValueRow label={t.feedback.fields.screen} value={row.screen ?? '—'} />
         {row.email ? (
-          <GhostButton label={a.replyTo(row.email)} onPress={() => void Linking.openURL(`mailto:${row.email}?subject=${encodeURIComponent('Car Guy — tu comentario')}`)} />
+          <GhostButton label={a.replyTo(row.email)} onPress={() => void Linking.openURL(`mailto:${row.email}?subject=${encodeURIComponent(a.replySubject)}`)} />
         ) : null}
       </Surface>
 

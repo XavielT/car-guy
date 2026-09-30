@@ -77,6 +77,11 @@ export default function VersionesScreen() {
       <T face="eyebrow" accessibilityRole="header" style={[styles.heading, { color: theme.accent }]}>
         {t.versions.history}
       </T>
+      {t.versions.notesLanguage ? (
+        <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginBottom: space.md }}>
+          {t.versions.notesLanguage}
+        </T>
+      ) : null}
       {CHANGELOG.length === 0 ? <EmptyState icon="document-text-outline" message={t.versions.empty} /> : null}
       {CHANGELOG.map((entry) => (
         <Surface key={entry.version} style={styles.card}>

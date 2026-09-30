@@ -9,6 +9,7 @@
  */
 import { clip, endPath, PDFDocument, popGraphicsState, pushGraphicsState, rectangle, rgb, StandardFonts, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib';
 
+import { t } from '../i18n';
 import type { Dossier } from '../share/dossier';
 
 export type BookFonts = { display: Uint8Array; title: Uint8Array; body: Uint8Array; bold: Uint8Array; mono: Uint8Array } | null;
@@ -45,11 +46,10 @@ const RED = rgb(0.882, 0.024, 0);
 
 type Fonts = { display: PDFFont; title: PDFFont; body: PDFFont; bold: PDFFont; mono: PDFFont };
 
-const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
 const shortDate = (iso: string | null) => {
   if (!iso) return '—';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return Number.isNaN(d.getTime()) ? '—' : `${d.getUTCDate()} ${t.book.pdf.months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 };
 
 /** Characters a font cannot draw become their closest ASCII, or vanish. */
@@ -216,8 +216,9 @@ function drawCover(page: PDFPage, img: PDFImage, x: number, y: number, w: number
 
 export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint8Array> {
   const d = input.dossier;
+  const L = t.book.pdf;
   const doc = await PDFDocument.create();
-  doc.setTitle(`${d.name} — Libro del carro`);
+  doc.setTitle(L.docTitle(d.name));
   doc.setAuthor('Car Guy');
   doc.setCreator('Car Guy');
   doc.setCreationDate(new Date(input.generatedAt));
@@ -260,31 +261,31 @@ export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint
     cy -= 26;
   }
   cw.text(d.title, M, cy, { font: f.body, size: 14, color: rgb(0.7, 0.7, 0.7) });
-  cw.text('LIBRO DEL CARRO', M, 70, { font: f.title, size: 12, color: AMBER });
+  cw.text(L.cover, M, 70, { font: f.title, size: 12, color: AMBER });
   cw.text([shortDate(input.generatedAt), input.periodLabel].filter(Boolean).join(' · '), M, 52, { font: f.mono, size: 9, color: rgb(0.6, 0.6, 0.6) });
   cw.text('CAR GUY', W - M - f.title.widthOfTextAtSize('CAR GUY', 12), 70, { font: f.title, size: 12, color: rgb(0.6, 0.6, 0.6) });
 
-  const w = new Writer(doc, f, `${d.name.toUpperCase()} · LIBRO DEL CARRO`);
+  const w = new Writer(doc, f, L.runningHead(d.name.toUpperCase()));
   w.newPage();
 
   // ---- ficha + historia ----
-  w.heading('Ficha');
+  w.heading(L.ficha);
   for (let i = 0; i < d.facts.length; i += 2) {
     const pair = d.facts.slice(i, i + 2);
     w.row(pair.flatMap((p) => [p.label, p.value]).concat(pair.length === 1 ? ['', ''] : []), [0.16, 0.34, 0.16, 0.34]);
   }
   if (d.story || d.milestones.length) {
-    w.heading('Historia');
+    w.heading(L.story);
     if (d.story) w.para(d.story, { size: 12 });
     for (const m of d.milestones) w.para(`${m.date} · ${m.title}${m.story ? ` — ${m.story}` : ''}`, { size: 10, color: INK2, gap: 2 });
   }
   if (d.specs?.length) {
-    w.heading('Stock → Actual');
-    w.row(['', 'Stock', 'Actual'], [0.34, 0.33, 0.33], { header: true });
+    w.heading(L.stockVsNow);
+    w.row(['', L.stock, L.now], [0.34, 0.33, 0.33], { header: true });
     for (const s of d.specs) w.row([s.label, s.stock, s.value], [0.34, 0.33, 0.33], { bold: s.changed });
   }
   if (d.mods?.length) {
-    w.heading(`Mods · ${d.modCount}${d.modsTotal ? ` · ${d.modsTotal}` : ''}`);
+    w.heading(L.mods(d.modCount, d.modsTotal || null));
     for (const g of d.mods) {
       w.eyebrow(g.category);
       for (const m of g.items) w.row([m.name, m.detail, m.cost ?? ''], [0.45, 0.37, 0.18], { rightLast: true });
@@ -292,30 +293,30 @@ export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint
   }
   if (d.maintenance?.count) {
     const m = d.maintenance;
-    w.heading('Mantenimiento');
-    w.para([`${m.count} ${m.count === 1 ? "registro" : "registros"}`, m.last ? `último: ${m.last.title} (${m.last.date})` : null, m.total ? `total ${m.total}` : null].filter(Boolean).join(' · '), { size: 10, color: INK2 });
-    w.row(['Fecha', 'Trabajo', m.total ? 'Costo' : ''], [0.2, 0.6, 0.2], { header: true, rightLast: true });
+    w.heading(L.maintenance);
+    w.para([L.records(m.count), m.last ? L.last(m.last.title, m.last.date) : null, m.total ? L.total(m.total) : null].filter(Boolean).join(' · '), { size: 10, color: INK2 });
+    w.row([L.date, L.work, m.total ? L.cost : ''], [0.2, 0.6, 0.2], { header: true, rightLast: true });
     for (const r of m.recent) w.row([r.date, r.title, r.cost ?? ''], [0.2, 0.6, 0.2], { rightLast: true });
   }
   if (d.costs) {
     // Note 8, only with "costos" on.
     const c = d.costs;
-    w.heading('Lo que ha costado');
+    w.heading(L.costs);
     for (const r of c.rows) w.row([r.label, r.value], [0.7, 0.3], { rightLast: true });
-    w.row(['Total', c.total], [0.7, 0.3], { bold: true, rightLast: true });
+    w.row([L.totalRow, c.total], [0.7, 0.3], { bold: true, rightLast: true });
     const foot = [c.perKm, c.since].filter(Boolean).join(' · ');
     if (foot) w.para(foot, { size: 10, color: INK2 });
   }
   if (input.documents?.length) {
-    w.heading('Documentos');
-    w.row(['Documento', 'Emitido', 'Vence'], [0.5, 0.25, 0.25], { header: true });
+    w.heading(L.documents);
+    w.row([L.document, L.issued, L.expires], [0.5, 0.25, 0.25], { header: true });
     for (const doc2 of input.documents) w.row([doc2.title || doc2.kind, shortDate(doc2.issuedAt), shortDate(doc2.expiresAt)], [0.5, 0.25, 0.25]);
   }
   if (d.track?.events) {
-    const t = d.track;
-    w.heading('Pista');
-    w.para([`${t.events} ${t.events === 1 ? 'evento' : 'eventos'}`, ...t.bests.map((b) => `PB ${b.venue} ${b.lap}`)].join(' · '), { size: 11, font: f.bold });
-    for (const r of t.recent) w.row([r.date, r.title, r.line], [0.18, 0.32, 0.5]);
+    const track = d.track;
+    w.heading(L.track);
+    w.para([L.events(track.events), ...track.bests.map((b) => `PB ${b.venue} ${b.lap}`)].join(' · '), { size: 11, font: f.bold });
+    for (const r of track.recent) w.row([r.date, r.title, r.line], [0.18, 0.32, 0.5]);
   }
   tick();
 
@@ -323,18 +324,18 @@ export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint
   if (photos.length) {
     const years = new Map<string, typeof photos>();
     for (const p of photos) {
-      const y = p.takenAt ? String(new Date(p.takenAt).getUTCFullYear()) : 'Sin fecha';
+      const y = p.takenAt ? String(new Date(p.takenAt).getUTCFullYear()) : L.noDate;
       if (!years.has(y)) years.set(y, []);
       years.get(y)!.push(p);
     }
-    const keys = [...years.keys()].sort((a, b) => (a === 'Sin fecha' ? 1 : b === 'Sin fecha' ? -1 : b.localeCompare(a)));
+    const keys = [...years.keys()].sort((a, b) => (a === L.noDate ? 1 : b === L.noDate ? -1 : b.localeCompare(a)));
     const gap = 8;
     const cell = (W - 2 * M - 2 * gap) / 3;
     for (const year of keys) {
       const list = years.get(year)!;
       for (let i = 0; i < list.length; i += 9) {
         w.newPage();
-        w.heading(i === 0 ? `Fotos · ${year}` : `${year} (cont.)`);
+        w.heading(i === 0 ? L.photos(year) : L.photosCont(year));
         const top = w.y - 8;
         const chunk = list.slice(i, i + 9);
         for (let k = 0; k < chunk.length; k++) {

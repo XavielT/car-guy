@@ -19,6 +19,7 @@ import { PGR_MULTAS_URL } from '@/lib/domain/legal-dr';
 import { STATUS_LABEL } from '@/lib/domain/reminders';
 import { dateLabel, km as fmtKm } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -79,7 +80,7 @@ export default function RecordatorioScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {reminder.title}
+          {catalogLabel('reminder', reminder, 'title')}
         </T>
 
         <Surface style={{ marginBottom: space.lg }}>
@@ -112,7 +113,7 @@ export default function RecordatorioScreen() {
           ) : null}
           {reminder.notes ? (
             <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
-              {reminder.notes}
+              {catalogLabel('reminder', reminder, 'notes')}
             </T>
           ) : null}
         </Surface>

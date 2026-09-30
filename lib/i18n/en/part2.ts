@@ -49,12 +49,14 @@ export const enPart2: Pick<
     save: 'Save reading',
     hint: 'Write down what the dash says. It helps estimate when each service is due.',
     lastReading: (km: string) => `Last reading: ${km}`,
+    lowerWarning: (km: number) => `The highest reading on record is ${km.toLocaleString('en-US')} km. You can save it anyway.`,
   },
 
   oil: {
     title: 'Oil',
     titleFor: (item: string) => `Oil · ${item}`,
     viscosity: 'Viscosity',
+    syntheticNote: 'Synthetic oil: 10,000 km or 12 months.',
     viscosityOther: 'Other',
     viscosityOtherLabel: 'Viscosity (type it in)',
     type: 'Type',
@@ -229,6 +231,7 @@ export const enPart2: Pick<
   },
 
   reminders: {
+    resetDone: (title: string) => `${title} → done`,
     statusLabels: {
       ok: 'Up to date',
       proximo: 'Coming up',
@@ -323,6 +326,23 @@ export const enPart2: Pick<
     vidaUtilNoYear: "Set the vehicle's year to work it out.",
     revisionTecnica:
       "Technical inspection: the law requires it, but INTRANT hasn't rolled it out yet. We'll let you know when it starts.",
+    nudges: {
+      soon: 'Marbete season opens soon. Start getting the papers ready.',
+      opened: 'Marbete sales are open. The earlier you go, the shorter the line.',
+      january: 'January’s here: the marbete is due on the 31st.',
+      threeWeeks: 'Under three weeks left for the marbete.',
+      onlineToday: 'Online marbete sales close today. After that, only at the bank.',
+      onlineClosed: 'Online marbete sales closed on the 18th. Now it’s bank only.',
+      oneWeek: 'One week left for the marbete. After that it’s a RD$2,000 surcharge.',
+      today: 'The marbete is due today. No extensions.',
+    },
+    notes: {
+      marbete: 'Sales open in late October and close on January 31. No extensions.',
+      seguro: 'Set your policy’s expiry date so you get a heads-up in time.',
+      licencia: 'Check for unpaid tickets before renewing: they block the renewal.',
+      revision_tecnica: 'Waiting on INTRANT to roll it out.',
+    } as Record<string, string>,
+    tierEstimate: (amount: string) => `Estimate: RD$${amount}`,
   },
 
   catalog: {
@@ -349,6 +369,7 @@ export const enPart2: Pick<
   },
 
   check: {
+    reviewTask: (label: string) => `Check ${label}`,
     title: 'Check',
     todayTitle: 'For today',
     start: 'Start',
@@ -448,5 +469,9 @@ export const enPart2: Pick<
     blockedBody:
       "Alerts are on here, but Android hasn't given Car Guy permission. It happens a lot after reinstalling or restoring a backup.",
     blockedAction: 'Grant permission',
+    testBody: 'This is how I’ll let you know when a check or a service is due.',
+    dueToday: 'This one’s due today.',
+    approaching: 'Coming up: start lining it up.',
+    checkBody: 'Two minutes and it’s done.',
   },
 };

@@ -324,7 +324,7 @@ export async function sendTest(): Promise<void> {
   await N.scheduleNotificationAsync({
     content: {
       title: 'Car Guy',
-      body: 'Así te voy a avisar cuando toque un chequeo o un mantenimiento.',
+      body: t.notifications.testBody,
       data: { route: '/chequeo' },
     },
     trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL_ID },

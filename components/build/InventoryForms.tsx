@@ -388,7 +388,7 @@ export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleI
       </View>
       <Field label={t.inventory.tire.cost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
-        {parsed.aspectAssumed ? '* sin perfil escrito: 82 % por convención.' : ''}
+        {parsed.aspectAssumed ? t.inventory.tire.aspectAssumed : ''}
       </T>
       <PrimaryButton label={t.inventory.tire.save} onPress={() => void save()} />
       {tireId ? <GhostButton danger label={t.inventory.tire.delete} onPress={() => void tireRepo.softDelete(tireId).then(onDone)} /> : null}

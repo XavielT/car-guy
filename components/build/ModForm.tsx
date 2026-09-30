@@ -21,11 +21,12 @@ import {
 import { contacts as contactRepo, modCategories, mods as modRepo, odometer as odometerRepo } from '@/lib/db/repos';
 import type { Contact, Mod, ModCategory, ModMedia, OdometerReading } from '@/lib/db/types';
 import { jsonObject } from '@/lib/domain/album';
-import { cleanSpecs, foreignToDop, modTotalDop, parseTags, SPEC_FIELDS } from '@/lib/domain/build';
+import { cleanSpecs, foreignToDop, modTotalDop, parseTags, SPEC_FIELDS, specFieldLabel } from '@/lib/domain/build';
 import { parseDecimal } from '@/lib/domain/economy';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { dateInputFromIso, id as newId, isoFromDateInput, money, todayIsoDate } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { importCandidates, pickCandidates } from '@/lib/media';
 import { useTheme } from '@/lib/theme/useTheme';
 import { ContactPicker } from '@/components/diy/ContactPieces';
@@ -149,7 +150,7 @@ export function ModForm({
   const kmWarning = kmValue != null && status === 'instalado' ? odometerWarning(kmValue, isoFromDateInput(installedAt), readings) : null;
   const shownCategories = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q ? categories.filter((c) => c.name.toLowerCase().includes(q)) : categories;
+    return q ? categories.filter((c) => catalogLabel('modCategory', c).toLowerCase().includes(q)) : categories;
   }, [categories, search]);
 
   async function addPhotos() {
@@ -246,7 +247,7 @@ export function ModForm({
       <Field label={t.modForm.searchCategory} value={search} onChangeText={setSearch} />
       <View style={styles.chips}>
         {shownCategories.map((c) => (
-          <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(c.id)} />
+          <Chip key={c.id} label={catalogLabel('modCategory', c)} selected={categoryId === c.id} onPress={() => setCategoryId(c.id)} />
         ))}
       </View>
 
@@ -348,7 +349,7 @@ export function ModForm({
         ? SPEC_FIELDS.filter((f) => EFFECT_KEYS.includes(f.key)).map((f) => (
             <Field
               key={f.key}
-              label={f.unit ? `${f.label} (${f.unit})` : f.label}
+              label={f.unit ? `${specFieldLabel(f)} (${f.unit})` : specFieldLabel(f)}
               keyboardType={f.kind === 'number' ? 'decimal-pad' : 'default'}
               value={effects[f.key] ?? ''}
               onChangeText={(t) => setEffects((e) => ({ ...e, [f.key]: t }))}

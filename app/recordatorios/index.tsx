@@ -13,7 +13,8 @@ import type { Reminder } from '@/lib/db/types';
 import { addDays, todayIso } from '@/lib/domain/dates';
 import { STATUS_LABEL, type ReminderState } from '@/lib/domain/reminders';
 import { dateLabel } from '@/lib/format';
-import { t } from '@/lib/i18n';
+import { localeTag, t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -98,7 +99,7 @@ export default function RecordatoriosScreen() {
                     style={{ marginBottom: space.sm, opacity: reminder.isEnabled ? 1 : 0.6 }}>
                     <View style={styles.headerRow}>
                       <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-                        {reminder.title}
+                        {catalogLabel('reminder', reminder, 'title')}
                       </T>
                       {reminder.isEnabled ? (
                         <StatusPill
@@ -217,7 +218,7 @@ function shortDate(iso: string): string {
   const d = new Date(iso);
   const sameYear = d.getFullYear() === new Date(todayIso()).getFullYear();
   return sameYear
-    ? d.toLocaleDateString('es-DO', { day: 'numeric', month: 'short' }).replace('.', '')
+    ? d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' }).replace('.', '')
     : dateLabel(iso);
 }
 

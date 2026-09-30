@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { INSPECTION_TEMPLATES, SERVICE_TYPES, type ServiceTypeSeed } from '../domain/catalog';
+import { INSPECTION_TEMPLATES, legalReminder, SERVICE_TYPES, type ServiceTypeSeed } from '../domain/catalog';
 import { addMonths, nextJanuary31, todayIso } from '../domain/dates';
 import { enqueue } from './client';
 import {
@@ -200,7 +200,7 @@ export async function seedVehicleDefaults(
     // whether or not you renewed it in December, so the next due date anchors to
     // the old due date, never to the completion date.
     await add({
-      title: 'Marbete',
+      title: legalReminder('marbete').title,
       legalKind: 'marbete',
       metric: 'date',
       dueDate: nextJanuary31(today),
@@ -208,11 +208,11 @@ export async function seedVehicleDefaults(
       intervalMonths: 12,
       fixedInterval: true,
       isEnabled: true,
-      notes: 'La ventana abre a finales de octubre y cierra el 31 de enero.',
+      notes: legalReminder('marbete').notes,
     });
 
     await add({
-      title: 'Seguro',
+      title: legalReminder('seguro').title,
       legalKind: 'seguro',
       metric: 'date',
       dueDate: null,
@@ -220,11 +220,11 @@ export async function seedVehicleDefaults(
       intervalMonths: 12,
       fixedInterval: true,
       isEnabled: true,
-      notes: 'Pon la fecha de vencimiento de tu póliza.',
+      notes: legalReminder('seguro').notes,
     });
 
     await add({
-      title: 'Licencia de conducir',
+      title: legalReminder('licencia').title,
       legalKind: 'licencia',
       metric: 'date',
       dueDate: null,
@@ -232,17 +232,17 @@ export async function seedVehicleDefaults(
       intervalMonths: 48,
       fixedInterval: true,
       isEnabled: true,
-      notes: 'Revisa multas pendientes antes de renovar.',
+      notes: legalReminder('licencia').notes,
     });
 
     await add({
-      title: 'Revisión técnica',
+      title: legalReminder('revision_tecnica').title,
       legalKind: 'revision_tecnica',
       metric: 'date',
       dueDate: null,
       isRecurring: false,
       isEnabled: false,
-      notes: 'Pendiente de implementación por INTRANT.',
+      notes: legalReminder('revision_tecnica').notes,
     });
 
     return { created };

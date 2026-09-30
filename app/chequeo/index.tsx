@@ -13,6 +13,7 @@ import { todayIso } from '@/lib/domain/dates';
 import { isDue, latestRun, weeklyStreak } from '@/lib/domain/inspections';
 import { dateLabel } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -106,7 +107,7 @@ export default function ChequeoScreen() {
         {due.map((template) => (
           <Surface key={template.id} style={{ marginBottom: space.md }}>
             <T face="display" style={{ color: theme.text.primary, fontSize: 22, textTransform: 'uppercase' }}>
-              {template.name}
+              {catalogLabel('inspectionTemplate', template)}
             </T>
             <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2, marginBottom: space.md }}>
               {t.check.cadences[template.cadence]} ·{' '}
@@ -138,7 +139,7 @@ export default function ChequeoScreen() {
               accessibilityRole="button"
               style={{ flex: 1, opacity: template.isEnabled ? 1 : 0.5 }}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-                {template.name}
+                {catalogLabel('inspectionTemplate', template)}
               </T>
               <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
                 {t.check.cadences[template.cadence]}
@@ -149,7 +150,7 @@ export default function ChequeoScreen() {
               onPress={() => toggle(template)}
               accessibilityRole="switch"
               accessibilityState={{ checked: template.isEnabled }}
-              accessibilityLabel={`${template.name}: ${template.isEnabled ? t.check.turnOff : t.check.turnOn}`}
+              accessibilityLabel={`${catalogLabel('inspectionTemplate', template)}: ${template.isEnabled ? t.check.turnOff : t.check.turnOn}`}
               hitSlop={8}>
               <T face="title" style={[styles.action, { color: theme.text.secondary }]}>
                 {template.isEnabled ? t.check.turnOff : t.check.turnOn}
@@ -158,7 +159,7 @@ export default function ChequeoScreen() {
             <Pressable
               onPress={() => router.push({ pathname: '/chequeo/plantillas/[id]', params: { id: template.id } })}
               accessibilityRole="button"
-              accessibilityLabel={`${t.check.edit} ${template.name}`}
+              accessibilityLabel={`${t.check.edit} ${catalogLabel('inspectionTemplate', template)}`}
               hitSlop={8}>
               <T face="title" style={[styles.action, { color: theme.accent }]}>
                 {t.check.edit}

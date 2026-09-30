@@ -14,6 +14,7 @@ import { applyPreset, FICHA_FIELDS, SPEC_PRESETS, type FichaValues } from '../do
 import type { VinDecoded } from '../domain/vpic';
 import { normalizeCode } from '../domain/dtc';
 import { id as newId } from '../format';
+import { t } from '../i18n';
 
 /**
  * The DIY block's reads and writes (IMP 28092026 Phase 5). The ficha's service
@@ -99,25 +100,26 @@ export async function loadPreset(vehicleId: string, presetId: string): Promise<n
 /**
  * vPIC's answer, applied to what is empty only: the vehicle's make, model,
  * year, gearbox and drive, and the stock displacement. Returns the Spanish
- * names of what was filled, for the confirmation line.
+ * names of what was filled (current language), for the confirmation line.
  */
 export async function applyVin(vehicleId: string, d: VinDecoded): Promise<string[]> {
   const v = await vehicleRepo.getById(vehicleId);
   if (!v) return [];
   const filled: string[] = [];
   const patch: Partial<Vehicle> & { id: string } = { id: vehicleId };
-  if (!v.make && d.make) (patch.make = d.make), filled.push('marca');
-  if (!v.model && d.model) (patch.model = d.model), filled.push('modelo');
-  if (!v.year && d.year) (patch.year = d.year), filled.push('año');
-  if (!v.transmission && d.transmission) (patch.transmission = d.transmission), filled.push('caja');
-  if (!v.drivetrain && d.drivetrain) (patch.drivetrain = d.drivetrain), filled.push('tracción');
+  const names = t.ficha.vinFields;
+  if (!v.make && d.make) (patch.make = d.make), filled.push(names.make);
+  if (!v.model && d.model) (patch.model = d.model), filled.push(names.model);
+  if (!v.year && d.year) (patch.year = d.year), filled.push(names.year);
+  if (!v.transmission && d.transmission) (patch.transmission = d.transmission), filled.push(names.transmission);
+  if (!v.drivetrain && d.drivetrain) (patch.drivetrain = d.drivetrain), filled.push(names.drivetrain);
   if (Object.keys(patch).length > 1) await vehicleRepo.upsertRaw(patch);
 
   const f = await readFicha(vehicleId);
   const stock = jsonObject(f.sheet?.stock);
   if (d.displacementCc && stock.displacement_cc == null) {
     stock.displacement_cc = d.displacementCc;
-    filled.push('cilindrada');
+    filled.push(names.displacement);
     const sources = { ...f.sources, displacement_cc: 'vpic' };
     await specsheets.upsertForVehicle(vehicleId, { stock: JSON.stringify(stock), fieldSources: JSON.stringify(sources) });
   }
@@ -186,7 +188,7 @@ export async function createRepairForDtc(event: VehicleDtcEvent, description: st
     kind: 'reparacion',
     occurredAt: event.seenAt,
     odometerKm: event.odometerKm,
-    title: `Código ${event.code}`,
+    title: t.obd.repairTitle(event.code),
     description,
     costPartsDop: 0,
     costLaborDop: 0,

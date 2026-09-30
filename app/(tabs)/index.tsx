@@ -47,6 +47,7 @@ import { fuelCfgFor, latestKnown, partialEconomy, weightedAverage } from '@/lib/
 import { statusBadgeLabel } from '@/lib/domain/vehicleStatus';
 import { km as fmtKm, kmPerUnit, money, volume as fmtVolume } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -215,7 +216,7 @@ export default function HomeScreen() {
       ? {
           key: entry.item.reminder.id,
           status: entry.item.status.status === 'sin_datos' ? 'proximo' : entry.item.status.status,
-          title: entry.item.reminder.title,
+          title: catalogLabel('reminder', entry.item.reminder, 'title'),
           countdown: countdown(entry.item.status),
           onPress: () => router.push({ pathname: '/recordatorio/[id]', params: { id: entry.item.reminder.id } }),
         }

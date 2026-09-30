@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { router as appRouter, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,9 +24,9 @@ import { userMessage } from '@/lib/diagnostics';
 import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
-import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_I18N, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { FEEDBACK_ROUTE } from '@/lib/feedback';
-import { t } from '@/lib/i18n';
+import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
 import { useTheme, type ThemePreference } from '@/lib/theme/useTheme';
@@ -39,6 +39,7 @@ import { useTheme, type ThemePreference } from '@/lib/theme/useTheme';
 export default function MasScreen() {
   const router = useRouter();
   const { theme, preference, setPreference } = useTheme();
+  const language = useLanguage();
   const { data, activeVehicle, resetAll, refresh } = useStore();
   const archived = data.vehicles.filter((v) => v.isArchived);
   const installOffer = useInstallOffer();
@@ -241,6 +242,26 @@ export default function MasScreen() {
           value={preference}
           onChange={setPreference}
         />
+
+        {FEATURE_I18N ? (
+          <>
+            <MoreSection title={t.language.title} caption={t.language.caption} />
+            <Segmented<LanguagePreference>
+              options={[
+                { key: 'system', label: t.language.system },
+                { key: 'es', label: t.language.es },
+                { key: 'en', label: t.language.en },
+              ]}
+              value={language.preference}
+              onChange={(next) => {
+                // The navigator is keyed on the language (app/_layout.tsx), so the switch
+                // remounts it on Inicio; bring the person back to where they were.
+                language.setPreference(next);
+                setTimeout(() => appRouter.navigate('/(tabs)/mas'), 0);
+              }}
+            />
+          </>
+        ) : null}
 
         <MoreSection title={t.more.notifications} />
         <NavRow

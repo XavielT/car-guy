@@ -29,6 +29,7 @@ import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
 import { FEATURE_BUILD, FEATURE_DIY } from '@/lib/flags';
 import { ContactPicker } from '@/components/diy/ContactPieces';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal, roundMoney } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -226,7 +227,7 @@ export default function NuevoServicioScreen() {
   // record called "Aceite de motor y filtro + Filtro de aire" is better than an
   // empty one, and better than making them type it.
   const autoTitle = selected
-    .map((id) => catalog.find((t) => t.id === id)?.name)
+    .map((id) => catalogLabel('serviceType', catalog.find((t) => t.id === id)))
     .filter(Boolean)
     .join(' + ');
   const effectiveTitle = titleTouched ? title : autoTitle;
@@ -241,7 +242,7 @@ export default function NuevoServicioScreen() {
     parsedOdometer != null ? odometerWarning(parsedOdometer, isoFromDateInput(date), readings) : null;
 
   const visible = search.trim()
-    ? catalog.filter((t) => t.name.toLowerCase().includes(search.trim().toLowerCase()))
+    ? catalog.filter((t) => catalogLabel('serviceType', t).toLowerCase().includes(search.trim().toLowerCase()))
     : catalog;
 
   function save() {
@@ -359,7 +360,7 @@ export default function NuevoServicioScreen() {
             {oilItems.map((type) => (
               <OilBlock
                 key={type.id}
-                title={oilItems.length > 1 || type.id !== 'aceite_motor' ? t.oil.titleFor(type.name) : t.oil.title}
+                title={oilItems.length > 1 || type.id !== 'aceite_motor' ? t.oil.titleFor(catalogLabel('serviceType', type)) : t.oil.title}
                 value={oil[type.id] ?? EMPTY_OIL}
                 onChange={(next) => setOil((prev) => ({ ...prev, [type.id]: next }))}
                 last={lastOil[type.id]}
@@ -385,7 +386,7 @@ export default function NuevoServicioScreen() {
                       { borderColor: on ? theme.accentFill : theme.line, backgroundColor: on ? theme.accentFill : theme.bg.raised },
                     ]}>
                     <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
-                      {type.name}
+                      {catalogLabel('serviceType', type)}
                     </T>
                   </Pressable>
                 );

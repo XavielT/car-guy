@@ -54,11 +54,13 @@ export type CarMake = {
  */
 export type MakeMatch = { make: CarMake; models: CarModel[] };
 
-export type BodyType = { id: string; es: string };
+/** `es` / `en`: the label in each language — show it with `refLabel` (lib/i18n/catalog.ts). */
+export type BodyType = { id: string; es: string; en: string };
 export type Color = {
   id: string;
   kind: 'exterior' | 'interior' | 'material' | 'finish';
   es: string;
+  en: string;
   /** Swatch; null for "Otro", absent for materials and finishes. */
   hex?: string | null;
   /** Pale swatch that needs a border to show on a light background. */
@@ -68,6 +70,7 @@ export type OilItem = {
   id: string;
   kind: 'grade' | 'type' | 'flag' | 'spec' | 'brand';
   es: string;
+  en: string;
   /** Specs only: the fuel the spec is for; absent when it covers both. */
   fuel?: 'gasolina' | 'diesel';
 };
@@ -75,10 +78,12 @@ export type FluidItem = {
   id: string;
   kind: 'atf' | 'cvt' | 'gear' | 'coolant' | 'coolant-mix' | 'brake' | 'steering';
   es: string;
+  en: string;
   note?: string;
+  noteEn?: string;
 };
 
-/** Shown next to the coolant picker: people choose by colour, which is not a standard. */
+/** Shown next to the coolant picker: people choose by colour, which is not a standard. English: catalogText('refdata', 'coolantColorNote', …). */
 export const COOLANT_COLOR_NOTE = 'El color del refrigerante no es un estándar: guíate por la tecnología que pide el manual.';
 
 /** Earliest year the year picker offers when a model's range is unknown. */

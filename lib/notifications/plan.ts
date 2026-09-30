@@ -9,6 +9,8 @@ import { addDays } from '../domain/dates';
 import { FALLBACK_KM_PER_DAY } from '../domain/odometer';
 import { evaluate, type EvaluateContext } from '../domain/reminders';
 import type { Cadence, Reminder } from '../db/types';
+import { t } from '../i18n';
+import { catalogLabel } from '../i18n/catalog';
 
 /**
  * The cap. iOS allows 64 pending notifications and Android's AlarmManager many
@@ -132,8 +134,8 @@ export function planNotifications(input: PlanInput, now: string = input.today): 
       push({
         kind: 'date',
         id: `reminder:${reminder.id}:due`,
-        title: reminder.title,
-        body: `Te toca esto hoy.${suffix}`,
+        title: catalogLabel('reminder', reminder, 'title'),
+        body: `${t.notifications.dueToday}${suffix}`,
         date: atHour(due, input.hour, input.minute),
         route: `/recordatorio/${reminder.id}`,
       });
@@ -142,8 +144,8 @@ export function planNotifications(input: PlanInput, now: string = input.today): 
       push({
         kind: 'date',
         id: `reminder:${reminder.id}:proximo`,
-        title: reminder.title,
-        body: `Se acerca: ve cuadrándolo.${suffix}`,
+        title: catalogLabel('reminder', reminder, 'title'),
+        body: `${t.notifications.approaching}${suffix}`,
         date: atHour(reminder.proximoDate, input.hour, input.minute),
         route: `/recordatorio/${reminder.id}`,
       });
@@ -154,7 +156,7 @@ export function planNotifications(input: PlanInput, now: string = input.today): 
     push({
       kind: 'date',
       id: `marbete:${nudge.date.slice(0, 10)}`,
-      title: 'Marbete',
+      title: t.legal.marbeteBanner,
       body: nudge.message,
       date: atHour(nudge.date, input.hour, input.minute),
       route: '/recordatorios',
@@ -173,7 +175,7 @@ export function planNotifications(input: PlanInput, now: string = input.today): 
     const common = {
       id: `template:${template.id}`,
       title: template.name,
-      body: 'Dos minutos y queda hecho.',
+      body: t.notifications.checkBody,
       hour: input.hour,
       minute: input.minute,
       route: `/chequeo/${template.id}/run`,

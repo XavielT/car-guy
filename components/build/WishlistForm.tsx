@@ -14,6 +14,7 @@ import { wishlistTotalDop } from '@/lib/domain/build';
 import { parseDecimal } from '@/lib/domain/economy';
 import { dateInputFromIso, isoFromDateInput, money } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const STATUSES: WishlistItem['status'][] = ['idea', 'ahorrando', 'pedido', 'descartado'];
@@ -114,7 +115,7 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
       {label(t.modForm.category)}
       <View style={styles.chips}>
         {categories.map((c) => (
-          <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
+          <Chip key={c.id} label={catalogLabel('modCategory', c)} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
         ))}
       </View>
       <View style={styles.pair}>

@@ -6,6 +6,7 @@
  * Pure (ADR-04): the screens, Historial and the tests share it.
  */
 import type { OilType, ServiceCategory } from '../db/types';
+import { catalogText } from '../i18n/catalog';
 import { oil, type OilItem } from './refdata';
 import { foldText } from './text';
 
@@ -55,7 +56,7 @@ export function isOilEmpty(item: Partial<OilFields> | null | undefined): boolean
  */
 export function oilSummary(item: Partial<OilFields> | null | undefined): string | null {
   if (isOilEmpty(item)) return null;
-  const head = [clean(item!.oilViscosity), item!.oilType ? OIL_TYPE_LABEL[item!.oilType] : '']
+  const head = [clean(item!.oilViscosity), item!.oilType ? catalogText('oilType', item!.oilType, 'label', OIL_TYPE_LABEL[item!.oilType]) : '']
     .filter(Boolean)
     .join(' ');
   const out = [head, clean(item!.oilBrand), clean(item!.oilSpec)].filter(Boolean).join(SPEC_SEPARATOR);

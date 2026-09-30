@@ -1,5 +1,6 @@
 import type { Reminder } from '../db/types';
 import type { ReminderStatus } from './reminders';
+import { catalogLabel } from '../i18n/catalog';
 
 /**
  * What the cluster hero's needle reads (05-design-jdm.md, ClusterHero): how
@@ -32,7 +33,7 @@ export function clusterReading(evaluated: Evaluated[]): ClusterReading | null {
     const interval = byKm.reminder.intervalKm!;
     return {
       progress: clamp(1 - byKm.status.dueKm! / interval),
-      title: byKm.reminder.title,
+      title: catalogLabel('reminder', byKm.reminder, 'title'),
       remaining: { km: byKm.status.dueKm! },
       predictedDueDate: byKm.status.predictedDueDate,
     };
@@ -44,7 +45,7 @@ export function clusterReading(evaluated: Evaluated[]): ClusterReading | null {
   if (byDays) {
     return {
       progress: clamp(1 - byDays.status.dueDays! / intervalDays(byDays.reminder)),
-      title: byDays.reminder.title,
+      title: catalogLabel('reminder', byDays.reminder, 'title'),
       remaining: { days: byDays.status.dueDays! },
       predictedDueDate: byDays.reminder.dueDate,
     };

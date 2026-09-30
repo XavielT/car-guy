@@ -12,7 +12,8 @@ import type { ServiceRecord, VehicleDtcEvent } from '@/lib/db/types';
 import { lookup, normalizeCode, type Dtc } from '@/lib/domain/dtc';
 import { parseDecimal } from '@/lib/domain/economy';
 import { dateLabel, isoFromDateInput, km as fmtKm, todayIsoDate } from '@/lib/format';
-import { t } from '@/lib/i18n';
+import { currentLanguage, t } from '@/lib/i18n';
+import { dtcText } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -26,9 +27,9 @@ export function DtcCard({ dtc, code }: { dtc: Dtc | null; code: string }) {
         {code}
       </T>
       <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
-        {dtc?.descEs ?? t.obd.notFound}
+        {dtcText(dtc) ?? t.obd.notFound}
       </T>
-      {dtc?.descEn ? (
+      {dtc?.descEn && currentLanguage() === 'es' ? (
         <>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, marginTop: space.sm }}>
             {t.obd.english}
@@ -141,7 +142,7 @@ export function DtcEventRow({ event, vehicleName, onChanged }: { event: VehicleD
           <GhostButton
             label={t.obd.linkNew}
             onPress={() =>
-              void createRepairForDtc(event, lookup(event.code)?.descEs ?? '').then((r) => {
+              void createRepairForDtc(event, dtcText(lookup(event.code)) ?? '').then((r) => {
                 setLinking(false);
                 onChanged();
                 router.push({ pathname: '/servicio/[id]', params: { id: r.id } });

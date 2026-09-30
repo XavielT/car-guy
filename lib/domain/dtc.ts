@@ -11,6 +11,7 @@
  * understandable rather than polished; `descEn` is kept verbatim so a mechanic
  * can always see the original wording.
  */
+import { catalogText, dtcText } from '../i18n/catalog';
 import data from './dtc.es.json';
 
 export type DtcSystem = 'motor' | 'carroceria' | 'chasis' | 'red';
@@ -73,15 +74,15 @@ export function lookup(code: string): Dtc | null {
 }
 
 /**
- * One Spanish line for the UI. A manufacturer code missing from the table is
+ * One line for the UI, in the app's language (English reads the table's original `descEn`). A manufacturer code missing from the table is
  * normal (every brand has its own list), so it gets a specific message instead
  * of a generic "no encontrado" that would read like the app failed.
  */
 export function describe(code: string): string {
   const hit = lookup(code);
-  if (hit) return hit.descEs;
-  if (isManufacturerSpecific(code)) return 'Código específico del fabricante';
-  return 'Código no encontrado en la tabla';
+  if (hit) return dtcText(hit)!;
+  if (isManufacturerSpecific(code)) return catalogText('dtc', 'manufacturer', 'label', 'Código específico del fabricante');
+  return catalogText('dtc', 'notFound', 'label', 'Código no encontrado en la tabla');
 }
 
 /** Every row, for search or listing screens. */

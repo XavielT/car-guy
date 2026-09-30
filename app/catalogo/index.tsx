@@ -9,6 +9,7 @@ import { space } from '@/constants/theme';
 import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -50,7 +51,7 @@ export default function CatalogoScreen() {
         {types.map((type) => (
           <NavRow
             key={type.id}
-            label={type.name}
+            label={catalogLabel('serviceType', type)}
             caption={t.catalog.every(type.defaultIntervalKm, type.defaultIntervalMonths)}
             onPress={() => router.push({ pathname: '/catalogo/[id]', params: { id: type.id } })}
           />

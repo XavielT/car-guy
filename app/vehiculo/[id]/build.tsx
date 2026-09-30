@@ -19,6 +19,7 @@ import { dotAge, parseTireSize } from '@/lib/domain/tires';
 import { parseDecimal } from '@/lib/domain/economy';
 import { money } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -106,7 +107,7 @@ export default function BuildScreen() {
           <View key={g.category.id} style={{ gap: space.sm, marginTop: space.sm }}>
             <View style={styles.groupHead}>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-                {`${g.category.name} · ${g.mods.length}`}
+                {`${catalogLabel('modCategory', g.category)} · ${g.mods.length}`}
               </T>
               <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
                 {subtotal ? whole(subtotal) : ''}
@@ -323,7 +324,7 @@ export default function BuildScreen() {
             {data.categories.map((c) => (
               <Chip
                 key={c.id}
-                label={c.name}
+                label={catalogLabel('modCategory', c)}
                 selected={reclass?.categoryId === c.id}
                 onPress={() => reclass && void modAction(reclass.id, { kind: 'reclasificar', categoryId: c.id }).then(() => (setReclass(null), void after()))}
               />
@@ -390,7 +391,7 @@ function WheelSetCard({ set, tires, vehicleName, onOpen, onMount }: { set: Wheel
       ) : null}
       {sizes ? (
         <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
-          {`gomas ${sizes} · ${tires.length}`}
+          {t.inventory.wheelTires(sizes, tires.length)}
         </T>
       ) : null}
       </Pressable>

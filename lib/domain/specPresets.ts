@@ -15,6 +15,8 @@
  * verified) until the user ticks it.
  */
 
+import { catalogText } from '../i18n/catalog';
+
 export type FichaSection = 'motor' | 'fluidos' | 'electrico' | 'ruedas' | 'combustible';
 
 export type FichaField = {
@@ -64,6 +66,13 @@ export const FICHA_SECTIONS: { key: FichaSection; label: string }[] = [
 ];
 
 const FICHA_KEYS = new Set(FICHA_FIELDS.map((f) => f.key));
+
+/** The labels in the app's language (English: lib/i18n/catalogTranslations.en.json). */
+export const fichaFieldLabel = (f: FichaField): string => catalogText('fichaField', f.key, 'label', f.label);
+export const fichaSectionLabel = (s: { key: FichaSection; label: string }): string => catalogText('fichaSection', s.key, 'label', s.label);
+export const presetLabel = (p: SpecPreset): string => catalogText('specPreset', p.id, 'label', p.label);
+export const presetSources = (p: SpecPreset): string => catalogText('specPreset', p.id, 'sources', p.sources.join(' · '));
+const word = (id: string, es: string) => catalogText('fichaText', id, 'label', es);
 
 export type FichaValues = Partial<Record<string, string | number | null>>;
 
@@ -289,22 +298,22 @@ export function fichaText(
 ): string {
   const head = [vehicle.name, [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
   const ids = [
-    vehicle.chassisCode ? `Chasis: ${vehicle.chassisCode}` : null,
-    vehicle.engineCode ? `Motor: ${vehicle.engineCode}` : null,
+    vehicle.chassisCode ? `${word('chassis', 'Chasis')}: ${vehicle.chassisCode}` : null,
+    vehicle.engineCode ? `${word('engine', 'Motor')}: ${vehicle.engineCode}` : null,
     vehicle.vin ? `VIN: ${vehicle.vin}` : null,
-    vehicle.chassisNumber ? `N.º de chasis: ${vehicle.chassisNumber}` : null,
+    vehicle.chassisNumber ? `${word('chassisNumber', 'N.º de chasis')}: ${vehicle.chassisNumber}` : null,
   ].filter((x): x is string => Boolean(x));
-  const lines: string[] = [`FICHA · ${head}`, ...ids];
+  const lines: string[] = [`${word('head', 'FICHA')} · ${head}`, ...ids];
   for (const s of FICHA_SECTIONS) {
     const rows = FICHA_FIELDS.filter((f) => f.section === s.key && values[f.key] != null && values[f.key] !== '');
     if (!rows.length) continue;
-    lines.push('', s.label.toUpperCase());
-    for (const f of rows) lines.push(`- ${f.label}: ${formatFicha(f.key, values[f.key])}`);
+    lines.push('', fichaSectionLabel(s).toUpperCase());
+    for (const f of rows) lines.push(`- ${fichaFieldLabel(f)}: ${formatFicha(f.key, values[f.key])}`);
   }
   if (torques.length) {
-    lines.push('', 'TORQUES');
+    lines.push('', word('torques', 'TORQUES'));
     for (const t of torques) lines.push(`- ${t.item}: ${t.valueNm} Nm${t.stage ? ` (${t.stage})` : ''}`);
   }
-  lines.push('', `(${CAVEAT})`);
+  lines.push('', `(${word('caveat', CAVEAT)})`);
   return lines.join('\n');
 }

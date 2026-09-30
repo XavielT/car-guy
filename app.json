@@ -69,7 +69,23 @@
           "androidForegroundServiceIcon": "./assets/images/notification-icon.png"
         }
       ],
-      "expo-task-manager"
+      "expo-task-manager",
+      [
+        "expo-localization",
+        {
+          "supportsRTL": false,
+          "supportedLocales": {
+            "ios": [
+              "es",
+              "en"
+            ],
+            "android": [
+              "es",
+              "en"
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -78,6 +94,10 @@
       "eas": {
         "projectId": "8b640709-63cc-4959-b027-05f71e81db23"
       }
+    },
+    "locales": {
+      "es": "./locales/es.json",
+      "en": "./locales/en.json"
     }
   }
 }

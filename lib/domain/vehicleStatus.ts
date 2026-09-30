@@ -9,6 +9,7 @@
  */
 import type { Vehicle, VehicleStatus } from '../db/types';
 import { t } from '../i18n';
+import { catalogText } from '../i18n/catalog';
 
 export const VEHICLE_STATUSES: VehicleStatus[] = [
   'activo',
@@ -42,26 +43,21 @@ export function isEx(status: VehicleStatus): boolean {
 
 /** The short badge text on a card, or null when the status needs none (activo). */
 export function statusBadgeLabel(status: VehicleStatus): string | null {
-  switch (status) {
-    case 'proyecto':
-      return 'PROYECTO';
-    case 'en_taller':
-      return 'EN TALLER';
-    case 'accidentado':
-      return 'ACCIDENTADO';
-    case 'guardado':
-      return 'GUARDADO';
-    case 'restauracion':
-      return 'RESTAURACIÓN';
-    case 'prestado':
-      return 'PRESTADO';
-    case 'vendido':
-    case 'perdido':
-      return 'EX';
-    default:
-      return null;
-  }
+  const es = BADGE_ES[status];
+  return es == null ? null : catalogText('statusBadge', status, 'label', es);
 }
+
+/** The Spanish badge per status (English: lib/i18n/catalogTranslations.en.json `statusBadge`); none for activo. */
+const BADGE_ES: Partial<Record<VehicleStatus, string>> = {
+  proyecto: 'PROYECTO',
+  en_taller: 'EN TALLER',
+  accidentado: 'ACCIDENTADO',
+  guardado: 'GUARDADO',
+  restauracion: 'RESTAURACIÓN',
+  prestado: 'PRESTADO',
+  vendido: 'EX',
+  perdido: 'EX',
+};
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
 

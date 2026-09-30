@@ -24,10 +24,11 @@ import { torqueSpecs, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { TorqueSpec, Vehicle, VehicleDtcEvent } from '@/lib/db/types';
 import { lookup } from '@/lib/domain/dtc';
 import { parseDecimal } from '@/lib/domain/economy';
-import { FICHA_FIELDS, FICHA_SECTIONS, fichaText, formatFicha, presetsFor, SPEC_PRESETS, type FichaField } from '@/lib/domain/specPresets';
+import { FICHA_FIELDS, FICHA_SECTIONS, type FichaField, fichaFieldLabel, fichaSectionLabel, fichaText, formatFicha, presetLabel, presetsFor, presetSources, SPEC_PRESETS } from '@/lib/domain/specPresets';
 import { checkVin, decodeVin } from '@/lib/domain/vpic';
 import { dateLabel, id as newId } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { dtcText } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -168,7 +169,7 @@ export default function FichaScreen() {
         {FICHA_SECTIONS.map((s) => (
           <View key={s.key} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, paddingVertical: 6 }}>
-              {s.label}
+              {fichaSectionLabel(s)}
             </T>
             {FICHA_FIELDS.filter((f) => f.section === s.key).map((f) => {
               const v = ficha.values[f.key];
@@ -182,10 +183,10 @@ export default function FichaScreen() {
                       setValue(v != null ? String(v) : '');
                     }}
                     accessibilityRole="button"
-                    accessibilityLabel={`${f.label}: ${formatFicha(f.key, v)}${source ? `, ${t.ficha.sources[source] ?? source}` : ''}${verified ? `, ${t.ficha.verified}` : ''}`}
+                    accessibilityLabel={`${fichaFieldLabel(f)}: ${formatFicha(f.key, v)}${source ? `, ${t.ficha.sources[source] ?? source}` : ''}${verified ? `, ${t.ficha.verified}` : ''}`}
                     style={styles.fieldMain}>
                     <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-                      {f.label}
+                      {fichaFieldLabel(f)}
                     </T>
                     <View style={{ alignItems: 'flex-end' }}>
                       <T face="mono" style={{ color: v != null ? theme.text.primary : theme.text.muted, fontSize: 13 }}>
@@ -203,7 +204,7 @@ export default function FichaScreen() {
                       onPress={() => void setVerified(vehicle.id, f.key, !verified).then(load)}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: verified }}
-                      accessibilityLabel={`${t.ficha.verified}: ${f.label}`}
+                      accessibilityLabel={`${t.ficha.verified}: ${fichaFieldLabel(f)}`}
                       hitSlop={6}
                       style={[styles.check, { borderColor: verified ? theme.statusText.ok : theme.lineStrong, backgroundColor: verified ? `${theme.statusText.ok}22` : 'transparent' }]}>
                       {verified ? <Ionicons name="checkmark" size={16} color={theme.statusText.ok} /> : null}
@@ -249,7 +250,7 @@ export default function FichaScreen() {
               {e.code}
             </T>
             <T face="body" numberOfLines={1} style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-              {lookup(e.code)?.descEs ?? ''}
+              {dtcText(lookup(e.code)) ?? ''}
             </T>
             <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
               {`${dateLabel(e.seenAt)} · ${e.clearedAt ? t.obd.resolved : t.obd.open}`}
@@ -263,9 +264,9 @@ export default function FichaScreen() {
         </View>
       </ScrollView>
 
-      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? t.ficha.edit(editing.label) : ''}>
+      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? t.ficha.edit(fichaFieldLabel(editing)) : ''}>
         <Field
-          label={editing?.unit ? `${editing.label} (${editing.unit})` : editing?.label ?? ''}
+          label={editing?.unit ? `${fichaFieldLabel(editing)} (${editing.unit})` : editing ? fichaFieldLabel(editing) : ''}
           value={value}
           onChangeText={setValue}
           keyboardType={editing?.kind === 'number' ? 'decimal-pad' : 'default'}
@@ -292,10 +293,10 @@ export default function FichaScreen() {
                 {g.list.map((p) => (
                   <Pressable key={p.id} onPress={() => void pickPreset(p.id)} accessibilityRole="button" style={[styles.preset, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
                     <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-                      {p.label}
+                      {presetLabel(p)}
                     </T>
                     <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-                      {p.sources.join(' · ')}
+                      {presetSources(p)}
                     </T>
                   </Pressable>
                 ))}

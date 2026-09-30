@@ -1,6 +1,6 @@
 import type { Tone } from '@/components/ui';
 import type { FeedbackStatus } from '@/lib/feedback/inbox';
-import { t } from '@/lib/i18n';
+import { localeTag, t } from '@/lib/i18n';
 
 /** Shared by the inbox list and the detail (app/admin/comentarios*). */
 export const STATUS_TONE: Record<string, Tone> = { new: 'urgente', seen: 'proximo', done: 'ok' };
@@ -15,5 +15,5 @@ export function statusLabel(status: string): string {
 
 export function shortDate(iso: string): string {
   const d = new Date(iso);
-  return `${d.toLocaleDateString('es-DO', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}`;
+  return `${d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' })}`;
 }

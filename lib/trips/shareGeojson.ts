@@ -2,6 +2,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
 import type { Trip } from '../db/types';
+import { t } from '../i18n';
 import { tripGeojson } from './exportGeojson';
 import type { Fix } from './geo';
 
@@ -25,6 +26,6 @@ export async function shareTripGeojson(trip: Trip, points: readonly Fix[]): Prom
   file.create({ overwrite: true });
   file.write(json);
   if (!(await Sharing.isAvailableAsync())) return false;
-  await Sharing.shareAsync(file.uri, { dialogTitle: 'Puntos GPS del viaje', mimeType: 'application/geo+json' });
+  await Sharing.shareAsync(file.uri, { dialogTitle: t.trips.geojsonDialog, mimeType: 'application/geo+json' });
   return true;
 }

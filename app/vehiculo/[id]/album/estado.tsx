@@ -10,7 +10,7 @@ import { palette, radius, space } from '@/constants/theme';
 import { albumPhotos, odometerReadings, pinSnapshot, stateInputs, type AlbumPhoto } from '@/lib/db/albumQueries';
 import { vehicleOwnership } from '@/lib/db/repos';
 import { photoDate, stateAt, type StateMod } from '@/lib/domain/album';
-import { SPEC_FIELDS } from '@/lib/domain/build';
+import { specLabelByKey } from '@/lib/domain/build';
 import { dateLabel } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -165,7 +165,7 @@ export default function EstadoScreen() {
           specEntries.map(([k, v]) => (
             <View key={k} style={styles.specRow}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-                {t.estado.specLabels[k] ?? SPEC_FIELDS.find((f) => f.key === k)?.label ?? k}
+                {t.estado.specLabels[k] ?? specLabelByKey(k)}
               </T>
               <View style={{ alignItems: 'flex-end' }}>
                 <T face="mono" style={{ color: theme.text.primary, fontSize: 14 }}>
