@@ -23,7 +23,7 @@ costado", /instalar + /api/apk. Package: [`imp-29092026/`](imp-29092026/README.m
   Car Guy ever has many users, move to a tile host with an SLA (MapTiler, Stadia, or self-hosted).
 - Play Store: not now (Xaviel's call).
 
-Done in 2.2.2 (2026-09-30): OpenStreetMap under each trip + the "por dónde manejas" heatmap; drag to
+Done in 2.2.3 (2026-09-30): L/100 km per vehicle; brace-expansion 5.0.12 (high advisory). Done in 2.2.2 (2026-09-30): OpenStreetMap under each trip + the "por dónde manejas" heatmap; drag to
 reorder in Ordenar (phone); MIUI autostart state via a local Expo module (app-op 10008 — AppOpsUtils is
 absent on MIUI 14). Done in 2.2.1 (2026-09-30): excursion filter for saved tracks; public page status + "lo que me ha costado"
 (sql/022, the phone publishes its figure); inventory `used_in_mod_id` (sql/023). The economy whisker and
@@ -36,7 +36,7 @@ the tank-capacity hint were already in 2.2.0.
 | Web app | <https://car-guy.vercel.app> — live, installable PWA, Vercel project `car-guy` |
 | Old web app | <https://tu-combustible-rd.vercel.app> — still up, still git-connected to this repo, so it also serves Car Guy. Delete the project when you are ready |
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
-| Android | **2.2.2 released** (2026-09-30) — GitHub release `v2.2.2` with `car-guy.apk` (stable name, always the latest: `…/releases/latest/download/car-guy.apk`) and `car-guy-v2.2.2.apk`; the web page car-guy.vercel.app/instalar offers it on Android (`/api/apk`); EAS project `@xavieldev/car-guy`, EAS-managed keystore. Release with `bash tools/release-apk.sh --publish` |
+| Android | **2.2.3 released** (2026-09-30) — GitHub release `v2.2.3` with `car-guy.apk` (stable name, always the latest: `…/releases/latest/download/car-guy.apk`) and `car-guy-v2.2.3.apk`; the web page car-guy.vercel.app/instalar offers it on Android (`/api/apk`); EAS project `@xavieldev/car-guy`, EAS-managed keystore. Release with `bash tools/release-apk.sh --publish` |
 | Cloud in the APK | Until 2.1.2 the APKs had **no** Supabase values (EAS packs by .gitignore, so `.env.local` never reached a build) — Cuenta said "no configurada". Since 2.1.3: `eas.json` `build.base.env` carries the two public values (URL + anon key — public by design, RLS protects the data; no service-role key anywhere), the EAS environments `preview`/`production` carry them too (`eas env:list production`), `app.config.js` refuses an EAS release build without them, and `tools/check-bundle-env.mjs` refuses an APK whose bundle lacks the project URL (the release script runs it) |
 | Distribution | **Xaviel's own channels only:** the portfolio card (links `releases/latest`, so every release reaches it with no change there), the web app and the direct APK link. **No Play Store for now** — Xaviel's call (2026-09-29): the app is not ready for it yet; it is a future step |
 | Cloud | Supabase `x-core`, schema `carguy`: v1 tables (19, incl. cloud-only `profiles`) + **schema v2** (`sql/009`–`010`, 23 more, applied 2026-09-28), private `carguy-media` bucket. **A 2.0.0 install signed in to sync cannot pull `vehicle`/`media`/`service_record` any more** (new columns) — ship 2.1 before anyone syncs on 2.0.0 |

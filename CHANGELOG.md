@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.3 (2026-09-30)
+
+- **Consumo en L/100 km**: en el formulario del vehículo elige "Consumo en" km/gal (o km/L) o L/100 km; Inicio,
+  Historial, la revisión de la carga y Cifras lo muestran así.
+- Arreglo de seguridad en una dependencia de la app.
+
 ## 2.2.2 (2026-09-30)
 
 - **Mapa en tus viajes**: cada viaje se ve sobre las calles de OpenStreetMap, con la ruta coloreada por
