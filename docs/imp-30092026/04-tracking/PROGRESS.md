@@ -3,13 +3,13 @@
 Claude Code appends a report per phase (`00-context/04-conventions.md` §8). "Notes for the next
 phase" carry context between sessions.
 
-**Started:** 2026-09-30 · **Status:** Phase 0 done (Wheelz walk pending: app not installed)
+**Started:** 2026-09-30 · **Status:** Phase 0 done
 
 ## Phase status
 
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
-| 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action; Wheelz pending (not installed) |
+| 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action, Wheelz walked |
 | 1 | Fix pack 2.3.1 | ⬜ | | |
 | 2 | Schema v8 | ⬜ | | |
 | 3A | Language es/en | ⬜ | | |
@@ -37,7 +37,7 @@ phase" carry context between sessions.
 | 11 | Welcome tutorial + tips | 6 | ⬜ |
 | 12 | Reserve light only | 1 | ⬜ |
 | 13 | Route on a real map | 4 | ⬜ |
-| 14 | Study Wheelz over adb | 0 | 🟡 pending — Wheelz is not installed on the Redmi; walk runs when Xaviel reinstalls it |
+| 14 | Study Wheelz over adb | 0 | ✅ 9 screens read-only → `01-research/05-wheelz-firsthand.md` (redacted PNGs in `wheelz/`) |
 | 15 | Legal: terms, privacy, consent, deletion | 6 | ⬜ |
 | 16 | Straight line instead of streets | 1 + 4 | ⬜ |
 | 17 | Drive mode module with centre icon | 4 | ⬜ |
@@ -127,9 +127,17 @@ Read-only audit of the code against 02-state-of-the-repo.md (2026-09-30, at 2.3.
 
 ## Wheelz first-hand (Phase 0)
 
-**Pending.** Wheelz is not installed on the Redmi (76 user apps checked over Wi-Fi adb, none is or mentions
-Wheelz). `01-research/05-wheelz-firsthand.md` is written as pending; the read-only walk (research 03 §C) runs
-when Xaviel reinstalls it and signs in. PROMPT-04 falls back to `docs/imp-29092026/01-research/04-wheelz-observed.md`.
+Done 2026-09-30 over Wi-Fi adb, read-only (`01-research/05-wheelz-firsthand.md`, 7 redacted PNGs in
+`01-research/wheelz/`; raw captures and UI dumps kept out of the public repo). First check missed the app
+(`pm list packages` grep came back empty once; `--user all` found `com.gigamow.wheelz`). Two harmless slips are
+logged in the file (the Camera opened from the launcher, no photo; a tap on the share sheet's **Copy** put a drive
+card on the clipboard, nothing sent); taps were then guarded to Wheelz's focus.
+
+Key findings for Phase 4: the map-first home with a Drives sheet; the detail swipes between drives; route on a
+dark vector map on the streets, speed colours, start/end dots, **Route Metric** toggle, replay; share with 6
+templates (IG Story/Save/Copy/More); statistics with equivalences (most behind Pro — Car Guy shows all);
+**Drive Tracking** is only permissions (Location, **Motion**, Auto Detection) + three modes (Automatic ·
+Automatic + Manual · Manual) + units — no thresholds, no keep-awake.
 
 ## Trip export finding (Phase 1)
 
@@ -166,7 +174,7 @@ point count, largest gap between fixes, median interval and accuracy, raw vs sav
 
 ## Phase 0 — Kickoff + Wheelz first-hand   (branch `imp-30092026/phase-0-kickoff`)
 
-**Status:** complete; Wheelz walk pending (app not installed)
+**Status:** complete
 **Commits:** `docs(imp-30092026): Phase 0 — package, baseline, audit, GeoJSON export action`
 
 ### Changed
@@ -179,10 +187,10 @@ point count, largest gap between fixes, median interval and accuracy, raw vs sav
 ### Acceptance criteria
 - [x] Package in the repo, pointers.  - [x] Baseline table (all green).  - [x] Audit (a)–(j) with file:line.
 - [x] Screen audit table for Phase 3B.  - [x] Hidden GeoJSON export (ships in 2.3.1).
-- [ ] Wheelz walk — Wheelz not installed.  - [x] Seed events → Phase 2 (decision).
+- [x] Wheelz walk — 9 screens, read-only, redacted.  - [x] Seed events → Phase 2 (decision).
 
 ### Notes closed
-- none (14 pending the app).
+- 14.
 
 ### Notes for the next phase
 - Phase 1 (fix pack): the duplicate path is Guardar → "Listo" → Guardar on the same filled form, plus the
