@@ -11,7 +11,7 @@ phase" carry context between sessions.
 |---|---|---|---|---|
 | 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action, Wheelz walked |
 | 1 | Fix pack 2.3.1 | ✅ | `fix/2.3.1-fixpack` | v2.3.1 released; detail + dedupe, stations, reserve light, ≈ por echada (with a plausibility band), denser routes; trip export carried |
-| 2 | Schema v8 | 🟡 | `imp-30092026/phase-2-schema-v8` | local v8 done; sql/025–026 applied to x-core; verifiers + merge pending |
+| 2 | Schema v8 | ✅ | `imp-30092026/phase-2-schema-v8` | v8 + sql/025–026 on x-core; verifiers 32/32 + 24/24; merged (no release — no screens) |
 | 3A | Language es/en | ⬜ | | |
 | 3B | Skeletons | ⬜ | | |
 | 4 | Map · Modo conducir · centre button | ⬜ | | |
@@ -216,7 +216,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | Phase | Blocker | Needs | Status |
 |---|---|---|---|
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel | open |
-| 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers still need their own OK |
+| 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers green |
 
 ---
 
@@ -296,7 +296,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 
 ## Phase 2 — Schema v8 + cloud sql/025–026 + flags   (branch `imp-30092026/phase-2-schema-v8`)
 
-**Status:** in progress — everything local done and verified; the x-core apply waits for Xaviel
+**Status:** complete — merged 2026-09-30 (no app release: this phase has no screens; 2.4.0 ships in Phase 6)
 **Commits:** `eeb9210` schema v8 · `66f233e` one migration run at a time · `2b19c98` untrack module build output
 
 ### Changed
@@ -342,9 +342,16 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
   board "15–21 ago 2026 (MICM)", no JS error; the MICM fetch stays silent (table not there until Phase 5).
 - [x] sql/025 + sql/026 applied to x-core 2026-09-30 (Xaviel's OK; HTTP 201 each); `types:gen` regenerated
   `lib/cloud/database.types.ts` (+252 lines); tsc + jest green (1324).
-- [ ] verify-x-core (29–32) + verify-sync (21–23) + sql/999 cleanup — each needs its own OK (they write test
-  accounts to x-core).
+- [x] verify-x-core **32/32** (new 29–32) · verify-sync **24/24** (new 21–23) · sql/999 cleanup (0 leftover
+  profiles) · the verifier's feedback screenshots removed through the Storage API (3 objects, `0000feed-` only).
+- [x] Merged to main (web deploy; all six 2.4 flags off).
 
 ### Notes closed
 - None (groundwork for 1, 3, 5, 6, 10, 15).
+
+### Notes for the next phase
+- Phase 3A (language): move the domain modules' Spanish constants (price sources, event types/severities,
+  memory sections, tire badges/messages) into `lib/i18n/es.ts` with their en twins; `app_language` is reserved.
+- Phase 3B (skeletons): nothing from here blocks it.
+- `.env.supabase` is not shell-sourceable — read `ACCESS_TOKEN` / `SERVICE_ROLE_KEY` by pattern, never `.` it.
 
