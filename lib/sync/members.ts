@@ -65,4 +65,6 @@ export const UPDATED_BY_TABLES = new Set([
   'wishlist_item', 'inventory_item', 'wheel_set', 'tire', 'vehicle_dtc_event', 'fluid_guide_item', 'track_event',
   'track_session', 'setup_sheet', 'consumable_usage', 'vehicle_share',
   'trip',
+  // v8 (sql/025)
+  'fuel_price', 'vehicle_fact', 'legal_acceptance',
 ]);

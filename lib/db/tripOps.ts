@@ -51,15 +51,25 @@ export const tripPoints = {
     }));
   },
 
-  /** Drops the points of trips that ended (done or discarded) before `beforeIso`. */
+  /**
+   * Drops the points of trips that ended (done or discarded) before `beforeIso`.
+   *
+   * Since v8 each point carries `keep_until` (the trip's end + TRIP_POINTS_KEEP_DAYS),
+   * stamped here on the first purge after the trip ends, so a later feature can
+   * keep one trip's points longer by moving its date. The cut-off is unchanged:
+   * `beforeIso` is "now − 30 days", so "now" is `beforeIso` + 30 days.
+   */
   async purgeOlderThan(beforeIso: string): Promise<number> {
     let removed = 0;
+    const nowIso = new Date(new Date(beforeIso).getTime() + TRIP_POINTS_KEEP_DAYS * 86_400_000).toISOString();
     await enqueue(async (db) => {
-      const result = await db.runAsync(
-        `DELETE FROM trip_point WHERE trip_id IN (
-           SELECT id FROM trip WHERE status IN ('done', 'discarded') AND COALESCE(ended_at, updated_at) < ?)`,
-        [beforeIso],
+      await db.runAsync(
+        `UPDATE trip_point SET keep_until = (
+           SELECT strftime('%Y-%m-%dT%H:%M:%fZ', COALESCE(t.ended_at, t.updated_at), '+${TRIP_POINTS_KEEP_DAYS} days')
+             FROM trip t WHERE t.id = trip_point.trip_id)
+         WHERE keep_until IS NULL AND trip_id IN (SELECT id FROM trip WHERE status IN ('done', 'discarded'))`,
       );
+      const result = await db.runAsync(`DELETE FROM trip_point WHERE keep_until IS NOT NULL AND keep_until < ?`, [nowIso]);
       removed = result.changes;
     });
     return removed;

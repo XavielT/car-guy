@@ -30,6 +30,10 @@
  *  27. a signed-in user sees its own feedback row only.       (sql/021)
  *  28. screenshot upload only for its row; anon cannot read.  (021_feedback_storage.shared)
  *  (Admin sees all: local-rls 14n–14q only — never an account with the admin email.)
+ *  29. fuel_price / legal_acceptance are own rows only.        (sql/025–026)
+ *  30. vehicle_fact: outsider nothing, viewer member reads, cannot write. (sql/026)
+ *  31. public dossier `tires` only with show_tires.           (sql/025)
+ *  32. anon reads none of the three new tables.               (sql/026)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -437,6 +441,92 @@ async function main() {
       removed.body === true && goneCar.body?.length === 0 && goneMod.body?.length === 0 && myRow.body?.length === 1 && Boolean(myRow.body[0].deleted_at),
       `remove ${JSON.stringify(removed.body)} · car ${JSON.stringify(goneCar.body)} · mods ${JSON.stringify(goneMod.body)} · member ${JSON.stringify(myRow.body)}`,
     );
+
+    // 29–32 — schema v4 (IMP 30092026 Phase 2, sql/025–026). fuel_price_ref is Phase 5 (sql/027).
+    const later = new Date(Date.now() + 60_000).toISOString();
+    const priceId = `veh_test_price_${stamp}`;
+    const legalId = `veh_test_legal_${stamp}`;
+    const priceA = await call('/rest/v1/fuel_price', {
+      method: 'POST', headers: authA,
+      body: JSON.stringify({ id: priceId, fuel_type: 'premium', price: 322.1, valid_from: '2026-08-15', source: 'micm', created_at: now, updated_at: now }),
+    });
+    const legalA = await call('/rest/v1/legal_acceptance', {
+      method: 'POST', headers: authA,
+      body: JSON.stringify({ id: legalId, version: '2026-09-30', accepted_at: now, locale: 'es', platform: 'verify', device_id: `verify-${stamp}`, created_at: now, updated_at: now }),
+    });
+    const priceByB = await call(`/rest/v1/fuel_price?id=eq.${priceId}&select=id`, { headers: authB });
+    const legalByB = await call(`/rest/v1/legal_acceptance?id=eq.${legalId}&select=id`, { headers: authB });
+    const patchByB = await call(`/rest/v1/fuel_price?id=eq.${priceId}`, { method: 'PATCH', headers: { ...authB, Prefer: 'return=representation' }, body: JSON.stringify({ price: 1, updated_at: later }) });
+    const stealPrice = await call('/rest/v1/fuel_price', {
+      method: 'POST', headers: authB,
+      body: JSON.stringify({ id: `veh_test_price_b_${stamp}`, user_id: userIdA, fuel_type: 'regular', price: 1, valid_from: '2026-08-15', created_at: now, updated_at: now }),
+    });
+    const priceBack = await call(`/rest/v1/fuel_price?id=eq.${priceId}&select=price,valid_from`, { headers: authA });
+    record(
+      '29. fuel_price and legal_acceptance are own rows: A writes and reads; B sees, edits and forges nothing (sql/025–026)',
+      priceA.status === 201 && legalA.status === 201 && priceByB.body?.length === 0 && legalByB.body?.length === 0 &&
+        Array.isArray(patchByB.body) && patchByB.body.length === 0 && stealPrice.status >= 400 &&
+        priceBack.body?.[0]?.price === 322.1 && priceBack.body?.[0]?.valid_from === '2026-08-15',
+      `A price ${priceA.status} · A legal ${legalA.status} · B sees ${JSON.stringify(priceByB.body)}/${JSON.stringify(legalByB.body)} · B patch ${JSON.stringify(patchByB.body)} · B forge ${stealPrice.status} · A reads ${JSON.stringify(priceBack.body)}`,
+    );
+
+    // B comes back as a viewer (redeem re-activates the ended membership).
+    const factId = `veh_test_fact_${stamp}`;
+    const factA = await call('/rest/v1/vehicle_fact', {
+      method: 'POST', headers: authA,
+      body: JSON.stringify({ id: factId, vehicle_id: vehicleId, label: 'Código de radio', value: '1234', group_name: 'electrico', created_at: now, updated_at: now }),
+    });
+    const outsiderFact = await call(`/rest/v1/vehicle_fact?id=eq.${factId}&select=id`, { headers: authB });
+    const viewerInvite = await rpc(authA, 'create_invite', { p_vehicle: vehicleId, p_role: 'viewer', p_email: userB });
+    const viewerRedeem = await rpc(authB, 'redeem_invite', { p_code: viewerInvite.body });
+    const viewerFact = await call(`/rest/v1/vehicle_fact?id=eq.${factId}&select=id,value`, { headers: authB });
+    const viewerFactWrite = await call('/rest/v1/vehicle_fact', {
+      method: 'POST', headers: authB,
+      body: JSON.stringify({ id: `veh_test_fact_b_${stamp}`, vehicle_id: vehicleId, label: 'No debería', value: 'x', created_at: now, updated_at: now }),
+    });
+    const viewerPrice = await call(`/rest/v1/fuel_price?id=eq.${priceId}&select=id`, { headers: authB });
+    record(
+      "30. vehicle_fact: an outsider sees nothing; a viewer member reads the car's facts, cannot write, still sees no prices",
+      factA.status === 201 && outsiderFact.body?.length === 0 && viewerRedeem.body?.ok === true &&
+        viewerFact.body?.length === 1 && viewerFact.body[0].value === '1234' &&
+        (viewerFactWrite.status === 403 || viewerFactWrite.body?.code === '42501') && viewerPrice.body?.length === 0,
+      `A fact ${factA.status} · outsider ${JSON.stringify(outsiderFact.body)} · redeem ${JSON.stringify(viewerRedeem.body)} · viewer reads ${JSON.stringify(viewerFact.body)} · write ${viewerFactWrite.status} · price ${JSON.stringify(viewerPrice.body)}`,
+    );
+    await rpc(authA, 'remove_member', { p_vehicle: vehicleId, p_user: b.body?.user?.id });
+
+    // The public page's tires: the share from 16 published again, then the switch.
+    await call('/rest/v1/tire', {
+      method: 'POST', headers: authA,
+      body: JSON.stringify([
+        { id: `veh_test_tire1_${stamp}`, vehicle_id: vehicleId, brand: 'VerifyBrand', status: 'en_uso', created_at: now, updated_at: now },
+        { id: `veh_test_tire2_${stamp}`, vehicle_id: vehicleId, brand: 'VerifyBrand', status: 'quemada', created_at: now, updated_at: now },
+      ]),
+    });
+    const republish = await call(`/rest/v1/vehicle_share?id=eq.veh_test_share_${stamp}`, {
+      method: 'PATCH', headers: authA, body: JSON.stringify({ revoked_at: null, slug, published_at: now, show_tires: false, updated_at: later }),
+    });
+    const tiresOff = await rpcAnon(slug);
+    await call(`/rest/v1/vehicle_share?id=eq.veh_test_share_${stamp}`, {
+      method: 'PATCH', headers: authA, body: JSON.stringify({ show_tires: true, updated_at: new Date(Date.now() + 120_000).toISOString() }),
+    });
+    const tiresOn = await rpcAnon(slug);
+    await call(`/rest/v1/vehicle_share?id=eq.veh_test_share_${stamp}`, {
+      method: 'PATCH', headers: authA, body: JSON.stringify({ revoked_at: new Date().toISOString(), slug: null, updated_at: new Date(Date.now() + 180_000).toISOString() }),
+    });
+    record(
+      '31. public dossier: no tires with show_tires off; count + badges with it on, never a brand (sql/025)',
+      republish.status < 300 && tiresOff.body?.vehicle?.name === 'Verificación' && tiresOff.body?.tires === undefined &&
+        tiresOn.body?.tires?.count === 2 && Array.isArray(tiresOn.body?.tires?.badges) && tiresOn.body.tires.badges.length === 2 &&
+        !JSON.stringify(tiresOn.body).includes('VerifyBrand'),
+      `republish ${republish.status} · off ${JSON.stringify(tiresOff.body?.tires ?? null)} · on ${JSON.stringify(tiresOn.body?.tires ?? tiresOn.body)}`,
+    );
+
+    const anonNew = await Promise.all(['fuel_price', 'vehicle_fact', 'legal_acceptance'].map((t) => call(`/rest/v1/${t}?select=id&limit=1`)));
+    record(
+      '32. anon cannot read fuel_price, vehicle_fact or legal_acceptance',
+      anonNew.every((r) => r.status === 401 || r.body?.code === '42501' || (Array.isArray(r.body) && r.body.length === 0)),
+      anonNew.map((r) => `${r.status} ${JSON.stringify(r.body?.code ?? r.body)}`).join(' · '),
+    );
   }
 
   // 24–28 — Enviar comentario (sql/021 + 021_feedback_storage.shared). No
@@ -521,6 +611,10 @@ function printCleanup() {
   console.log(`delete from carguy.vehicle_share where id like 'veh_test_%${stamp}%';`);
   console.log(`delete from carguy.vehicle_member where vehicle_id like 'veh_test_%${stamp}%';`);
   console.log(`delete from carguy.vehicle_invite where vehicle_id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.tire where id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.vehicle_fact where id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.fuel_price where id like 'veh_test_%${stamp}%';`);
+  console.log(`delete from carguy.legal_acceptance where id like 'veh_test_%${stamp}%';`);
   if (feedbackDevices.length) {
     console.log(`delete from carguy.feedback where device_id in (${feedbackDevices.map((d) => `'${d}'`).join(', ')});`);
     console.log(`delete from storage.objects where bucket_id = 'carguy-feedback' and name like '${feedbackDevices[0]}/%';`);

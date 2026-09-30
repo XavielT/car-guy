@@ -29,6 +29,7 @@ import { FEATURE_LAUNCH_ANIM } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { markGaugeSweptThisSession } from '@/lib/motion/gaugeSweep';
 import { configure as configureNotifications, requestResync, routeOf } from '@/lib/notifications';
+import { refreshFuelPriceRef } from '@/lib/cloud/fuelPriceRef';
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
 import { useTripService } from '@/lib/trips/useTripService';
@@ -163,7 +164,7 @@ function RootContent({ loaded, mounted }: { loaded: boolean; mounted: boolean })
  */
 function useNotifications() {
   const router = useRouter();
-  const { data } = useStore();
+  const { data, refresh } = useStore();
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -196,6 +197,14 @@ function useNotifications() {
   useEffect(() => {
     requestResync();
   }, [data]);
+
+  // v8: the MICM weekly prices into the local cache, once per launch; silent until sql/027 exists.
+  useEffect(() => {
+    void refreshFuelPriceRef().then((n) => {
+      if (n) void refresh();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per launch
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;

@@ -26,6 +26,10 @@ insert into carguy.service_record (id, vehicle_id, kind, occurred_at, title, cre
 insert into carguy.service_record_item (id, service_record_id, service_type_id, created_at, updated_at) values ('sri_a', 'sr_a', 'st_turbo', now(), now());
 insert into carguy.inspection_template (id, name, cadence, created_at, updated_at) values ('tpl_a', 'Antes de pista', 'manual', now(), now()), ('tpl_private', 'Mi lista', 'manual', now(), now());
 insert into carguy.inspection (id, vehicle_id, template_id, occurred_at, status, created_at, updated_at) values ('ins_a', 'veh_a', 'tpl_a', now(), 'ok', now(), now());
+-- two pre-2.4 milestones: sql/025 backfills the accident as an event (accidente / moderado), not the purchase
+insert into carguy.milestone (id, vehicle_id, kind, occurred_at, title, created_at, updated_at) values
+  ('ms_crash', 'veh_a', 'accidente', now(), 'Choque en la 27', now(), now()),
+  ('ms_buy', 'veh_a', 'compra', now(), 'Lo compré', now(), now());
 commit;
 -- as B, its own car
 begin;

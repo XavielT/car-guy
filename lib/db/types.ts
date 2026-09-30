@@ -352,7 +352,7 @@ export type Media = Syncable & {
 export type HistoryEntry = {
   id: string;
   vehicleId: string;
-  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo' | 'mod' | 'hito' | 'pista' | 'obd' | 'viaje';
+  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo' | 'mod' | 'hito' | 'evento' | 'pista' | 'obd' | 'viaje';
   occurredAt: string;
   /** Tie-breaker for same-day entries (v2 view). */
   createdAt?: string | null;
@@ -416,7 +416,32 @@ export type Milestone = Syncable & {
   title: string;
   story: string;
   coverMediaId: string | null;
+  // v8 events (ADR-44): 'hito' is a plain milestone; anything else is an event.
+  eventType: EventType;
+  severity: EventSeverity | null;
+  costDop: number | null;
+  /** What is still to do ("pintar el guardafango"); '' when nothing. */
+  pending: string;
+  resolvedAt: string | null;
+  linkedServiceId: string | null;
+  linkedModId: string | null;
+  linkedInspectionId: string | null;
+  locationLabel: string;
 };
+
+export type EventType =
+  | 'hito'
+  | 'accidente'
+  | 'dano_menor'
+  | 'averia'
+  | 'sobrecalentamiento'
+  | 'robo'
+  | 'multa'
+  | 'viaje_largo'
+  | 'junte'
+  | 'otro';
+
+export type EventSeverity = 'leve' | 'moderado' | 'grave';
 
 export type ModCategory = Syncable & {
   name: string;
@@ -501,6 +526,65 @@ export type VehicleSpecsheet = Syncable & {
   lugThread: string | null;
   fuelTankL: number | null;
   fuelOctane: number | null;
+  // v8 "what I actually buy" (the car's memory, note 6)
+  oilBrand: string | null;
+  oilProduct: string | null;
+  oilFilterBrand: string | null;
+  airFilterPn: string | null;
+  cabinFilterPn: string | null;
+  fuelFilterPn: string | null;
+  wiperSizes: string | null;
+  bulbLow: string | null;
+  bulbHigh: string | null;
+  tireCurrentF: string | null;
+  tireCurrentR: string | null;
+  batteryBrand: string | null;
+  whereBought: string;
+};
+
+/** v8: anything else worth remembering about a car, key/value (synced, member-readable). */
+export type VehicleFact = Syncable & {
+  vehicleId: string;
+  label: string;
+  value: string;
+  groupName: VehicleFactGroup;
+  sortOrder: number;
+};
+
+export type VehicleFactGroup = 'motor' | 'gomas' | 'electrico' | 'carroceria' | 'interior' | 'papeles' | 'otros';
+
+export type FuelPriceSource = 'micm' | 'estacion' | 'recibo' | 'app' | 'otro' | 'manual';
+
+/** v8: the user's own price history (synced). RD$ per the fuel's posted unit (gal, m³). */
+export type FuelPrice = Syncable & {
+  fuelType: string;
+  price: number;
+  /** ISO date 'YYYY-MM-DD'. */
+  validFrom: string;
+  source: FuelPriceSource;
+  station: string;
+  note: string;
+};
+
+/** v8: local cache of the cloud's MICM rows — pull-only, never pushed; id `${weekStart}:${fuelType}`. */
+export type FuelPriceRef = {
+  id: string;
+  fuelType: string;
+  price: number;
+  weekStart: string;
+  weekEnd: string;
+  pdfUrl: string | null;
+  importedAt: string;
+  stale: boolean;
+};
+
+/** v8: which terms version this person accepted, where (synced so a signed-in user carries it). */
+export type LegalAcceptance = Syncable & {
+  version: string;
+  acceptedAt: string;
+  locale: string;
+  platform: string;
+  deviceId: string;
 };
 
 export type SpecSnapshot = Syncable & {
@@ -789,6 +873,8 @@ export type VehicleShare = Syncable & {
   showStory: boolean;
   /** v7 / sql/022: the car's status on the page (off unless chosen). */
   showStatus: boolean;
+  /** v8: the public page's tires block (sql/025 public_dossier). */
+  showTires: boolean;
   /** v7 / sql/022: "lo que me ha costado" as the phone computed it (JSON), published only with showCosts. */
   costsSummary: string | null;
   ogMediaId: string | null;
@@ -839,6 +925,8 @@ export type Trip = Syncable & {
   segments: number;
   odometerReadingId: string | null;
   notes: string;
+  /** v8: JSON {raw_points, simplified_points, dropped_excursions, mode} from finalize; null before 2.4. */
+  diagnostics?: string | null;
 };
 
 /** Local only (never synced), purged 30 days after its trip is done. */

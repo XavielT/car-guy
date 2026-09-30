@@ -1,6 +1,8 @@
 import { refreshShareSummaries } from '../db/shareQueries';
 import { recordError } from '../diagnostics';
 import { getSupabase, describeSchemaError } from '../cloud/supabase';
+import { enqueue } from '../db/client';
+import { adoptLegacyPrices } from '../db/migrationV8';
 import { settings as settingsRepo } from '../db/repos';
 import {
   applyRemoteRows,
@@ -193,6 +195,8 @@ async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult>
         const settings = await syncSettings(supabase, userId);
         pushed += settings.pushed;
         pulled += settings.pulled;
+        // A 2.3 device's prices arrive as settings; v8 keeps prices in fuel_price.
+        if (settings.pulled) await enqueue((db) => adoptLegacyPrices(db));
         continue;
       }
       if (table.pullOnly) continue;

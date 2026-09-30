@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 import { historyFeedV3, historyFeedV4, migrationV2 } from './migrationV2';
 import { migrationV6 } from './migrationV6';
+import { migrateV8Data, migrationV8 } from './migrationV8';
 
 /**
  * Schema migrations, applied in order under `PRAGMA user_version`.
@@ -16,7 +17,12 @@ import { migrationV6 } from './migrationV6';
  * Version 2 (IMP 28092026, ADR-17) lives in ./migrationV2.ts: it is long, and
  * part of it is generated (the seeded catalogues and the bundled DTC table).
  */
-export type Migration = { version: number; up: string[] };
+export type Migration = {
+  version: number;
+  up: string[];
+  /** Data that SQL alone cannot move (v8's price label parsing). Same transaction, after `up`. */
+  data?: (db: SQLiteDatabase) => Promise<void>;
+};
 
 export const MIGRATIONS: Migration[] = [
   {
@@ -279,6 +285,8 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE inventory_item ADD COLUMN used_in_mod_id TEXT`,
     ],
   },
+  // v8 (2.4, IMP 30092026): prices, events, the car's memory, legal, tires switch, trip diagnostics — ./migrationV8.ts.
+  { version: 8, up: migrationV8(), data: migrateV8Data },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -320,6 +328,7 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
       for (const statement of migration.up) {
         await db.execAsync(statement);
       }
+      if (migration.data) await migration.data(db);
     });
     // Outside the transaction: PRAGMA user_version does not accept a parameter
     // binding, and the value is a literal from our own array, never user input.

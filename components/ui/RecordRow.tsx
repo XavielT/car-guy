@@ -14,6 +14,7 @@ export type RecordKind =
   | 'chequeo'
   | 'mod'
   | 'hito'
+  | 'evento'
   | 'pista'
   | 'obd'
   | 'viaje';
@@ -27,6 +28,7 @@ const ICON: Record<RecordKind, keyof typeof Ionicons.glyphMap> = {
   chequeo: 'clipboard-outline',
   mod: 'trending-up-outline',
   hito: 'flag-outline',
+  evento: 'alert-circle-outline',
   pista: 'speedometer-outline',
   obd: 'warning-outline',
   viaje: 'navigate-outline',
@@ -41,6 +43,7 @@ const CATEGORY: Record<RecordKind, CategoryKey> = {
   chequeo: 'inspeccion',
   mod: 'mejora',
   hito: 'album',
+  evento: 'album',
   pista: 'track',
   // Subtle: a code is a note on the car, not money.
   obd: 'otros',
