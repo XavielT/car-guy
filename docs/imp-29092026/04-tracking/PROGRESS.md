@@ -637,7 +637,8 @@ Built by five parallel helper agents in one checkout, integrated and re-verified
 - [x] Web: garage modes + reorder + pin persisted over reload; versiones; comentario (send / offline / rate
   limited with the RPC mocked); Cifras costs; launch mid/end frames; fresh-profile boot with the seed, 0
   console errors (screenshots `docs/qa/imp-29092026-phase-6-*.png`).
-- [ ] sql/021 applied + verify-x-core 24–28 — needs Xaviel's OK (x-core is shared).
+- [x] sql/021_feedback.sql + 021_feedback_storage.shared.sql applied to x-core 2026-09-30 (Xaviel's OK; both HTTP 201).
+  Non-writing probes: invalid device_id → 22023, anon select → 42501. verify-x-core 24–28 not run (writes test rows; needs its own OK).
 - [ ] Xaviel signs in → Comentarios recibidos.
 - [ ] Redmi: cold start (no flash, one sweep), 20 cards scroll, garage order synced phone ↔ web.
 
@@ -729,8 +730,7 @@ car's lifetime cost on each change.
 ### Left for the release (Xaviel present)
 1. Redmi on USB → install `releases/car-guy-test.apk` (5B build) → 5A walk test, 5B background/kill/re-arm,
    Phase 6 cold start (no flash, one sweep), garage scroll.
-2. Approve `sql/021_feedback.sql` + `sql/021_feedback_storage.shared.sql --shared`; run verify-x-core 24–28;
-   sign in → Comentarios recibidos.
+2. ✅ sql/021 applied. Left: verify-x-core 24–28 (its own OK) and sign in with the admin email → Comentarios recibidos.
 3. The drive (manual checklist) → decide FEATURE_TRIPS for release.
 4. Backup (Más → Datos → Respaldo JSON) → bump to 2.2.0, date the changelog → `bash tools/release-apk.sh`
    → install over 2.1.3 → garage intact, DS3 km/gal as in 2.1.3, still signed in.
