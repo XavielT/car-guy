@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { forwardRef, useEffect, useMemo, useState } from 'react';
 import * as Location from 'expo-location';
@@ -15,7 +17,8 @@ import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
-import type { Fix } from '@/lib/trips/geo';
+import type { Fix, LatLng } from '@/lib/trips/geo';
+import { fitTiles, OSM_COPYRIGHT_URL, TILE_SIZE } from '@/lib/trips/tiles';
 import {
   BUCKET_COLORS,
   bucketPercents,
@@ -31,8 +34,16 @@ import {
   timeRange,
   timesLabel,
   tripRoute,
+  type Box,
   type TripSummary,
 } from '@/lib/trips/present';
+
+/**
+ * OSM's tile policy asks apps to identify themselves. A browser sends its own
+ * User-Agent (and the page as referrer); the phone names Car Guy.
+ */
+const TILE_HEADERS: Record<string, string> | undefined =
+  Platform.OS === 'web' ? undefined : { 'User-Agent': `CarGuy/${Constants.expoConfig?.version ?? '2'} (+https://car-guy.vercel.app)` };
 
 /**
  * Trip UI shared by the list, the detail, the vehicle hub tab and Cifras
@@ -224,27 +235,32 @@ export function RouteSparkline({ polyline, width = 64, height = 40 }: { polyline
  * The route on the dark card: coloured by speed bucket when the raw points
  * are still on the phone (< 30 days), else the simplified polyline in one
  * colour. Start dot green, end a checkered flag. Always dark, like a cluster.
+ * With `map`, OpenStreetMap tiles lie under it (tinted dark) and the route is
+ * drawn in their projection; the credit links to OSM's copyright page.
  */
-export function RouteSvg({ trip, points, width, height }: { trip: Trip; points: Fix[] | null; width: number; height: number }) {
-  const { runs, single, ends } = useMemo(() => {
+export function RouteSvg({ trip, points, width, height, map = false }: { trip: Trip; points: Fix[] | null; width: number; height: number; map?: boolean }) {
+  const { runs, single, ends, tiles } = useMemo(() => {
     const box = { width, height, pad: 16 };
     const raw = points && points.length > 1 ? thinPoints(points) : null;
     const src = raw ?? tripRoute(trip);
-    const xy = fitRoute(src, box);
+    const fit = map ? fitTiles(src, box) : null;
+    const project = fit ? (pts: readonly LatLng[], b: Box) => fitTiles(pts, b)?.xy ?? [] : fitRoute;
+    const xy = fit ? fit.xy : fitRoute(src, box);
     return {
-      runs: raw ? coloredRuns(raw, box, Infinity) : [],
+      runs: raw ? coloredRuns(raw, box, Infinity, project) : [],
       single: raw ? '' : pathD(xy),
       ends: xy.length > 1 ? { start: xy[0], end: xy[xy.length - 1] } : null,
+      tiles: fit?.tiles ?? [],
     };
-  }, [trip, points, width, height]);
+  }, [trip, points, width, height, map]);
 
   const allPaths = runs.length ? runs.map((r) => r.d) : single ? [single] : [];
-  return (
-    <Svg width={width} height={height} accessibilityLabel={es.trips.routeA11y(kmLabel(trip.distanceM))}>
-      <Rect x={0} y={0} width={width} height={height} rx={radius.card} fill="#0B0B0D" />
+  const svg = (
+    <Svg width={width} height={height} accessibilityLabel={es.trips.routeA11y(kmLabel(trip.distanceM))} style={tiles.length ? StyleSheet.absoluteFill : undefined}>
+      {tiles.length ? null : <Rect x={0} y={0} width={width} height={height} rx={radius.card} fill="#0B0B0D" />}
       {/* Glow: the same line, wider and faint. */}
       {allPaths.map((d, i) => (
-        <Path key={`g${i}`} d={d} stroke={runs.length ? BUCKET_COLORS[runs[i].bucket] : '#E10600'} strokeOpacity={0.22} strokeWidth={9} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+        <Path key={`g${i}`} d={d} stroke={runs.length ? BUCKET_COLORS[runs[i].bucket] : '#E10600'} strokeOpacity={tiles.length ? 0.35 : 0.22} strokeWidth={9} fill="none" strokeLinejoin="round" strokeLinecap="round" />
       ))}
       {allPaths.map((d, i) => (
         <Path key={`p${i}`} d={d} stroke={runs.length ? BUCKET_COLORS[runs[i].bucket] : '#FF3B30'} strokeWidth={3} fill="none" strokeLinejoin="round" strokeLinecap="round" />
@@ -256,6 +272,86 @@ export function RouteSvg({ trip, points, width, height }: { trip: Trip; points: 
         </>
       ) : null}
     </Svg>
+  );
+  if (!tiles.length) return svg;
+  return (
+    <View style={{ width, height, borderRadius: radius.card, overflow: 'hidden', backgroundColor: '#0B0B0D' }}>
+      {tiles.map((t) => (
+        <Image
+          key={t.key}
+          source={{ uri: t.url, headers: TILE_HEADERS }}
+          cachePolicy="disk"
+          recyclingKey={t.key}
+          style={{ position: 'absolute', left: t.left, top: t.top, width: TILE_SIZE, height: TILE_SIZE }}
+          accessible={false}
+        />
+      ))}
+      {/* The cluster look: the map dimmed, the route on top. */}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(11,11,13,0.55)' }]} />
+      {svg}
+      <Pressable
+        onPress={() => void Linking.openURL(OSM_COPYRIGHT_URL)}
+        accessibilityRole="link"
+        style={styles.osmCredit}>
+        <T face="body" style={{ color: '#EDEDED', fontSize: 10 }}>
+          {es.trips.mapCredit}
+        </T>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * Where you drive (2.2.2): the listed trips on one OpenStreetMap map, each a
+ * faint line — where they pile up (the street you repeat) it glows. Up to 60
+ * trips, each thinned; tiles as in RouteSvg.
+ */
+export function TripsHeatMap({ trips, width, height }: { trips: Trip[]; width: number; height: number }) {
+  const { theme } = useTheme();
+  const drawn = useMemo(() => {
+    const routes = trips
+      .slice(0, 60)
+      .map((t) => thinPoints(tripRoute(t), 120))
+      .filter((r) => r.length > 1);
+    if (!routes.length) return null;
+    const box = { width, height, pad: 20 };
+    const fit = fitTiles(routes.flat(), box);
+    if (!fit) return null;
+    return { tiles: fit.tiles, paths: routes.map((r) => pathD(r.map(fit.project))) };
+  }, [trips, width, height]);
+  if (!drawn) return null;
+  return (
+    <View style={{ marginBottom: space.md }}>
+      <View style={{ width, height, borderRadius: radius.card, overflow: 'hidden', backgroundColor: '#0B0B0D' }}>
+        {drawn.tiles.map((t) => (
+          <Image
+            key={t.key}
+            source={{ uri: t.url, headers: TILE_HEADERS }}
+            cachePolicy="disk"
+            recyclingKey={t.key}
+            style={{ position: 'absolute', left: t.left, top: t.top, width: TILE_SIZE, height: TILE_SIZE }}
+            accessible={false}
+          />
+        ))}
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(11,11,13,0.62)' }]} />
+        <Svg width={width} height={height} style={StyleSheet.absoluteFill} accessibilityLabel={es.trips.heatA11y(drawn.paths.length)}>
+          {drawn.paths.map((d, i) => (
+            <Path key={`w${i}`} d={d} stroke="#FF5F00" strokeOpacity={0.14} strokeWidth={10} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+          ))}
+          {drawn.paths.map((d, i) => (
+            <Path key={`c${i}`} d={d} stroke="#FFB300" strokeOpacity={0.45} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+          ))}
+        </Svg>
+        <Pressable onPress={() => void Linking.openURL(OSM_COPYRIGHT_URL)} accessibilityRole="link" style={styles.osmCredit}>
+          <T face="body" style={{ color: '#EDEDED', fontSize: 10 }}>
+            {es.trips.mapCredit}
+          </T>
+        </Pressable>
+      </View>
+      <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
+        {es.trips.heatCaption}
+      </T>
+    </View>
   );
 }
 
@@ -472,8 +568,8 @@ export function TripsCifrasBlock({ vehicleId }: { vehicleId: string }) {
  * The shareable card: route + headline numbers + wordmark, no plate. A
  * forwardRef so the share button captures exactly this view (TrackPieces).
  */
-export const TripShareCard = forwardRef<View, { trip: Trip; points: Fix[] | null; width: number; vehicleName?: string }>(function TripShareCard(
-  { trip, points, width, vehicleName },
+export const TripShareCard = forwardRef<View, { trip: Trip; points: Fix[] | null; width: number; vehicleName?: string; map?: boolean }>(function TripShareCard(
+  { trip, points, width, vehicleName, map },
   ref,
 ) {
   const h = Math.round(width * 0.62);
@@ -495,7 +591,7 @@ export const TripShareCard = forwardRef<View, { trip: Trip; points: Fix[] | null
         </T>
       ) : null}
       <View style={{ marginVertical: space.sm }}>
-        <RouteSvg trip={trip} points={points} width={width - 2 * space.md} height={h} />
+        <RouteSvg trip={trip} points={points} width={width - 2 * space.md} height={h} map={map} />
       </View>
       <View style={styles.tiles}>
         {stats.map(([v, l]) => (
@@ -529,6 +625,7 @@ export function tripText(trip: Trip, vehicleName?: string): string {
 }
 
 const styles = StyleSheet.create({
+  osmCredit: { position: 'absolute', right: 6, bottom: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.55)' },
   spark: { borderWidth: 1, borderRadius: radius.tag, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: 1, borderRadius: radius.button, padding: space.md, marginBottom: space.sm },
   rowLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },

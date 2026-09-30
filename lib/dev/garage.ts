@@ -19,6 +19,7 @@ import {
   wishlist as wishlistRepo,
 } from '@/lib/db/repos';
 import { seedVehicleDefaults } from '@/lib/db/seed';
+import { trips as tripRepo } from '@/lib/db/tripOps';
 import { saveInspection } from '@/lib/db/inspectionOps';
 import { measurePads, saveEvent, saveSession, setTireUsed } from '@/lib/db/trackQueries';
 import type { ExpenseCategory, Mod, Task, Vehicle } from '@/lib/db/types';
@@ -202,6 +203,7 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
     });
   }
   lines.push('4 vehículos: Trueno AE85, DS3, C3 (proyecto), Jetta (vendido 2018 → 2021)');
+  lines.push(...(await seedTrip(at)));
 
   // AE85: premium, ~420 km a tank (≈37 km/gal — a 4A-GE that revs), ending at 52,400.
   let odometer = 49_040;
@@ -596,4 +598,43 @@ async function seedTrack(at: (daysAgo: number) => string): Promise<string[]> {
   }
   await measurePads(event.id, { f: 7, r: 8 });
   return ['Pista: drift day en Sunix (AE85), 2 sesiones · 14 runs · traseras 40 → 42 psi · RD$ 9,800'];
+}
+
+/**
+ * One finished trip on the DS3 — the drive of docs/imp-29092026/fixtures/drive-synthetic.gpx
+ * (27 de Febrero → Máximo Gómez → Independencia), simplified as a saved trip keeps it: the map
+ * under the route and the trip screens have something to show on a fresh install.
+ */
+const SEED_TRIP_POLYLINE = "umroBn_ajLmXiq@yPmd@q[g}@}Poh@mY{o@kT}y@qOgi@EiAn^uK|f@iPnRiFbGph@pIp{@zFdo@rCbc@rEth@";
+
+async function seedTrip(at: (daysAgo: number) => string): Promise<string[]> {
+  const startedAt = at(3);
+  const endedAt = new Date(Date.parse(startedAt) + 25 * 60_000).toISOString();
+  await tripRepo.upsert({
+    id: 'seed_trip_ds3',
+    vehicleId: GARAGE_IDS.ds3,
+    source: 'manual',
+    status: 'done',
+    role: 'conductor',
+    startedAt,
+    endedAt,
+    startLat: 18.4497,
+    startLng: -69.97,
+    endLat: null,
+    endLng: null,
+    startLabel: 'Casa',
+    endLabel: 'Trabajo',
+    distanceM: 12_220,
+    durationS: 25 * 60,
+    movingS: 17 * 60,
+    avgKmh: 29.3,
+    avgMovingKmh: 43.1,
+    maxKmh: 94,
+    speedBuckets: JSON.stringify([180, 420, 300, 120, 0]),
+    polyline: SEED_TRIP_POLYLINE,
+    segments: 1,
+    notes: '',
+    deletedAt: null,
+  });
+  return ['1 viaje en el DS3 (27 de Febrero → Máximo Gómez, 12.2 km)'];
 }

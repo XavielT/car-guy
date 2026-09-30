@@ -113,10 +113,16 @@ export function thinPoints<T>(points: readonly T[], maxPoints = 900): T[] {
  * Long tracks are thinned to about `maxPoints` first (a 1 Hz hour is 3 600
  * points; the phone does not need them all to colour a 360-px card).
  */
-export function coloredRuns(points: readonly Fix[], box: Box, maxPoints = 900): ColoredRun[] {
+export function coloredRuns(
+  points: readonly Fix[],
+  box: Box,
+  maxPoints = 900,
+  /** Another projection (the map's Web Mercator, lib/trips/tiles.ts); default fitRoute. */
+  project: (pts: readonly LatLng[], box: Box) => XY[] = fitRoute,
+): ColoredRun[] {
   if (points.length < 2) return [];
   const thin = thinPoints(points, maxPoints);
-  const xy = fitRoute(thin, box);
+  const xy = project(thin, box);
   const runs: { bucket: number; pts: XY[] }[] = [];
   for (let i = 1; i < thin.length; i++) {
     const v = effectiveSpeed(thin[i - 1], thin[i]);

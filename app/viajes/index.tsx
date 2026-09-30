@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { T } from '@/components/T';
-import { listDoneTrips, TripRow, TripsStrip, tripActions } from '@/components/trips/TripPieces';
+import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions } from '@/components/trips/TripPieces';
 import { Chip, EmptyState, GhostButton, Segmented } from '@/components/ui';
 import { space } from '@/constants/theme';
 import type { Trip } from '@/lib/db/types';
@@ -11,6 +11,7 @@ import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { filterTrips, monthSummary, type TripFilter } from '@/lib/trips/present';
+import { tripsMap } from '@/lib/trips/settings';
 
 const FILTERS: TripFilter[] = ['todos', 'mes', 'largos', 'rapidos'];
 
@@ -29,6 +30,12 @@ export default function TripsScreen() {
   const [filter, setFilter] = useState<TripFilter>('todos');
   const [list, setList] = useState<Trip[] | null>(null);
   const [version, setVersion] = useState(0);
+  const { width: windowW } = useWindowDimensions();
+  const width = Math.min(windowW, 560);
+  const [map, setMap] = useState(false);
+  useEffect(() => {
+    void tripsMap().then(setMap);
+  }, []);
 
   // `data` changes after every write (the store's change listener), which also
   // covers coming back from a trip that was edited or deleted.
@@ -66,6 +73,8 @@ export default function TripsScreen() {
       {list ? <TripsStrip summary={monthSummary(list)} /> : null}
 
       <Segmented<TripFilter> options={FILTERS.map((key) => ({ key, label: es.trips.filters[key] }))} value={filter} onChange={setFilter} style={{ marginBottom: space.md }} />
+
+      {map && shown.length ? <TripsHeatMap trips={shown} width={width - 2 * space.gutter} height={Math.round((width - 2 * space.gutter) * 0.62)} /> : null}
 
       {list && !list.length ? (
         <EmptyState icon="navigate-outline" message={es.trips.empty} actionLabel={es.trips.start} onAction={() => router.push('/(tabs)')} />

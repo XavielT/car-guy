@@ -62,3 +62,13 @@ export async function tripsThresholds(): Promise<Record<string, number>> {
 export async function setTripsThresholds(t: Record<string, number>): Promise<void> {
   await settingsRepo.set('trips_thresholds', t);
 }
+
+/** OpenStreetMap under the route (trip detail). Default on; off keeps the plain dark card. */
+export async function tripsMap(): Promise<boolean> {
+  const v = await settingsRepo.get<number | boolean>('trips_map', 1);
+  return v !== 0 && v !== false;
+}
+
+export async function setTripsMap(on: boolean): Promise<void> {
+  await settingsRepo.set('trips_map', on ? 1 : 0);
+}

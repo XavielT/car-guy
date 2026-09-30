@@ -14,6 +14,7 @@ import { odometer as odometerRepo } from '@/lib/db/repos';
 import { tripPoints, trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
 import { es } from '@/lib/i18n/es';
+import { tripsMap } from '@/lib/trips/settings';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { Fix } from '@/lib/trips/geo';
@@ -36,6 +37,11 @@ export default function TripScreen() {
   const { width: winW } = useWindowDimensions();
   const [trip, setTrip] = useState<Trip | null | undefined>(undefined);
   const [points, setPoints] = useState<Fix[] | null>(null);
+  // OpenStreetMap under the route (Ajustes → Viajes; default on).
+  const [map, setMap] = useState(false);
+  useEffect(() => {
+    void tripsMap().then(setMap);
+  }, []);
   const [startLabel, setStartLabel] = useState('');
   const [endLabel, setEndLabel] = useState('');
   const [notes, setNotes] = useState('');
@@ -125,7 +131,7 @@ export default function TripScreen() {
           {es.trips.eyebrow}
         </T>
 
-        <TripShareCard ref={shotRef} trip={trip} points={points} width={cardW} vehicleName={vehicleName} />
+        <TripShareCard ref={shotRef} trip={trip} points={points} width={cardW} vehicleName={vehicleName} map={map} />
         {!points ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
             {trip.polyline ? es.trips.routeSimplified : es.trips.noRoute}

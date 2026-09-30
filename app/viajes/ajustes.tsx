@@ -16,9 +16,11 @@ import { DEFAULT_TRIP_CFG } from '@/lib/trips/machine';
 import { useLiveTrip } from '@/lib/trips/liveStore';
 import {
   setTripsKeepAwake,
+  setTripsMap,
   setTripsMode,
   setTripsThresholds,
   tripsKeepAwake,
+  tripsMap,
   tripsMode,
   tripsThresholds,
   type TripsMode,
@@ -37,6 +39,7 @@ export default function TripSettingsScreen() {
   const { data } = useStore();
   const [mode, setMode] = useState<TripsMode | null>(null);
   const [awake, setAwake] = useState(true);
+  const [map, setMap] = useState(true);
   const perm = useLocationPermission();
   const auto = useAutoReadiness();
   const live = useLiveTrip();
@@ -61,6 +64,7 @@ export default function TripSettingsScreen() {
   useEffect(() => {
     void tripsMode().then(setMode);
     void tripsKeepAwake().then(setAwake);
+    void tripsMap().then(setMap);
   }, []);
 
   const vehicles = data.vehicles.filter((v) => !v.isArchived && v.detail);
@@ -137,6 +141,24 @@ export default function TripSettingsScreen() {
               void setTripsKeepAwake(v);
             }}
             accessibilityLabel={es.trips.keepAwake}
+            trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
+          />
+        </View>
+      </Surface>
+
+      {eyebrow(es.trips.mapSetting)}
+      <Surface padded>
+        <View style={styles.rowBetween}>
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
+            {es.trips.mapSettingHint}
+          </T>
+          <Switch
+            value={map}
+            onValueChange={(v) => {
+              setMap(v);
+              void setTripsMap(v);
+            }}
+            accessibilityLabel={es.trips.mapSetting}
             trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
           />
         </View>
