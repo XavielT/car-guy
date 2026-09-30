@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>2.4 · Modo conducir</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+JP:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Rajdhani',sans-serif;background:#121212;color:#EDEDED}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0B0F14; color: #EDEDED; overflow: hidden; position: relative">
+
+  <!-- dark map (OpenFreeMap dark, mocked) -->
+  <svg width="390" height="844" viewBox="0 0 390 844" style="position: absolute; inset: 0">
+    <rect width="390" height="844" fill="#0B0F14"/>
+    <g stroke="#1C2530" stroke-width="10" stroke-linecap="round" fill="none">
+      <path d="M -20 300 L 410 260"/><path d="M -20 520 L 410 470"/><path d="M 80 -20 L 120 860"/><path d="M 260 -20 L 300 860"/>
+    </g>
+    <g stroke="#16202A" stroke-width="4" fill="none">
+      <path d="M -20 400 L 410 380"/><path d="M -20 620 L 410 580"/><path d="M 180 -20 L 200 860"/><path d="M 340 -20 L 360 860"/><path d="M 20 -20 L 40 860"/>
+    </g>
+    <g fill="#101820"><rect x="128" y="290" width="44" height="80"/><rect x="210" y="290" width="40" height="70"/><rect x="130" y="410" width="40" height="90"/><rect x="310" y="300" width="24" height="60"/></g>
+    <!-- trail coloured by speed -->
+    <path d="M 60 780 L 100 650 L 112 500 L 190 470 L 205 380 L 280 350" fill="none" stroke="#FFB300" stroke-width="12" stroke-opacity="0.25" stroke-linecap="round"/>
+    <path d="M 60 780 L 100 650" fill="none" stroke="#3DDC84" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 100 650 L 112 500" fill="none" stroke="#FFB300" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 112 500 L 190 470 L 205 380" fill="none" stroke="#FF6A00" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 205 380 L 280 350" fill="none" stroke="#FFB300" stroke-width="5" stroke-linecap="round"/>
+    <!-- car marker, course up -->
+    <g transform="translate(280,350) rotate(-25)"><path d="M 0 -16 L 11 12 L 0 6 L -11 12 Z" fill="#FFFFFF" stroke="#E10600" stroke-width="2"/></g>
+    <circle cx="280" cy="350" r="26" fill="none" stroke="#FFB300" stroke-opacity="0.35"/>
+  </svg>
+
+  <!-- top scrim + compact cluster -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 190px; background: linear-gradient(180deg, rgba(11,15,20,0.96) 0%, rgba(11,15,20,0.7) 60%, rgba(11,15,20,0) 100%)"></div>
+  <div style="position: absolute; left: 20px; right: 20px; top: 22px; display: flex; justify-content: space-between; align-items: flex-start">
+    <div style="display: flex; flex-direction: column">
+      <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">MODO CONDUCIR <span style="font-family: 'Noto Sans JP', sans-serif; color: #8C8C8C; letter-spacing: 0; font-size: 10px">走行</span></div>
+      <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-family: 'Saira Condensed', sans-serif; font-weight: 800; font-size: 72px; line-height: 1">84</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 13px; letter-spacing: 0.16em; color: #8C8C8C">KM/H</span></div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #B3B3B3">12.4 km · 25 min · máx 96</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(27,27,27,0.9); border: 1px solid #2A2A2A; display: flex; align-items: center; justify-content: center; color: #EDEDED; font-size: 16px">✕</div>
+      <div style="display: flex; gap: 6px">
+        <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #3DDC84; border: 1px solid #2A2A2A; background: rgba(27,27,27,0.9); padding: 3px 8px; border-radius: 4px">GPS</span>
+        <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #FF4D45; border: 1px solid #2A2A2A; background: rgba(27,27,27,0.9); padding: 3px 8px; border-radius: 4px">● REC</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- recenter -->
+  <div style="position: absolute; right: 20px; bottom: 270px; width: 40px; height: 40px; border-radius: 50%; background: rgba(27,27,27,0.92); border: 1px solid #3A3A3A; display: flex; align-items: center; justify-content: center; color: #FFB300; font-size: 16px">◎</div>
+  <div style="position: absolute; left: 20px; bottom: 270px; font-family: 'Rajdhani', sans-serif; font-size: 9px; color: #6C6C6C; background: rgba(11,15,20,0.7); padding: 2px 6px; border-radius: 4px">© OpenFreeMap © OpenMapTiles · OpenStreetMap</div>
+
+  <!-- bottom sheet -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #171717; border-top: 1px solid #2A2A2A; border-radius: 22px 22px 0 0; padding: 12px 20px 26px; display: flex; flex-direction: column; gap: 12px">
+    <div style="width: 40px; height: 4px; border-radius: 2px; background: #3A3A3A; align-self: center"></div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B3B3B3">EL TRUENO ▾</span>
+      <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B3B3B3">AUTOMÁTICO + MANUAL</span>
+      <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #5A5A5A">PASAJERO</span>
+      <span style="padding: 6px 10px; border-radius: 999px; background: #1B1B1B; border: 1px solid #2A2A2A; font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #FFB300">☀ PANTALLA ENCENDIDA</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-family: 'JetBrains Mono', monospace; text-align: center">
+      <div><div style="font-weight: 700; font-size: 16px">12.4</div><div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: #8C8C8C">km</div></div>
+      <div><div style="font-weight: 700; font-size: 16px">25:12</div><div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: #8C8C8C">tiempo</div></div>
+      <div><div style="font-weight: 700; font-size: 16px">35</div><div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: #8C8C8C">media</div></div>
+      <div><div style="font-weight: 700; font-size: 16px; color: #FFB300">96</div><div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: #8C8C8C">máx</div></div>
+    </div>
+    <div style="display: flex; gap: 10px">
+      <span style="flex: 1; text-align: center; padding: 16px; border-radius: 12px; background: #E10600; color: #FFFFFF; font-family: 'Saira Condensed', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 0.12em">TERMINAR VIAJE</span>
+    </div>
+    <div style="font-family: 'Rajdhani', sans-serif; font-size: 10px; color: #5A5A5A; text-align: center">GPS · no sustituye el velocímetro · maneja con cuidado</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

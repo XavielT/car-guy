@@ -195,6 +195,7 @@ export const es = {
     routeSimplified: 'Ruta simplificada · los colores por velocidad solo están los primeros 30 días.',
     routeA11y: (km: string) => `Mapa de la ruta, ${km} km`,
     mapCredit: '© OpenStreetMap',
+    exportHint: 'Mantén presionado para exportar los puntos GPS (GeoJSON).',
     heatCaption: 'Por dónde manejas: donde la línea brilla más es la calle que más repites.',
     heatA11y: (n: number) => `Mapa con ${n} viajes superpuestos`,
     mapSetting: 'Mapa bajo la ruta',

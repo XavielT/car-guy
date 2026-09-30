@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
@@ -14,6 +14,7 @@ import { odometer as odometerRepo } from '@/lib/db/repos';
 import { tripPoints, trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
 import { es } from '@/lib/i18n/es';
+import { shareTripGeojson } from '@/lib/trips/shareGeojson';
 import { tripsMap } from '@/lib/trips/settings';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -131,7 +132,10 @@ export default function TripScreen() {
           {es.trips.eyebrow}
         </T>
 
-        <TripShareCard ref={shotRef} trip={trip} points={points} width={cardW} vehicleName={vehicleName} map={map} />
+        {/* Diagnostics (note 16): a long press on the card shares the trip's GPS points as GeoJSON. */}
+        <Pressable onLongPress={() => void shareTripGeojson(trip, points ?? [])} delayLongPress={600} accessibilityHint={es.trips.exportHint}>
+          <TripShareCard ref={shotRef} trip={trip} points={points} width={cardW} vehicleName={vehicleName} map={map} />
+        </Pressable>
         {!points ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
             {trip.polyline ? es.trips.routeSimplified : es.trips.noRoute}
