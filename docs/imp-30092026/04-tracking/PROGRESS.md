@@ -10,7 +10,7 @@ phase" carry context between sessions.
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
 | 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action, Wheelz walked |
-| 1 | Fix pack 2.3.1 | ⬜ | | |
+| 1 | Fix pack 2.3.1 | 🟡 | `fix/2.3.1-fixpack` | detail + dedupe, stations, reserve light, ≈ por echada, denser routes; phone check + release pending |
 | 2 | Schema v8 | ⬜ | | |
 | 3A | Language es/en | ⬜ | | |
 | 3B | Skeletons | ⬜ | | |
@@ -150,16 +150,30 @@ point count, largest gap between fixes, median interval and accuracy, raw vs sav
 
 - Phase 0: the seed's three events (C3 accident, DS3 overheat, mirror) are written in Phase 2 with the v8
   migration they need, instead of behind a `SEED_V8` flag (the prompt allows either).
+- Phase 1: "Solo la luz de reserva" keeps partialEconomy's maths as it was (`inReserve` → the tank holds
+  `reserve_volume_l`, default 10 %); the chip only renames it, puts the needle at E and adds the caption.
+- Phase 1: "≈ por echada" shows only when the fill-up has no measured km/gal (a partial, or a full tank whose
+  previous fill was partial); a measured full-to-full value is never shown twice.
+- Phase 1: the dedupe compares against rows *created* in the last 60 s (not by the fill-up's date), so
+  entering an old receipt twice in a row is caught too; "Ver" opens the saved one.
+- Phase 1: editing keeps the original `createdAt` (was overwritten — the Phase 0 finding).
 
 ## Deviations from the package
+
+- Phase 1 (5b): auto mode's recording options match manual's interval (1 s, BestForNavigation) but keep
+  `distanceInterval: 0`, not 3 m: with a distance filter Android stops delivering fixes while parked and the
+  4-minute stop rule (which needs fixes at 0 km/h) would never fire. The density comes from the 1 s interval.
+- Phase 1 (5b): the "≥ 4× the old point count at 3 m" test is replaced by per-turn shape tests
+  (`__tests__/trips/route-detail.test.ts`): on the synthetic GPX the 8 m → 3 m change gives 17 → 22 points (the
+  GPX is already sparse), so 4× is not reachable there; the tests check that corners survive instead.
 
 ## Observed, deferred
 
 | Found in | Issue | Severity | Notes |
 |---|---|---|---|
-| 0 | Editing a fill-up overwrites its `createdAt` (`lib/store.tsx:339-345`) | low | fix with the Phase 1 flow |
+| 0 | Editing a fill-up overwrites its `createdAt` (`lib/store.tsx:339-345`) | low | ✅ fixed in Phase 1 |
 | 0 | No screen edits `vehicle.reserve_volume_l` (reserve estimate always 10 % of the tank) | low | Phase 1 (note 12) can add it to the vehicle form |
-| 0 | Stored `trip_point`s skip the excursion filter; `RouteSvg` draws raw points uncleaned | medium | Phase 1 (note 16) |
+| 0 | Stored `trip_point`s skip the excursion filter; `RouteSvg` draws raw points uncleaned | medium | ✅ Phase 1: `routePointsForDrawing` cleans + trims to `endedAt` |
 | 0 | Disk 90 % (12 GB free) | medium | Phase 4's native rebuild needs room; clear `~/.gradle/caches` if short |
 
 ## Blockers
@@ -196,4 +210,40 @@ point count, largest gap between fixes, median interval and accuracy, raw vs sav
 - Phase 1 (fix pack): the duplicate path is Guardar → "Listo" → Guardar on the same filled form, plus the
   un-disabled button; Inicio has no fuel rows to route; the export action is in — ask Xaviel to long-press a
   straight-line trip and send the .geojson before changing the trip constants.
+
+## Phase 1 — Fix pack 2.3.1   (branch `fix/2.3.1-fixpack`)
+
+**Status:** in progress (code done; phone check + release pending)
+**Commits:** `fix(2.3.1): fill-up detail + dedupe, stations picker, reserve light, ≈ por echada, denser routes`
+
+### Changed
+- **Detail / editor (note 8):** `app/carga/[id]/index.tsx` (new detail: tiles, review body, ≈ line, gauge rows,
+  notes, Editar, Borrar; "Echada guardada" notice on `?saved=1`); editor moved to `app/carga/[id]/editar.tsx`
+  (`vercel.json` rewrite). `app/carga/nueva.tsx`: no focus re-key; Listo → `router.replace` to the detail.
+  Historial rows and Inicio's "Último tanque" open the detail. `FillUpForm`: `saving` state + ref, the button
+  is disabled while saving. `lib/domain/fillupDedupe.ts` (same vehicle, created < 60 s, odometer ±0.5,
+  volume, total ±0.5, date ±1 min) → "Esta echada ya se guardó · Ver". `lib/store.tsx` keeps `createdAt`.
+- **Stations (note 7):** `lib/domain/refdata/stations.json` (18 brands; Propagas/Tropigas GLP-only) +
+  `lib/domain/stations.ts` (`brandsForFuel`, accent/alias-insensitive `normaliseStation`, `recentStations`);
+  the form's chips → a `SearchSheet` (Tus estaciones, Marcas, Otra). `lib/fuel.ts` `STATIONS` removed.
+- **Reserve light (note 12):** `GaugePicker` chip "Solo la luz de reserva", needle at E, caption.
+- **≈ por echada (note 9):** `lib/domain/perFillEconomy.ts` (increasing odometer, missed-previous and > 60-day
+  gaps excluded); review sheet, Historial tag ("Parcial · ≈ 41.7 km/gal"), detail; Cifras dotted series
+  behind "Por echada (aprox.)" (`Settings.perFill`, default on). Not in averages, not on the public page.
+- **Routes (note 16):** finalize simplify 8 → 3 m; auto recording at 1 s (see deviations);
+  `present.routePointsForDrawing` (trip_point when present, cleaned, up to `endedAt`, ≤ 900 points) feeds
+  `RouteSvg`; `geo.cleanTrackReport` counts drops (accuracy / duplicate / jump / excursion) → a
+  `trip-finalize` note in the diagnostics ring buffer and in the GeoJSON export; `tiles.ts` STREET_ZOOM 15.
+- Tests: `fillupDedupe`, `stations`, `perFillEconomy`, `route-detail`. QA shots `docs/qa/imp-30092026-phase-1-*`.
+
+### Acceptance criteria
+- [x] tsc, lint, jest (80 suites, 1208 tests).
+- [x] Web: save → detail with the notice; one row per save; a second tap while saving is ignored; the same
+  fill-up again < 60 s → "Esta echada ya se guardó"; Petronan saved; partial review + Historial show ≈.
+- [ ] Redmi over 2.3.0 with the real data (backup first).
+- [ ] Trip export finding.
+- [ ] GitHub release v2.3.1, merge, tag, push; smoke-apk 3/3.
+
+### Notes closed
+- 7, 8, 9, 12; 16 partially (the real map is Phase 4).
 

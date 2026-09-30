@@ -1,5 +1,5 @@
 import { computeEconomy } from '@/lib/domain/economy';
-import { perFillEconomy, perFillEconomyOf, perFillFor, perFillSeries } from '@/lib/domain/perFillEconomy';
+import { PER_FILL_BAND, perFillEconomy, perFillEconomyOf, perFillFor, perFillSeries } from '@/lib/domain/perFillEconomy';
 import type { FillUp } from '@/lib/types';
 
 function fill(id: string, day: string, odometerKm: number, volume: number, over: Partial<FillUp> = {}): FillUp {
@@ -85,3 +85,31 @@ describe('perFillEconomy (note 9: partials must count)', () => {
     expect(measured[0].kmPerUnit).toBeCloseTo(400 / (partialVolume + 10), 2);
   });
 });
+
+describe('perFillEconomy plausibility band (the DS3 on 2.3.1: "≈ 131 km/gal")', () => {
+  it('hides a small top-up after a long stretch, keeps the believable ones', () => {
+    // Full-to-full 30 km/gal; then 420 km on a 3.2-gal top-up (131) and a sane partial.
+    const map = perFillEconomy([
+      fill('a', '08-01', 10_000, 10),
+      fill('b', '08-08', 10_300, 10),
+      fill('c', '08-20', 10_720, 3.2, { isFullTank: false }),
+      fill('d', '08-27', 10_900, 6, { isFullTank: false }),
+    ]);
+    expect(map.has('c')).toBe(false);
+    expect(map.get('d')?.kmPerUnit).toBe(30);
+    expect(PER_FILL_BAND[0]).toBeLessThan(1);
+  });
+
+  it('with no full-to-full figure, centres on the per-fill median (3 or more)', () => {
+    const partial = { isFullTank: false } as const;
+    const map = perFillEconomy([
+      fill('a', '08-01', 10_000, 10, partial),
+      fill('b', '08-05', 10_300, 10, partial),
+      fill('c', '08-09', 10_600, 10, partial),
+      fill('d', '08-13', 10_900, 10, partial),
+      fill('e', '08-17', 11_500, 5, partial), // 120
+    ]);
+    expect([...map.keys()].sort()).toEqual(['b', 'c', 'd']);
+  });
+});
+

@@ -12,7 +12,8 @@
   estimación usa la reserva del tanque.
 - **≈ por echada**: las cargas parciales muestran un consumo aproximado (en la revisión, en Historial y en
   el detalle), y Cifras puede dibujarlo como una línea punteada. Es aproximado porque no se sabe cuánto
-  tenía el tanque en cada parada; nunca entra en tus promedios.
+  tenía el tanque en cada parada; nunca entra en tus promedios, y si da una cifra imposible
+  (una recarga pequeña después de muchos km) no se muestra.
 - **Rutas más fieles**: los viajes guardan más puntos de la ruta y el detalle la dibuja con los puntos del
   GPS cuando los tiene, así las curvas ya no se ven como líneas rectas.
 

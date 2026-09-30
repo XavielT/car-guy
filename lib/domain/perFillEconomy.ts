@@ -31,7 +31,47 @@ export type PerFillEconomy = {
 export const PER_FILL_MAX_GAP_DAYS = 60;
 const MAX_GAP_MS = PER_FILL_MAX_GAP_DAYS * 24 * 60 * 60 * 1000;
 
-type Log = Pick<FillUp, 'id' | 'vehicleId' | 'occurredAt' | 'odometerKm' | 'volume'> & { missedPrevious?: boolean | null };
+type Log = Pick<FillUp, 'id' | 'vehicleId' | 'occurredAt' | 'odometerKm' | 'volume'> & {
+  missedPrevious?: boolean | null;
+  isFullTank?: boolean | null;
+};
+
+/**
+ * A top-up of RD$ 1,000 after 400 km reads "131 km/gal" — true arithmetic, false
+ * economy (the tank was emptier than before). A figure only shows while it sits
+ * inside this band around the car's own economy: the full-to-full median when the
+ * car has one, else the median of its per-fill figures (three or more).
+ */
+export const PER_FILL_BAND: readonly [number, number] = [0.6, 1.6];
+
+function median(xs: number[]): number | null {
+  if (xs.length === 0) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/** Full-to-full km per unit (the same chain as computeEconomy), for the band's centre. */
+function fullToFull(sorted: readonly Log[]): number[] {
+  const out: number[] = [];
+  let last = -1;
+  for (let i = 0; i < sorted.length; i++) {
+    const c = sorted[i];
+    if (c.missedPrevious) {
+      last = c.isFullTank ? i : -1;
+      continue;
+    }
+    if (!c.isFullTank) continue;
+    if (last !== -1) {
+      const distance = c.odometerKm - sorted[last].odometerKm;
+      let volume = 0;
+      for (let j = last + 1; j <= i; j++) volume += sorted[j].volume;
+      if (distance > 0 && volume > 0) out.push(distance / volume);
+    }
+    last = i;
+  }
+  return out;
+}
 
 /**
  * One fill-up against the one before it (same vehicle, the caller's choice of
@@ -71,9 +111,16 @@ export function perFillEconomy(fillups: readonly (Log & { createdAt?: string })[
   }
   for (const list of byVehicle.values()) {
     const sorted = [...list].sort(byTime);
+    const found: [string, PerFillEconomy][] = [];
     for (let i = 1; i < sorted.length; i++) {
       const result = perFillFor(sorted[i], sorted[i - 1]);
-      if (result) out.set(sorted[i].id, result);
+      if (result) found.push([sorted[i].id, result]);
+    }
+    const perFills = found.map(([, r]) => r.kmPerUnit);
+    const centre = median(fullToFull(sorted)) ?? (perFills.length >= 3 ? median(perFills) : null);
+    for (const [id, r] of found) {
+      if (centre != null && (r.kmPerUnit < centre * PER_FILL_BAND[0] || r.kmPerUnit > centre * PER_FILL_BAND[1])) continue;
+      out.set(id, r);
     }
   }
   return out;
