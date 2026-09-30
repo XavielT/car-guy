@@ -4,7 +4,7 @@ Claude Code appends a report per phase (block in `00-context/04-conventions.md` 
 sections plus *Design check*, *Flags flipped*, *Notes closed*). "Notes for the next phase" carry
 context between sessions.
 
-**Started:** 2026-09-29 · **Status:** Phase 5A done on web · 5B code done, device run pending (branch `imp-29092026/phase-5-viajes`)
+**Started:** 2026-09-29 · **Status:** Phase 6 done on web; cloud SQL 021 awaiting approval · 5B device run pending (branch `imp-29092026/phase-6-garage-feedback`)
 
 ## Phase status
 
@@ -17,8 +17,8 @@ context between sessions.
 | 4 | Carga parcial | ✅ | `imp-29092026/phase-4-fuel` | gauge estimates with bands, reconciliation, chart styles, CSV estado; web verified |
 | 5A | Viajes — manual + live | ✅ | `imp-29092026/phase-5-viajes` | manual trips, speed cluster, trip screens, odometer estimate; web verified, Redmi walk test pending |
 | 5B | Viajes — automático | 🟡 | `imp-29092026/phase-5-viajes` | task + engine + arming + permisos/MIUI + thresholds; tests green; device run and drive pending |
-| 6 | Garaje v2 · launch · versiones · comentarios · costos | ⬜ | | |
-| 7 | Web APK · portfolio · release 2.2.0 | ⬜ | | |
+| 6 | Bug reports / comments | 6 | 🟡 form, outbox, admin inbox built + local-rls green; live after sql/021 is applied |
+| 7 | Animated launch icon | 6 | 🟡 overlay built, web verified; Redmi cold-start check pending |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -30,16 +30,16 @@ context between sessions.
 | 2 | Live speed on the home cluster | 5A | ✅ SpeedCluster on Inicio while a trip records |
 | 3 | Photos on check issues / new parts, in history | 3 | ✅ ≤5 photos on falla/atención, 📷 N in Historial, CHEQUEO card in the album |
 | 4 | Carga parcial | 4 | ✅ |
-| 5 | Historial de versiones | 6 | ⬜ |
+| 5 | Historial de versiones | 6 | ✅ Más → Novedades y versiones, sheet once per version |
 | 6 | Bug reports / comments | 6 | ⬜ |
 | 7 | Animated launch icon | 6 | ⬜ |
-| 8 | Mod costs + car price + what it cost me | 3 + 6 | 🟡 price + date visible in the form (3); Cifras in 6 |
+| 8 | Mod costs + car price + what it cost me | 3 + 6 | ✅ «Lo que me ha costado» in Cifras, PDF, CSV, book (public web page pending SQL) |
 | 9 | Portfolio | 0 + 7 | 🟡 live card verified in Phase 0; APK button in 7 |
 | 10 | Several vehicle photos | 3 | ✅ gallery strip, cover, 1/N pager |
 | 11 | Liters/gallons, colour picker, make/model/year pickers, body types | 3 | ✅ |
 | 12 | Photo error on Android | 1 | ✅ compressPhoto + pending result; 8/8 on the Redmi; phone photo *upload* fixed too |
 | 13 | Sign-in message / accounts configured | 1 | ✅ cloud values in every EAS build, user copy, Car Guy-only accounts, reset link to Car Guy |
-| 14 | Garage view with all photos, user-arranged | 6 | ⬜ |
+| 14 | Garage view with all photos, user-arranged | 6 | ✅ Portadas / Cuadrícula / Lista, Ordenar + Fijar, synced layout |
 | 15 | More statuses (the C3 case) | 2 + 3 | ✅ nine statuses, Desde + Nota, status line everywhere, milestone on change |
 | 16 | Oil types picker | 3 | ✅ |
 | 17 | APK from the web page | 1 (name) + 7 | 🟡 stable `car-guy.apk` asset from 2.1.3; the web button is Phase 7 |
@@ -597,4 +597,72 @@ Built by me plus two helper agents working on separate files (oil; check photos)
 
 ### Flags flipped
 - none yet (FEATURE_TRIPS for release waits for the drive).
+
+## Phase 6 — Garaje v2 · launch · versiones · comentarios · costos   (branch `imp-29092026/phase-6-garage-feedback`)
+
+**Status:** built and verified on web; cloud SQL not applied (needs Xaviel's OK); Redmi checks pending
+**Commits:** `feat(imp-29092026 phase 6): garaje v2, animated launch, novedades, comentarios, lo que me ha costado`
+
+Built by five parallel helper agents in one checkout, integrated and re-verified by the lead.
+
+### Changed
+- **Garaje v2:** `lib/domain/garageLayout.ts` (pure reducer: mode, pin, move within the visible section);
+  `app/(tabs)/garaje.tsx` rewritten — Portadas / Cuadrícula / Lista, cover on every card (expo-image,
+  recyclingKey, blurhash), status line, badges, km · mods, overdue, 1/N pill; Ordenar with ↑/↓ + Fijar
+  arriba; header "N en el garaje · N ex"; Ex always last; `garage_layout` added to SYNCED_SETTING_KEYS.
+- **Animated launch:** `components/LaunchOverlay.tsx` (geometry measured from splash-icon.png, written in its
+  header), `lib/motion/launchSchedule.ts`; new rest-frame splash `assets/images/splash-rest.png`
+  (tools/render-splash-rest.py) so the static splash equals the overlay's first frame; app.json splash
+  `imageWidth 168`; native splash exits with `setOptions({ duration: 0, fade: false })` and `hide()` in the
+  overlay's onLayout; `markGaugeSweptThisSession()` so the cluster does not sweep twice.
+- **Novedades y versiones:** `lib/changelog/parse.ts`, `tools/build-changelog.mjs` → committed
+  `lib/changelog.generated.ts` (scripts changelog / prestart / preweb / preandroid / prebuild);
+  `app/versiones.tsx`; Novedades sheet once per new version (2.1.x users with a garage count as an update);
+  Más row with a dot; CHANGELOG 2.2.0 section extended; expo-application declared.
+- **Comentarios:** `sql/021_feedback.sql` + `sql/021_feedback_storage.shared.sql` (written, **not applied**);
+  `lib/feedback/*` (payload + redaction, device id, AsyncStorage outbox with client ids, send, screenshot
+  after the row), `app/comentario.tsx`, "Reportar" on error alerts, link in Versiones; admin inbox
+  `app/admin/comentarios(.tsx|/[id].tsx)` for `lib/cloud/admin.ts` ADMIN_EMAIL only; local-rls checks
+  14a–14q; verify-x-core 24–28 written (not run).
+- **Lo que me ha costado:** `lib/domain/costs.ts` `ownershipCost` / `garageCost` replaces the old
+  `totalCostOfOwnership` (one number everywhere): purchase − sale + spend rows − sold mods + inventory bought
+  for the car (skipping items already copied into a mod); per km, since, per month; Cifras card per car +
+  garage card, PDF report, CSV (garage), dossier/book when "costos" is on.
+- `lib/format.ts` `dateLabel`: date-only values read as a local day (the Jetta's 2018-01-01 showed 31 dic 2017).
+
+### Acceptance criteria
+- [x] tsc, lint, 1149 tests (garage layout reducer, changelog parser + generated-file check, costs with every
+  category and the Trueno = RD$ 456,686.40, launch schedule ≤ 1.2 s, feedback redaction, outbox idempotence,
+  admin predicate); web export.
+- [x] Web: garage modes + reorder + pin persisted over reload; versiones; comentario (send / offline / rate
+  limited with the RPC mocked); Cifras costs; launch mid/end frames; fresh-profile boot with the seed, 0
+  console errors (screenshots `docs/qa/imp-29092026-phase-6-*.png`).
+- [ ] sql/021 applied + verify-x-core 24–28 — needs Xaviel's OK (x-core is shared).
+- [ ] Xaviel signs in → Comentarios recibidos.
+- [ ] Redmi: cold start (no flash, one sweep), 20 cards scroll, garage order synced phone ↔ web.
+
+### Decisions made (defaults applied)
+- Ordenar uses ↑/↓ arrows on native and web (long-press unreliable on web, drag not verifiable at 60 fps from
+  here); Ordenar shows a list whatever the mode.
+- Launch hold 130 ms instead of 200 ms: the spec's parts summed to 1270 ms against its own 1.2 s cap.
+- `submit_feedback` returns the id and accepts a client id (safe outbox retries); upload allowed only for the
+  name of a fresh row without a screenshot (server-side).
+- Until 021 is applied the app treats "function not found" as offline: comments wait in the outbox.
+
+### Deviations from the package
+- Static splash image changed to the rest frame (the old one shows the needle at 85).
+- No drag handles.
+
+### Observed, deferred
+| Found in | Issue | Severity | Notes |
+|---|---|---|---|
+| 6 | Public dossier web page (`public_dossier()`, sql/017) does not send costs | low | needs a new SQL (show_costs) — with Phase 7 |
+| 6 | Tire `cost_dop` not in ownership cost (seed buys tires as mods; would double) | low | decide when tires get their own purchase flow |
+| 6 | "Inversión en mods" tile is gross (incl. mods linked to services), the cost card's Mods line is net | low | two different questions; label reviewed in Phase 7 copy pass |
+
+### Flags flipped
+- FEATURE_GARAGE_V2, FEATURE_LAUNCH_ANIM, FEATURE_FEEDBACK → true.
+
+### Notes closed
+- 5, 14, 8 (Cifras half). 6 and 7 close with the cloud apply and the Redmi check.
 

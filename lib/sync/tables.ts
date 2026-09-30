@@ -136,7 +136,9 @@ export const SYNC_TABLE_NAMES = SYNC_TABLES.map((table) => table.name);
 // `theme` is not here: the appearance choice lives in AsyncStorage
 // (lib/theme/useTheme.ts), not in this table, and dark on the phone with light
 // on the laptop is a reasonable thing to want.
-export const SYNCED_SETTING_KEYS = ['reference_prices', 'price_week_label'];
+// `garage_layout` (Garaje v2: mode, order, pin) travels so the phone and the
+// web show the same garage.
+export const SYNCED_SETTING_KEYS = ['reference_prices', 'price_week_label', 'garage_layout'];
 
 /**
  * Columns that are `boolean` in the cloud and `INTEGER` locally.

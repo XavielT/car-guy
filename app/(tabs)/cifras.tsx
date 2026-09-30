@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DistanceBars } from '@/components/charts/DistanceBars';
+import { GarageCostCard, OwnershipCard } from '@/components/costs/OwnershipCard';
 import { Donut } from '@/components/charts/Donut';
 import { EconomyLegend, EconomyLine } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
@@ -12,7 +13,8 @@ import { TripsCifrasBlock } from '@/components/trips/TripPieces';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
-import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
+import { garageOwnershipCost, vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
+import type { GarageCost } from '@/lib/domain/costs';
 import { latestEconomyInsight } from '@/lib/domain/economy';
 import { capacityHint, fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
 import { fromLiters } from '@/lib/domain/units';
@@ -41,6 +43,7 @@ export default function CifrasScreen() {
 
   const [period, setPeriod] = useState<PeriodKey>('trimestre');
   const [stats, setStats] = useState<VehicleStats | null>(null);
+  const [garage, setGarage] = useState<GarageCost | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const chartOffsets = useRef<Record<string, number>>({});
@@ -59,6 +62,19 @@ export default function CifrasScreen() {
       cancelled = true;
     };
   }, [vehicleId, period, data]);
+
+  // The garage total is lifetime and period-free, so it reloads with the data only.
+  useEffect(() => {
+    let cancelled = false;
+    garageOwnershipCost()
+      .then((result) => {
+        if (!cancelled) setGarage(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [data]);
 
   // Economy is a fill-up series, not a spend series, so it comes from the store
   // rather than from the stats query — and from computeEconomy, which drops the
@@ -260,26 +276,9 @@ export default function CifrasScreen() {
               </Surface>
             ) : null}
 
-            {stats.ownership ? (
-              <>
-                <SectionHeader title={es.stats.ownership} caption={es.stats.ownershipCaption} />
-                <Surface>
-                  <Row label={es.stats.ownershipPurchase} value={money(stats.ownership.purchasePrice)} />
-                  {stats.ownership.soldPrice != null ? (
-                    <Row label={es.stats.ownershipSold} value={`− ${money(stats.ownership.soldPrice)}`} />
-                  ) : null}
-                  <Row label={es.stats.ownershipSpend} value={money(stats.ownership.spend)} />
-                  <View style={[styles.rule, { backgroundColor: theme.line }]} />
-                  <Row label={es.stats.ownershipTotal} value={money(stats.ownership.total)} strong />
-                  {stats.ownership.costPerMonth != null ? (
-                    <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
-                      {es.stats.ownershipPerMonth}: {money(stats.ownership.costPerMonth)} ·{' '}
-                      {es.stats.ownershipMonths(stats.ownership.monthsOwned)}
-                    </T>
-                  ) : null}
-                </Surface>
-              </>
-            ) : null}
+            {/* Note 8: "lo que me ha costado" — lib/domain/costs.ts, the same figure as the report and the CSV. */}
+            {stats.ownership ? <OwnershipCard cost={stats.ownership} /> : null}
+            {garage ? <GarageCostCard garage={garage} /> : null}
 
             <SectionHeader title={es.stats.upcoming} caption={es.stats.upcomingCaption} />
             <Surface>

@@ -1,5 +1,7 @@
 import { Alert as RNAlert, Platform } from 'react-native';
 
+import { recentErrors } from './diagnostics';
+import { FEATURE_FEEDBACK } from './flags';
 import { es } from './i18n/es';
 
 /**
@@ -30,7 +32,29 @@ export type AlertRequest = {
   title: string;
   message?: string;
   buttons: AlertButton[];
+  /** An error alert: AlertHost adds the "Reportar" link (PROMPT-06 item 4). */
+  report?: boolean;
 };
+
+/**
+ * "Error alert" without touching every call site: an alert raised right after
+ * a technical error reached the diagnostics ring buffer — which is exactly what
+ * `userMessage()`'s fallback path and the photo pickers' `recordError` do —
+ * is about that error. A confirmation with its own choices (three buttons)
+ * is left alone.
+ */
+const REPORT_WINDOW_MS = 1500;
+
+export function isErrorAlert(buttons: AlertButton[] | undefined, now = Date.now()): boolean {
+  if (!FEATURE_FEEDBACK || (buttons?.length ?? 0) > 2) return false;
+  const last = recentErrors().at(-1);
+  return Boolean(last && now - Date.parse(last.at) < REPORT_WINDOW_MS);
+}
+
+/** Opens Enviar comentario as a bug report, from the route the error happened on. */
+export function openReport(): void {
+  void import('./feedback').then((m) => m.openFeedback('bug'));
+}
 
 type Listener = (request: AlertRequest) => void;
 
@@ -57,6 +81,7 @@ function webAlert(title: string, message?: string, buttons?: AlertButton[]): voi
     title,
     message,
     buttons: buttons?.length ? buttons : OK,
+    report: isErrorAlert(buttons),
   };
 
   if (listener) {
@@ -77,6 +102,11 @@ export const Alert = {
       webAlert(title, message, buttons);
       return;
     }
-    RNAlert.alert(title, message, buttons);
+    // Native: the platform dialog takes up to three buttons; "Reportar" is the last.
+    RNAlert.alert(
+      title,
+      message,
+      isErrorAlert(buttons) ? [...(buttons?.length ? buttons : OK), { text: es.feedback.report, onPress: openReport }] : buttons,
+    );
   },
 };

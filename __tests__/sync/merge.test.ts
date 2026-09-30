@@ -307,7 +307,7 @@ describe('the table declarations', () => {
     expect(SYNCED_SETTING_KEYS).not.toContain('active_vehicle_id');
     expect(SYNCED_SETTING_KEYS).not.toContain('last_sync_at');
     expect(SYNCED_SETTING_KEYS).not.toContain('auth_user_id');
-    expect(SYNCED_SETTING_KEYS).toEqual(['reference_prices', 'price_week_label']);
+    expect(SYNCED_SETTING_KEYS).toEqual(['reference_prices', 'price_week_label', 'garage_layout']);
   });
 
   it('lists every table exactly once', () => {

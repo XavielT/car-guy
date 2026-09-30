@@ -3,6 +3,7 @@ import { partialEconomy, type FuelCfg, type SeriesPoint } from '../domain/partia
 import { es } from '../i18n/es';
 import type { FuelLog, HistoryEntry } from '../db/types';
 import { economyById } from '../domain/economy';
+import { COST_CATEGORIES, type GarageCost } from '../domain/costs';
 import { historyTitle } from '../domain/history';
 import type { FillUp } from '../types';
 import { FUEL_CATALOG } from '../fuel';
@@ -155,6 +156,34 @@ export function fuelCsv(logs: FuelLog[], unit: VolumeUnit = 'gal', cfg?: FuelCfg
       ];
     }),
   );
+}
+
+export const COSTS_HEADERS = ['vehiculo', 'concepto', 'monto_dop', 'desde', 'km', 'dop_por_km'];
+
+/**
+ * "Lo que me ha costado" (IMP 29092026 note 8): per vehicle, one row per line
+ * of the Cifras card (compra, venta, the five buckets, total), then the garage
+ * total. Figures straight from `ownershipCost` / `garageCost` — the file and
+ * the screen cannot disagree. Sales are negative, as they are in the sum.
+ */
+export function costsCsv(garage: GarageCost): string {
+  const rows: (string | number | null)[][] = [];
+  for (const { name, cost } of garage.vehicles) {
+    const since = cost.since ? day(cost.since) : '';
+    if (cost.purchasePrice != null) rows.push([name, 'compra', num(cost.purchasePrice), since, '', '']);
+    if (cost.soldPrice != null) rows.push([name, 'venta', num(-cost.soldPrice), '', '', '']);
+    for (const key of COST_CATEGORIES) rows.push([name, key, num(cost.byCategory[key]), '', '', '']);
+    rows.push([name, 'total', num(cost.total), since, num(cost.distanceKm, 0), cost.perKm != null ? num(cost.perKm) : '']);
+  }
+  rows.push([
+    'garaje',
+    'total',
+    num(garage.total),
+    garage.since ? day(garage.since) : '',
+    num(garage.distanceKm, 0),
+    garage.perKm != null ? num(garage.perKm) : '',
+  ]);
+  return toCsv(COSTS_HEADERS, rows);
 }
 
 /** A filename a person can find again: `car-guy-historial-corolla-2026-09-18.csv`. */

@@ -5,6 +5,7 @@ import type { HistoryEntry } from '../db/types';
 import { dateLabel, km, money } from '../format';
 import { es } from '../i18n/es';
 import { historyKindLabel, historyTitle } from '../domain/history';
+import { COST_CATEGORIES, type OwnershipCost } from '../domain/costs';
 
 /**
  * The vehicle report as a self-contained HTML string.
@@ -182,24 +183,7 @@ ${
     : `<p class="muted">${escape(es.stats.byCategoryEmpty)}</p>`
 }
 
-${
-  ownership
-    ? `<h2>${escape(es.stats.ownership)}</h2>
-<table>
-  <tbody>
-    <tr><td>${escape(es.stats.ownershipPurchase)}</td><td class="num mono">${escape(money(ownership.purchasePrice))}</td></tr>
-    ${ownership.soldPrice != null ? `<tr><td>${escape(es.stats.ownershipSold)}</td><td class="num mono">− ${escape(money(ownership.soldPrice))}</td></tr>` : ''}
-    <tr><td>${escape(es.stats.ownershipSpend)}</td><td class="num mono">${escape(money(ownership.spend))}</td></tr>
-    <tr><td><strong>${escape(es.stats.ownershipTotal)}</strong></td><td class="num mono"><strong>${escape(money(ownership.total))}</strong></td></tr>
-    ${
-      ownership.costPerMonth != null
-        ? `<tr><td class="muted">${escape(es.stats.ownershipPerMonth)} · ${escape(es.stats.ownershipMonths(ownership.monthsOwned))}</td><td class="num mono muted">${escape(money(ownership.costPerMonth))}</td></tr>`
-        : ''
-    }
-  </tbody>
-</table>`
-    : ''
-}
+${ownership ? costsBlock(ownership) : ''}
 
 ${
   upcoming.items.length
@@ -272,6 +256,39 @@ ${
 
 </body>
 </html>`;
+}
+
+/**
+ * "Lo que me ha costado" (IMP 29092026 note 8): the same figure and rows as the
+ * Cifras card, from `ownershipCost`.
+ */
+function costsBlock(cost: OwnershipCost): string {
+  const row = (label: string, value: string, strong = false) =>
+    strong
+      ? `<tr><td><strong>${escape(label)}</strong></td><td class="num mono"><strong>${escape(value)}</strong></td></tr>`
+      : `<tr><td>${escape(label)}</td><td class="num mono">${escape(value)}</td></tr>`;
+  const since = cost.since
+    ? cost.sinceBasis === 'compra'
+      ? es.costs.since(dateLabel(cost.since))
+      : es.costs.sinceFirst(dateLabel(cost.since))
+    : null;
+  return `<h2>${escape(es.costs.title)}</h2>
+<table>
+  <tbody>
+    ${cost.purchasePrice != null ? row(es.costs.purchase, money(cost.purchasePrice)) : `<tr><td colspan="2" class="muted">${escape(es.costs.noPurchase)}</td></tr>`}
+    ${cost.soldPrice != null ? row(es.costs.sold, `− ${money(cost.soldPrice)}`) : ''}
+    ${COST_CATEGORIES.map((key) => row(es.costs.categories[key], money(cost.byCategory[key]))).join('\n    ')}
+    ${cost.modsSold > 0 ? `<tr><td colspan="2" class="muted">${escape(es.costs.modsSold(money(cost.modsSold)))}</td></tr>` : ''}
+    ${row(es.costs.total, money(cost.total), true)}
+    ${row(es.costs.perKm, cost.perKm != null ? money(cost.perKm) : '—')}
+    ${
+      cost.costPerMonth != null
+        ? `<tr><td class="muted">${escape(es.stats.ownershipPerMonth)} · ${escape(es.stats.ownershipMonths(cost.monthsOwned))}</td><td class="num mono muted">${escape(money(cost.costPerMonth))}</td></tr>`
+        : ''
+    }
+    ${since ? `<tr><td colspan="2" class="muted">${escape(since)}</td></tr>` : ''}
+  </tbody>
+</table>`;
 }
 
 function kpi(label: string, value: string): string {

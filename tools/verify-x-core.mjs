@@ -23,6 +23,13 @@
  *  12. A client cannot write vehicle_member.                    (sql/010)
  *  13. A uploads a thumb to its own folder; B cannot write there. (sql/004, 011)
  *  14. A cannot raise its own media quota.                      (sql/011)
+ *  …
+ *  24. anon feedback through submit_feedback; same-id retry is a no-op. (sql/021)
+ *  25. the sixth from one device in an hour → rate_limited.   (sql/021)
+ *  26. anon cannot select feedback.                           (sql/021)
+ *  27. a signed-in user sees its own feedback row only.       (sql/021)
+ *  28. screenshot upload only for its row; anon cannot read.  (021_feedback_storage.shared)
+ *  (Admin sees all: local-rls 14n–14q only — never an account with the admin email.)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -105,6 +112,8 @@ async function call(path, options = {}) {
 }
 
 const results = [];
+/** Feedback rows this run created (24–28), for the cleanup SQL. */
+const feedbackDevices = [];
 function record(name, pass, detail) {
   results.push({ name, pass, detail });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}`);
@@ -430,6 +439,66 @@ async function main() {
     );
   }
 
+  // 24–28 — Enviar comentario (sql/021 + 021_feedback_storage.shared). No
+  // admin check here: that would need an account with Xaviel's email, which is
+  // never created — local-rls covers it with a shimmed JWT claim (14n–14q).
+  {
+    const fbRpc = (auth, fn, args) => call(`/rest/v1/rpc/${fn}`, { method: 'POST', headers: { ...auth, 'Content-Profile': 'carguy' }, body: JSON.stringify(args) });
+    const hex = stamp.toString(16).padStart(12, '0').slice(-12);
+    const device = `0000feed-0000-4000-8000-${hex}`;
+    const firstId = `0000feed-0001-4000-8000-${hex}`;
+    const send = (auth, extra = {}) => fbRpc(auth, 'submit_feedback', { p: { kind: 'bug', message: `Verificación ${stamp}`, device_id: device, app_version: 'verify', platform: 'verify', ...extra } });
+
+    const first = await send({}, { id: firstId });
+    const retry = await send({}, { id: firstId });
+    record(
+      '24. anon inserts feedback through the RPC; a retry with the same id is a no-op (sql/021)',
+      first.status === 200 && first.body === firstId && retry.status === 200 && retry.body === firstId,
+      `first ${first.status} ${JSON.stringify(first.body)} · retry ${retry.status} ${JSON.stringify(retry.body)}`,
+    );
+
+    for (let i = 2; i <= 5; i += 1) await send({});
+    const sixth = await send({});
+    record(
+      '25. the sixth in an hour from one device → rate_limited',
+      sixth.status >= 400 && /rate_limited/.test(JSON.stringify(sixth.body)),
+      `status ${sixth.status} · ${JSON.stringify(sixth.body?.message ?? sixth.body)}`,
+    );
+
+    const anonRead = await call(`/rest/v1/feedback?select=id&device_id=eq.${device}`);
+    record(
+      '26. anon cannot select feedback',
+      anonRead.status === 401 || anonRead.body?.code === '42501' || (Array.isArray(anonRead.body) && anonRead.body.length === 0),
+      `status ${anonRead.status} · ${JSON.stringify(anonRead.body?.code ?? anonRead.body)}`,
+    );
+
+    const ownDevice = `0000feed-0000-4000-8000-${(stamp + 1).toString(16).padStart(12, '0').slice(-12)}`;
+    const own = await fbRpc(authA, 'submit_feedback', { p: { kind: 'idea', message: `Verificación A ${stamp}`, device_id: ownDevice } });
+    const ownRead = await call(`/rest/v1/feedback?select=id,user_id,status&device_id=in.(${device},${ownDevice})`, { headers: authA });
+    record(
+      '27. signed-in A sees its own row only (not the anon ones), status new',
+      own.status === 200 && Array.isArray(ownRead.body) && ownRead.body.length === 1 && ownRead.body[0].id === own.body && ownRead.body[0].status === 'new',
+      `submit ${own.status} · read ${JSON.stringify(ownRead.body)}`,
+    );
+
+    // Needs the --shared bucket; a 404 "Bucket not found" means it was not applied yet.
+    const shot = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+    const up = await fetch(`${URL_BASE}/storage/v1/object/carguy-feedback/${device}/${firstId}.jpg`, {
+      method: 'POST', headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, 'Content-Type': 'image/jpeg' }, body: shot,
+    });
+    const stray = await fetch(`${URL_BASE}/storage/v1/object/carguy-feedback/${device}/0000feed-9999-4000-8000-${hex}.jpg`, {
+      method: 'POST', headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, 'Content-Type': 'image/jpeg' }, body: shot,
+    });
+    const attach = await fbRpc({}, 'attach_feedback_screenshot', { p_id: firstId, p_device_id: device });
+    const anonGet = await fetch(`${URL_BASE}/storage/v1/object/authenticated/carguy-feedback/${device}/${firstId}.jpg`, { headers: { apikey: ANON } });
+    record(
+      '28. anon uploads its row\'s screenshot, not a stray one; attach ok; cannot read it back (storage, --shared)',
+      up.status === 200 && stray.status >= 400 && attach.body === true && anonGet.status >= 400,
+      `upload ${up.status} · stray ${stray.status} · attach ${JSON.stringify(attach.body)} · anon read ${anonGet.status}`,
+    );
+    feedbackDevices.push(device, ownDevice);
+  }
+
   // 7 — anon has no grant at all.
   const anon = await call('/rest/v1/vehicle?select=id&limit=1');
   record(
@@ -452,6 +521,10 @@ function printCleanup() {
   console.log(`delete from carguy.vehicle_share where id like 'veh_test_%${stamp}%';`);
   console.log(`delete from carguy.vehicle_member where vehicle_id like 'veh_test_%${stamp}%';`);
   console.log(`delete from carguy.vehicle_invite where vehicle_id like 'veh_test_%${stamp}%';`);
+  if (feedbackDevices.length) {
+    console.log(`delete from carguy.feedback where device_id in (${feedbackDevices.map((d) => `'${d}'`).join(', ')});`);
+    console.log(`delete from storage.objects where bucket_id = 'carguy-feedback' and name like '${feedbackDevices[0]}/%';`);
+  }
   console.log('-- and confirm nothing of Music Hub was touched:');
   console.log(`select id, email from public.profiles where email like 'carguy-test-%';`);
 }

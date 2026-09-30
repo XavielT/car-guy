@@ -192,3 +192,85 @@ select t_as('anon');
 select t_ok('13h. the public dossier renders and has no trips', carguy.public_dossier('ae85hchg') is not null and carguy.public_dossier('ae85hchg')::text not like '%trip%');
 select t_ok('13i. anon cannot read trips', t_denied('select 1 from carguy.trip'));
 reset role;
+
+-- 14 feedback (sql/021 + 021_feedback_storage.shared): anon RPC insert, rate limit,
+-- idempotent retry, own rows, admin by (lower-cased) email claim, screenshot bucket.
+-- Supabase grants anon insert on storage.objects; the shim only grants authenticated.
+grant select, insert on storage.objects to anon;
+insert into auth.users (id, email, raw_user_meta_data) values
+ ('00000000-0000-0000-0000-00000000000e', 'Tecnologia@ConstructoraSD.com', '{"app":"carguy"}');
+create or replace function public.t_admin() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e","role":"authenticated","email":"Tecnologia@ConstructoraSD.com"}', false);
+  execute 'set role authenticated';
+end $$;
+grant execute on function public.t_admin() to anon, authenticated;
+create or replace function public.t_raises(q text, pattern text) returns boolean language plpgsql as $$
+begin execute q; return false; exception when others then return sqlerrm like pattern; end $$;
+grant execute on function public.t_raises(text, text) to anon, authenticated;
+-- rows touched by a statement (0 when RLS hides them, not an error)
+create or replace function public.t_rows(q text) returns int language plpgsql as $$
+declare n int; begin execute q; get diagnostics n = row_count; return n; end $$;
+grant execute on function public.t_rows(text) to anon, authenticated;
+select t_as('anon');
+select t_ok('14a. anon submits through the RPC, gets the client id back',
+  carguy.submit_feedback('{"id":"11111111-1111-4111-8111-111111111111","kind":"bug","message":"Se cerró al guardar","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","diagnostics":{"db":16}}'::jsonb)
+  = '11111111-1111-4111-8111-111111111111'::uuid);
+select t_ok('14b. a retry with the same id is a no-op (outbox idempotence)',
+  carguy.submit_feedback('{"id":"11111111-1111-4111-8111-111111111111","kind":"bug","message":"Se cerró al guardar","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}'::jsonb)
+  = '11111111-1111-4111-8111-111111111111'::uuid);
+select t_ok('14c. anon cannot select or insert feedback directly',
+  t_denied('select 1 from carguy.feedback')
+  and t_denied($q$insert into carguy.feedback (kind, message, device_id) values ('bug', 'directo', 'x')$q$));
+select t_ok('14d. bad kind, short message and a non-uuid device are refused',
+  t_denied($q$select carguy.submit_feedback('{"kind":"spam","message":"hola hola","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')$q$)
+  and t_denied($q$select carguy.submit_feedback('{"kind":"idea","message":"hi","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')$q$)
+  and t_denied($q$select carguy.submit_feedback('{"kind":"idea","message":"hola hola","device_id":"../etc"}')$q$));
+select carguy.submit_feedback(('{"kind":"idea","message":"Idea número ' || g || '","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')::jsonb) from generate_series(2, 5) g;
+select t_ok('14e. the sixth in an hour from one device → rate_limited',
+  t_raises($q$select carguy.submit_feedback('{"kind":"otro","message":"sexto intento","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}')$q$, '%rate_limited%'));
+select t_ok('14f. …but the retry of an already-sent id still answers',
+  carguy.submit_feedback('{"id":"11111111-1111-4111-8111-111111111111","kind":"bug","message":"Se cerró al guardar","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}'::jsonb)
+  = '11111111-1111-4111-8111-111111111111'::uuid);
+-- screenshot: only <device>/<id>.jpg of a fresh row without one
+select t_ok('14g. anon uploads the screenshot of its row, nothing else',
+  not t_denied($q$insert into storage.objects (bucket_id, name) values ('carguy-feedback', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/11111111-1111-4111-8111-111111111111.jpg')$q$)
+  and t_denied($q$insert into storage.objects (bucket_id, name) values ('carguy-feedback', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/22222222-2222-4222-8222-222222222222.jpg')$q$)
+  and t_denied($q$insert into storage.objects (bucket_id, name) values ('carguy-feedback', 'cualquier/cosa.jpg')$q$));
+select t_ok('14h. attach sets the server-built path once; after it, no more uploads for that row',
+  carguy.attach_feedback_screenshot('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+  and not carguy.attach_feedback_screenshot('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+  and not carguy.attach_feedback_screenshot('11111111-1111-4111-8111-111111111111', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+  and t_denied($q$insert into storage.objects (bucket_id, name) values ('carguy-feedback', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/11111111-1111-4111-8111-111111111111.jpg')$q$));
+select t_ok('14i. anon cannot list the feedback bucket', (select count(*) from storage.objects where bucket_id = 'carguy-feedback') = 0);
+reset role;
+select t_as('a');
+select carguy.submit_feedback('{"kind":"idea","message":"Modo oscuro más oscuro","device_id":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","email":"a@example.com"}'::jsonb);
+select t_ok('14j. A (signed in) submits: the row carries A, A reads only its own',
+  (select count(*) from carguy.feedback) = 1
+  and (select user_id from carguy.feedback) = '00000000-0000-0000-0000-00000000000a');
+select t_ok('14k. A cannot change the status of its own row, nor read the bucket',
+  (select count(*) from carguy.feedback where status = 'new') = 1
+  and t_rows($q$update carguy.feedback set status = 'done'$q$) = 0
+  and (select count(*) from storage.objects where bucket_id = 'carguy-feedback') = 0);
+reset role;
+select t_as('b');
+select t_ok('14l. B sees no feedback', (select count(*) from carguy.feedback) = 0);
+reset role;
+select t_as('d');
+select t_ok('14m. other-app account sees no feedback', (select count(*) from carguy.feedback) = 0);
+reset role;
+select t_admin();
+select t_ok('14n. admin (email claim in any case) reads every row and the screenshot object',
+  (select count(*) from carguy.feedback) = 6
+  and (select count(*) from storage.objects where bucket_id = 'carguy-feedback') = 1);
+select t_ok('14o. admin marks seen/done and writes a note',
+  t_rows($q$update carguy.feedback set status = 'done', admin_note = 'Arreglado en 2.2' where id = '11111111-1111-4111-8111-111111111111'$q$) = 1);
+select t_ok('14p. admin cannot rewrite the message or delete rows',
+  t_denied($q$update carguy.feedback set message = 'reescrito' where id = '11111111-1111-4111-8111-111111111111'$q$)
+  and t_denied($q$delete from carguy.feedback$q$));
+reset role;
+select t_as('b');
+select t_ok('14q. a non-admin email claim is not the admin',
+  (select count(*) from carguy.feedback) = 0);
+reset role;

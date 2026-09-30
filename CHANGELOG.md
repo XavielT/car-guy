@@ -16,6 +16,21 @@
   estimado y con su rango; al llegar el próximo tanque lleno se ajusta a lo medido.
 - **Promedio de consumo más justo**: ahora es kilómetros totales entre combustible total, así un tanque
   corto no pesa lo mismo que uno largo. Tu promedio puede moverse un poco respecto a la 2.1.
+- **Viajes**: grábalos con "Iniciar viaje" y mira la velocidad en vivo en el tablero de Inicio
+  (distancia, tiempo, media y máxima). Cada viaje guarda su ruta, sus números y sus notas, y
+  ajusta el odómetro estimado.
+- **Viajes automáticos**: en Android, con el permiso de ubicación "todo el tiempo", la app detecta
+  cuando empiezas a manejar y graba el viaje sola. Tiene una guía para los teléfonos Xiaomi.
+- **Garaje con fotos**: portadas, cuadrícula o lista, con la foto de cada carro; ordénalos a tu
+  gusto y fija uno arriba. El orden se guarda también en la nube.
+- **Arranque animado**: la aguja del ícono sube a 100 al abrir la app.
+- **Novedades y versiones**: en *Más* ves la versión que tienes, buscas la última y lees lo nuevo
+  de cada una. Al actualizar, la app te enseña lo nuevo una sola vez.
+- **Enviar comentario**: reporta un problema o manda una idea desde *Más*, con captura si quieres.
+  Funciona sin cuenta y sin conexión (se envía cuando vuelva).
+- **Lo que me ha costado**: en Cifras, cuánto te ha costado cada carro desde que lo tienes (compra,
+  mods, mantenimiento, combustible, pista y lo demás) y por kilómetro; también en el reporte PDF y
+  el CSV.
 
 ## 2.1.3 (2026-09-29)
 

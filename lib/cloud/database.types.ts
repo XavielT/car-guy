@@ -278,6 +278,66 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          admin_note: string | null
+          app_version: string | null
+          build: string | null
+          created_at: string
+          device: string | null
+          device_id: string
+          diagnostics: Json | null
+          email: string | null
+          id: string
+          kind: string
+          message: string
+          os_version: string | null
+          platform: string | null
+          screen: string | null
+          screenshot_path: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          app_version?: string | null
+          build?: string | null
+          created_at?: string
+          device?: string | null
+          device_id: string
+          diagnostics?: Json | null
+          email?: string | null
+          id?: string
+          kind: string
+          message: string
+          os_version?: string | null
+          platform?: string | null
+          screen?: string | null
+          screenshot_path?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          app_version?: string | null
+          build?: string | null
+          created_at?: string
+          device?: string | null
+          device_id?: string
+          diagnostics?: Json | null
+          email?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          os_version?: string | null
+          platform?: string | null
+          screen?: string | null
+          screenshot_path?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       fluid_guide_item: {
         Row: {
           created_at: string
@@ -2938,6 +2998,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      attach_feedback_screenshot: {
+        Args: { p_device_id: string; p_id: string }
+        Returns: boolean
+      }
       can_edit: { Args: { row_user: string; v: string }; Returns: boolean }
       can_own: { Args: { row_user: string; v: string }; Returns: boolean }
       can_read_media_object: { Args: { object_name: string }; Returns: boolean }
@@ -2946,6 +3010,7 @@ export type Database = {
         Args: { p_email?: string; p_role?: string; p_vehicle: string }
         Returns: string
       }
+      feedback_upload_allowed: { Args: { object_name: string }; Returns: boolean }
       is_app_user: { Args: never; Returns: boolean }
       is_member: { Args: { min_role?: string; v: string }; Returns: boolean }
       public_dossier: { Args: { p_slug: string }; Returns: Json }
@@ -2959,6 +3024,7 @@ export type Database = {
         Returns: boolean
       }
       storage_usage_bytes: { Args: never; Returns: number }
+      submit_feedback: { Args: { p: Json }; Returns: string }
       vehicle_of: { Args: { row_id: string; tbl: string }; Returns: string }
       vehicle_role: { Args: { v: string }; Returns: string }
     }

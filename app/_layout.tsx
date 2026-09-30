@@ -13,21 +13,26 @@ import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { Suspense, useEffect, useSyncExternalStore } from 'react';
+import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, AppState, Platform, useWindowDimensions, View } from 'react-native';
 
 import { AlertHost } from '@/components/AlertHost';
 import { clearBootAttempts, DatabaseBoundary } from '@/components/BootError';
+import { NovedadesSheet } from '@/components/changelog/NovedadesSheet';
 import { FirstSyncBanner } from '@/components/FirstSyncBanner';
+import { LaunchOverlay, markLaunchAppReady } from '@/components/LaunchOverlay';
 import { T } from '@/components/T';
 import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
+import { FEATURE_LAUNCH_ANIM } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
+import { markGaugeSweptThisSession } from '@/lib/motion/gaugeSweep';
 import { configure as configureNotifications, requestResync, routeOf } from '@/lib/notifications';
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
 import { useTripService } from '@/lib/trips/useTripService';
+import { useFeedbackBoot } from '@/lib/feedback/useFeedbackBoot';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -37,6 +42,15 @@ import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 export { BootError as ErrorBoundary } from '@/components/BootError';
 
 SplashScreen.preventAutoHideAsync();
+
+// The animated launch (ADR-36) takes over from the native splash with an
+// identical frame, so the native one must go at once — a cross-fade would show
+// its needle at rest over the overlay's moving one. It is also this session's
+// gauge sweep: the cluster must not sweep again (one sweep per launch).
+if (FEATURE_LAUNCH_ANIM) {
+  SplashScreen.setOptions({ duration: 0, fade: false });
+  markGaugeSweptThisSession();
+}
 
 /** False while server-rendering, true once the client owns the tree. */
 function useIsClient(): boolean {
@@ -82,11 +96,27 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
+  // With the launch animation the overlay hides the native splash itself, on
+  // its first layout (components/LaunchOverlay.tsx).
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
+    if (loaded && !FEATURE_LAUNCH_ANIM) SplashScreen.hideAsync();
   }, [loaded]);
 
+  const [launching, setLaunching] = useState(FEATURE_LAUNCH_ANIM);
+  const endLaunch = useCallback(() => setLaunching(false), []);
+  // Always the second child of the same fragment, so it keeps its state while
+  // the first child goes from nothing to the boot screen to the app.
+  const overlay = launching ? <LaunchOverlay key="launch" ready={loaded} onDone={endLaunch} /> : null;
 
+  return (
+    <>
+      <RootContent loaded={loaded} mounted={mounted} />
+      {overlay}
+    </>
+  );
+}
+
+function RootContent({ loaded, mounted }: { loaded: boolean; mounted: boolean }) {
   if (!loaded) return null;
 
   // Car Guy's content comes from a local database, which exists only in the
@@ -186,12 +216,14 @@ function Shell() {
   useNotifications();
   useSyncTriggers();
   useTripService();
+  useFeedbackBoot();
 
   // The shell only renders once the database opened, so reaching here is the
   // proof that the boot succeeded — and the only place that can honestly give
   // this tab its reload budget back.
   useEffect(() => {
     clearBootAttempts();
+    markLaunchAppReady();
   }, []);
 
   // On a desktop browser the app is a 560 px column in the middle of the page
@@ -308,7 +340,9 @@ function Shell() {
         <Stack.Screen name="exportar" options={{ headerShown: true, title: es.routes.export }} />
         <Stack.Screen name="cuenta" options={{ headerShown: true, title: es.routes.account }} />
         <Stack.Screen name="nueva-contrasena" options={{ headerShown: true, title: es.routes.newPassword }} />
+        <Stack.Screen name="versiones" options={{ headerShown: true, title: es.versions.title }} />
       </Stack>
+      <NovedadesSheet />
       <FirstSyncBanner />
       {/* Last child, so the dialog sits over every screen the Stack renders. */}
       <AlertHost />

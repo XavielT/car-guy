@@ -14,7 +14,6 @@ import {
   monthlySpendByCategory,
   periodRanges,
   spendByCategory,
-  totalCostOfOwnership,
   totalSpend,
   upcomingCosts,
   type Period,
@@ -23,6 +22,7 @@ import {
   type SpendRow,
   type StatCategory,
 } from '../domain/stats';
+import { garageCost, inventoryCounts, isEmptyCost, ownershipCost, type DatedAmount, type GarageCost, type OwnershipCost } from '../domain/costs';
 
 /**
  * The database half of the statistics: one pass over the tables that cost
@@ -87,6 +87,33 @@ export async function spendRows(vehicleId: string): Promise<SpendRow[]> {
   }));
 }
 
+/**
+ * What `spendRows` does not carry but "lo que me ha costado" needs
+ * (lib/domain/costs.ts): what sold mods brought back, and inventory bought for
+ * this car that was not later turned into a mod (that cost is the mod's now).
+ */
+async function costExtras(vehicleId: string): Promise<{ modSales: DatedAmount[]; inventory: DatedAmount[] }> {
+  const db = await getDb();
+  const [sales, items] = await Promise.all([
+    db.getAllAsync<{ occurred_at: string | null; amount_dop: number | null }>(
+      `SELECT COALESCE(removed_at, updated_at) AS occurred_at, sold_price_dop AS amount_dop
+         FROM mod WHERE vehicle_id = ? AND deleted_at IS NULL AND status = 'vendido' AND sold_price_dop > 0`,
+      [vehicleId],
+    ),
+    db.getAllAsync<{ occurred_at: string | null; cost_dop: number | null; notes: string | null }>(
+      `SELECT COALESCE(acquired_at, created_at) AS occurred_at, cost_dop, notes
+         FROM inventory_item WHERE owner_vehicle_id = ? AND deleted_at IS NULL`,
+      [vehicleId],
+    ),
+  ]);
+  return {
+    modSales: sales.map((r) => ({ occurredAt: r.occurred_at, amountDop: r.amount_dop ?? 0 })),
+    inventory: items
+      .filter((r) => inventoryCounts({ costDop: r.cost_dop, notes: r.notes }))
+      .map((r) => ({ occurredAt: r.occurred_at, amountDop: r.cost_dop ?? 0 })),
+  };
+}
+
 async function readings(vehicleId: string): Promise<Reading[]> {
   const rows = await odometerRepo.list(vehicleId);
   return rows.map((row) => ({ occurredAt: row.occurredAt, valueKm: row.valueKm }));
@@ -125,7 +152,8 @@ export type VehicleStats = {
   byCategory: ReturnType<typeof spendByCategory>;
   monthly: ReturnType<typeof monthlySpendByCategory>;
   monthlyDistance: ReturnType<typeof distancePerMonth>;
-  ownership: ReturnType<typeof totalCostOfOwnership>;
+  /** "Lo que me ha costado" (lib/domain/costs.ts); null when nothing at all is recorded. */
+  ownership: OwnershipCost | null;
   upcoming: ReturnType<typeof upcomingCosts>;
   /** Rows inside the window, for the report and the CSV. */
   rowsInPeriod: SpendRow[];
@@ -153,13 +181,14 @@ export async function vehicleStats(
   const vehicle = await vehicles.getById(vehicleId);
   if (!vehicle) return null;
 
-  const [spend, odoReadings, taskRows, reminderRows, costs, modRows] = await Promise.all([
+  const [spend, odoReadings, taskRows, reminderRows, costs, modRows, extras] = await Promise.all([
     spendRows(vehicleId),
     readings(vehicleId),
     taskRepo.listWhere({ vehicleId }),
     reminderRepo.listWhere({ vehicleId }),
     lastCosts(vehicleId),
     modRepo.listWhere({ vehicleId }),
+    costExtras(vehicleId),
   ]);
   const trackRows = await (await getDb()).getAllAsync<{ occurred_at: string }>(
     'SELECT occurred_at FROM track_event WHERE vehicle_id = ? AND deleted_at IS NULL',
@@ -200,6 +229,8 @@ export async function vehicleStats(
     });
 
   const months = MONTHS[periodKey];
+  // Ownership is a lifetime figure, so it uses every row rather than the window.
+  const ownership = ownershipCost({ vehicle, spend, readings: odoReadings, ...extras }, today);
 
   return {
     vehicle,
@@ -214,11 +245,32 @@ export async function vehicleStats(
     byCategory: spendByCategory(current),
     monthly: monthlySpendByCategory(spend, months, today),
     monthlyDistance: distancePerMonth(odoReadings, months, today),
-    // Ownership is a lifetime figure, so it uses every row rather than the window.
-    ownership: totalCostOfOwnership(vehicle, totalSpend(spend), today),
+    ownership: isEmptyCost(ownership) ? null : ownership,
     upcoming: upcomingCosts(taskRows, dueReminders),
     rowsInPeriod: current,
     modsInvested: investedTotal(modRows),
     trackDays: trackRows.filter((r) => (period.from == null || r.occurred_at >= period.from) && r.occurred_at <= period.to).length,
   };
+}
+
+/** "Lo que me ha costado" for one vehicle — the same figure `vehicleStats` carries. */
+export async function vehicleOwnershipCost(vehicleId: string, today: string = todayIso()): Promise<OwnershipCost | null> {
+  const vehicle = await vehicles.getById(vehicleId);
+  if (!vehicle || vehicle.deletedAt) return null;
+  const [spend, odoReadings, extras] = await Promise.all([spendRows(vehicleId), readings(vehicleId), costExtras(vehicleId)]);
+  return ownershipCost({ vehicle, spend, readings: odoReadings, ...extras }, today);
+}
+
+/**
+ * The garage total: every vehicle's figure (sold and archived ones included —
+ * they cost money too), summed by `garageCost`, never recomputed.
+ */
+export async function garageOwnershipCost(today: string = todayIso()): Promise<GarageCost> {
+  const list = (await vehicles.list(undefined, { orderBy: 'sort_order', direction: 'ASC' })).filter((v) => !v.deletedAt);
+  const entries = await Promise.all(
+    list.map(async (v) => ({ vehicleId: v.id, name: v.name, cost: await vehicleOwnershipCost(v.id, today) })),
+  );
+  return garageCost(
+    entries.filter((e): e is { vehicleId: string; name: string; cost: OwnershipCost } => e.cost != null),
+  );
 }

@@ -7,7 +7,7 @@ import { calibrationFactor, estimateOdometer } from '../trips/odometer';
 /**
  * Schema v6 data access that is not a plain synced table (01-data-model-v6.md):
  * trips and their local-only points, the vehicle gallery, the garage layout.
- * Nothing renders these yet — FEATURE_TRIPS and FEATURE_GARAGE_V2 are off.
+ * The garage layout is read by Garaje v2 (app/(tabs)/garaje.tsx).
  */
 
 export const trips = makeRepo<Trip>({ table: 'trip' });

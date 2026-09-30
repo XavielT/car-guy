@@ -2,6 +2,8 @@ import { getDb } from './client';
 import { vehicleShares, vehicles as vehicleRepo } from './repos';
 import type { VehicleShare } from './types';
 import type { RawDossier, ShareFlags } from '../share/dossier';
+import { isEmptyCost } from '../domain/costs';
+import { vehicleOwnershipCost } from './statsQueries';
 
 /**
  * The share's local reads (IMP 28092026 Phase 7). `localRawDossier` builds the
@@ -189,6 +191,22 @@ export async function localRawDossier(
         ORDER BY e.occurred_at DESC`,
       [vehicleId, ...period],
     );
+  }
+
+  // Note 8: "lo que me ha costado", the same ownershipCost figure as Cifras — only with "costos" on.
+  if (flags.costs) {
+    const cost = await vehicleOwnershipCost(vehicleId);
+    raw.costs =
+      cost && !isEmptyCost(cost)
+        ? {
+            purchase_dop: cost.purchasePrice,
+            sold_dop: cost.soldPrice,
+            by_category: cost.byCategory,
+            total_dop: cost.total,
+            per_km_dop: cost.perKm,
+            since: cost.since,
+          }
+        : null;
   }
 
   if (flags.story) {

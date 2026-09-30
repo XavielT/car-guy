@@ -50,7 +50,11 @@ export function kmPerUnit(n: number, type: FuelType, unit: VolumeUnit = 'gal'): 
 }
 
 export function dateLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-DO', {
+  // A date-only value ('2018-01-01') parses as UTC midnight — the evening before
+  // in Santo Domingo. Read it as a local calendar day instead.
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const date = day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : new Date(iso);
+  return date.toLocaleDateString('es-DO', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

@@ -46,12 +46,15 @@ const TEST_VARIANT = (Constants.expoConfig?.extra as { variant?: string | null }
 
 /** Viajes: manual and automatic trips — PROMPT-05. On in the test variant and in dev until Part A's verify passes. */
 export const FEATURE_TRIPS = TEST_VARIANT || __DEV__;
-/** Comentarios / reportar un problema — PROMPT-06. */
-export const FEATURE_FEEDBACK = false;
+/**
+ * Comentarios / reportar un problema — PROMPT-06. On: the form works signed out
+ * and offline (outbox); until sql/021 is applied a send is kept and retried.
+ */
+export const FEATURE_FEEDBACK = true;
 /** Garaje v2: grid / list / covers, user order, galleries — PROMPT-06. */
-export const FEATURE_GARAGE_V2 = false;
-/** Animated launch — PROMPT-06. */
-export const FEATURE_LAUNCH_ANIM = false;
+export const FEATURE_GARAGE_V2 = true;
+/** Animated launch (ADR-36): components/LaunchOverlay.tsx over the native splash — PROMPT-06. */
+export const FEATURE_LAUNCH_ANIM = true;
 
 /**
  * True when the app is running from a dev server. `__DEV__` is inlined by

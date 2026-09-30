@@ -297,6 +297,15 @@ export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint
     w.row(['Fecha', 'Trabajo', m.total ? 'Costo' : ''], [0.2, 0.6, 0.2], { header: true, rightLast: true });
     for (const r of m.recent) w.row([r.date, r.title, r.cost ?? ''], [0.2, 0.6, 0.2], { rightLast: true });
   }
+  if (d.costs) {
+    // Note 8, only with "costos" on.
+    const c = d.costs;
+    w.heading('Lo que ha costado');
+    for (const r of c.rows) w.row([r.label, r.value], [0.7, 0.3], { rightLast: true });
+    w.row(['Total', c.total], [0.7, 0.3], { bold: true, rightLast: true });
+    const foot = [c.perKm, c.since].filter(Boolean).join(' · ');
+    if (foot) w.para(foot, { size: 10, color: INK2 });
+  }
   if (input.documents?.length) {
     w.heading('Documentos');
     w.row(['Documento', 'Emitido', 'Vence'], [0.5, 0.25, 0.25], { header: true });
