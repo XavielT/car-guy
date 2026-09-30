@@ -2,12 +2,12 @@
 // outside every function — and so would freeze in the first launch's language (ADR-39).
 //   node tools/i18n-frozen.mjs [es|t]
 import ts from 'typescript';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const ident = process.argv[2] ?? 't';
-const files = execSync(`git ls-files 'app/**/*.ts' 'app/**/*.tsx' 'components/**/*.ts' 'components/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx' 'hooks/**/*.ts' 'hooks/**/*.tsx'`, { encoding: 'utf8' })
-  .split('\n').filter((f) => f && !f.startsWith('lib/i18n/'));
+const files = execSync(`git ls-files --cached --others --exclude-standard 'app/**/*.ts' 'app/**/*.tsx' 'components/**/*.ts' 'components/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx' 'hooks/**/*.ts' 'hooks/**/*.tsx'`, { encoding: 'utf8' })
+  .split('\n').filter((f, i, all) => f && existsSync(f) && all.indexOf(f) === i && !f.startsWith('lib/i18n/'));
 const hits = [];
 for (const file of files) {
   const src = readFileSync(file, 'utf8');

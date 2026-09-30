@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { forwardRef, useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Location from 'expo-location';
 import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
@@ -260,8 +260,10 @@ export function RouteSparkline({ polyline, width = 64, height = 40 }: { polyline
  * colour. Start dot green, end a checkered flag. Always dark, like a cluster.
  * With `map`, OpenStreetMap tiles lie under it (tinted dark) and the route is
  * drawn in their projection; the credit links to OSM's copyright page.
+ * `onReady` fires once every tile has loaded or failed (at once without
+ * tiles) — the trip detail captures the share image then (Phase 4).
  */
-export function RouteSvg({ trip, points, width, height, map = false }: { trip: Trip; points: Fix[] | null; width: number; height: number; map?: boolean }) {
+export function RouteSvg({ trip, points, width, height, map = false, onReady }: { trip: Trip; points: Fix[] | null; width: number; height: number; map?: boolean; onReady?: () => void }) {
   const { runs, single, ends, tiles } = useMemo(() => {
     const box = { width, height, pad: 16 };
     // Raw points cleaned like the stats (accuracy, jumps, excursions) and thinned; else the polyline.
@@ -278,6 +280,25 @@ export function RouteSvg({ trip, points, width, height, map = false }: { trip: T
       tiles: fit?.tiles ?? [],
     };
   }, [trip, points, width, height, map]);
+
+  const settled = useRef(0);
+  const readyFired = useRef(false);
+  const onReadyRef = useRef(onReady);
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+  const fireReady = () => {
+    if (readyFired.current) return;
+    readyFired.current = true;
+    onReadyRef.current?.();
+  };
+  const tileSettled = () => {
+    settled.current += 1;
+    if (settled.current >= tiles.length) fireReady();
+  };
+  useEffect(() => {
+    if (!tiles.length) fireReady();
+  }, [tiles.length]);
 
   const allPaths = runs.length ? runs.map((r) => r.d) : single ? [single] : [];
   const svg = (
@@ -307,6 +328,8 @@ export function RouteSvg({ trip, points, width, height, map = false }: { trip: T
           source={{ uri: t.url, headers: TILE_HEADERS }}
           cachePolicy="disk"
           recyclingKey={t.key}
+          onLoad={tileSettled}
+          onError={tileSettled}
           style={{ position: 'absolute', left: Math.floor(t.left), top: Math.floor(t.top), width: TILE_SIZE + 1, height: TILE_SIZE + 1 }}
           accessible={false}
         />
@@ -592,11 +615,13 @@ export function TripsCifrasBlock({ vehicleId }: { vehicleId: string }) {
 /**
  * The shareable card: route + headline numbers + wordmark, no plate. A
  * forwardRef so the share button captures exactly this view (TrackPieces).
+ * `renderRoute` replaces the static route (the trip detail puts the live
+ * MapLibre map there, Phase 4); `onRouteReady` is RouteSvg's onReady.
  */
-export const TripShareCard = forwardRef<View, { trip: Trip; points: Fix[] | null; width: number; vehicleName?: string; map?: boolean }>(function TripShareCard(
-  { trip, points, width, vehicleName, map },
-  ref,
-) {
+export const TripShareCard = forwardRef<
+  View,
+  { trip: Trip; points: Fix[] | null; width: number; vehicleName?: string; map?: boolean; renderRoute?: (width: number, height: number) => ReactNode; onRouteReady?: () => void }
+>(function TripShareCard({ trip, points, width, vehicleName, map, renderRoute, onRouteReady }, ref) {
   const h = Math.round(width * 0.62);
   const stats: [string, string][] = [
     [`${kmLabel(trip.distanceM)} km`, t.trips.tiles.distance],
@@ -616,7 +641,7 @@ export const TripShareCard = forwardRef<View, { trip: Trip; points: Fix[] | null
         </T>
       ) : null}
       <View style={{ marginVertical: space.sm }}>
-        <RouteSvg trip={trip} points={points} width={width - 2 * space.md} height={h} map={map} />
+        {renderRoute ? renderRoute(width - 2 * space.md, h) : <RouteSvg trip={trip} points={points} width={width - 2 * space.md} height={h} map={map} onReady={onRouteReady} />}
       </View>
       <View style={styles.tiles}>
         {stats.map(([v, l]) => (

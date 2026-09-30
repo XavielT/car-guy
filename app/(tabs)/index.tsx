@@ -523,6 +523,8 @@ export default function HomeScreen() {
             FEATURE_TRACK
               ? { label: t.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } }) }
               : { label: t.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
+            // Cifras left the tab bar (IMP 30092026 Phase 4, ADR-43): a tile here and Más's first row.
+            { label: t.tabs.cifras, icon: 'stats-chart-outline', onPress: () => router.push('/cifras') },
           ]}
         />
 

@@ -340,6 +340,11 @@ function Shell() {
         <Stack.Screen name="pista/evento/[id]" options={{ headerShown: true, title: t.routes.trackEvent }} />
         <Stack.Screen name="pista/sesion/nueva" options={{ headerShown: true, title: t.routes.newTrackSession }} />
         <Stack.Screen name="pista/sesion/[id]" options={{ headerShown: true, title: t.routes.trackSession }} />
+        <Stack.Screen name="cifras" options={{ headerShown: true, title: t.tabs.cifras }} />
+        <Stack.Screen
+          name="conducir"
+          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', headerShown: false, title: t.drive.eyebrow, contentStyle: { backgroundColor: '#0B0F14' } }}
+        />
         <Stack.Screen name="viajes/index" options={{ headerShown: true, title: t.routes.trips }} />
         <Stack.Screen name="viajes/ajustes" options={{ headerShown: true, title: t.routes.tripSettings }} />
         <Stack.Screen name="viajes/permisos" options={{ headerShown: true, title: t.routes.tripPermissions }} />

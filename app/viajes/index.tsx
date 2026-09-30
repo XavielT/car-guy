@@ -1,18 +1,23 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+
+import { HeatMap } from '@/components/map';
 
 import { TripsListSkeleton } from '@/components/skeletons/TripsListSkeleton';
 import { T } from '@/components/T';
 import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions } from '@/components/trips/TripPieces';
 import { Chip, EmptyState, GhostButton, Segmented } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { Trip } from '@/lib/db/types';
+import { FEATURE_MAP_V2 } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
+import { ATTRIBUTION_URL, mapAttribution } from '@/lib/map/config';
+import { sampleAlong } from '@/lib/trips/geojson';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
-import { filterTrips, monthSummary, type TripFilter } from '@/lib/trips/present';
+import { filterTrips, monthSummary, tripRoute, type TripFilter } from '@/lib/trips/present';
 import { tripsMap } from '@/lib/trips/settings';
 
 const FILTERS: TripFilter[] = ['todos', 'mes', 'largos', 'rapidos'];
@@ -21,6 +26,10 @@ const FILTERS: TripFilter[] = ['todos', 'mes', 'largos', 'rapidos'];
  * Viajes (03-screens.md "Phase 5"): the done trips of the active vehicle (or of
  * every vehicle), the month strip, filters. Tap opens the trip; long-press
  * offers conductor/pasajero and eliminar.
+ *
+ * "Por dónde manejas" (Phase 4, ADR-41): a MapLibre heatmap of the listed
+ * trips (the filter chips pick the period), their polylines sampled every
+ * 35 m; the OSM mosaic returns with "Sin mapa en línea" when the style fails.
  */
 export default function TripsScreen() {
   const { vehicleId } = useLocalSearchParams<{ vehicleId?: string }>();
@@ -38,6 +47,8 @@ export default function TripsScreen() {
   useEffect(() => {
     void tripsMap().then(setMap);
   }, []);
+  const [heatDown, setHeatDown] = useState(false);
+  const onHeatDown = useCallback(() => setHeatDown(true), []);
 
   // `data` changes after every write (the store's change listener), which also
   // covers coming back from a trip that was edited or deleted.
@@ -51,7 +62,8 @@ export default function TripsScreen() {
 
   const vehicles = data.vehicles.filter((v) => !v.isArchived);
   const nameOf = (id: string) => vehicles.find((v) => v.id === id)?.name ?? data.vehicles.find((v) => v.id === id)?.name;
-  const shown = list ? filterTrips(list, filter) : [];
+  const shown = useMemo(() => (list ? filterTrips(list, filter) : []), [list, filter]);
+  const heatPoints = useMemo(() => sampleAlong(shown.slice(0, 200).map(tripRoute), 35), [shown]);
   const reload = () => setVersion((v) => v + 1);
   // First load only: later reloads (a write, a scope change) keep the old list up.
   const showSkeleton = useDelayedLoading(list === null);
@@ -82,7 +94,30 @@ export default function TripsScreen() {
         <Segmented<TripFilter> options={FILTERS.map((key) => ({ key, label: t.trips.filters[key] }))} value={filter} onChange={setFilter} style={{ marginBottom: space.md }} />
       )}
 
-      {map && shown.length && !showSkeleton ? <TripsHeatMap trips={shown} width={width - 2 * space.gutter} height={Math.round((width - 2 * space.gutter) * 0.62)} /> : null}
+      {map && shown.length && !showSkeleton && FEATURE_MAP_V2 && !heatDown && heatPoints.length ? (
+        <View style={{ marginBottom: space.md }}>
+          <View style={{ borderRadius: radius.card, overflow: 'hidden' }}>
+            <HeatMap points={heatPoints} height={Math.round((width - 2 * space.gutter) * 0.62)} onUnavailable={onHeatDown} />
+          </View>
+          <Pressable onPress={() => void Linking.openURL(ATTRIBUTION_URL)} accessibilityRole="link" style={{ marginTop: space.xs }}>
+            <T face="body" style={{ color: theme.text.muted, fontSize: 11 }}>
+              {mapAttribution()}
+            </T>
+          </Pressable>
+          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
+            {t.trips.heatCaption}
+          </T>
+        </View>
+      ) : map && shown.length && !showSkeleton ? (
+        <>
+          {FEATURE_MAP_V2 && heatDown ? (
+            <T face="semibold" style={{ color: theme.statusText.proximo, fontSize: 12, marginBottom: space.xs }}>
+              {t.trips.mapOffline}
+            </T>
+          ) : null}
+          <TripsHeatMap trips={shown} width={width - 2 * space.gutter} height={Math.round((width - 2 * space.gutter) * 0.62)} />
+        </>
+      ) : null}
 
       {list && !list.length && !showSkeleton ? (
         <EmptyState icon="navigate-outline" message={t.trips.empty} actionLabel={t.trips.start} onAction={() => router.push('/(tabs)')} />

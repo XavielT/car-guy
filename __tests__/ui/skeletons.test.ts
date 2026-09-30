@@ -5,7 +5,7 @@
  * A new route fails here until it has one or says why it needs none.
  */
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 /** Store-backed (data is in memory before the screen mounts), static, auth-only, or a create form with no initial data. */
 const NO_SKELETON: Record<string, string> = {
@@ -45,9 +45,12 @@ const NO_SKELETON: Record<string, string> = {
   'app/dev/tokens.tsx': 'developer tool',
 };
 
-const routes = execSync("git ls-files 'app/**/*.tsx' 'app/*.tsx'", { encoding: 'utf8' })
+// Tracked and new (not yet committed) route files; a tracked file moved away in the
+// working tree (app/(tabs)/cifras.tsx → app/cifras.tsx) is no longer a route.
+const routes = execSync("git ls-files --cached --others --exclude-standard 'app/**/*.tsx' 'app/*.tsx'", { encoding: 'utf8' })
   .split('\n')
-  .filter((f) => f && !/_layout|\+html|\+not-found/.test(f));
+  .filter((f) => f && existsSync(f) && !/_layout|\+html|\+not-found/.test(f))
+  .filter((f, i, all) => all.indexOf(f) === i);
 
 it('found the routes', () => {
   expect(routes.length).toBeGreaterThan(70);

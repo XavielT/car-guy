@@ -29,5 +29,11 @@ export type LiveMapProps = {
   trail: RoutePoint[];
   /** Follows the car (course-up) until the person pans; a re-centre button brings it back. */
   follow?: boolean;
+  /**
+   * Screen space covered by overlays (drive mode: the speed cluster on top, the
+   * bottom sheet): the attribution, the re-centre button and the followed car
+   * move out from under them. Default 0.
+   */
+  insets?: { top?: number; bottom?: number };
   onUnavailable?: () => void;
 };

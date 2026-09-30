@@ -2,7 +2,7 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'tireStats' | 'events' | 'priceSources' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'tireStats' | 'events' | 'priceSources' | 'drive' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
 
@@ -130,6 +130,35 @@ export const enPart6: Pick<
   priceSources: {
     labels: { micm: 'MICM', estacion: 'Station', recibo: 'Receipt', app: 'App', otro: 'Other', manual: 'Manual' },
     months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  },
+
+  drive: {
+    eyebrow: 'Drive mode',
+    open: 'Open drive mode',
+    openRecording: 'Open drive mode · recording a trip',
+    close: 'Close drive mode',
+    closeHint: 'The trip keeps recording',
+    statsLine: (km: string, min: number, max: number) => `${km} km · ${min} min · max ${max}`,
+    km: 'km',
+    time: 'time',
+    avg: 'avg',
+    max: 'max',
+    start: 'START TRIP',
+    stop: 'END TRIP',
+    passenger: 'PASSENGER',
+    passengerA11y: (on: boolean) => (on ? 'Passenger: yes' : 'Passenger: no'),
+    keepAwake: 'SCREEN ON',
+    vehicleChip: (name: string) => `Vehicle: ${name}`,
+    modeChip: (mode: string) => `Mode: ${mode}`,
+    disclaimer: 'GPS · not a substitute for the speedometer · drive safely',
+    lastTrip: (km: string, max: number) => `Last: ${km} km · max ${max}`,
+    lastTripWhen: (date: string, min: number) => `${date} · ${min} min`,
+    noTrips: 'No trips yet. Start one and the route draws on the map.',
+    seeTrips: 'See trips',
+    webManual: 'On the web trips are manual: the browser asks for your location when you start.',
+    tripsOff: 'Trips are off. Change the mode to record.',
+    mapOff: 'No online map: the trip records anyway.',
+    cifrasCaption: 'What the car costs, how far it goes and how that is changing.',
   },
 
   language: {

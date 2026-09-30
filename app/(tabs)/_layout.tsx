@@ -1,25 +1,24 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabsInicioSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
-import { fonts } from '@/constants/theme';
+import { CarGuyTabBar } from '@/components/tabbar';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
- * Car Guy's five tabs (IMP 28092026, 03-screens.md): Inicio · Garaje ·
- * Historial · Cifras · Más. Chequeo left the bar for the Garaje; it lives at
+ * Car Guy's tabs (IMP 30092026 Phase 4, ADR-43): Inicio · Garaje · [CONDUCIR] ·
+ * Historial · Más. Cifras left the bar for a stack screen (`app/cifras.tsx`),
+ * reached from Más (first row) and Inicio's quick actions. Chequeo left the bar for the Garaje; it lives at
  * `chequeo/index` and is reached from Inicio's QuickActions and telltale, from
  * Más and from its notification. Fuel is `carga/nueva`, from QuickActions.
  */
 export default function TabLayout() {
   const { ready, data } = useStore();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   // While the store opens: Inicio's outline (ADR-40), after 150 ms so a fast
   // open paints straight to the tabs; before that, the bare background.
   const showSkeleton = useDelayedLoading(!ready);
@@ -33,21 +32,10 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.accent,
-        tabBarInactiveTintColor: theme.text.muted,
-        tabBarStyle: {
-          backgroundColor: theme.bg.surface,
-          borderTopColor: theme.lineStrong,
-          height: 68 + insets.bottom,
-          paddingBottom: 10 + insets.bottom,
-          paddingTop: 8,
-        },
-        tabBarHideOnKeyboard: true,
-        // Saira's tall caps clip at the default line height on web; give them room.
-        tabBarLabelStyle: { fontFamily: fonts.title, fontSize: 11, lineHeight: 15, letterSpacing: 0.9, textTransform: 'uppercase' },
-      }}>
+      // The custom bar with the CONDUCIR disc in the middle (ADR-43); it draws the
+      // icons and titles below and handles the safe area and the keyboard itself.
+      tabBar={(props) => <CarGuyTabBar {...props} />}
+      screenOptions={{ headerShown: false }}>
       <Tabs.Screen
         name="index"
         options={{
@@ -69,15 +57,6 @@ export default function TabLayout() {
         options={{
           title: t.tabs.historial,
           tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="cifras"
-        options={{
-          title: t.tabs.cifras,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart-outline" size={size} color={color} />
-          ),
         }}
       />
       <Tabs.Screen

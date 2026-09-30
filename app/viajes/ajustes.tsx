@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
@@ -8,7 +8,9 @@ import { MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/compon
 import { GhostButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
+import { FEATURE_MAP_V2 } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
+import { ATTRIBUTION_URL } from '@/lib/map/config';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { armAuto } from '@/lib/trips/auto';
@@ -147,6 +149,41 @@ export default function TripSettingsScreen() {
       </Surface>
 
       {eyebrow(t.trips.mapSetting)}
+      {FEATURE_MAP_V2 ? (
+        // Phase 4: the same trips_map switch, now "en línea / apagado"; the style is fixed (no picker).
+        <Surface padded style={{ gap: space.sm }}>
+          <Segmented<'on' | 'off'>
+            options={[
+              { key: 'on', label: t.trips.mapOnline },
+              { key: 'off', label: t.trips.mapOff },
+            ]}
+            value={map ? 'on' : 'off'}
+            onChange={(k) => {
+              setMap(k === 'on');
+              void setTripsMap(k === 'on');
+            }}
+          />
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
+            {t.trips.mapSettingHint}
+          </T>
+          <View style={styles.rowBetween}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }}>
+              {t.trips.mapStyle}
+            </T>
+            <T face="mono" style={{ color: theme.text.secondary, fontSize: 13 }}>
+              {t.trips.mapStyleDark}
+            </T>
+          </View>
+          <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
+            {t.trips.mapStyleHint}
+          </T>
+          <Pressable onPress={() => void Linking.openURL(ATTRIBUTION_URL)} accessibilityRole="link">
+            <T face="semibold" style={{ color: theme.accent, fontSize: 13 }}>
+              {t.trips.mapCreditsLink}
+            </T>
+          </Pressable>
+        </Surface>
+      ) : (
       <Surface padded>
         <View style={styles.rowBetween}>
           <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
@@ -163,6 +200,7 @@ export default function TripSettingsScreen() {
           />
         </View>
       </Surface>
+      )}
 
       {vehicles.length ? (
         <>
