@@ -638,7 +638,9 @@ Built by five parallel helper agents in one checkout, integrated and re-verified
   limited with the RPC mocked); Cifras costs; launch mid/end frames; fresh-profile boot with the seed, 0
   console errors (screenshots `docs/qa/imp-29092026-phase-6-*.png`).
 - [x] sql/021_feedback.sql + 021_feedback_storage.shared.sql applied to x-core 2026-09-30 (Xaviel's OK; both HTTP 201).
-  Non-writing probes: invalid device_id → 22023, anon select → 42501. verify-x-core 24–28 not run (writes test rows; needs its own OK).
+  Non-writing probes: invalid device_id → 22023, anon select → 42501. Live send from the Redmi test build
+  (kind Otro, no screenshot, message "Prueba de Claude Code desde el Redmi…") → "Gracias, lo leo yo mismo"
+  (`docs/qa/imp-29092026-phase-6-redmi-comentario*.png`) — one row in the inbox to mark done. verify-x-core 24–28 not run (writes test rows; needs its own OK).
 - [ ] Xaviel signs in → Comentarios recibidos.
 - [ ] Redmi: cold start (no flash, one sweep), 20 cards scroll, garage order synced phone ↔ web.
 
