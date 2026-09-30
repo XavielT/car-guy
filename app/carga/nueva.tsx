@@ -68,6 +68,7 @@ export default function CargarScreen() {
         review={result?.review ?? null}
         fuelType={result?.fuelType ?? activeVehicle.defaultFuelType}
         volumeUnit={activeVehicle.detail?.volumeUnit}
+        economyUnit={activeVehicle.detail?.economyUnit}
         missedPrevious={result?.missedPrevious ?? false}
         estimate={result?.estimate ?? null}
         onClose={() => setResult(null)}

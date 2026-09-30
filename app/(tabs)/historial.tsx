@@ -1,4 +1,4 @@
-import type { VolumeUnit } from '@/lib/domain/units';
+import type { EconomyUnit, VolumeUnit } from '@/lib/domain/units';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -170,7 +170,7 @@ export default function HistorialScreen() {
                   title={historyTitle(entry)}
                   meta={metaFor(entry, oilLines.get(entry.id))}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
-                  tag={tagFor(entry, economy, fillUpsById, activeVehicle.detail?.volumeUnit ?? 'gal')}
+                  tag={tagFor(entry, economy, fillUpsById, activeVehicle.detail?.volumeUnit ?? 'gal', activeVehicle.detail?.economyUnit)}
                   onPress={() => openDetail(entry, router)}
                 />
               ))}
@@ -262,12 +262,13 @@ function tagFor(
   economy: ReturnType<typeof economyById>,
   fillUps: Map<string, FillUp>,
   volumeUnit: VolumeUnit,
+  economyUnit?: EconomyUnit,
 ): string | null {
   if (entry.kind !== 'combustible') return null;
   const fill = fillUps.get(entry.id);
   if (fill && !fill.isFullTank) return es.history.partialTag;
   const point = economy.get(entry.id);
-  return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType, volumeUnit) : null;
+  return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType, volumeUnit, economyUnit) : null;
 }
 
 function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {

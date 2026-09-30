@@ -1,10 +1,10 @@
-import type { VolumeUnit } from '@/lib/domain/units';
+import type { EconomyUnit, VolumeUnit } from '@/lib/domain/units';
 import { StyleSheet, View } from 'react-native';
 
 import { space } from '@/constants/theme';
 import type { FillUpReview } from '@/lib/domain/economy';
 import type { SeriesPoint } from '@/lib/domain/partialEconomy';
-import { economyNumber, km, kmPerUnit, money } from '@/lib/format';
+import { economyNumber, economyValue, km, kmPerUnit, money } from '@/lib/format';
 import { economyLabel, unitLabelFor } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -35,6 +35,7 @@ export function FillUpReviewSheet({
   review,
   fuelType,
   volumeUnit = 'gal',
+  economyUnit,
   missedPrevious,
   estimate,
   visible,
@@ -45,6 +46,8 @@ export function FillUpReviewSheet({
   fuelType: FuelType;
   /** The vehicle's unit (v6); the review's numbers are already in it. */
   volumeUnit?: VolumeUnit;
+  /** L/100 km shows the inverse figures (lib/format.ts economyValue). */
+  economyUnit?: EconomyUnit | null;
   missedPrevious: boolean;
   /** Note 4: this fill-up's gauge segment, when there is one. Only a partial uses it. */
   estimate?: SeriesPoint | null;
@@ -56,20 +59,28 @@ export function FillUpReviewSheet({
   if (!review) return null;
 
   const unitLabel = unitLabelFor(fuelType, volumeUnit);
-  const average = review.baseline != null ? kmPerUnit(review.baseline, fuelType, volumeUnit) : null;
+  const economy = fuelType === 'gnv' ? null : economyUnit;
+  const average = review.baseline != null ? kmPerUnit(review.baseline, fuelType, volumeUnit, economy) : null;
 
   // A partial with gauge readings has an estimate (hollow dot on Cifras), or a
   // plain-Spanish reason it has none. A full tank keeps the measured review.
-  const economyLabelText = economyLabel(fuelType, volumeUnit);
+  const economyLabelText = economyLabel(fuelType, volumeUnit, economy);
   const estimated = review.status === 'partial' && estimate?.status === 'estimated' ? estimate : null;
   const unknownReason =
     review.status === 'partial' && estimate?.status === 'unknown' && estimate.reason && estimate.reason !== 'missing_gauge'
       ? es.estimate.reasons[estimate.reason]
       : null;
-  const fmt = (n: number | null) => (n == null ? '—' : economyNumber(n));
+  const fmt = (n: number | null | undefined) => (n == null ? '—' : economyNumber(economyValue(n, volumeUnit, economy)));
+  // L/100 km inverts the scale: the estimate's worst case is its high end.
+  const inverted = economy === 'l_100km';
   const estimateBody = estimated
     ? [
-        es.estimate.approx(fmt(estimated.kmPerUnit), fmt(estimated.kmPerUnitLow), fmt(estimated.kmPerUnitHigh), economyLabelText),
+        es.estimate.approx(
+          fmt(estimated.kmPerUnit),
+          fmt(inverted ? estimated.kmPerUnitHigh : estimated.kmPerUnitLow),
+          fmt(inverted ? estimated.kmPerUnitLow : estimated.kmPerUnitHigh),
+          economyLabelText,
+        ),
         estimated.warnings?.includes('gauge_pump_mismatch') ? es.estimate.mismatch : null,
       ]
         .filter(Boolean)
@@ -112,7 +123,7 @@ export function FillUpReviewSheet({
           label={es.fuelReview.economy}
           value={
             review.kmPerUnit != null
-              ? kmPerUnit(review.kmPerUnit, fuelType, volumeUnit)
+              ? kmPerUnit(review.kmPerUnit, fuelType, volumeUnit, economy)
               : estimated
                 ? es.estimate.short(fmt(estimated.kmPerUnit), economyLabelText)
                 : es.fuelReview.pending

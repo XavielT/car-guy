@@ -60,6 +60,7 @@ export default function EditarVehiculoScreen() {
         interiorColorId: v.interiorColorId,
         interiorMaterial: v.interiorMaterial,
         volumeUnit: v.volumeUnit,
+        economyUnit: v.economyUnit,
         statusNote: v.statusNote,
         statusSince: v.statusSince ? dateInputFromIso(v.statusSince) : null,
         galleryIds: gallery.map((item) => item.mediaId),

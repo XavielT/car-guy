@@ -14,7 +14,7 @@ import { PhotosSection } from '@/components/vehicle/PhotosSection';
 import { parseDecimal } from '@/lib/domain/economy';
 import { normalizeGallery, type Gallery } from '@/lib/domain/gallery';
 import { bodyTypeFromLegacy, bodyTypes, colors, legacyTypeFor } from '@/lib/domain/refdata';
-import type { VolumeUnit } from '@/lib/domain/units';
+import type { EconomyUnit, VolumeUnit } from '@/lib/domain/units';
 import { convertTankText, tankCaption, yearError } from '@/lib/domain/vehicleForm';
 import { statusLabel } from '@/lib/domain/vehicleStatus';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -63,6 +63,8 @@ export type VehicleDraft = {
   interiorColorId?: string | null;
   interiorMaterial?: string | null;
   volumeUnit?: VolumeUnit;
+  /** 'l_100km' when chosen; otherwise the economy follows the volume unit (km/gal, km/L). */
+  economyUnit?: EconomyUnit;
   statusNote?: string;
   statusSince?: string | null;
   /** The gallery in order (album items with role 'vehicle'). */
@@ -112,6 +114,7 @@ export function VehicleForm({
   const [vin, setVin] = useState(initial?.vin ?? '');
   const [fuel, setFuel] = useState<FuelType>(initial?.defaultFuelType ?? 'regular');
   const [unit, setUnit] = useState<VolumeUnit>(initial?.volumeUnit ?? 'gal');
+  const [perHundred, setPerHundred] = useState(initial?.economyUnit === 'l_100km');
   const [tank, setTank] = useState(initial?.tankVolume ? String(initial.tankVolume) : '');
   const [odometer, setOdometer] = useState(initial?.odometerKm ? String(initial.odometerKm) : '');
   const [synthetic, setSynthetic] = useState(initial?.synthetic ?? false);
@@ -203,6 +206,7 @@ export function VehicleForm({
       vin: vin.trim().toUpperCase() || null,
       defaultFuelType: fuel,
       volumeUnit: unit,
+      economyUnit: perHundred ? 'l_100km' : unit === 'l' ? 'km_l' : 'km_gal',
       tankVolume: tankValue,
       odometerKm: parsedOdometer,
       synthetic,
@@ -312,6 +316,19 @@ export function VehicleForm({
           />
         </View>
       </View>
+
+      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
+        {es.vehicleForm.economyUnit}
+      </T>
+      <Segmented<'volume' | 'l_100km'>
+        options={[
+          { key: 'volume', label: unit === 'l' ? 'km/L' : 'km/gal' },
+          { key: 'l_100km', label: 'L/100 km' },
+        ]}
+        value={perHundred ? 'l_100km' : 'volume'}
+        onChange={(k) => setPerHundred(k === 'l_100km')}
+        style={{ marginBottom: space.md }}
+      />
 
       <Pressable
         onPress={() => setSynthetic((v) => !v)}

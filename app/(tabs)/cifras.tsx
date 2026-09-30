@@ -20,8 +20,7 @@ import { capacityHint, fuelCfgFor, partialEconomy } from '@/lib/domain/partialEc
 import { fromLiters } from '@/lib/domain/units';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
-import { economyNumber, km, money } from '@/lib/format';
-import { economyLabel } from '@/lib/fuel';
+import { economyNumber, km, kmPerUnit, money } from '@/lib/format';
 import { FEATURE_BUILD, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
@@ -120,7 +119,6 @@ export default function CifrasScreen() {
   if (!activeVehicle) return null;
 
   const empty = stats != null && stats.kpis.spend === 0 && points.length === 0;
-  const unit = economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -169,7 +167,7 @@ export default function CifrasScreen() {
               />
               <Kpi
                 label={es.stats.economy}
-                value={partial.average != null ? `${economyNumber(partial.average)} ${unit}` : '—'}
+                value={partial.average != null ? kmPerUnit(partial.average, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit) : '—'}
                 onPress={() => scrollTo('economy')}
               />
               {FEATURE_BUILD && stats.modsInvested > 0 ? (
@@ -204,6 +202,7 @@ export default function CifrasScreen() {
                 average={partial.average}
                 fuelType={activeVehicle.defaultFuelType}
                 volumeUnit={activeVehicle.detail?.volumeUnit}
+                economyUnit={activeVehicle.detail?.economyUnit}
               />
               {hasEstimates ? (
                 <>
@@ -274,7 +273,7 @@ export default function CifrasScreen() {
                   {es.stats.lastTankValues[insight.status]}
                 </T>
                 <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
-                  {es.stats.lastTankHint(`${economyNumber(insight.baseline)} ${unit}`)}
+                  {es.stats.lastTankHint(kmPerUnit(insight.baseline, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit))}
                 </T>
               </Surface>
             ) : null}

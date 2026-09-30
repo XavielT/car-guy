@@ -80,7 +80,8 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         // v6 (IMP 29092026 Phase 3). `undefined` leaves a column alone (upsertRaw skips it),
         // so a caller that does not know these fields changes none of them.
         volumeUnit,
-        economyUnit: volumeUnit === 'l' ? 'km_l' : 'km_gal',
+        // L/100 km is a choice; otherwise the figure follows the volume unit.
+        economyUnit: (draft.economyUnit ?? existing?.economyUnit) === 'l_100km' ? 'l_100km' : volumeUnit === 'l' ? 'km_l' : 'km_gal',
         makeId: draft.makeId,
         modelId: draft.modelId,
         bodyType: draft.bodyType,

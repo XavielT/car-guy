@@ -1,4 +1,4 @@
-import type { VolumeUnit } from '@/lib/domain/units';
+import type { EconomyUnit, VolumeUnit } from '@/lib/domain/units';
 import { LineChart } from 'react-native-gifted-charts';
 import { StyleSheet, View } from 'react-native';
 
@@ -7,7 +7,7 @@ import type { EconomyStatus } from '@/lib/domain/partialEconomy';
 import type { EconomyPoint, FuelType } from '@/lib/types';
 import { economyLabel } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
-import { economyNumber } from '@/lib/format';
+import { economyNumber, economyValue } from '@/lib/format';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 import { ChartFrame } from './ChartFrame';
@@ -27,21 +27,35 @@ const PLOT_H = 150;
  * (all measured) still draws as before.
  */
 export function EconomyLine({
-  points,
+  points: pointsIn,
   fuelType,
   volumeUnit = 'gal',
+  economyUnit,
   average: averageIn,
 }: {
   points: Point[];
   fuelType: FuelType;
   volumeUnit?: VolumeUnit;
+  /** L/100 km draws the inverse figures (a lower dot is then the better tank). */
+  economyUnit?: EconomyUnit | null;
   /** The headline average (distance-weighted); defaults to the mean of the drawn points. */
   average?: number | null;
 }) {
+  // Into the vehicle's economy unit. L/100 km inverts, so an estimate's low and high swap.
+  const economy = fuelType === 'gnv' ? null : economyUnit;
+  const conv = (n: number) => economyValue(n, volumeUnit, economy);
+  const inverted = economy === 'l_100km';
+  const points: Point[] = pointsIn.map((p) => ({
+    ...p,
+    kmPerUnit: conv(p.kmPerUnit),
+    kmPerUnitLow: (inverted ? p.kmPerUnitHigh : p.kmPerUnitLow) != null ? conv((inverted ? p.kmPerUnitHigh : p.kmPerUnitLow)!) : null,
+    kmPerUnitHigh: (inverted ? p.kmPerUnitLow : p.kmPerUnitHigh) != null ? conv((inverted ? p.kmPerUnitLow : p.kmPerUnitHigh)!) : null,
+  }));
+  averageIn = averageIn != null ? conv(averageIn) : averageIn;
   const { theme, scheme } = useTheme();
   const line = scheme === 'light' ? categoryInkLight.combustible : categoryColors.combustible;
 
-  const unit = economyLabel(fuelType, volumeUnit);
+  const unit = economyLabel(fuelType, volumeUnit, economy);
   const known = points.filter((p) => p.status !== 'unknown');
   const average =
     averageIn ?? (known.length > 0 ? known.reduce((sum, p) => sum + p.kmPerUnit, 0) / known.length : 0);

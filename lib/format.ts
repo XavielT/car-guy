@@ -1,4 +1,4 @@
-import { displayUnitLabel, economyUnitLabel, type VolumeUnit } from './domain/units';
+import { displayUnitLabel, economyFromKmPerLiter, economyUnitLabel, GAL_L, type EconomyUnit, type VolumeUnit } from './domain/units';
 import type { FuelType } from './types';
 
 const dop = new Intl.NumberFormat('es-DO', {
@@ -45,8 +45,19 @@ export function economyNumber(n: number): string {
  * km per the vehicle's volume unit — the figure computeEconomy returns over the
  * store's fill-ups, which are already in that unit (lib/domain/units.ts).
  */
-export function kmPerUnit(n: number, type: FuelType, unit: VolumeUnit = 'gal'): string {
+export function kmPerUnit(n: number, type: FuelType, unit: VolumeUnit = 'gal', economy?: EconomyUnit | null): string {
+  if (economy === 'l_100km' && type !== 'gnv') return `${economyFmt.format(economyValue(n, unit, economy))} ${economyUnitLabel(type, 'l_100km')}`;
   return `${economyFmt.format(n)} ${economyUnitLabel(type, unit === 'l' ? 'km_l' : 'km_gal')}`;
+}
+
+/**
+ * A km-per-volume-unit figure (what the economy maths returns) in the vehicle's
+ * chosen economy unit: unchanged for km/gal and km/L, inverted for L/100 km
+ * (where a smaller number is the better tank — lib/domain/units.ts higherIsBetter).
+ */
+export function economyValue(n: number, unit: VolumeUnit = 'gal', economy?: EconomyUnit | null): number {
+  if (economy !== 'l_100km') return n;
+  return economyFromKmPerLiter(unit === 'gal' ? n / GAL_L : n, 'l_100km');
 }
 
 export function dateLabel(iso: string): string {

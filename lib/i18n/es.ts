@@ -106,6 +106,7 @@ export const es = {
 
   /** The vehicle form v2 (IMP 29092026 Phase 3, 03-screens.md). */
   vehicleForm: {
+    economyUnit: 'Consumo en',
     photos: 'Fotos',
     photosEmpty: 'Agrega fotos · la primera es la portada',
     addPhotos: 'Agregar fotos',

@@ -518,7 +518,7 @@ export default function HomeScreen() {
             <MonthStat label={es.home.monthKm} value={fmtKm(Math.round(monthKm))} />
             <MonthStat
               label={es.home.monthEconomy}
-              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit) : '—'}
+              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit) : '—'}
             />
           </View>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
@@ -550,7 +550,7 @@ export default function HomeScreen() {
             {es.home.lastTank}
           </T>
           <T face="monoBold" style={[styles.statVal, { color: lastEstimated ? theme.text.muted : theme.text.primary }]}>
-            {last ? `${lastEstimated ? '≈ ' : ''}${kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit)}` : '—'}
+            {last ? `${lastEstimated ? '≈ ' : ''}${kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit)}` : '—'}
           </T>
           <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
             {last

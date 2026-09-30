@@ -83,3 +83,17 @@ describe("the store's boundary", () => {
     expect(tankForStorage(null, 'gal', 'premium')).toEqual({ tankVolume: null, tankVolumeEntered: null });
   });
 });
+
+describe('L/100 km on screen (2.2.3)', () => {
+  const { kmPerUnit, economyValue } = jest.requireActual('@/lib/format') as typeof import('@/lib/format');
+  it('20 km/gal is 18.9 L/100 km; 12.5 km/L is 8 L/100 km', () => {
+    expect(economyValue(20, 'gal', 'l_100km')).toBeCloseTo(18.93, 2);
+    expect(economyValue(12.5, 'l', 'l_100km')).toBeCloseTo(8, 5);
+    expect(kmPerUnit(12.5, 'regular', 'l', 'l_100km')).toBe('8.0 L/100 km');
+  });
+  it('km/gal and km/L pass through unchanged; GNV never inverts', () => {
+    expect(economyValue(20, 'gal', 'km_gal')).toBe(20);
+    expect(kmPerUnit(20, 'regular', 'gal')).toMatch(/km\/gal/);
+    expect(kmPerUnit(20, 'gnv', 'gal', 'l_100km')).not.toMatch(/L\/100/);
+  });
+});
