@@ -304,7 +304,7 @@ export function RouteSvg({ trip, points, width, height, map = false }: { trip: T
           source={{ uri: t.url, headers: TILE_HEADERS }}
           cachePolicy="disk"
           recyclingKey={t.key}
-          style={{ position: 'absolute', left: t.left, top: t.top, width: TILE_SIZE, height: TILE_SIZE }}
+          style={{ position: 'absolute', left: Math.floor(t.left), top: Math.floor(t.top), width: TILE_SIZE + 1, height: TILE_SIZE + 1 }}
           accessible={false}
         />
       ))}
@@ -351,7 +351,7 @@ export function TripsHeatMap({ trips, width, height }: { trips: Trip[]; width: n
             source={{ uri: t.url, headers: TILE_HEADERS }}
             cachePolicy="disk"
             recyclingKey={t.key}
-            style={{ position: 'absolute', left: t.left, top: t.top, width: TILE_SIZE, height: TILE_SIZE }}
+            style={{ position: 'absolute', left: Math.floor(t.left), top: Math.floor(t.top), width: TILE_SIZE + 1, height: TILE_SIZE + 1 }}
             accessible={false}
           />
         ))}
