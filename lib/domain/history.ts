@@ -101,6 +101,8 @@ export function historyKindLabel(kind: HistoryEntry['kind']): string {
     case 'mod':
       return es.history.kinds.mod;
     case 'hito':
+    // Events get their own label with their screens (PROMPT-05, FEATURE_EVENTS).
+    case 'evento':
       return es.history.kinds.hito;
     case 'pista':
       return es.history.kinds.pista;

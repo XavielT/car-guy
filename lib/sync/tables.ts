@@ -97,6 +97,11 @@ export const SYNC_TABLES: SyncTable[] = [
   { name: 'consumable_usage', localOnly: ['syncedAt'] },
   { name: 'vehicle_share', localOnly: ['syncedAt'] },
   { name: 'vehicle_member', localOnly: ['syncedAt'], pullOnly: true },
+  // v8 (sql/025). vehicle_fact is a vehicle's child (member-readable like torque_spec);
+  // fuel_price and legal_acceptance belong to the person, not a car.
+  { name: 'vehicle_fact', localOnly: ['syncedAt'] },
+  { name: 'fuel_price', localOnly: ['syncedAt'] },
+  { name: 'legal_acceptance', localOnly: ['syncedAt'] },
 
   // Direct children of vehicle.
   { name: 'vehicle_spec', localOnly: ['syncedAt'] },
@@ -180,6 +185,7 @@ export const BOOLEAN_COLUMNS: Record<string, string[]> = {
     'show_docs',
     'show_story',
     'show_status',
+    'show_tires',
   ],
 };
 

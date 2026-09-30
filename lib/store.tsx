@@ -10,6 +10,7 @@ import {
   settings as settingsRepo,
   vehicles as vehicleRepo,
 } from './db/repos';
+import { referencePricesNow, savePriceBoard } from './db/priceOps';
 import { resetDatabase } from './db/reset';
 import { seedCatalog } from './db/seed';
 import { purgeOldTripPoints } from './db/tripOps';
@@ -158,10 +159,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
     serviceIds.current = new Set(maintenance.map((r) => r.id));
 
-    const [activeVehicleId, referencePrices, priceWeekLabel, includeEstimates, perFill] = await Promise.all([
+    // v8: prices come from fuel_price + the MICM cache (the board), not the two 2.3 settings.
+    const [activeVehicleId, { referencePrices, priceWeekLabel }, includeEstimates, perFill] = await Promise.all([
       settingsRepo.get<string | null>('active_vehicle_id', null),
-      settingsRepo.get('reference_prices', EMPTY_DATA.settings.referencePrices),
-      settingsRepo.get('price_week_label', EMPTY_DATA.settings.priceWeekLabel),
+      referencePricesNow(),
       settingsRepo.get<boolean>('economy_include_estimates', false),
       settingsRepo.get<boolean>('economy_per_fill', true),
     ]);
@@ -466,9 +467,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (patch.activeVehicleId !== undefined) {
           await settingsRepo.set('active_vehicle_id', patch.activeVehicleId);
         }
-        if (patch.referencePrices) await settingsRepo.set('reference_prices', patch.referencePrices);
-        if (patch.priceWeekLabel !== undefined) {
-          await settingsRepo.set('price_week_label', patch.priceWeekLabel);
+        if (patch.referencePrices || patch.priceWeekLabel !== undefined) {
+          const previous = await referencePricesNow();
+          await savePriceBoard(patch.referencePrices ?? previous.referencePrices, patch.priceWeekLabel ?? previous.priceWeekLabel, previous);
         }
         if (patch.includeEstimates !== undefined) await settingsRepo.set('economy_include_estimates', patch.includeEstimates);
         if (patch.perFill !== undefined) await settingsRepo.set('economy_per_fill', patch.perFill);

@@ -74,3 +74,6 @@ releases/
 
 # Real-garage backups exported from a device (never committed)
 docs/imp-28092026/fixtures/*.real.json
+
+# Gradle output of the local native modules (was committed by accident in 2.2.2)
+modules/*/android/build/

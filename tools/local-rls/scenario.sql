@@ -336,3 +336,128 @@ reset role;
 select t_as('a');
 select t_ok('15e. A sees its own new role', (select role from carguy.profiles where user_id = (select auth.uid())) = 'premium');
 reset role;
+
+-- 16 schema v4 (sql/025 + 026): fuel_price and legal_acceptance are own rows, vehicle_fact is
+-- torque_spec's member shape, the dossier's tires obey show_tires, the milestone backfill.
+-- Where we are: veh_a is A's, C is a viewer on it, B was removed, D is another app's account.
+select t_ok('16a. 025 backfill: the old accident is an event (accidente / moderado), the purchase stays hito',
+  (select event_type || '/' || coalesce(severity, '-') from carguy.milestone where id = 'ms_crash') = 'accidente/moderado'
+  and (select event_type || '/' || coalesce(severity, '-') from carguy.milestone where id = 'ms_buy') = 'hito/-');
+select t_as('a');
+insert into carguy.fuel_price (id, fuel_type, price, valid_from, source, created_at, updated_at)
+  values ('fp_a', 'premium', 322.1, '2026-08-15', 'micm', now(), now());
+insert into carguy.legal_acceptance (id, version, accepted_at, locale, platform, device_id, created_at, updated_at)
+  values ('la_a', '2026-09-30', now(), 'es', 'android', 'dev-a', now(), now());
+insert into carguy.vehicle_fact (id, vehicle_id, label, value, group_name, created_at, updated_at)
+  values ('vf_a', 'veh_a', 'Código de radio', '1234', 'electrico', now(), now());
+select t_ok('16b. owner CRUD on fuel_price; valid_from comes back as the same ISO date',
+  (select valid_from::text from carguy.fuel_price where id = 'fp_a') = '2026-08-15'
+  and (select user_id from carguy.fuel_price where id = 'fp_a') = '00000000-0000-0000-0000-00000000000a'
+  and (select source || '|' || station || '|' || note from carguy.fuel_price where id = 'fp_a') = 'micm||'
+  and t_rows($q$update carguy.fuel_price set price = 325, updated_at = now() where id = 'fp_a'$q$) = 1
+  and t_rows($q$insert into carguy.fuel_price (id, fuel_type, price, valid_from, created_at, updated_at) values ('fp_a2', 'regular', 290, '2026-08-15', now(), now())$q$) = 1
+  and t_rows($q$delete from carguy.fuel_price where id = 'fp_a2'$q$) = 1);
+select t_ok('16c. owner CRUD on legal_acceptance',
+  (select count(*) from carguy.legal_acceptance where id = 'la_a') = 1
+  and t_rows($q$update carguy.legal_acceptance set locale = 'en', updated_at = now() where id = 'la_a'$q$) = 1
+  and t_rows($q$insert into carguy.legal_acceptance (id, version, accepted_at, locale, platform, device_id, created_at, updated_at) values ('la_a2', 'x', now(), 'es', 'web', 'd', now(), now())$q$) = 1
+  and t_rows($q$delete from carguy.legal_acceptance where id = 'la_a2'$q$) = 1);
+-- (one statement sees one snapshot, so a row inserted inside a check is read by the next one)
+insert into carguy.vehicle_fact (id, vehicle_id, label, value, created_at, updated_at) values ('vf_a2', 'veh_a', 'x', 'y', now(), now());
+select t_ok('16d. owner CRUD on vehicle_fact (group_name and sort_order default)',
+  (select group_name || '/' || sort_order from carguy.vehicle_fact where id = 'vf_a') = 'electrico/0'
+  and (select group_name || '/' || sort_order from carguy.vehicle_fact where id = 'vf_a2') = 'otros/0'
+  and t_rows($q$update carguy.vehicle_fact set value = '4321', updated_at = now() where id = 'vf_a'$q$) = 1
+  and t_rows($q$delete from carguy.vehicle_fact where id = 'vf_a2'$q$) = 1);
+reset role;
+
+select t_as('c');
+select t_ok('16e. viewer C reads the car''s facts, not A''s prices or acceptances',
+  (select count(*) from carguy.vehicle_fact where id = 'vf_a') = 1
+  and (select count(*) from carguy.fuel_price) = 0 and (select count(*) from carguy.legal_acceptance) = 0);
+select t_ok('16f. viewer C cannot add, edit or delete a fact',
+  t_denied($q$insert into carguy.vehicle_fact (id, vehicle_id, label, value, created_at, updated_at) values ('vf_v', 'veh_a', 'no', 'no', now(), now())$q$)
+  and t_rows($q$update carguy.vehicle_fact set value = 'x' where id = 'vf_a'$q$) = 0
+  and t_rows($q$delete from carguy.vehicle_fact where id = 'vf_a'$q$) = 0);
+select t_ok('16g. C cannot write A''s price or acceptance, nor file one under A',
+  t_rows($q$update carguy.fuel_price set price = 1 where id = 'fp_a'$q$) = 0
+  and t_rows($q$delete from carguy.legal_acceptance where id = 'la_a'$q$) = 0
+  and t_denied($q$insert into carguy.fuel_price (id, user_id, fuel_type, price, valid_from, created_at, updated_at) values ('fp_c', '00000000-0000-0000-0000-00000000000a', 'regular', 1, '2026-08-15', now(), now())$q$));
+select t_ok('16h. C keeps its own price list (own rows work for everyone)',
+  t_rows($q$insert into carguy.fuel_price (id, fuel_type, price, valid_from, created_at, updated_at) values ('fp_c', 'regular', 288, '2026-08-22', now(), now())$q$) = 1);
+select t_ok('16h2. …and reads back only its own', (select string_agg(id, ',') from carguy.fuel_price) = 'fp_c');
+reset role;
+select t_as('a');
+select t_ok('16i. A promotes C to editor', carguy.set_member_role('veh_a', '00000000-0000-0000-0000-00000000000c', 'editor'));
+select t_ok('16i2. A does not see C''s price', (select count(*) from carguy.fuel_price where id = 'fp_c') = 0);
+reset role;
+select t_as('c');
+insert into carguy.vehicle_fact (id, vehicle_id, label, value, group_name, created_at, updated_at)
+  values ('vf_c', 'veh_a', 'Torque tapa de válvulas', '10 Nm', 'motor', now(), now());
+-- the push shape: C upserts A's fact with its own user_id
+insert into carguy.vehicle_fact (id, user_id, vehicle_id, label, value, created_at, updated_at)
+  values ('vf_a', '00000000-0000-0000-0000-00000000000c', 'veh_a', 'Código de radio', '9999', now(), now() + interval '1 minute')
+  on conflict (id) do update set user_id = excluded.user_id, value = excluded.value, updated_at = excluded.updated_at;
+reset role;
+select t_as('a');
+select t_ok('16j. editor C adds a fact and edits A''s; A sees both, its fact stays A''s (keep_creator)',
+  (select count(*) from carguy.vehicle_fact where vehicle_id = 'veh_a') = 2
+  and (select value from carguy.vehicle_fact where id = 'vf_a') = '9999'
+  and (select user_id from carguy.vehicle_fact where id = 'vf_a') = '00000000-0000-0000-0000-00000000000a'
+  and (select user_id from carguy.vehicle_fact where id = 'vf_c') = '00000000-0000-0000-0000-00000000000c');
+select t_ok('16j2. A demotes C back to viewer', carguy.set_member_role('veh_a', '00000000-0000-0000-0000-00000000000c', 'viewer'));
+reset role;
+select t_as('c');
+select t_ok('16j3. viewer again: C cannot edit even the fact it wrote', t_rows($q$update carguy.vehicle_fact set value = 'x' where id = 'vf_c'$q$) = 0);
+reset role;
+
+select t_as('b');
+select t_ok('16k. outsider B (removed member) sees none of the three and cannot add a fact to A''s car',
+  (select count(*) from carguy.vehicle_fact) = 0 and (select count(*) from carguy.fuel_price) = 0
+  and (select count(*) from carguy.legal_acceptance) = 0
+  and t_denied($q$insert into carguy.vehicle_fact (id, vehicle_id, label, value, created_at, updated_at) values ('vf_b', 'veh_a', 'no', 'no', now(), now())$q$));
+reset role;
+select t_as('d');
+select t_ok('16l. other-app account reads and writes none of the three',
+  (select count(*) from carguy.vehicle_fact) = 0 and (select count(*) from carguy.fuel_price) = 0
+  and (select count(*) from carguy.legal_acceptance) = 0
+  and t_denied($q$insert into carguy.fuel_price (id, fuel_type, price, valid_from, created_at, updated_at) values ('fp_d', 'regular', 1, '2026-08-15', now(), now())$q$)
+  and t_denied($q$insert into carguy.legal_acceptance (id, version, accepted_at, locale, platform, device_id, created_at, updated_at) values ('la_d', 'x', now(), 'es', 'web', 'd', now(), now())$q$));
+reset role;
+select t_as('anon');
+select t_ok('16m. anon cannot read the three',
+  t_denied('select 1 from carguy.fuel_price') and t_denied('select 1 from carguy.vehicle_fact') and t_denied('select 1 from carguy.legal_acceptance'));
+reset role;
+
+-- tires on the public page: only with show_tires (the share is published again since 13h)
+select t_as('a');
+insert into carguy.tire (id, vehicle_id, brand, status, created_at, updated_at) values
+  ('ti_1', 'veh_a', 'Bridgestone', 'en_uso', now(), now()), ('ti_2', 'veh_a', 'Bridgestone', 'en_uso', now(), now()),
+  ('ti_3', 'veh_a', 'Falken', 'quemada', now(), now());
+insert into carguy.tire (id, vehicle_id, brand, status, created_at, updated_at, deleted_at) values
+  ('ti_x', 'veh_a', 'Borrada', 'vendida', now(), now(), now());
+reset role;
+select t_as('anon');
+select t_ok('16n. show_tires off (the default): no tires on the page',
+  carguy.public_dossier('ae85hchg') is not null and carguy.public_dossier('ae85hchg') -> 'tires' is null
+  and carguy.public_dossier('ae85hchg')::text not like '%Bridgestone%');
+reset role;
+select t_as('a');
+update carguy.vehicle_share set show_tires = true where id = 'share_veh_a';
+reset role;
+select t_as('anon');
+select t_ok('16o. show_tires on: count and per-status badges, deleted rows left out, no brands',
+  (carguy.public_dossier('ae85hchg') -> 'tires' ->> 'count')::int = 3
+  and carguy.public_dossier('ae85hchg') -> 'tires' -> 'badges' = '[{"status":"en_uso","count":2},{"status":"quemada","count":1}]'::jsonb
+  and carguy.public_dossier('ae85hchg')::text not like '%Bridgestone%'
+  and (carguy.public_dossier('ae85hchg') -> 'vehicle' ->> 'name') = 'Trueno AE85',
+  carguy.public_dossier('ae85hchg') ->> 'tires');
+select t_ok('16p. the facts, prices and acceptances never reach the page',
+  carguy.public_dossier('ae85hchg')::text not like '%9999%' and carguy.public_dossier('ae85hchg')::text not like '%322%');
+reset role;
+select t_as('a');
+update carguy.vehicle_share set show_tires = false where id = 'share_veh_a';
+reset role;
+select t_as('anon');
+select t_ok('16q. switched off again: the block is gone', carguy.public_dossier('ae85hchg') -> 'tires' is null);
+reset role;

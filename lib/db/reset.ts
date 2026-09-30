@@ -22,6 +22,8 @@ export async function resetDatabase(): Promise<void> {
     // v6's local scratch first: trip_point points at trip.
     await db.runAsync('DELETE FROM trip_point');
     await db.runAsync('DELETE FROM trip_state');
+    // v8's MICM cache: refilled from the cloud on the next launch.
+    await db.runAsync('DELETE FROM fuel_price_ref');
     for (const table of [...ALL_TABLES].reverse()) {
       await db.runAsync(`DELETE FROM ${table}`);
     }

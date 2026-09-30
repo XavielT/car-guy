@@ -250,6 +250,8 @@ function vehicleScopes(): [string, string][] {
       'fluid_guide_item',
       'track_event',
       'vehicle_share',
+      // v8
+      'vehicle_fact',
     ].map((table): [string, string] => [table, 'vehicle_id = ?3']),
     ['vehicle', 'id = ?3'],
   ];

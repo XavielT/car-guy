@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 import { historyFeedV3, historyFeedV4, migrationV2 } from './migrationV2';
 import { migrationV6 } from './migrationV6';
+import { migrateV8Data, migrationV8 } from './migrationV8';
 
 /**
  * Schema migrations, applied in order under `PRAGMA user_version`.
@@ -16,7 +17,12 @@ import { migrationV6 } from './migrationV6';
  * Version 2 (IMP 28092026, ADR-17) lives in ./migrationV2.ts: it is long, and
  * part of it is generated (the seeded catalogues and the bundled DTC table).
  */
-export type Migration = { version: number; up: string[] };
+export type Migration = {
+  version: number;
+  up: string[];
+  /** Data that SQL alone cannot move (v8's price label parsing). Same transaction, after `up`. */
+  data?: (db: SQLiteDatabase) => Promise<void>;
+};
 
 export const MIGRATIONS: Migration[] = [
   {
@@ -279,6 +285,8 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE inventory_item ADD COLUMN used_in_mod_id TEXT`,
     ],
   },
+  // v8 (2.4, IMP 30092026): prices, events, the car's memory, legal, tires switch, trip diagnostics — ./migrationV8.ts.
+  { version: 8, up: migrationV8(), data: migrateV8Data },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -291,7 +299,27 @@ export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
  * change inside one, and `foreign_keys` is a per-connection setting rather than
  * a schema change.
  */
-export async function migrate(db: SQLiteDatabase): Promise<void> {
+let running: Promise<void> | null = null;
+
+/**
+ * One migration run at a time. `SQLiteProvider`'s `onInit` and `getDb()` both
+ * call this on the same native connection, and on the first launch after an
+ * update they can overlap: both read the old `user_version`, the second
+ * `BEGIN` fails, its rollback ends the first run's transaction, and the store
+ * opens on nothing ("cannot rollback - no transaction is active" — 2.4's v8
+ * on the Redmi's test app, 2026-09-30; the next launch migrated fine, nothing
+ * was lost). A caller that arrives mid-run waits for that run instead.
+ */
+export function migrate(db: SQLiteDatabase): Promise<void> {
+  if (!running) {
+    running = runMigrations(db).finally(() => {
+      running = null;
+    });
+  }
+  return running;
+}
+
+async function runMigrations(db: SQLiteDatabase): Promise<void> {
   // WAL on native, MEMORY on web — and this is not a preference.
   //
   // expo-sqlite's web build stores the database in OPFS through wa-sqlite's
@@ -320,6 +348,7 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
       for (const statement of migration.up) {
         await db.execAsync(statement);
       }
+      if (migration.data) await migration.data(db);
     });
     // Outside the transaction: PRAGMA user_version does not accept a parameter
     // binding, and the value is a literal from our own array, never user input.

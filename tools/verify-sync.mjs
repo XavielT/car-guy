@@ -464,6 +464,65 @@ async function main() {
     `insert ${tripIn.status} · stale ${tripStale.status} → ${tripAfterStale} · newer ${tripNewer.status} → ${tripBack?.notes}`,
   );
 
+  // 21–23 — schema v8's three synced tables (IMP 30092026 Phase 2, sql/025–026). The same
+  //          round trip as 20, in pushTable's shape: insert, a stale write that must not win,
+  //          a newer one that must, and the pull reads back exactly what the phone stores.
+  const roundTrip = async (table, id, row, stalePatch, newerPatch) => {
+    const upsert = (updatedAt, patch) =>
+      call(`/rest/v1/${table}`, {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
+        body: [{ id, user_id: userId, updated_by: userId, created_at: t1, ...row, ...patch, updated_at: updatedAt }],
+      });
+    const first = await upsert(iso(10_000), {});
+    const stale = await upsert(iso(-120_000), stalePatch);
+    const afterStale = (await call(`/rest/v1/${table}?id=eq.${id}&select=*`)).body?.[0];
+    const newer = await upsert(iso(20_000), newerPatch);
+    const back = (await call(`/rest/v1/${table}?id=eq.${id}&select=*`)).body?.[0];
+    const shown = (r) => `${r.status}${r.status >= 300 ? ` · ${JSON.stringify(r.body).slice(0, 160)}` : ''}`;
+    return { ok: wrote(first.status) && wrote(stale.status) && wrote(newer.status), afterStale, back,
+      detail: `insert ${shown(first)} · stale ${shown(stale)} · newer ${shown(newer)}` };
+  };
+
+  const price = await roundTrip(
+    'fuel_price', `sync_probe_price_${stamp}`,
+    { fuel_type: 'premium', price: 322.1, valid_from: '2026-08-15', source: 'micm', station: '', note: '', schema_hint: 'v8' },
+    { price: 1 }, { price: 325.4 },
+  );
+  check(
+    '21. fuel_price round-trips (valid_from back as the same ISO date) with last-write-wins',
+    price.ok && price.afterStale?.price === 322.1 && price.back?.price === 325.4 &&
+      price.back?.valid_from === '2026-08-15' && price.back?.source === 'micm' && price.back?.user_id === userId &&
+      Boolean(price.back?.server_updated_at),
+    `${price.detail} · after stale ${price.afterStale?.price} · back ${price.back?.price} · valid_from ${price.back?.valid_from}`,
+  );
+
+  const fact = await roundTrip(
+    'vehicle_fact', `sync_probe_fact_${stamp}`,
+    { vehicle_id: vehicleId, label: 'Código de radio', value: '1234', group_name: 'electrico', sort_order: 0 },
+    { value: 'VIEJO' }, { value: '4321', sort_order: 1 },
+  );
+  check(
+    '22. vehicle_fact round-trips on the car (sort_order an integer) with last-write-wins',
+    fact.ok && fact.afterStale?.value === '1234' && fact.back?.value === '4321' && fact.back?.sort_order === 1 &&
+      fact.back?.label === 'Código de radio' && fact.back?.group_name === 'electrico' && fact.back?.vehicle_id === vehicleId &&
+      fact.back?.user_id === userId,
+    `${fact.detail} · after stale ${fact.afterStale?.value} · back ${fact.back?.value} (${fact.back?.sort_order})`,
+  );
+
+  const acceptedAt = iso(-5_000);
+  const legal = await roundTrip(
+    'legal_acceptance', `sync_probe_legal_${stamp}`,
+    { version: '2026-09-30', accepted_at: acceptedAt, locale: 'es', platform: 'android', device_id: `sync-probe-${stamp}` },
+    { locale: 'xx' }, { locale: 'en' },
+  );
+  check(
+    '23. legal_acceptance round-trips (accepted_at the same instant) with last-write-wins',
+    legal.ok && legal.afterStale?.locale === 'es' && legal.back?.locale === 'en' && legal.back?.version === '2026-09-30' &&
+      new Date(legal.back?.accepted_at).toISOString() === acceptedAt,
+    `${legal.detail} · after stale ${legal.afterStale?.locale} · back ${legal.back?.locale} · accepted_at ${legal.back?.accepted_at}`,
+  );
+
   const failed = results.filter((r) => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} passed.`);
   console.log('\n--- cleanup ---');

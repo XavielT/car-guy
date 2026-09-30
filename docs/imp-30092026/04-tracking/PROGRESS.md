@@ -11,7 +11,7 @@ phase" carry context between sessions.
 |---|---|---|---|---|
 | 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action, Wheelz walked |
 | 1 | Fix pack 2.3.1 | ✅ | `fix/2.3.1-fixpack` | v2.3.1 released; detail + dedupe, stations, reserve light, ≈ por echada (with a plausibility band), denser routes; trip export carried |
-| 2 | Schema v8 | ⬜ | | |
+| 2 | Schema v8 | ✅ | `imp-30092026/phase-2-schema-v8` | v8 + sql/025–026 on x-core; verifiers 32/32 + 24/24; merged (no release — no screens) |
 | 3A | Language es/en | ⬜ | | |
 | 3B | Skeletons | ⬜ | | |
 | 4 | Map · Modo conducir · centre button | ⬜ | | |
@@ -166,6 +166,22 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
   entering an old receipt twice in a row is caught too; "Ver" opens the saved one.
 - Phase 1: editing keeps the original `createdAt` (was overwritten — the Phase 0 finding).
 
+- Phase 2: 2.3's week label is kept verbatim in the migrated `fuel_price.note`, and the board shows the newest
+  user row's note when it has one — so an upgraded phone reads "26 sep – 2 oct 2026 (MICM)" exactly as before
+  (web pair pixel-identical). New rows from the price screen keep the label the same way.
+- Phase 2: a 2.3 price setting that arrives *after* the upgrade (a restore of a 2.3 backup, or a first sync
+  pulling a 2.3 device's settings) is adopted into `fuel_price` only while the database has no price row
+  (`adoptLegacyPrices`). The two settings still sync, for 2.3 devices.
+- Phase 2: while `FEATURE_EVENTS` is off, `history.feed` folds history_feed v6's `evento` rows back into
+  `hito` (same subtitle, no amount) — Historial is unchanged until Phase 5 ships the event screens.
+- Phase 2: the six 2.4 flags live in `lib/flagsV8.ts` (re-exported by `lib/flags.ts`): the data layer needs
+  `FEATURE_EVENTS`, and `lib/flags.ts` imports expo-constants, which the jest data tests cannot load.
+- Phase 2: trip points get `keep_until` on the first purge after the trip ends (and v8 backfills existing
+  ones); the purge deletes by it. Same 30 days as before; a later feature can keep one trip longer.
+- Phase 2: setting keys `app_language`, `onboarded_version`, `tips_seen`, `profile_avatar_id`,
+  `profile_avatar_rel_path`, `profile_display_name` need no schema (the `setting` table is key/value); they are
+  reserved here and written by Phases 3A/6. `economy_per_fill` exists since 2.3.1.
+
 ## Deviations from the package
 
 - Phase 1 (5b): auto mode's recording options match manual's interval (1 s, BestForNavigation) but keep
@@ -174,6 +190,14 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 - Phase 1 (5b): the "≥ 4× the old point count at 3 m" test is replaced by per-turn shape tests
   (`__tests__/trips/route-detail.test.ts`): on the synthetic GPX the 8 m → 3 m change gives 17 → 22 points (the
   GPX is already sparse), so 4× is not reachable there; the tests check that corners survive instead.
+- Phase 2: `carguy.trip.diagnostics` is `text`, not `jsonb` (spec): every other JSON-in-text column
+  (`speed_buckets`, `bbox`, `costs_summary`) is text in the cloud, and PostgREST would hand a jsonb back as an
+  object, breaking the local TEXT round trip. `fuel_price.valid_from` is `date` (a bare ISO day round-trips as
+  `'2026-08-15'`).
+- Phase 2: the dossier's `tires` block is `{count, badges: [{status, count}]}` (no brands), present only with
+  `show_tires`; `show` itself is unchanged.
+- Phase 2: no emulator run — disk at 91 % (11 GB free); the native check is the Redmi's test variant instead
+  (upgrade over 2.2.1's test data + a fresh install).
 
 ## Observed, deferred
 
@@ -183,12 +207,16 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 0 | No screen edits `vehicle.reserve_volume_l` (reserve estimate always 10 % of the tank) | low | Phase 1 (note 12) can add it to the vehicle form |
 | 0 | Stored `trip_point`s skip the excursion filter; `RouteSvg` draws raw points uncleaned | medium | ✅ Phase 1: `routePointsForDrawing` cleans + trims to `endedAt` |
 | 0 | Disk 90 % (12 GB free) | medium | Phase 4's native rebuild needs room; clear `~/.gradle/caches` if short |
+| 2 | `migrate()` ran twice at once (SQLiteProvider `onInit` + `getDb()`) on the first launch after an update → rollback, empty store for that launch | **high** | ✅ fixed in Phase 2 (`66f233e`, test reproduces it); it existed since 2.0 — 2.2.x upgrades were lucky on timing |
+| 2 | Gradle output of `modules/miui-autostart` was committed in 2.2.2 (156 files dirtied by every build) | low | ✅ untracked + ignored (`2b19c98`) |
+| 2 | Domain copy (price sources, event types/severities, memory sections, tire badges/messages) is in module constants, not `lib/i18n/es.ts` | low | Phase 3A moves them with the es/en split |
 
 ## Blockers
 
 | Phase | Blocker | Needs | Status |
 |---|---|---|---|
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel | open |
+| 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers green |
 
 ---
 
@@ -265,4 +293,65 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 - Phase 2 (schema v8): `economy_per_fill` lives in `Settings.perFill` (local settings) until v8 adds the
   column; the dedupe and stations need nothing from the schema. The trip export is still owed — ask after his
   next drive; if the raw points are sparse, 5(c)'s pre-roll goes into Phase 4.
+
+## Phase 2 — Schema v8 + cloud sql/025–026 + flags   (branch `imp-30092026/phase-2-schema-v8`)
+
+**Status:** complete — merged 2026-09-30 (no app release: this phase has no screens; 2.4.0 ships in Phase 6)
+**Commits:** `eeb9210` schema v8 · `66f233e` one migration run at a time · `2b19c98` untrack module build output
+
+### Changed
+- **Migration v8** (`lib/db/migrationV8.ts`, registered in `lib/db/migrations.ts` with a `data` step in the
+  same transaction): `fuel_price` + index, `fuel_price_ref` (cache), milestone event columns (+ accidente →
+  accidente/moderado), specsheet "what I buy" ×13, `vehicle_fact`, `legal_acceptance`,
+  `vehicle_share.show_tires`, `trip.diagnostics`, `trip_point.keep_until` (+ backfill), history_feed v6
+  (`evento` rows). Data: 2.3's `reference_prices` + `price_week_label` → one `manual` row per fuel,
+  `valid_from = parseWeekLabel(label)`, the label in `note`.
+- **Types / repos:** `FuelPrice`, `FuelPriceRef`, `VehicleFact`, `LegalAcceptance`, event fields on
+  `Milestone`, specsheet fields, `showTires`, `diagnostics`; repos `fuelPrices`, `vehicleFacts`,
+  `legalAcceptances`; `lib/db/priceOps.ts` (board, save). **The store reads the board**
+  (`referencePricesNow()`), and the price screen writes `fuel_price` rows (`savePriceBoard`).
+- **Domain** (pure, 81 tests): `lib/domain/fuelPrices.ts` (parseWeekLabel, currentBoard, series,
+  referencePricesFromBoard), `events.ts`, `carMemory.ts`, `tireStats.ts`, `lib/legal/index.ts`.
+- **Sync:** SYNC_TABLES + `vehicle_fact`, `fuel_price`, `legal_acceptance`; BOOLEAN_COLUMNS `show_tires`;
+  UPDATED_BY_TABLES + the three; ALL_TABLES (backup/reset) + the three; vehicle delete cascades facts;
+  `lib/cloud/fuelPriceRef.ts` `refreshFuelPriceRef()` once per launch (silent while the table is missing).
+- **Backup:** a v7 file restores into v8 with its prices adopted and accidents classified.
+- **Cloud (written, not applied):** `sql/025_schema_v4.sql`, `sql/026_rls_v4.sql`; `tools/local-rls` section
+  16 (16a–q); `verify-sync` 21–23; `verify-x-core` 29–32; parity test reads 025.
+- **Seed:** 3 events (C3 choque pendiente "pintar el guardafango", DS3 sobrecalentamiento, DS3 retrovisor), 4
+  facts on the AE85, DS3 "what I buy" (Castrol Edge 5W-30 + Fram PH6607 — **made-up part number**), 6 weeks of
+  manual prices, AE85 14 tires over two years (6 quemadas, 2 vendidas, 1 guardada, 1 nueva, 4 en uso).
+- **Flags:** FEATURE_MAP_V2, FEATURE_DRIVE_MODE, FEATURE_I18N, FEATURE_EVENTS, FEATURE_ONBOARDING_V2,
+  FEATURE_LEGAL — false (`lib/flagsV8.ts`).
+- Fixture `__tests__/fixtures/backup-v7-seed-2.3.1.json`: the seed exported **by the v2.3.1 tag's own code**
+  (temporary worktree), with a saved price week.
+
+### Acceptance criteria
+- [x] tsc, lint; jest all green (new: migrate-v8 16, migrate-concurrent 1, seed v8 4, domain 81).
+- [x] 0 → 8 fresh; v7 → 8 with prices migrated (same numbers + label), events, keep_until, feed v6.
+- [x] 2.3.1 fixture → v8 restore: every row, prices adopted; v8 backup carries the three new tables.
+- [x] `bash tools/local-rls/run.sh` all passed (104 PASS, 025/026 applied twice).
+- [x] Web upgrade on one browser profile: 2.3.1 (seed + saved week "26 sep – 2 oct 2026 (MICM)", regular
+  309.9) → v8: Precios and Historial **pixel-identical** (`docs/qa/imp-30092026-phase-2-{prices,historial}-{231,v8}.png`);
+  re-seed on v8 answered "se agregó lo de la 2.4" (proof the v8 bundle ran).
+- [x] Redmi, test variant over 2.2.1's data (saved week "26 sep - 2 oct 2026 MICM", regular 311.4): first
+  launch hit the migration race (above) — fixed; second launch migrated with the data and the week intact.
+- [x] Redmi re-run with the fix: 2.3.1-tag test build (clean install, saved "3-9 oct 2026 MICM", regular 312.6)
+  → v8 installed over it: first launch clean (no JS error), board "3-9 OCT 2026 MICM" · RD$ 312.60.
+- [x] Fresh install of the v8 test build (after Xaviel allowed MIUI's install prompt): onboarding, default
+  board "15–21 ago 2026 (MICM)", no JS error; the MICM fetch stays silent (table not there until Phase 5).
+- [x] sql/025 + sql/026 applied to x-core 2026-09-30 (Xaviel's OK; HTTP 201 each); `types:gen` regenerated
+  `lib/cloud/database.types.ts` (+252 lines); tsc + jest green (1324).
+- [x] verify-x-core **32/32** (new 29–32) · verify-sync **24/24** (new 21–23) · sql/999 cleanup (0 leftover
+  profiles) · the verifier's feedback screenshots removed through the Storage API (3 objects, `0000feed-` only).
+- [x] Merged to main (web deploy; all six 2.4 flags off).
+
+### Notes closed
+- None (groundwork for 1, 3, 5, 6, 10, 15).
+
+### Notes for the next phase
+- Phase 3A (language): move the domain modules' Spanish constants (price sources, event types/severities,
+  memory sections, tire badges/messages) into `lib/i18n/es.ts` with their en twins; `app_language` is reserved.
+- Phase 3B (skeletons): nothing from here blocks it.
+- `.env.supabase` is not shell-sourceable — read `ACCESS_TOKEN` / `SERVICE_ROLE_KEY` by pattern, never `.` it.
 

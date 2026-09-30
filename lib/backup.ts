@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 
 import { enqueue, getDb } from './db/client';
 import { LATEST_VERSION } from './db/migrations';
+import { adoptLegacyPrices } from './db/migrationV8';
 import { ALL_TABLES, settings as settingsRepo } from './db/repos';
 import { fuelForStorage, tankForStorage } from './domain/units';
 import { importTuCombustible, type ImportCounts } from './import/tucombustible';
@@ -177,6 +178,16 @@ export async function restoreV2(backup: BackupV2): Promise<RestoreCounts> {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         [s.key, s.value, s.updatedAt],
       );
+    }
+
+    // A backup from before v8 (2.3.x) carries its prices as two settings and its
+    // accidents as a milestone kind: move them the way migration v8 does — prices
+    // only when this database has none of its own yet.
+    if ((backup.schemaVersion ?? 0) < 8) {
+      await db.runAsync(
+        `UPDATE milestone SET event_type = 'accidente', severity = 'moderado' WHERE kind = 'accidente' AND event_type = 'hito'`,
+      );
+      await adoptLegacyPrices(db);
     }
   });
 

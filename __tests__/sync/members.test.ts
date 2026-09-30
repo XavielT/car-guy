@@ -47,7 +47,7 @@ it('viewers do not push; photos of a car go under v/<vehicle_id>/', () => {
 
 it('updated_by goes to exactly the tables that have it in sql/009 + sql/013 + sql/019', () => {
   const { readFileSync } = jest.requireActual('node:fs') as typeof import('node:fs');
-  const v2 = readFileSync('sql/009_schema_v2.sql', 'utf8') + readFileSync('sql/019_schema_v3.sql', 'utf8');
+  const v2 = readFileSync('sql/009_schema_v2.sql', 'utf8') + readFileSync('sql/019_schema_v3.sql', 'utf8') + readFileSync('sql/025_schema_v4.sql', 'utf8');
   const v1 = readFileSync('sql/013_members.sql', 'utf8');
   const withCol = new Set<string>();
   for (const m of v2.matchAll(/create table if not exists carguy\.(\w+)\s*\(([\s\S]*?)\n\);/g)) if (/updated_by/.test(m[2])) withCol.add(m[1]);

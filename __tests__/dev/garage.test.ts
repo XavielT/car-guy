@@ -10,6 +10,11 @@ import type { TestDb } from '../helpers/sqlite';
 import { buildBackup } from '@/lib/backup';
 import { seedCatalog } from '@/lib/db/seed';
 import { GARAGE_IDS, seedRealGarage } from '@/lib/dev/garage';
+import { fuelPrices, milestones, specsheets, tires, vehicleFacts } from '@/lib/db/repos';
+import { referencePricesNow } from '@/lib/db/priceOps';
+import { carMemory, suggestionsFor } from '@/lib/domain/carMemory';
+import { pendingEvents } from '@/lib/domain/events';
+import { badgesFor, messagesFor, tireStats } from '@/lib/domain/tireStats';
 
 jest.mock('@/lib/db/client', () => {
   const helpers = require('../helpers/sqlite');
@@ -81,7 +86,7 @@ describe('seedRealGarage', () => {
     expect(backup.version).toBe(2);
     expect(backup.tables.vehicle).toHaveLength(4);
     expect(backup.tables.mod).toHaveLength(5);
-    expect(backup.tables.tire).toHaveLength(4);
+    expect(backup.tables.tire).toHaveLength(14); // 4 mounted + 10 over two years (v8 seed)
     expect(backup.tables).not.toHaveProperty('dtc_code');
   });
 });
@@ -158,3 +163,42 @@ describe('seedRealGarage — schema v2', () => {
     expect(feed).toContainEqual({ kind: 'hito', title: 'Swap 4A-GE 20V' });
   });
 });
+
+describe('seedRealGarage — schema v8 (IMP 30092026 Phase 2)', () => {
+  it('writes the three events; the accident and the mirror are pending', async () => {
+    const rows = await milestones.list();
+    const events = rows.filter((m) => m.eventType !== 'hito');
+    expect(events.map((e) => e.eventType).sort()).toEqual(['accidente', 'dano_menor', 'sobrecalentamiento']);
+    expect(pendingEvents(rows, GARAGE_IDS.c3).map((e) => e.pending)).toEqual(['pintar el guardafango']);
+    expect(pendingEvents(rows, GARAGE_IDS.ds3)).toHaveLength(1);
+  });
+
+  it('gives the Trueno four facts and the DS3 what it actually gets', async () => {
+    const facts = await vehicleFacts.list(GARAGE_IDS.ae85);
+    expect(facts.map((f) => f.label)).toEqual(expect.arrayContaining(['Código de radio', 'Torque tapa de válvulas']));
+    expect(facts).toHaveLength(4);
+    const ds3 = await specsheets.getById(GARAGE_IDS.ds3);
+    const memory = carMemory(ds3 as never, []);
+    expect(JSON.stringify(memory)).toContain('Castrol Edge');
+    const oil = suggestionsFor('aceite_motor', ds3 as never);
+    expect(oil?.summary).toContain('Fram PH6607');
+  });
+
+  it('six weeks of prices, the board on the newest', async () => {
+    const rows = await fuelPrices.list();
+    expect(new Set(rows.map((r) => r.validFrom)).size).toBe(6);
+    const board = await referencePricesNow();
+    expect(board.referencePrices.regular).toBeGreaterThan(300);
+    expect(board.priceWeekLabel).toMatch(/2026 \(Manual\)$/);
+  });
+
+  it('the Trueno has 14 tires over two years for tireStats to count', async () => {
+    const all = await tires.list(GARAGE_IDS.ae85);
+    const stats = tireStats(all as never, null, GARAGE_IDS.ae85, { now: TODAY });
+    expect(stats.total).toBe(14);
+    expect(stats.byStatus.quemada).toBe(6);
+    expect(badgesFor(stats).filter((b) => b.earned).length).toBeGreaterThanOrEqual(2);
+    expect(messagesFor(stats)[0]).toMatch(/^14 gomas/);
+  });
+});
+

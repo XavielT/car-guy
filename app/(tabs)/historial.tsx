@@ -298,7 +298,7 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
     router.push({ pathname: '/mod/[id]', params: { id: entry.id } });
     return;
   }
-  if (entry.kind === 'hito') {
+  if (entry.kind === 'hito' || entry.kind === 'evento') {
     router.push({ pathname: '/hito/[id]', params: { id: entry.id } });
     return;
   }

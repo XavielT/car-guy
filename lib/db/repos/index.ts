@@ -1,9 +1,14 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { id as newId } from '../../format';
+import { FEATURE_EVENTS } from '../../flagsV8';
 import { FUEL_CATALOG } from '../../fuel';
 import { enqueue, getDb, now } from '../client';
 import type {
+  FuelPrice,
+  FuelPriceRef,
+  LegalAcceptance,
+  VehicleFact,
   AlbumItem,
   ConsumableUsage,
   Contact,
@@ -115,9 +120,14 @@ export const vehicleShares = makeRepo<VehicleShare>({
     'showDocs',
     'showStatus',
     'showStory',
+    'showTires',
   ],
 });
 export const vehicleMembers = makeRepo<VehicleMember>({ table: 'vehicle_member' });
+// v8
+export const fuelPrices = makeRepo<FuelPrice>({ table: 'fuel_price' });
+export const vehicleFacts = makeRepo<VehicleFact>({ table: 'vehicle_fact' });
+export const legalAcceptances = makeRepo<LegalAcceptance>({ table: 'legal_acceptance' });
 
 const specsheetsBase = makeRepo<VehicleSpecsheet>({ table: 'vehicle_specsheet' });
 
@@ -351,6 +361,11 @@ export const settings = {
   },
 };
 
+/** An 'evento' feed row read the way 2.3 read it: a 'hito' whose subtitle is the milestone kind, no amount. */
+function asMilestone(r: Record<string, unknown>): Record<string, unknown> {
+  return { ...r, kind: 'hito', subtitle: String(r.subtitle ?? '').split('|')[0], amount_dop: null };
+}
+
 export const history = {
   /** The unified timeline, straight off the view. */
   async feed(
@@ -362,8 +377,10 @@ export const history = {
     const params: unknown[] = [vehicleId];
 
     if (opts.kinds?.length) {
-      clauses.push(`kind IN (${opts.kinds.map(() => '?').join(', ')})`);
-      params.push(...opts.kinds);
+      // Events are milestones until their screens ship (history_feed v6, FEATURE_EVENTS).
+      const kinds = !FEATURE_EVENTS && opts.kinds.includes('hito') ? [...opts.kinds, 'evento'] : opts.kinds;
+      clauses.push(`kind IN (${kinds.map(() => '?').join(', ')})`);
+      params.push(...kinds);
     }
     if (opts.from) {
       clauses.push('occurred_at >= ?');
@@ -402,7 +419,7 @@ export const history = {
       : all;
     const rows = wanted && opts.limit ? matched.slice(0, Number(opts.limit)) : matched;
 
-    return rows.map((r) => ({
+    return rows.map((r) => (!FEATURE_EVENTS && r.kind === 'evento' ? asMilestone(r) : r)).map((r) => ({
       id: r.id as string,
       vehicleId: r.vehicle_id as string,
       kind: r.kind as HistoryEntry['kind'],
@@ -507,4 +524,8 @@ export const ALL_TABLES = [
   // schema v6. trip_point and trip_state are local scratch, not user history,
   // so they are neither backed up nor listed here (lib/db/reset.ts clears them).
   'trip',
+  // schema v8. fuel_price_ref is a cache of the cloud's MICM rows — not user data, not here.
+  'fuel_price',
+  'vehicle_fact',
+  'legal_acceptance',
 ] as const;

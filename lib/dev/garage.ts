@@ -12,6 +12,8 @@ import {
   specsheets as specsheetRepo,
   tasks as taskRepo,
   tires as tireRepo,
+  fuelPrices as priceRepo,
+  vehicleFacts as factRepo,
   trackEvents as trackEventRepo,
   vehicleOwnership as ownershipRepo,
   vehicles as vehicleRepo,
@@ -22,7 +24,7 @@ import { seedVehicleDefaults } from '@/lib/db/seed';
 import { trips as tripRepo } from '@/lib/db/tripOps';
 import { saveInspection } from '@/lib/db/inspectionOps';
 import { measurePads, saveEvent, saveSession, setTireUsed } from '@/lib/db/trackQueries';
-import type { ExpenseCategory, Mod, Task, Vehicle } from '@/lib/db/types';
+import type { ExpenseCategory, Mod, Task, Tire, Vehicle, VehicleFactGroup } from '@/lib/db/types';
 import { id as newId } from '@/lib/format';
 
 /**
@@ -157,6 +159,8 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
   if (await vehicleRepo.getById(GARAGE_IDS.ae85)) {
     // A garage seeded before Phase 6 still gets its drift day.
     if (!(await trackEventRepo.getById(TRACK_EVENT_ID))) return ['El garaje ya estaba sembrado; se agregó el drift day.', ...(await seedTrack(at))];
+    // …and one seeded before 2.4 gets the v8 data (events, facts, prices, tires).
+    if (!(await factRepo.getById('dev_fact_radio'))) return ['El garaje ya estaba sembrado; se agregó lo de la 2.4.', ...(await seedV8(at, today))];
     return ['El garaje ya está sembrado (AE85 existe). No se tocó nada.'];
   }
 
@@ -367,7 +371,135 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
 
   lines.push(...(await seedBuildAndMemory(at, radiatorRecordId)));
   lines.push(...(await seedTrack(at)));
+  lines.push(...(await seedV8(at, today)));
   return lines;
+}
+
+/**
+ * Schema v8's data (IMP 30092026 Phase 2), so the 2.4 screens have something
+ * to show: the three events of the brief (the C3's accident, the DS3's
+ * overheat without damage, the mirror a motorbike broke), four facts on the
+ * Trueno, what the DS3 actually gets at the parts store, six weeks of prices
+ * and the Trueno's tire history. Costs, part numbers and prices are
+ * illustrative — **Fram PH6607 is a made-up part number**, the radio code is
+ * invented, and the price weeks are not the MICM's figures.
+ */
+async function seedV8(at: (daysAgo: number) => string, today: Date): Promise<string[]> {
+  const { ae85, ds3, c3 } = GARAGE_IDS;
+
+  // Events (ADR-44). The accident was a plain milestone before v8.
+  await milestoneRepo.upsert({
+    id: 'dev_ms_choque',
+    eventType: 'accidente',
+    severity: 'moderado',
+    costDop: 45_000,
+    pending: 'pintar el guardafango',
+    locationLabel: 'Av. 27 de Febrero',
+  });
+  await milestoneRepo.upsert({
+    id: 'dev_ev_overheat',
+    vehicleId: ds3,
+    kind: 'otro',
+    eventType: 'sobrecalentamiento',
+    severity: 'leve',
+    occurredAt: at(40),
+    title: 'Se calentó en el tapón',
+    story: 'La aguja subió en el tapón de la Kennedy; paré, enfrió y siguió. Sin daños.',
+    costDop: null,
+    pending: '',
+    resolvedAt: at(40),
+    locationLabel: 'Av. John F. Kennedy',
+  });
+  await milestoneRepo.upsert({
+    id: 'dev_ev_espejo',
+    vehicleId: ds3,
+    kind: 'otro',
+    eventType: 'dano_menor',
+    severity: 'leve',
+    occurredAt: at(12),
+    title: 'Un motor me rompió el retrovisor',
+    story: '',
+    costDop: 3_500,
+    pending: 'cambiar el retrovisor izquierdo',
+    locationLabel: '',
+  });
+
+  // The car's memory: facts on the Trueno …
+  const facts: [string, string, string, string][] = [
+    ['dev_fact_radio', 'Código de radio', '4417', 'electrico'],
+    ['dev_fact_valvetorque', 'Torque tapa de válvulas', '8 N·m, en cruz', 'motor'],
+    ['dev_fact_firing', 'Orden de encendido', '1-3-4-2', 'motor'],
+    ['dev_fact_lug', 'Llave de las tuercas', '21 mm', 'gomas'],
+  ];
+  for (const [i, [id, label, value, groupName]] of facts.entries()) {
+    await factRepo.upsert({ id, vehicleId: ae85, label, value, groupName: groupName as VehicleFactGroup, sortOrder: i });
+  }
+  // … and what the DS3 actually gets.
+  await specsheetRepo.upsertForVehicle(ds3, {
+    oilBrand: 'Castrol Edge',
+    oilProduct: '5W-30 Full Synthetic 1 gal',
+    oilFilterBrand: 'Fram',
+    oilFilterPn: 'PH6607',
+    wiperSizes: '26/16',
+    bulbLow: 'H7',
+    bulbHigh: 'H1',
+    whereBought: 'Repuestos del barrio / Amazon',
+  });
+
+  // Six weeks of prices, entered by hand (the MICM import is Phase 5).
+  const saturday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 1) % 7), 12);
+  const base = { premium: 341.1, regular: 307.5, gasoil_regular: 259.8, gasoil_optimo: 293.1, glp: 135.2, gnv: 43.97 };
+  const step = [0, 0, 2.1, 2.1, -1.5, 0];
+  for (let week = 5; week >= 0; week--) {
+    const start = new Date(saturday.getFullYear(), saturday.getMonth(), saturday.getDate() - week * 7, 12);
+    const validFrom = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    const delta = step.slice(0, 6 - week).reduce((a, b) => a + b, 0);
+    for (const [fuelType, price] of Object.entries(base)) {
+      const moved = fuelType === 'glp' || fuelType === 'gnv' ? price : Math.round((price + delta) * 10) / 10;
+      await priceRepo.upsert({ id: `dev_price_${validFrom}_${fuelType}`, fuelType, price: moved, validFrom, source: 'manual', station: '', note: '' });
+    }
+  }
+
+  // The Trueno's tires, two years of them (ADR-45's counters need a history).
+  const history: [string, string, Tire['status'], number, number, string, number][] = [
+    // id suffix, brand, status, DOT week, DOT year, bought, cost
+    ['h1', 'Federal', 'quemada', 12, 2024, '2024-10-05', 5_500],
+    ['h2', 'Federal', 'quemada', 12, 2024, '2024-10-05', 5_500],
+    ['h3', 'Federal', 'quemada', 30, 2024, '2025-01-18', 5_800],
+    ['h4', 'Federal', 'quemada', 30, 2024, '2025-01-18', 5_800],
+    ['h5', 'Nankang', 'quemada', 8, 2025, '2025-04-12', 6_200],
+    ['h6', 'Nankang', 'quemada', 8, 2025, '2025-04-12', 6_200],
+    ['h7', 'Nankang', 'vendida', 20, 2025, '2025-06-21', 6_200],
+    ['h8', 'Nankang', 'vendida', 20, 2025, '2025-06-21', 6_200],
+    ['h9', 'Achilles', 'guardada', 44, 2025, '2026-02-07', 6_900],
+    ['h10', 'Achilles', 'nueva', 30, 2026, '2026-09-05', 7_400],
+  ];
+  for (const [suffix, brand, status, dotWeek, dotYear, bought, costDop] of history) {
+    await tireRepo.upsert({
+      id: `dev_tire_${suffix}`,
+      vehicleId: ae85,
+      wheelSetId: null,
+      brand,
+      size: '195/50R15',
+      widthMm: 195,
+      aspect: 50,
+      rimIn: 15,
+      dotCode: `${String(dotWeek).padStart(2, '0')}${String(dotYear).slice(2)}`,
+      dotWeek,
+      dotYear,
+      position: 'unmounted',
+      status,
+      purchasedAt: `${bought}T12:00:00.000Z`,
+      costDop,
+      heatCycles: status === 'quemada' ? 6 : 0,
+    });
+  }
+
+  return [
+    'Eventos: choque (C3, pendiente pintar), se calentó (DS3), retrovisor (DS3)',
+    'Memoria: 4 datos en el AE85 · DS3 usa Castrol Edge 5W-30 + Fram PH6607 (número inventado)',
+    '6 semanas de precios (a mano) · AE85: 14 gomas en 2 años',
+  ];
 }
 
 /**

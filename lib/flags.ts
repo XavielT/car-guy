@@ -56,6 +56,9 @@ export const FEATURE_GARAGE_V2 = true;
 /** Animated launch (ADR-36): components/LaunchOverlay.tsx over the native splash — PROMPT-06. */
 export const FEATURE_LAUNCH_ANIM = true;
 
+// IMP 30092026 (2.4 "Tōge"): ./flagsV8.ts — no imports, so the data layer can read them.
+export * from './flagsV8';
+
 /**
  * True when the app is running from a dev server. `__DEV__` is inlined by
  * Metro, so a production bundle drops the branches that read it entirely.
