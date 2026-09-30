@@ -27,6 +27,7 @@ import { es } from '@/lib/i18n/es';
 import { configure as configureNotifications, requestResync, routeOf } from '@/lib/notifications';
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
+import { useTripService } from '@/lib/trips/useTripService';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -184,6 +185,7 @@ function Shell() {
   const { theme, scheme } = useTheme();
   useNotifications();
   useSyncTriggers();
+  useTripService();
 
   // The shell only renders once the database opened, so reaching here is the
   // proof that the boot succeeded — and the only place that can honestly give

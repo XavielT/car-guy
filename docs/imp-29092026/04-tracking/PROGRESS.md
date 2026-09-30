@@ -4,7 +4,7 @@ Claude Code appends a report per phase (block in `00-context/04-conventions.md` 
 sections plus *Design check*, *Flags flipped*, *Notes closed*). "Notes for the next phase" carry
 context between sessions.
 
-**Started:** 2026-09-29 · **Status:** Phase 4 done (branch `imp-29092026/phase-4-fuel`)
+**Started:** 2026-09-29 · **Status:** Phase 5A done on web · 5B code done, device run pending (branch `imp-29092026/phase-5-viajes`)
 
 ## Phase status
 
@@ -15,8 +15,8 @@ context between sessions.
 | 2 | Schema v6 + liters + refdata | ✅ | `imp-29092026/phase-2-schema-v6` | migration v6, liters (canary green), trip table, statuses, refdata, sql/019–020 applied; native check pending (no AVD) |
 | 3 | Forms v2 | ✅ | `imp-29092026/phase-3-forms` | pickers, gallery, statuses, oil, check photos + atención; web verified, Android pending |
 | 4 | Carga parcial | ✅ | `imp-29092026/phase-4-fuel` | gauge estimates with bands, reconciliation, chart styles, CSV estado; web verified |
-| 5A | Viajes — manual + live | ⬜ | | |
-| 5B | Viajes — automático | ⬜ | | |
+| 5A | Viajes — manual + live | ✅ | `imp-29092026/phase-5-viajes` | manual trips, speed cluster, trip screens, odometer estimate; web verified, Redmi walk test pending |
+| 5B | Viajes — automático | 🟡 | `imp-29092026/phase-5-viajes` | task + engine + arming + permisos/MIUI + thresholds; tests green; device run and drive pending |
 | 6 | Garaje v2 · launch · versiones · comentarios · costos | ⬜ | | |
 | 7 | Web APK · portfolio · release 2.2.0 | ⬜ | | |
 
@@ -26,8 +26,8 @@ context between sessions.
 
 | # | Note | Closed in | Status |
 |---|---|---|---|
-| 1 | Wheelz-style trips | 5A/5B | ⬜ |
-| 2 | Live speed on the home cluster | 5A | ⬜ |
+| 1 | Wheelz-style trips | 5A/5B | 🟡 manual half (5A) ✅; automatic built (5B), closes with Xaviel's drive |
+| 2 | Live speed on the home cluster | 5A | ✅ SpeedCluster on Inicio while a trip records |
 | 3 | Photos on check issues / new parts, in history | 3 | ✅ ≤5 photos on falla/atención, 📷 N in Historial, CHEQUEO card in the album |
 | 4 | Carga parcial | 4 | ✅ |
 | 5 | Historial de versiones | 6 | ⬜ |
@@ -44,7 +44,7 @@ context between sessions.
 | 16 | Oil types picker | 3 | ✅ |
 | 17 | APK from the web page | 1 (name) + 7 | 🟡 stable `car-guy.apk` asset from 2.1.3; the web button is Phase 7 |
 | 18 | Folder rename | 0 (manual) | ✅ path check done (still `tu-gasolina-rd`); the rename itself is Xaviel's |
-| 19 | Where trips live in the app | 5A | ⬜ |
+| 19 | Where trips live in the app | 5A | ✅ Más → Viajes, hub tab, Historial rows, Cifras block, Inicio row |
 
 ## Audit corrections (Phase 0)
 
@@ -510,4 +510,91 @@ Built by me plus two helper agents working on separate files (oil; check photos)
 ### Notes for the next phase
 - Phase 5 (viajes) may feed trip_estimate odometer readings; partialEconomy only reads fill-ups, so trips
   do not change economy numbers.
+
+## Phase 5A — Viajes: manual + live   (branch `imp-29092026/phase-5-viajes`)
+
+**Status:** complete on web (Redmi walk test pending — see below)
+**Commits:** `feat(imp-29092026 phase 5A): manual trips, live speed cluster, trip screens` (da2c7da) ·
+`docs(imp-29092026): Phase 5A/5B report` (written after a laptop crash; the code commit was intact)
+
+### Changed
+- expo-location, expo-task-manager, expo-keep-awake; app.json plugin with background location and the
+  foreground service already on, so Part B needed no second native change; notification icon.
+- `lib/trips/geo.ts`, `machine.ts` (ADR-28 state machine incl. auto start/stop/merge/adopt, JSON state),
+  `finalize.ts`, `liveStore.ts`, `odometer.ts`, `present.ts`; GPX fixture `docs/imp-29092026/fixtures/
+  drive-synthetic.gpx` (tools/gen-drive-gpx.mjs) + replay tests.
+- `components/ui/SpeedCluster.tsx`: 0–200 dial, red from `limit_kmh`, shared-value needle, LCD km / tiempo /
+  media / máx, GPS · REC · PASAJERO, "GPS · no sustituye el velocímetro"; Inicio crossfade, "Iniciar viaje".
+- Screens: /viajes, /viaje/[id], /viajes/ajustes, /viajes/permisos; hub tab, Más row, Historial rows, Cifras
+  block with DR equivalences. ADR-30 trip_estimate odometer readings ("≈" on the LCD). Purge of points
+  > 30 days at launch. FEATURE_TRIPS on in dev and in the test variant.
+- Android fixes from the Redmi run: sheets above the keyboard, year wheel, hub pill, partial-fill copy.
+
+### Acceptance criteria
+- [x] Tests: geo, machine (start, lights, real stop, gap, jumps, merge, discard), live store, odometer clamp,
+  GPX replay.
+- [x] Web: start/stop/list/detail render (`docs/qa/imp-29092026-phase-5a-web-speed-cluster.png`,
+  `…-web-trip-detail.png`).
+- [ ] Emulator GPX playback — no AVD on this laptop (disk 88 %); the GPX replay runs in the tests instead.
+- [ ] Redmi: manual trip + 300 m walk → "Viaje muy corto" toast. The test build with the location plugin was
+  installed (2026-09-29 19:35) but location was never granted — the laptop crashed there.
+
+### Flags flipped
+- FEATURE_TRIPS: dev + test variant only (the release build keeps it off until 5B's drive).
+
+### Notes closed
+- 2, 19, and the manual half of 1.
+
+## Phase 5B — Viajes: automático   (branch `imp-29092026/phase-5-viajes`)
+
+**Status:** code and tests done; device run + Xaviel's drive pending
+**Commits:** `feat(imp-29092026 phase 5B): automatic trips — background task, arming, permisos, MIUI`
+
+### Changed
+- `lib/trips/engine.ts` (new): the single door into the machine. Every input — the task's batches, the
+  foreground watcher, Iniciar / Terminar, ticks — goes through one serialized `feed()`; the state is read
+  from `trip_state` each call, config = defaults + `trips_thresholds`, auto detection only in Automático;
+  automatic trips go to the active vehicle (else the first); keeps the live store in step (a trip opened in
+  the background appears on the cluster; `hydrateLive`).
+- `lib/trips/task.ts` (+ `task.web.ts` no-op): `defineTask('carguy-trip-location')` at module scope, fixes →
+  `feed` → `switchIntensity`. New entry `index.ts` imports it before `expo-router/entry` (package.json main).
+- `lib/trips/auto.ts`: `armAuto` (foreground only, idempotent, picks vigilando/grabando from the machine's
+  phase), `disarmAuto` (closes an open automatic trip first), `switchIntensity` with ADR-27's fallback,
+  `autoReadiness` (web / unavailable / foreground / background / approximate / ready). Options: vigilando
+  Balanced 15 s / 50 m / batched 60 s; grabando BestForNavigation 1 s / **0 m** (a parked car keeps sending
+  fixes so the 4-min stop rule runs in the background) / batched 10 s; single High 2 s / 10 m. Notification
+  "Car Guy · Detección automática de viajes activa" / "Viaje en curso · grabando ruta", #E10600,
+  killServiceOnDestroy false.
+- `lib/trips/live.ts` rewritten on the engine: Solo manual keeps its 1 Hz watcher; with Automático armed the
+  task is the only GPS source (no double feed) and Iniciar/Terminar switch its intensity; a manual trip the
+  app was closed in the middle of resumes its watcher on reopen.
+- `lib/trips/useTripService.ts` in the shell: on open and on every return to the foreground — arm, tick a
+  parked automatic trip, put an open trip back on the cluster.
+- Permisos: Automático card (foreground → "todo el tiempo" → re-check on return → mode auto + arm; coarse-
+  only warning), MIUI checklist on Xiaomi/Redmi/POCO (`Platform.constants`, no new dependency).
+- Ajustes: Automático · Solo manual · Apagado (web: no Automático); choosing Automático without the permission
+  opens Permisos; mode locked while a trip records; readiness line, battery note, MIUI card; Avanzado:
+  start km/h, start samples, stop minutes, min distance, merge window (empty = default).
+- Inicio: "Automático ✓ · graba solo cuando manejas, o inícialo tú." under Iniciar viaje.
+
+### Acceptance criteria
+- [x] `__tests__/trips/task.test.ts` (fake TaskManager + expo-location, real SQLite): task defined at module
+  scope; arm/disarm idempotent and only in Automático; the GPX drive in background batches → one auto trip,
+  2 segments (5-min stop merged on resume), 11.5–12.5 km, done after parking, intensities Balanced → Nav →
+  Balanced → Nav → Balanced; Iniciar while watching → one manual trip fed by the task; leaving Automático
+  closes the open trip; a failed background switch → single configuration for good.
+- [x] tsc, lint, 1079 tests, web export.
+- [ ] Redmi: background + screen off, notification renders in #E10600, kill from Recents, re-arm on open.
+- [ ] Xaviel's drive (manual checklist, Phase 5): no split at lights, battery at night.
+- [ ] ADR-27 decision (reconfigure vs single) — by the device test; the code decides by itself if the
+  background switch throws (`trips_single_config`).
+
+### Decisions made (defaults applied)
+- One engine for manual and automatic instead of a separate task path: the task, the watcher and the buttons
+  can never hold two machine states or feed a fix twice.
+- An automatic trip goes to the vehicle on Inicio; Pasajero is set afterwards in the trip's options.
+- Leaving Automático with a trip open finalizes it (reason manual) rather than abandoning it.
+
+### Flags flipped
+- none yet (FEATURE_TRIPS for release waits for the drive).
 

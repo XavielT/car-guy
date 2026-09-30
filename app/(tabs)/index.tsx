@@ -247,7 +247,7 @@ export default function HomeScreen() {
         { text: es.common.cancel, style: 'cancel' },
         { text: es.trips.openSettings, onPress: () => void Linking.openSettings() },
       ]);
-    } else notify(es.trips.needPermission);
+    } else if (result.reason !== 'busy') notify(es.trips.needPermission);
   };
   const finishTrip = async () => {
     const result = await stopTrip();
@@ -397,7 +397,7 @@ export default function HomeScreen() {
                 {es.trips.start}
               </T>
               <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                {es.trips.startHint}
+                {tripsModeNow === 'auto' ? es.trips.startHintAuto : es.trips.startHint}
               </T>
             </View>
           </Pressable>

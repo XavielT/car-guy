@@ -14,6 +14,7 @@ import { Alert } from '@/lib/alert';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
+import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
 import type { Fix } from '@/lib/trips/geo';
 import {
   BUCKET_COLORS,
@@ -141,6 +142,60 @@ export function useLocationPermission() {
   };
 
   return { state, canAsk, ask, check };
+}
+
+/**
+ * Whether Automático can run on this phone (Part B), re-read on return from
+ * the system settings — where Android 11+ sends the user for "todo el tiempo".
+ */
+export function useAutoReadiness() {
+  const [state, setState] = useState<AutoReadiness | null>(null);
+  const check = () =>
+    autoReadiness().then(
+      (r) => {
+        setState(r);
+        return r;
+      },
+      () => {
+        setState('unavailable');
+        return 'unavailable' as const;
+      },
+    );
+  useEffect(() => {
+    void check();
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && void check());
+    return () => sub.remove();
+  }, []);
+  return { state, check };
+}
+
+/** Xiaomi, Redmi and POCO phones run MIUI/HyperOS, which kills background apps by default. */
+export function isMiuiPhone(): boolean {
+  if (Platform.OS !== 'android') return false;
+  const c = Platform.constants as { Manufacturer?: string; Brand?: string };
+  return /xiaomi|redmi|poco/i.test(`${c.Manufacturer ?? ''} ${c.Brand ?? ''}`);
+}
+
+/** The three MIUI steps (research 01 §1.7), with a button to the app's settings. */
+export function MiuiChecklist() {
+  const { theme } = useTheme();
+  if (!isMiuiPhone()) return null;
+  return (
+    <Surface padded style={{ gap: space.sm, marginTop: space.md }}>
+      <T face="title" style={{ color: theme.text.primary, fontSize: 16, textTransform: 'uppercase' }}>
+        {es.trips.miuiTitle}
+      </T>
+      <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
+        {es.trips.miuiIntro}
+      </T>
+      {es.trips.miuiSteps.map((step, i) => (
+        <T key={step} face="body" style={{ color: theme.text.primary, fontSize: 14, lineHeight: 20 }}>
+          {`${i + 1}. ${step}`}
+        </T>
+      ))}
+      <GhostButton label={es.trips.openSettings} onPress={() => void Linking.openSettings()} />
+    </Surface>
+  );
 }
 
 const dayLabel = (iso: string) =>
