@@ -307,3 +307,34 @@ describe('stats', () => {
     expect(s.speedBuckets[4]).toBe(0); // never over 120
   });
 });
+
+describe('dropExcursions (a track flipping between two position sources)', () => {
+  const { cleanTrack: clean, stats: st } = jest.requireActual('@/lib/trips/geo') as typeof import('@/lib/trips/geo');
+  // A straight drive east at ~15 m/s, one fix every 10 s (≈150 m apart).
+  const drive = Array.from({ length: 30 }, (_, i) => ({ t: i * 10_000, lat: 18.45, lng: -69.97 + i * 0.00142, speed: 15, acc: 5, alt: null, heading: null }));
+
+  it('drops a detour to a place ~3 km away and back, however slow each leg', () => {
+    // Batched fixes a minute apart (vigilando): 2.8 km out in 60 s is 46 m/s — under the
+    // 70 m/s jump filter, over what any car turns around at.
+    const slow = drive.map((p, i) => ({ ...p, t: i * 60_000 }));
+    const noisy = slow.slice();
+    for (const k of [10, 11, 12]) noisy[k] = { ...noisy[k], lat: 18.475 };
+    const { isJump: jump } = jest.requireActual('@/lib/trips/geo') as typeof import('@/lib/trips/geo');
+    expect(jump(noisy[9], noisy[10])).toBe(false); // the old rule alone keeps it
+    const kept = clean(noisy);
+    expect(kept.some((p) => p.lat === 18.475)).toBe(false);
+    expect(st(noisy).distanceM).toBeLessThan(st(slow).distanceM * 1.05);
+  });
+
+  it('keeps a real U-turn (a retorno) at city speed', () => {
+    const uturn = [
+      ...Array.from({ length: 10 }, (_, i) => ({ t: i * 10_000, lat: 18.45, lng: -69.97 + i * 0.00095, speed: 10, acc: 5, alt: null, heading: null })),
+      ...Array.from({ length: 10 }, (_, i) => ({ t: (10 + i) * 10_000, lat: 18.4501, lng: -69.97 + (9 - i) * 0.00095, speed: 10, acc: 5, alt: null, heading: null })),
+    ];
+    expect(clean(uturn)).toHaveLength(uturn.length);
+  });
+
+  it('leaves a normal drive alone', () => {
+    expect(clean(drive)).toHaveLength(drive.length);
+  });
+});

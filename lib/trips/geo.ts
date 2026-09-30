@@ -321,6 +321,53 @@ export function cleanTrack<T extends Fix>(points: readonly T[], cfg: Partial<Tra
     }
     out.push(p);
   }
+  return dropExcursions(out);
+}
+
+/** An excursion leaves the track by more than this… */
+const EXCURSION_MIN_M = 300;
+/** …at a speed no car turns around at (144 km/h)… */
+const EXCURSION_SPEED_MS = 40;
+/** …and comes back within this share of how far it went, within this many fixes. */
+const EXCURSION_RETURN = 0.5;
+const EXCURSION_MAX_FIXES = 12;
+
+/**
+ * Drops out-and-back excursions: from fix A the track leaves by more than
+ * EXCURSION_MIN_M at over EXCURSION_SPEED_MS and, within a few fixes, comes back
+ * near A. The per-fix jump filter lets these through when each leg is slow
+ * enough — a phone flipping between two position sources (GPS and a Wi-Fi fix
+ * across town) draws exactly that. A real U-turn is never that fast.
+ */
+export function dropExcursions<T extends Fix>(track: T[]): T[] {
+  const out: T[] = [];
+  let i = 0;
+  while (i < track.length) {
+    const a = out[out.length - 1];
+    const p = track[i];
+    if (a) {
+      const dOut = haversine(a, p);
+      const dt = (p.t - a.t) / 1000;
+      if (dOut > EXCURSION_MIN_M && dt > 0 && dOut / dt > EXCURSION_SPEED_MS) {
+        let far = dOut;
+        let back = -1;
+        for (let j = i + 1; j < Math.min(track.length, i + 1 + EXCURSION_MAX_FIXES); j++) {
+          const d = haversine(a, track[j]);
+          if (d < far * EXCURSION_RETURN) {
+            back = j;
+            break;
+          }
+          far = Math.max(far, d);
+        }
+        if (back > 0) {
+          i = back;
+          continue;
+        }
+      }
+    }
+    out.push(p);
+    i++;
+  }
   return out;
 }
 
