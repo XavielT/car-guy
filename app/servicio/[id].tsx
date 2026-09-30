@@ -17,6 +17,7 @@ import {
   tasks as taskRepo,
 } from '@/lib/db/repos';
 import type { Part, ServiceKind, ServiceRecord } from '@/lib/db/types';
+import { oilSummary } from '@/lib/domain/oil';
 import { dateLabel, km as fmtKm, money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { Alert } from '@/lib/alert';
@@ -51,7 +52,8 @@ export default function ServicioDetalleScreen() {
   const { refresh, data } = useStore();
 
   const [record, setRecord] = useState<ServiceRecord | null | undefined>(undefined);
-  const [itemNames, setItemNames] = useState<string[]>([]);
+  // Each item's name, and its oil line when it is an oil change (IMP 29092026 note 16).
+  const [itemLines, setItemLines] = useState<{ key: string; name: string; oil: string | null }[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [origin, setOrigin] = useState<Origin | null>(null);
@@ -72,8 +74,12 @@ export default function ServicioDetalleScreen() {
       if (cancelled) return;
 
       setRecord(row);
-      setItemNames(
-        items.map((i) => catalog.find((c) => c.id === i.serviceTypeId)?.name ?? i.serviceTypeId),
+      setItemLines(
+        items.map((i) => ({
+          key: i.id,
+          name: catalog.find((c) => c.id === i.serviceTypeId)?.name ?? i.serviceTypeId,
+          oil: oilSummary(i),
+        })),
       );
       setParts(partRows);
       setPhotoId(photos[0]?.id ?? null);
@@ -152,15 +158,22 @@ export default function ServicioDetalleScreen() {
           </T>
         ) : null}
 
-        {itemNames.length ? (
+        {itemLines.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
               {es.service.items}
             </T>
-            {itemNames.map((name) => (
-              <T key={name} face="body" style={{ color: theme.text.secondary, marginBottom: 4 }}>
-                · {name}
-              </T>
+            {itemLines.map((line) => (
+              <View key={line.key} style={{ marginBottom: 4 }}>
+                <T face="body" style={{ color: theme.text.secondary }}>
+                  · {line.name}
+                </T>
+                {line.oil ? (
+                  <T face="mono" style={{ color: theme.text.primary, fontSize: 13, marginLeft: space.md, marginTop: 2 }}>
+                    {es.oil.title} · {line.oil}
+                  </T>
+                ) : null}
+              </View>
             ))}
           </>
         ) : null}

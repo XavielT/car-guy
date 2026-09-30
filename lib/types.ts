@@ -59,6 +59,11 @@ export type FillUp = {
   station: string;
   notes: string;
   createdAt: string;
+  /** v6 (note 4): the fuel gauge before / after pumping, 0 = E … 8 = F. Optional like missedPrevious. */
+  gaugeBefore8?: number | null;
+  gaugeAfter8?: number | null;
+  /** The reserve light was on before pumping. */
+  inReserve?: boolean;
 };
 
 export const EXPENSE_CATEGORIES = [
@@ -102,6 +107,8 @@ export type Settings = {
   activeVehicleId: string | null;
   referencePrices: ReferencePrices;
   priceWeekLabel: string;
+  /** Cifras "Incluir estimados en el promedio" (setting economy_include_estimates, note 4). */
+  includeEstimates?: boolean;
 };
 
 export type AppData = {

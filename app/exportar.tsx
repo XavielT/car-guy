@@ -8,11 +8,15 @@ import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
 import { fuel as fuelRepo, history } from '@/lib/db/repos';
+import { fuelCfgFor } from '@/lib/domain/partialEconomy';
 import type { FuelLog, HistoryEntry } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { inRange, periodRanges, type PeriodKey } from '@/lib/domain/stats';
 import { deliverText } from '@/lib/export/deliver';
-import { exportFileName, fuelCsv, historyCsv } from '@/lib/export/csv';
+import { costsCsv, exportFileName, fuelCsv, historyCsv } from '@/lib/export/csv';
+import { garageOwnershipCost } from '@/lib/db/statsQueries';
+import type { GarageCost } from '@/lib/domain/costs';
+import { money } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -35,6 +39,20 @@ export default function ExportarScreen() {
   const [rows, setRows] = useState<HistoryEntry[]>([]);
   const [logs, setLogs] = useState<FuelLog[]>([]);
   const [busy, setBusy] = useState(false);
+  // Note 8: lifetime and garage-wide, so the period selector does not apply to it.
+  const [garage, setGarage] = useState<GarageCost | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    garageOwnershipCost()
+      .then((result) => {
+        if (!cancelled) setGarage(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const vehicleId = activeVehicle?.id;
 
@@ -58,12 +76,18 @@ export default function ExportarScreen() {
     };
   }, [vehicleId, period]);
 
-  async function run(kind: 'historial' | 'combustible') {
+  async function run(kind: 'historial' | 'combustible' | 'costos') {
     if (!activeVehicle) return;
     setBusy(true);
     try {
-      const content = kind === 'historial' ? historyCsv(rows) : fuelCsv(logs);
-      const name = exportFileName(kind, activeVehicle.name, todayIso());
+      const content =
+        kind === 'historial'
+          ? historyCsv(rows)
+          : kind === 'costos'
+            ? costsCsv(garage ?? (await garageOwnershipCost()))
+            : fuelCsv(logs, activeVehicle.detail?.volumeUnit ?? 'gal', fuelCfgFor(activeVehicle.detail));
+      // The costs file is the whole garage, so it is not named after one car.
+      const name = exportFileName(kind, kind === 'costos' ? 'garaje' : activeVehicle.name, todayIso());
       const result = await deliverText(content, name, 'text/csv', es.export.title);
 
       // No alert on 'shared': the share sheet is the feedback, and Android does
@@ -127,6 +151,19 @@ export default function ExportarScreen() {
               {es.export.rows(logs.length)}
             </T>
             <GhostButton label={action} onPress={() => run('combustible')} disabled={busy || !logs.length} />
+          </Surface>
+
+          <Surface>
+            <T face="title" style={[styles.cardTitle, { color: theme.text.primary }]}>
+              {es.costs.csv}
+            </T>
+            <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
+              {es.costs.csvCaption}
+            </T>
+            <T face="mono" style={[styles.count, { color: theme.text.muted }]}>
+              {garage ? money(garage.total) : '—'}
+            </T>
+            <GhostButton label={action} onPress={() => run('costos')} disabled={busy || !garage?.vehicles.length} />
           </Surface>
         </View>
 

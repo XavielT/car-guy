@@ -10,7 +10,7 @@
  *
  * Tombstones never reach here: the queries filter `deleted_at IS NULL`.
  */
-import { addMonths, dayKey, daysBetween } from './dates';
+import { addMonths, dayKey } from './dates';
 import { roundMoney } from './economy';
 
 /**
@@ -315,54 +315,9 @@ export function delta(current: number, previous: number): Delta {
   };
 }
 
-export type Ownership = {
-  purchasePrice: number;
-  soldPrice: number | null;
-  spend: number;
-  /** purchase − sold + everything spent. */
-  total: number;
-  monthsOwned: number;
-  /** Null until a month has passed; a one-week "cost per month" is a fiction. */
-  costPerMonth: number | null;
-};
-
-/**
- * What the car has cost in total, including what it lost in value.
- *
- * Only returned when a purchase price was recorded — without one the number is
- * just the running spend under a grander name, and the card says nothing the
- * KPI tiles have not already said.
- */
-export function totalCostOfOwnership(
-  vehicle: {
-    purchaseDate: string | null;
-    purchasePrice: number | null;
-    soldDate: string | null;
-    soldPrice: number | null;
-  },
-  spend: number,
-  today: string,
-): Ownership | null {
-  if (vehicle.purchasePrice == null || vehicle.purchasePrice <= 0) return null;
-
-  const sold = vehicle.soldPrice ?? null;
-  const total = roundMoney(vehicle.purchasePrice - (sold ?? 0) + spend);
-
-  // Owned until it was sold, or until today.
-  const start = vehicle.purchaseDate;
-  const end = vehicle.soldDate ?? today;
-  const days = start ? daysBetween(start, end) : 0;
-  const monthsOwned = Math.max(0, Math.floor(days / 30.44));
-
-  return {
-    purchasePrice: vehicle.purchasePrice,
-    soldPrice: sold,
-    spend: roundMoney(spend),
-    total,
-    monthsOwned,
-    costPerMonth: monthsOwned >= 1 ? roundMoney(total / monthsOwned) : null,
-  };
-}
+// What the car has cost in total (purchase − sale + everything spent) lives in
+// `lib/domain/costs.ts#ownershipCost` — one function, one number (IMP 29092026
+// note 8). The old `totalCostOfOwnership` that sat here was replaced by it.
 
 export type UpcomingCost = {
   id: string;

@@ -123,6 +123,29 @@ describe('the page HTML', () => {
     expect(renderDossierHtml(d, { url: 'x' })).toContain('RD$ 14,500');
     expect(html).not.toContain('RD$');
   });
+
+  // IMP 29092026 note 8: "lo que me ha costado" rides the same "costos" switch.
+  it('shows "lo que ha costado" only with costos on', () => {
+    const costs: RawDossier['costs'] = {
+      purchase_dop: 350000,
+      sold_dop: null,
+      by_category: { mods: 66100, mantenimiento: 0, combustible: 29086.4, pista: 9800, otros: 1700 },
+      total_dop: 456686.4,
+      per_km_dop: 135.92,
+      since: '2025-11-13T12:00:00.000Z',
+    };
+    const off = publicDossier(raw({ costs }), { storageBase: BASE });
+    expect(off.costs).toBeNull();
+    expect(renderDossierHtml(off, { url: 'x' })).not.toContain('Lo que ha costado');
+
+    const on = publicDossier(raw({ show: { ...raw().show, costs: true }, costs }), { storageBase: BASE });
+    expect(on.costs?.total).toBe('RD$ 456,686');
+    // Empty buckets are left out of the public page.
+    expect(on.costs?.rows.map((r) => r.label)).toEqual(['Compra', 'Mods', 'Combustible', 'Pista', 'Otros']);
+    const page = renderDossierHtml(on, { url: 'x' });
+    expect(page).toContain('Lo que ha costado');
+    expect(page).toContain('RD$ 135.92/km');
+  });
 });
 
 describe('car book', () => {

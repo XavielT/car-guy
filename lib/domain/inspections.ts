@@ -6,7 +6,7 @@
  * and "how many weeks in a row?" have to be right and easy to reason about.
  */
 import { daysBetween } from './dates';
-import type { Cadence } from '../db/types';
+import type { Cadence, Inspection, InspectionResult } from '../db/types';
 
 export type Run = { occurredAt: string };
 
@@ -101,4 +101,39 @@ const CRITICAL_SERVICE_TYPES = new Set([
 
 export function taskPriorityFor(serviceTypeId: string | null): 'critica' | 'normal' {
   return serviceTypeId != null && CRITICAL_SERVICE_TYPES.has(serviceTypeId) ? 'critica' : 'normal';
+}
+
+// ------------------------------------------------------------ verdicts ---
+
+export type Verdict = InspectionResult['result'];
+export type InspectionStatus = Inspection['status'];
+
+/** The runner's buttons, in the order they appear: OK · ATENCIÓN · FALLA · N/A. */
+export const VERDICTS: readonly Verdict[] = ['ok', 'atencion', 'falla', 'na'];
+
+/** Verdicts that open the note and the photo strip. */
+export function needsDetail(verdict: Verdict | undefined): boolean {
+  return verdict === 'falla' || verdict === 'atencion';
+}
+
+/** How many photos one item can carry. */
+export const MAX_CHECK_PHOTOS = 5;
+
+/**
+ * A run's overall status. Any failure wins; failing that, one ATENCIÓN makes
+ * it "con avisos" — something to keep an eye on is not a failure, and the home
+ * screen's "last check had failures" must not light up for it.
+ */
+export function inspectionStatusFor(results: { result: Verdict }[]): InspectionStatus {
+  if (results.some((r) => r.result === 'falla')) return 'con_fallas';
+  if (results.some((r) => r.result === 'atencion')) return 'con_avisos';
+  return 'ok';
+}
+
+/**
+ * The default "AL TERMINAR, CREAR" for an answer: a failure does what its item
+ * says; an ATENCIÓN creates nothing unless the user asks for it.
+ */
+export function defaultActionFor<A extends string>(verdict: Verdict | undefined, itemOnFail: A): A | 'none' {
+  return verdict === 'falla' ? itemOnFail : 'none';
 }

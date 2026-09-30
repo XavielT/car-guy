@@ -1,3 +1,4 @@
+import type { EconomyUnit, VolumeUnit } from '../domain/units';
 /**
  * TypeScript mirrors of the schema v1 tables.
  *
@@ -54,9 +55,41 @@ export type Vehicle = Syncable & {
   heroMediaId: string | null;
   /** My role when the vehicle is shared with me; null = it is mine. */
   garageRole: GarageRole | null;
+  // v6 (IMP 29092026). `tankVolume` is liters from here on (lib/domain/units.ts).
+  volumeUnit: VolumeUnit;
+  economyUnit: EconomyUnit;
+  /** null → 10 % of the tank. */
+  reserveVolumeL: number | null;
+  /** The tank as typed, in `volumeUnit`. */
+  tankVolumeEntered: number | null;
+  /** "esperando piezas" — shown after the status. */
+  statusNote: string;
+  statusSince: string | null;
+  /** lib/domain/refdata ids; `color`, `make`, `model` keep the free text / label. */
+  bodyType: string | null;
+  colorId: string | null;
+  interiorColorId: string | null;
+  /** refdata material id without its prefix: tela, cuero, piel-sintetica, vinil, alcantara, otro. */
+  interiorMaterial: string | null;
+  makeId: string | null;
+  modelId: string | null;
+  /** Redline on the speed dial. */
+  limitKmh: number;
+  tripMode: TripMode;
 };
 
-export type VehicleStatus = 'activo' | 'proyecto' | 'guardado' | 'vendido' | 'perdido';
+export type VehicleStatus =
+  | 'activo'
+  | 'proyecto'
+  | 'en_taller'
+  | 'accidentado'
+  | 'guardado'
+  | 'restauracion'
+  | 'prestado'
+  | 'vendido'
+  | 'perdido';
+export type InteriorMaterial = 'tela' | 'cuero' | 'vinil' | 'alcantara' | 'otro';
+export type TripMode = 'auto' | 'manual' | 'off';
 export type Transmission = 'manual' | 'automatica' | 'cvt' | 'otro';
 export type Drivetrain = 'fwd' | 'rwd' | 'awd';
 export type VehicleOrigin = 'jdm' | 'usdm' | 'eudm' | 'local' | 'otro';
@@ -69,7 +102,8 @@ export type VehicleSpec = Syncable & {
   sortOrder: number;
 };
 
-export type OdometerSource = 'fuel' | 'service' | 'inspection' | 'manual' | 'import' | 'mod' | 'track';
+/** 'trip_estimate' (v6, ADR-30): GPS distance since the last typed reading — a suggestion, never the truth. */
+export type OdometerSource = 'fuel' | 'service' | 'inspection' | 'manual' | 'import' | 'mod' | 'track' | 'trip_estimate';
 
 export type OdometerReading = Syncable & {
   vehicleId: string;
@@ -92,6 +126,14 @@ export type FuelLog = Syncable & {
   missedPrevious: boolean;
   station: string;
   notes: string;
+  // v6: `volume` is liters and `pricePerUnit` RD$ per liter (m³ for GNV).
+  gaugeBeforeEighths: number | null;
+  gaugeAfterEighths: number | null;
+  /** The before reading was on reserve. */
+  inReserve: boolean;
+  /** The volume as typed, in `volumeEnteredUnit`. */
+  volumeEntered: number | null;
+  volumeEnteredUnit: 'gal' | 'l' | 'm3' | null;
 };
 
 export type ServiceCategory =
@@ -135,7 +177,14 @@ export type ServiceRecordItem = Syncable & {
   serviceRecordId: string;
   serviceTypeId: string;
   notes: string;
+  // v6: the oil that went in, when the item is an oil change.
+  oilViscosity: string | null;
+  oilType: OilType | null;
+  oilSpec: string | null;
+  oilBrand: string | null;
 };
+
+export type OilType = 'mineral' | 'semisintetico' | 'sintetico';
 
 export type Part = Syncable & {
   serviceRecordId: string;
@@ -234,7 +283,8 @@ export type Inspection = Syncable & {
   templateId: string;
   occurredAt: string;
   odometerKm: number | null;
-  status: 'ok' | 'con_fallas';
+  /** 'con_avisos': no failure, but at least one ATENCIÓN (IMP 29092026 note 3). */
+  status: 'ok' | 'con_avisos' | 'con_fallas';
   durationSec: number | null;
   notes: string;
 };
@@ -243,7 +293,8 @@ export type InspectionResult = Syncable & {
   inspectionId: string;
   itemId: string;
   labelSnapshot: string;
-  result: 'ok' | 'falla' | 'na';
+  /** 'atencion' (IMP 29092026 note 3): keep an eye on it — not a failure. */
+  result: 'ok' | 'atencion' | 'falla' | 'na';
   note: string;
   mediaId: string | null;
 };
@@ -301,7 +352,7 @@ export type Media = Syncable & {
 export type HistoryEntry = {
   id: string;
   vehicleId: string;
-  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo' | 'mod' | 'hito' | 'pista' | 'obd';
+  kind: 'combustible' | 'mantenimiento' | 'reparacion' | 'mejora' | 'gasto' | 'chequeo' | 'mod' | 'hito' | 'pista' | 'obd' | 'viaje';
   occurredAt: string;
   /** Tie-breaker for same-day entries (v2 view). */
   createdAt?: string | null;
@@ -309,6 +360,8 @@ export type HistoryEntry = {
   title: string;
   subtitle: string | null;
   amountDop: number | null;
+  /** v5 view: photos on a check's results; null for other kinds. */
+  photos?: number | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -337,7 +390,11 @@ export type AlbumItem = Syncable & {
   modId: string | null;
   trackEventId: string | null;
   sortOrder: number;
+  /** v6: 'vehicle' = in the vehicle's gallery (and still on the album timeline). */
+  role: AlbumRole;
 };
+
+export type AlbumRole = 'album' | 'vehicle';
 
 export type MilestoneKind =
   | 'compra'
@@ -347,6 +404,8 @@ export type MilestoneKind =
   | 'accidente'
   | 'venta'
   | 'pintura'
+  /** v6: a status change ("Pasó a En el taller") — history and album show it with no table of its own. */
+  | 'estado'
   | 'otro';
 
 export type Milestone = Syncable & {
@@ -736,4 +795,56 @@ export type VehicleMember = Syncable & {
   userId: string;
   role: GarageRole;
   displayName: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// Schema v6 (IMP 29092026) — trips. docs/imp-29092026/02-specs/01-data-model-v6.md §1.4.
+// ---------------------------------------------------------------------------
+
+export type TripSource = 'auto' | 'manual';
+export type TripStatus = 'recording' | 'done' | 'discarded';
+export type TripRole = 'conductor' | 'pasajero';
+
+export type Trip = Syncable & {
+  vehicleId: string;
+  source: TripSource;
+  status: TripStatus;
+  role: TripRole;
+  startedAt: string;
+  endedAt: string | null;
+  startLat: number | null;
+  startLng: number | null;
+  endLat: number | null;
+  endLng: number | null;
+  startLabel: string;
+  endLabel: string;
+  distanceM: number;
+  durationS: number;
+  movingS: number;
+  avgKmh: number | null;
+  avgMovingKmh: number | null;
+  maxKmh: number | null;
+  /** JSON: seconds in <30, 30–60, 60–90, 90–120, 120+ km/h. */
+  speedBuckets: string;
+  /** Google polyline, precision 5, simplified. */
+  polyline: string | null;
+  /** JSON [minLat, minLng, maxLat, maxLng]. */
+  bbox: string | null;
+  segments: number;
+  odometerReadingId: string | null;
+  notes: string;
+};
+
+/** Local only (never synced), purged 30 days after its trip is done. */
+export type TripPoint = {
+  tripId: string;
+  /** epoch ms */
+  t: number;
+  lat: number;
+  lng: number;
+  /** m/s as reported; null unknown */
+  speed: number | null;
+  acc: number | null;
+  alt: number | null;
+  heading: number | null;
 };

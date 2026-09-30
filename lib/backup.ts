@@ -5,7 +5,9 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
 import { enqueue, getDb } from './db/client';
+import { LATEST_VERSION } from './db/migrations';
 import { ALL_TABLES, settings as settingsRepo } from './db/repos';
+import { fuelForStorage, tankForStorage } from './domain/units';
 import { importTuCombustible, type ImportCounts } from './import/tucombustible';
 
 /**
@@ -29,6 +31,11 @@ export type BackupV2 = {
   exportedAt: string;
   /** Excluded on purpose — see the note above. */
   mediaBytesIncluded: false;
+  /**
+   * PRAGMA user_version of the database the rows came from (2.2 and later).
+   * Missing = before v6, when volumes were gallons: restoreV2 converts them.
+   */
+  schemaVersion?: number;
   tables: Record<string, Record<string, unknown>[]>;
   setting: { key: string; value: string; updatedAt: string }[];
 };
@@ -57,6 +64,7 @@ export async function buildBackup(): Promise<BackupV2> {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     mediaBytesIncluded: false,
+    schemaVersion: LATEST_VERSION,
     tables,
     setting: await settingsRepo.all(),
   };
@@ -130,10 +138,12 @@ async function readPickedFile(uri: string, file?: File): Promise<string> {
 export async function restoreV2(backup: BackupV2): Promise<RestoreCounts> {
   let merged = 0;
   let touchedTables = 0;
+  // A 2.1.x backup holds gallons; this database holds liters (v6).
+  const tables = (backup.schemaVersion ?? 0) >= 6 ? backup.tables : backupInLiters(backup.tables);
 
   await enqueue(async (db) => {
     for (const table of ALL_TABLES) {
-      const rows = backup.tables?.[table];
+      const rows = tables?.[table];
       if (!Array.isArray(rows) || rows.length === 0) continue;
       touchedTables += 1;
 
@@ -218,4 +228,39 @@ export async function importBackup(): Promise<ImportResult | null> {
   }
 
   throw new UserError(es.backup.notBackup);
+}
+
+/**
+ * A pre-v6 backup's rows as v6 stores them: fuel volumes and prices, and the
+ * tank, from gallons to liters (GNV stays m³), keeping what was typed —
+ * the same conversion migration v6 ran on the device (lib/db/migrationV6.ts).
+ * Exported for the round-trip test.
+ */
+export function backupInLiters(tables: BackupV2['tables']): BackupV2['tables'] {
+  if (!tables) return tables;
+  const out = { ...tables };
+  if (Array.isArray(tables.fuel_log)) {
+    out.fuel_log = tables.fuel_log.map((row) => {
+      if (row.volume_entered != null) return row;
+      const stored = fuelForStorage(
+        { volume: Number(row.volume), pricePerUnit: Number(row.price_per_unit), fuelType: String(row.fuel_type) },
+        'gal',
+      );
+      return {
+        ...row,
+        volume: stored.volume,
+        price_per_unit: stored.pricePerUnit,
+        volume_entered: stored.volumeEntered,
+        volume_entered_unit: stored.volumeEnteredUnit,
+      };
+    });
+  }
+  if (Array.isArray(tables.vehicle)) {
+    out.vehicle = tables.vehicle.map((row) => {
+      if (row.tank_volume == null || row.tank_volume_entered != null) return row;
+      const tank = tankForStorage(Number(row.tank_volume), 'gal', String(row.default_fuel_type));
+      return { ...row, tank_volume: tank.tankVolume, tank_volume_entered: tank.tankVolumeEntered };
+    });
+  }
+  return out;
 }

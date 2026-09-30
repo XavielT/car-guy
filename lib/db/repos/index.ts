@@ -411,18 +411,39 @@ export const history = {
       title: (r.title as string) ?? '',
       subtitle: (r.subtitle as string | null) ?? null,
       amountDop: (r.amount_dop as number | null) ?? null,
+      // history_feed v5: photos on a check / service record / mod (null for the rest).
+      photos: (r.photos as number | null) ?? null,
     }));
   },
 };
 
 /** Highest odometer ever observed for a vehicle (§3.1). */
 export async function currentOdometer(vehicleId: string): Promise<number | null> {
+  return (await odometerNow(vehicleId)).km;
+}
+
+/**
+ * The odometer now, and whether that number is a trip's GPS estimate (ADR-30).
+ * A 'trip_estimate' reading only counts while it is newer than the last reading
+ * the user typed (or a record carried): typing a lower true number later must
+ * win over an estimate, which MAX() alone would not let it do.
+ */
+export async function odometerNow(vehicleId: string): Promise<{ km: number | null; estimated: boolean }> {
   const db = await getDb();
-  const row = await db.getFirstAsync<{ max_km: number | null }>(
-    'SELECT MAX(value_km) AS max_km FROM odometer_reading WHERE vehicle_id = ? AND deleted_at IS NULL',
+  const row = await db.getFirstAsync<{ typed: number | null; typed_at: string | null }>(
+    `SELECT MAX(value_km) AS typed, MAX(occurred_at) AS typed_at FROM odometer_reading
+      WHERE vehicle_id = ? AND deleted_at IS NULL AND source <> 'trip_estimate'`,
     [vehicleId],
   );
-  return row?.max_km ?? null;
+  const est = await db.getFirstAsync<{ km: number | null }>(
+    `SELECT MAX(value_km) AS km FROM odometer_reading
+      WHERE vehicle_id = ? AND deleted_at IS NULL AND source = 'trip_estimate' AND occurred_at > ?`,
+    [vehicleId, row?.typed_at ?? ''],
+  );
+  const typed = row?.typed ?? null;
+  const estimate = est?.km ?? null;
+  if (estimate != null && (typed == null || estimate > typed)) return { km: estimate, estimated: true };
+  return { km: typed, estimated: false };
 }
 
 /**
@@ -482,4 +503,7 @@ export const ALL_TABLES = [
   'consumable_usage',
   'vehicle_share',
   'vehicle_member',
+  // schema v6. trip_point and trip_state are local scratch, not user history,
+  // so they are neither backed up nor listed here (lib/db/reset.ts clears them).
+  'trip',
 ] as const;

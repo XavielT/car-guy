@@ -17,11 +17,15 @@ import {
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { appVersion, gitSha } from '@/lib/appVersion';
+import { useVersionSeen } from '@/lib/changelog/seen';
+import { isAdminEmail } from '@/lib/cloud/admin';
 import { useSession } from '@/lib/cloud/auth';
 import { userMessage } from '@/lib/diagnostics';
 import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
-import { FEATURE_DIY, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
+import { useInstallOffer } from '@/lib/release/useInstallOffer';
+import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { ADMIN_FEEDBACK_ROUTE, FEEDBACK_ROUTE } from '@/lib/feedback';
 import { es } from '@/lib/i18n/es';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
@@ -37,7 +41,9 @@ export default function MasScreen() {
   const { theme, preference, setPreference } = useTheme();
   const { data, activeVehicle, resetAll, refresh } = useStore();
   const archived = data.vehicles.filter((v) => v.isArchived);
+  const installOffer = useInstallOffer();
   const { session } = useSession();
+  const { unseen: versionUnseen } = useVersionSeen();
 
   const version = appVersion;
   const diagnostics = useDiagnosticsMode();
@@ -167,6 +173,7 @@ export default function MasScreen() {
             <NavRow label={es.diyMore.contacts} caption={es.diyMore.contactsCaption} onPress={() => router.push('/contactos')} />
             <NavRow label={es.diyMore.obd} caption={es.diyMore.obdCaption} onPress={() => router.push('/obd')} />
             {FEATURE_TRACK ? <NavRow label={es.track.more} caption={es.track.moreCaption} onPress={() => router.push('/pista')} /> : null}
+            {FEATURE_TRIPS ? <NavRow label={es.trips.more} caption={es.trips.moreCaption} onPress={() => router.push('/viajes')} /> : null}
           </>
         ) : null}
 
@@ -242,6 +249,30 @@ export default function MasScreen() {
         />
 
         <MoreSection title={es.more.about} />
+        {installOffer ? <NavRow label={es.install.more} caption={es.install.moreCaption} onPress={() => router.push('/instalar')} /> : null}
+        <NavRow
+          label={es.versions.more}
+          caption={versionUnseen ? es.versions.moreUnseen : es.versions.moreCaption}
+          onPress={() => router.push('/versiones')}
+          trailing={
+            versionUnseen ? (
+              <View
+                accessibilityLabel={es.versions.moreUnseen}
+                style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.redline }}
+              />
+            ) : undefined
+          }
+        />
+        {FEATURE_FEEDBACK ? (
+          <NavRow
+            label={es.feedback.more}
+            caption={es.feedback.moreCaption}
+            onPress={() => router.push({ pathname: FEEDBACK_ROUTE, params: { from: '/mas' } })}
+          />
+        ) : null}
+        {FEATURE_FEEDBACK && isAdminEmail(session?.user.email) ? (
+          <NavRow label={es.feedback.admin.more} caption={es.feedback.admin.moreCaption} onPress={() => router.push(ADMIN_FEEDBACK_ROUTE)} />
+        ) : null}
         <Surface>
           <Pressable onPress={tapVersion} accessibilityRole="text">
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
@@ -260,6 +291,9 @@ export default function MasScreen() {
           ) : null}
           <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
             {es.more.aboutBody}
+          </T>
+          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm, lineHeight: 17 }}>
+            {es.more.aboutCredits}
           </T>
         </Surface>
       </ScrollView>

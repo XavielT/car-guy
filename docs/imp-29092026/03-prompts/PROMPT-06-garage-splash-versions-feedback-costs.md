@@ -3,7 +3,7 @@
 **Depends on:** Phase 3 (covers) · **Branch:** `imp-29092026/phase-6-garage-feedback` · **ADRs:** 35, 36 · **Size:** L
 **Goal:** G5 — the app talks back; G3 — the garage looks like a garage.
 
-> **Before running:** approve `node tools/apply-sql.mjs sql/020_feedback.sql` (read it first:
+> **Before running:** approve `node tools/apply-sql.mjs sql/021_feedback.sql` (read it first:
 > anon insert through an RPC with a rate limit; admin = your email) and its `--shared` storage
 > statements (bucket `carguy-feedback`, listed in the prompt). No account is created for you; the
 > admin view is verified by you signing in.
@@ -60,7 +60,7 @@ Branch: imp-29092026/phase-6-garage-feedback
    releases page; on web shows the /api/apk version when Phase 7 exists, else the releases link),
    then the version list. Novedades sheet once per new version (setting last_seen_version; not
    on first install). Más row "Novedades y versiones" with a dot when unseen.
-4. ENVIAR COMENTARIO (note 6): sql/020_feedback.sql as given (apply; verify-x-core 24–27 and
+4. ENVIAR COMENTARIO (note 6): sql/021_feedback.sql as given (apply; verify-x-core 24–27 and
    local-rls checks added first); --shared: create bucket carguy-feedback (private, 2 MB,
    image/jpeg) + insert policy for anon/authenticated on that bucket + select policy for the
    admin email only. app/comentario.tsx per 03-screens.md: kind, message, optional email,

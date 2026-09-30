@@ -4,7 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { VehicleForm, type VehicleDraft } from '@/components/VehicleForm';
 import { currentOdometer as currentOdometerQuery, vehicles as vehicleRepo } from '@/lib/db/repos';
+import { vehicleGallery } from '@/lib/db/tripOps';
 import { saveVehicleDraft } from '@/lib/db/vehicleOps';
+import { tankForDisplay } from '@/lib/domain/units';
 import { dateInputFromIso } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
@@ -22,7 +24,7 @@ export default function EditarVehiculoScreen() {
     void (async () => {
       const v = await vehicleRepo.getById(id);
       if (!v) return;
-      const km = await currentOdometerQuery(id);
+      const [km, gallery] = await Promise.all([currentOdometerQuery(id), vehicleGallery(id)]);
       setInitial({
         id: v.id,
         name: v.name,
@@ -34,7 +36,7 @@ export default function EditarVehiculoScreen() {
         plate: v.plate,
         vin: v.vin,
         defaultFuelType: v.defaultFuelType,
-        tankVolume: v.tankVolume,
+        tankVolume: tankForDisplay(v.tankVolume, v.tankVolumeEntered, v.volumeUnit, v.defaultFuelType),
         odometerKm: km,
         purchaseDate: v.purchaseDate ? dateInputFromIso(v.purchaseDate) : null,
         purchasePrice: v.purchasePrice,
@@ -50,6 +52,17 @@ export default function EditarVehiculoScreen() {
         origin: v.origin,
         importedYear: v.importedYear,
         story: v.story,
+        // v6 (IMP 29092026 Phase 3)
+        makeId: v.makeId,
+        modelId: v.modelId,
+        bodyType: v.bodyType,
+        colorId: v.colorId,
+        interiorColorId: v.interiorColorId,
+        interiorMaterial: v.interiorMaterial,
+        volumeUnit: v.volumeUnit,
+        statusNote: v.statusNote,
+        statusSince: v.statusSince ? dateInputFromIso(v.statusSince) : null,
+        galleryIds: gallery.map((item) => item.mediaId),
       });
     })();
   }, [id]);

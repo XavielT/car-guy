@@ -126,6 +126,16 @@ export function renderDossierHtml(d: Dossier, opts: { url: string }): string {
       .join('')}</div>${t.recent.map((r) => `<div class="row"><div><div class="n">${esc(r.title)}</div><div class="d">${esc(r.line)}</div></div><div class="c">${esc(r.date)}</div></div>`).join('')}</div></section>`);
   }
 
+  // Note 8, only when the owner turned "costos" on (publicDossier leaves it null otherwise).
+  if (d.costs) {
+    const c = d.costs;
+    sections.push(`<section><h2>Lo que ha costado</h2><div class="card"><div class="stats"><div class="stat"><div class="eyebrow">Total</div><div class="big" style="font-size:20px">${esc(c.total)}</div></div>${
+      c.perKm ? `<div class="stat"><div class="eyebrow">Por km</div><div class="big" style="font-size:20px">${esc(c.perKm)}</div></div>` : ''
+    }</div>${c.rows.map((r) => `<div class="row"><div><div class="n">${esc(r.label)}</div></div><div class="c">${esc(r.value)}</div></div>`).join('')}${
+      c.since ? `<div class="d" style="color:var(--muted);margin-top:8px">${esc(c.since)}</div>` : ''
+    }</div></section>`);
+  }
+
   if (d.photos.length) {
     sections.push(`<section><h2>Fotos</h2><div class="grid">${d.photos
       .map((p) => `<a href="${esc(p.full)}"><img loading="lazy" src="${esc(p.thumb)}" alt=""></a>`)

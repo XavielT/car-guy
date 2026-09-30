@@ -1,9 +1,11 @@
+import type { VolumeUnit } from '@/lib/domain/units';
 import { StyleSheet, View } from 'react-native';
 
 import { space } from '@/constants/theme';
 import type { FillUpReview } from '@/lib/domain/economy';
-import { km, kmPerUnit, money } from '@/lib/format';
-import { FUEL_CATALOG } from '@/lib/fuel';
+import type { SeriesPoint } from '@/lib/domain/partialEconomy';
+import { economyNumber, km, kmPerUnit, money } from '@/lib/format';
+import { economyLabel, unitLabelFor } from '@/lib/fuel';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FuelType } from '@/lib/types';
@@ -32,14 +34,20 @@ const TONES: Record<FillUpReview['status'], Tone> = {
 export function FillUpReviewSheet({
   review,
   fuelType,
+  volumeUnit = 'gal',
   missedPrevious,
+  estimate,
   visible,
   onClose,
   onSeeHistory,
 }: {
   review: FillUpReview | null;
   fuelType: FuelType;
+  /** The vehicle's unit (v6); the review's numbers are already in it. */
+  volumeUnit?: VolumeUnit;
   missedPrevious: boolean;
+  /** Note 4: this fill-up's gauge segment, when there is one. Only a partial uses it. */
+  estimate?: SeriesPoint | null;
   visible: boolean;
   onClose: () => void;
   onSeeHistory: () => void;
@@ -47,8 +55,26 @@ export function FillUpReviewSheet({
   const { theme } = useTheme();
   if (!review) return null;
 
-  const meta = FUEL_CATALOG[fuelType];
-  const average = review.baseline != null ? kmPerUnit(review.baseline, fuelType) : null;
+  const unitLabel = unitLabelFor(fuelType, volumeUnit);
+  const average = review.baseline != null ? kmPerUnit(review.baseline, fuelType, volumeUnit) : null;
+
+  // A partial with gauge readings has an estimate (hollow dot on Cifras), or a
+  // plain-Spanish reason it has none. A full tank keeps the measured review.
+  const economyLabelText = economyLabel(fuelType, volumeUnit);
+  const estimated = review.status === 'partial' && estimate?.status === 'estimated' ? estimate : null;
+  const unknownReason =
+    review.status === 'partial' && estimate?.status === 'unknown' && estimate.reason && estimate.reason !== 'missing_gauge'
+      ? es.estimate.reasons[estimate.reason]
+      : null;
+  const fmt = (n: number | null) => (n == null ? '—' : economyNumber(n));
+  const estimateBody = estimated
+    ? [
+        es.estimate.approx(fmt(estimated.kmPerUnit), fmt(estimated.kmPerUnitLow), fmt(estimated.kmPerUnitHigh), economyLabelText),
+        estimated.warnings?.includes('gauge_pump_mismatch') ? es.estimate.mismatch : null,
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : unknownReason;
 
   // The flag explains the missing numbers better than "first measurement" does,
   // so it wins when both would apply.
@@ -61,7 +87,7 @@ export function FillUpReviewSheet({
         : review.status === 'first'
           ? es.fuelReview.firstBody
           : review.status === 'partial'
-            ? es.fuelReview.partialBody
+            ? (estimateBody ?? es.fuelReview.partialBody)
             : null;
 
   return (
@@ -77,15 +103,21 @@ export function FillUpReviewSheet({
       />
 
       <View style={[styles.rows, { borderColor: theme.line }]}>
-        <KeyValueRow label={es.fuelReview.price(meta.unitLabel)} value={money(review.pricePerUnit)} />
+        <KeyValueRow label={es.fuelReview.price(unitLabel)} value={money(review.pricePerUnit)} />
         <KeyValueRow
           label={es.fuelReview.distance}
           value={review.distanceKm != null ? km(review.distanceKm) : es.fuelReview.noPrevious}
         />
         <KeyValueRow
           label={es.fuelReview.economy}
-          value={review.kmPerUnit != null ? kmPerUnit(review.kmPerUnit, fuelType) : es.fuelReview.pending}
-          big={review.kmPerUnit != null}
+          value={
+            review.kmPerUnit != null
+              ? kmPerUnit(review.kmPerUnit, fuelType, volumeUnit)
+              : estimated
+                ? es.estimate.short(fmt(estimated.kmPerUnit), economyLabelText)
+                : es.fuelReview.pending
+          }
+          big={review.kmPerUnit != null || estimated != null}
         />
         <KeyValueRow
           label={es.fuelReview.costPerKm}

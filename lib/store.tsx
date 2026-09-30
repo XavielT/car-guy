@@ -12,8 +12,10 @@ import {
 } from './db/repos';
 import { resetDatabase } from './db/reset';
 import { seedCatalog } from './db/seed';
+import { purgeOldTripPoints } from './db/tripOps';
 import { deleteVehicleCascade } from './db/vehicleOps';
 import type { Expense as ExpenseRow, ExpenseCategory as NewExpenseCategory, ServiceRecord } from './db/types';
+import { fuelForDisplay, fuelForStorage, tankForDisplay, tankForStorage, type VolumeUnit } from './domain/units';
 import { id } from './format';
 import { lastOdometer } from './math';
 import { EMPTY_DATA } from './storage';
@@ -137,6 +139,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Which table a legacy "expense" id actually lives in, so delete hits the
   // right one without a second round trip.
   const serviceIds = useRef<Set<string>>(new Set());
+  // Each vehicle's display unit, from the last load: writes convert with it.
+  const volumeUnits = useRef<Map<string, VolumeUnit>>(new Map());
 
   const load = useCallback(async () => {
     const [vehicleRows, fuelRows, expenseRows, reminderRows] = await Promise.all([
@@ -154,11 +158,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
     serviceIds.current = new Set(maintenance.map((r) => r.id));
 
-    const [activeVehicleId, referencePrices, priceWeekLabel] = await Promise.all([
+    const [activeVehicleId, referencePrices, priceWeekLabel, includeEstimates] = await Promise.all([
       settingsRepo.get<string | null>('active_vehicle_id', null),
       settingsRepo.get('reference_prices', EMPTY_DATA.settings.referencePrices),
       settingsRepo.get('price_week_label', EMPTY_DATA.settings.priceWeekLabel),
+      settingsRepo.get<boolean>('economy_include_estimates', false),
     ]);
+
+    // v6: the database holds liters; everything below `data` works in each
+    // vehicle's display unit, as it did in gallons before (lib/domain/units.ts).
+    const unitOf = new Map(vehicleRows.map((v) => [v.id, v.volumeUnit ?? 'gal']));
+    volumeUnits.current = unitOf;
 
     setData({
       vehicles: vehicleRows.map((v) => ({
@@ -166,7 +176,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         name: v.name,
         plate: v.plate ?? '',
         defaultFuelType: v.defaultFuelType,
-        tankVolume: v.tankVolume,
+        tankVolume: tankForDisplay(v.tankVolume, v.tankVolumeEntered, v.volumeUnit ?? 'gal', v.defaultFuelType),
         createdAt: v.createdAt,
         isArchived: v.isArchived,
         detail: v,
@@ -176,8 +186,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         vehicleId: f.vehicleId,
         occurredAt: f.occurredAt,
         odometerKm: f.odometerKm,
-        volume: f.volume,
-        pricePerUnit: f.pricePerUnit,
+        ...fuelForDisplay(f, unitOf.get(f.vehicleId) ?? 'gal'),
         totalDop: f.totalDop,
         fuelType: f.fuelType,
         isFullTank: f.isFullTank,
@@ -185,6 +194,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         station: f.station,
         notes: f.notes,
         createdAt: f.createdAt,
+        gaugeBefore8: f.gaugeBeforeEighths ?? null,
+        gaugeAfter8: f.gaugeAfterEighths ?? null,
+        inReserve: Boolean(f.inReserve),
       })),
       expenses: [...expenseRows.map(expenseToLegacy), ...maintenance.map(serviceToLegacyExpense)].sort(
         (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
@@ -204,7 +216,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           notes: r.notes,
           createdAt: r.createdAt,
         })),
-      settings: { activeVehicleId, referencePrices, priceWeekLabel },
+      settings: { activeVehicleId, referencePrices, priceWeekLabel, includeEstimates },
     });
   }, []);
 
@@ -213,6 +225,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       await getDb();
       await seedCatalog();
+      // v6 local scratch: GPS points of trips done > 30 days ago (the row keeps the route).
+      void purgeOldTripPoints().catch(() => {});
       if (cancelled) return;
       await load();
       if (!cancelled) setReady(true);
@@ -286,7 +300,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           name: input.name,
           plate: input.plate || null,
           defaultFuelType: input.defaultFuelType,
-          tankVolume: input.tankVolume,
+          ...tankForStorage(input.tankVolume, volumeUnits.current.get(vehicleId) ?? 'gal', input.defaultFuelType),
         });
         const current = await settingsRepo.get<string | null>('active_vehicle_id', null);
         if (!current) await settingsRepo.set('active_vehicle_id', vehicleId);
@@ -338,14 +352,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           vehicleId: input.vehicleId,
           occurredAt: input.occurredAt,
           odometerKm: input.odometerKm,
-          volume: input.volume,
-          pricePerUnit: input.pricePerUnit,
+          ...fuelForStorage(input, volumeUnits.current.get(input.vehicleId) ?? 'gal'),
           totalDop: input.totalDop,
           fuelType: input.fuelType,
           isFullTank: input.isFullTank,
           missedPrevious: input.missedPrevious ?? false,
           station: input.station,
           notes: input.notes,
+          gaugeBeforeEighths: input.inReserve ? null : (input.gaugeBefore8 ?? null),
+          gaugeAfterEighths: input.gaugeAfter8 ?? null,
+          inReserve: Boolean(input.inReserve),
         });
         await load();
       });
@@ -452,6 +468,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (patch.priceWeekLabel !== undefined) {
           await settingsRepo.set('price_week_label', patch.priceWeekLabel);
         }
+        if (patch.includeEstimates !== undefined) await settingsRepo.set('economy_include_estimates', patch.includeEstimates);
         await load();
       });
     },

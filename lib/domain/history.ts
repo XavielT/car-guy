@@ -18,21 +18,57 @@ export function historyTitle(entry: HistoryEntry): string {
   if (entry.kind === 'combustible') {
     return FUEL_CATALOG[entry.title as keyof typeof FUEL_CATALOG]?.label ?? entry.title;
   }
-  if (entry.kind === 'chequeo') {
-    return entry.title === 'ok' ? es.history.checkOk : es.history.checkWithFails;
+  if (entry.kind === 'chequeo') return checkStatusTitle(entry.title);
+  if (entry.kind === 'viaje') {
+    // v5 view: title = distance in meters, subtitle = "<duration_s>|<from>|<to>".
+    const km = (Number(entry.title) || 0) / 1000;
+    const seconds = Number(entry.subtitle?.split('|')[0]) || 0;
+    return es.history.tripTitle(km.toFixed(1), Math.round(seconds / 60));
   }
   // An expense saved without a description is still a Marbete, not a "—".
   if (entry.kind === 'gasto' && !entry.title) return expenseLabel(entry.subtitle) ?? '—';
   return entry.title || '—';
 }
 
-/** The meta line's second part: an expense's category key becomes its label. */
+/**
+ * A check's status as Historial words. 'con_avisos' (only ATENCIÓN answers) is
+ * its own line: it is not a failure. Anything unknown reads as a failure — the
+ * safer mistake for a check.
+ */
+export function checkStatusTitle(status: string): string {
+  if (status === 'ok') return es.history.checkOk;
+  if (status === 'con_avisos') return es.history.checkWithWarnings;
+  return es.history.checkWithFails;
+}
+
+/** "📷 N" for a row that carries photos (history_feed v5 `photos`), else null. */
+export function historyPhotoTag(entry: Pick<HistoryEntry, 'photos'>): string | null {
+  const n = Number(entry.photos ?? 0);
+  return n > 0 ? es.history.photoTag(n) : null;
+}
+
+/**
+ * The meta line's second part: an expense's category key becomes its label, and
+ * a row with photos ends in "📷 N". A check's own subtitle is its template id —
+ * not for reading — so a check shows only its photo count.
+ */
 export function historySubtitle(entry: HistoryEntry): string | null {
+  const photos = historyPhotoTag(entry);
+  if (entry.kind === 'chequeo') return photos;
+  const base = baseSubtitle(entry);
+  return photos ? (base ? `${base} · ${photos}` : photos) : base;
+}
+
+function baseSubtitle(entry: HistoryEntry): string | null {
   if (entry.kind === 'gasto') return expenseLabel(entry.subtitle) ?? entry.subtitle;
   if (entry.kind === 'obd') {
     const d = lookup(entry.title);
     const state = entry.subtitle === 'resuelto' ? 'Resuelto' : 'Abierto';
     return [state, d?.descEs].filter(Boolean).join(' · ');
+  }
+  if (entry.kind === 'viaje') {
+    const [, from, to] = (entry.subtitle ?? '').split('|');
+    return from || to ? `${from || '—'} → ${to || '—'}` : null;
   }
   if (entry.kind === 'mod' && entry.subtitle?.includes('|')) {
     // "<status>|<brand>" (history_feed v3): "Instalado · BC Racing".
@@ -70,6 +106,8 @@ export function historyKindLabel(kind: HistoryEntry['kind']): string {
       return es.history.kinds.pista;
     case 'obd':
       return es.history.kinds.obd;
+    case 'viaje':
+      return es.history.kinds.viaje;
     default:
       return kind;
   }

@@ -1,5 +1,6 @@
 import { reportHtml, type ReportInput } from '@/lib/report/html';
 import type { VehicleStats } from '@/lib/db/statsQueries';
+import { ownershipCost } from '@/lib/domain/costs';
 import type { HistoryEntry, Vehicle } from '@/lib/db/types';
 
 function vehicle(over: Partial<Vehicle> = {}): Vehicle {
@@ -37,6 +38,20 @@ function vehicle(over: Partial<Vehicle> = {}): Vehicle {
     story: '',
     heroMediaId: null,
     garageRole: null,
+    volumeUnit: 'gal',
+    economyUnit: 'km_gal',
+    reserveVolumeL: null,
+    tankVolumeEntered: 13,
+    statusNote: '',
+    statusSince: null,
+    bodyType: null,
+    colorId: null,
+    interiorColorId: null,
+    interiorMaterial: null,
+    makeId: null,
+    modelId: null,
+    limitKmh: 120,
+    tripMode: 'auto',
     createdAt: '2024-01-01T12:00:00.000Z',
     updatedAt: '2024-01-01T12:00:00.000Z',
     deletedAt: null,
@@ -141,22 +156,27 @@ describe('reportHtml', () => {
     );
   });
 
-  it('includes the ownership block only when there is a purchase price', () => {
-    expect(build()).not.toContain('Costo de tener el carro');
+  // IMP 29092026 note 8: the old "Costo de tener el carro" block is now "Lo que me ha costado",
+  // from ownershipCost — shown whenever anything is recorded, purchase price or not.
+  it('includes "lo que me ha costado" only when there is a figure', () => {
+    expect(build()).not.toContain('Lo que me ha costado');
     const withTco = build({
       stats: stats({
-        ownership: {
-          purchasePrice: 875000,
-          soldPrice: null,
-          spend: 90004.8,
-          total: 965004.8,
-          monthsOwned: 23,
-          costPerMonth: 41956.73,
-        },
+        ownership: ownershipCost(
+          {
+            vehicle: { purchaseDate: '2024-09-18T12:00:00.000Z', purchasePrice: 875000, soldDate: null, soldPrice: null },
+            spend: [
+              { occurredAt: '2025-01-01T12:00:00.000Z', category: 'combustible', amountDop: 60004.8 },
+              { occurredAt: '2025-02-01T12:00:00.000Z', category: 'mantenimiento', amountDop: 30000 },
+            ],
+          },
+          '2026-09-18T12:00:00.000Z',
+        ),
       }),
     });
-    expect(withTco).toContain('Costo de tener el carro');
+    expect(withTco).toContain('Lo que me ha costado');
     expect(withTco).toContain('RD$ 965,004.80');
+    expect(withTco).toContain('Mantenimiento');
   });
 
   it('prints "Todo" rather than a date range for the unbounded period', () => {

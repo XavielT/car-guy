@@ -126,9 +126,9 @@ describe('schema gate (IMP 29092026 Phase 1)', () => {
     mockServer.vehicle = [
       ...(mockServer.vehicle ?? []),
       vehicle('veh_gate_old', '2026-09-29T10:00:01+00:00', {}), // before sql/018: no schema_hint at all
-      vehicle('veh_gate_v5', '2026-09-29T10:00:02+00:00', { schema_hint: 'v5', some_future_column: 1 }),
-      vehicle('veh_gate_v6a', '2026-09-29T10:00:03+00:00', { schema_hint: 'v6', tank_l: 45 }),
-      vehicle('veh_gate_v6b', '2026-09-29T10:00:04+00:00', { schema_hint: 'v6' }),
+      vehicle('veh_gate_v5', '2026-09-29T10:00:02+00:00', { schema_hint: 'v6', some_future_column: 1 }),
+      vehicle('veh_gate_v6a', '2026-09-29T10:00:03+00:00', { schema_hint: 'v7', tank_l: 45 }),
+      vehicle('veh_gate_v6b', '2026-09-29T10:00:04+00:00', { schema_hint: 'v7' }),
     ];
     const result = await sync('manual');
     expect(result.ok).toBe(true);
@@ -144,9 +144,9 @@ describe('schema gate (IMP 29092026 Phase 1)', () => {
 
   it('after an app update, re-reads the tables that had skipped rows from zero', async () => {
     // Pretend the skipped rows were recorded by an older build.
-    await settingsRepo.set(SCHEMA_SKIPPED_KEY, { hint: 'v4', tables: { vehicle: ['veh_gate_v6a'] } });
+    await settingsRepo.set(SCHEMA_SKIPPED_KEY, { hint: 'v5', tables: { vehicle: ['veh_gate_v6a'] } });
     await sync('manual');
-    // The re-read found the v6 rows again (still too new for this build) and
+    // The re-read found the v7 rows again (still too new for this build) and
     // recorded them under this build's hint.
     expect(await newerSchemaCount()).toBe(2);
     expect(db.prepare("SELECT COUNT(*) AS n FROM vehicle WHERE id LIKE 'veh_gate_v6%'").get()).toEqual({ n: 0 });

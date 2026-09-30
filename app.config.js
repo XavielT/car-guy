@@ -48,10 +48,28 @@ function assertReleaseEnv() {
   }
 }
 
-module.exports = ({ config }) => {
-  assertReleaseEnv();
+/**
+ * `APP_VARIANT=test`: a second app on the same phone — its own package, name
+ * and URL scheme, so it installs next to the real Car Guy with separate data.
+ * For trying a phase build on Xaviel's Redmi without touching his garage
+ * (IMP 29092026). Never a release: tools/release-apk.sh does not set it.
+ */
+function applyVariant(config) {
+  if (process.env.APP_VARIANT !== 'test') return config;
   return {
     ...config,
-    extra: { ...config.extra, gitSha: gitSha() },
+    name: 'Car Guy (prueba)',
+    scheme: 'carguytest',
+    android: { ...config.android, package: 'com.xaviel.carguy.test' },
+    ios: config.ios ? { ...config.ios, bundleIdentifier: 'com.xaviel.carguy.test' } : config.ios,
+  };
+}
+
+module.exports = ({ config }) => {
+  assertReleaseEnv();
+  const base = applyVariant(config);
+  return {
+    ...base,
+    extra: { ...base.extra, gitSha: gitSha(), variant: process.env.APP_VARIANT ?? null },
   };
 };

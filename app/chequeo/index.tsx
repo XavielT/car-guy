@@ -187,8 +187,8 @@ export default function ChequeoScreen() {
                   </T>
                 </View>
                 <StatusPill
-                  status={run.status === 'ok' ? 'ok' : 'urgente'}
-                  label={run.status === 'ok' ? es.check.resultAllGood : es.check.withFails}
+                  status={run.status === 'ok' ? 'ok' : run.status === 'con_avisos' ? 'proximo' : 'urgente'}
+                  label={run.status === 'ok' ? es.check.resultAllGood : run.status === 'con_avisos' ? es.check.withWarnings : es.check.withFails}
                 />
               </Pressable>
             ))}

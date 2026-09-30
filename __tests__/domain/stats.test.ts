@@ -7,12 +7,12 @@ import {
   monthlySpendByCategory,
   periodRanges,
   spendByCategory,
-  totalCostOfOwnership,
   totalSpend,
   upcomingCosts,
   type Reading,
   type SpendRow,
 } from '@/lib/domain/stats';
+import { ownershipCost } from '@/lib/domain/costs';
 
 /**
  * The fixture month is September 2026, and every expected value in the first
@@ -258,33 +258,35 @@ describe('delta', () => {
   });
 });
 
-describe('totalCostOfOwnership', () => {
+/**
+ * The old `totalCostOfOwnership` (purchase − sale + spend) is now
+ * `ownershipCost` in lib/domain/costs.ts (IMP 29092026 note 8). Same figures,
+ * one change: without a purchase price it no longer returns null — the total is
+ * just the spend, and the card says "desde el primer registro".
+ */
+describe('ownershipCost (was totalCostOfOwnership)', () => {
   const today = '2026-09-18T12:00:00.000Z';
+  const spend = (amountDop: number): SpendRow[] =>
+    amountDop ? [{ occurredAt: '2025-01-01T12:00:00.000Z', category: 'otros', amountDop }] : [];
+  const tco = (vehicle: Parameters<typeof ownershipCost>[0]['vehicle'], amount: number) =>
+    ownershipCost({ vehicle, spend: spend(amount) }, today);
 
-  it('is null without a purchase price — there would be nothing extra to say', () => {
-    expect(
-      totalCostOfOwnership(
-        { purchaseDate: '2024-09-18T12:00:00.000Z', purchasePrice: null, soldDate: null, soldPrice: null },
-        50000,
-        today,
-      ),
-    ).toBeNull();
+  it('without a purchase price, the total is the spend (it used to be null)', () => {
+    const cost = tco({ purchaseDate: '2024-09-18T12:00:00.000Z', purchasePrice: null, soldDate: null, soldPrice: null }, 50000);
+    expect(cost.purchasePrice).toBeNull();
+    expect(cost.total).toBe(50000);
   });
 
   it('adds the purchase price to the spend while the car is still owned', () => {
-    const tco = totalCostOfOwnership(
-      { purchaseDate: '2024-09-18T12:00:00.000Z', purchasePrice: 900000, soldDate: null, soldPrice: null },
-      100000,
-      today,
-    );
-    expect(tco?.total).toBe(1000000);
+    const cost = tco({ purchaseDate: '2024-09-18T12:00:00.000Z', purchasePrice: 900000, soldDate: null, soldPrice: null }, 100000);
+    expect(cost.total).toBe(1000000);
     // Two years to the day: 730 / 30.44 = 23.98… → 23 whole months.
-    expect(tco?.monthsOwned).toBe(23);
-    expect(tco?.costPerMonth).toBe(43478.26);
+    expect(cost.monthsOwned).toBe(23);
+    expect(cost.costPerMonth).toBe(43478.26);
   });
 
   it('subtracts what it sold for', () => {
-    const tco = totalCostOfOwnership(
+    const cost = tco(
       {
         purchaseDate: '2024-09-18T12:00:00.000Z',
         purchasePrice: 900000,
@@ -292,19 +294,14 @@ describe('totalCostOfOwnership', () => {
         soldPrice: 700000,
       },
       100000,
-      today,
     );
-    expect(tco?.total).toBe(300000);
+    expect(cost.total).toBe(300000);
   });
 
   it('refuses a cost per month before a month has passed', () => {
-    const tco = totalCostOfOwnership(
-      { purchaseDate: '2026-09-15T12:00:00.000Z', purchasePrice: 900000, soldDate: null, soldPrice: null },
-      0,
-      today,
-    );
-    expect(tco?.monthsOwned).toBe(0);
-    expect(tco?.costPerMonth).toBeNull();
+    const cost = tco({ purchaseDate: '2026-09-15T12:00:00.000Z', purchasePrice: 900000, soldDate: null, soldPrice: null }, 0);
+    expect(cost.monthsOwned).toBe(0);
+    expect(cost.costPerMonth).toBeNull();
   });
 });
 

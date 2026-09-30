@@ -1,3 +1,4 @@
+import { fuelForStorage } from '../domain/units';
 import { enqueue } from '@/lib/db/client';
 import {
   contacts as contactRepo,
@@ -144,6 +145,9 @@ const C3_TASKS: Pick<Task, 'title' | 'kind' | 'priority'>[] = [
  * Idempotent by the fixed vehicle ids: a second run finds the AE85 and stops,
  * rather than doubling every fill-up. Returns the log lines the screen shows.
  */
+/** DS3 1.6 VTi and C3: PSA presets; AE85: the Toyota 4A preset (lib/domain/specPresets.ts). */
+const SEED_TANK_L: Record<string, number> = { [GARAGE_IDS.ds3]: 50, [GARAGE_IDS.ae85]: 50, [GARAGE_IDS.c3]: 47 };
+
 export async function seedRealGarage(today = new Date()): Promise<string[]> {
   const lines: string[] = [];
   const at = (daysAgo: number) =>
@@ -159,8 +163,12 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
   // first reading, then the defaults — which read the odometer for due_km.
   for (const vehicle of VEHICLES) {
     await enqueue(async (db) => {
+      // Tanks in liters (v6), as the spec presets give them (lib/domain/specPresets.ts),
+      // so the gauge estimates of note 4 have a capacity to work with.
+      const tankL = SEED_TANK_L[vehicle.id];
+      const withTank = tankL ? { ...vehicle, tankVolume: tankL, tankVolumeEntered: Math.round((tankL / 3.785411784) * 10) / 10 } : vehicle;
       await vehicleRepo.upsertRaw(
-        vehicle.id === GARAGE_IDS.ds3 ? { ...vehicle, purchaseDate: at(730) } : vehicle,
+        vehicle.id === GARAGE_IDS.ds3 ? { ...withTank, purchaseDate: at(730) } : withTank,
         db,
       );
       if (vehicle.initialOdometerKm != null) {
@@ -204,8 +212,8 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
       vehicleId: GARAGE_IDS.ae85,
       occurredAt: at(i * 45 + 4),
       odometerKm: odometer,
-      volume: 11.2,
-      pricePerUnit: 322 + (i % 3) * 3,
+      // Typed in gallons, stored in liters (v6) — the store's own conversion.
+      ...fuelForStorage({ volume: 11.2, pricePerUnit: 322 + (i % 3) * 3, fuelType: 'premium' }, 'gal'),
       totalDop: 11.2 * (322 + (i % 3) * 3),
       fuelType: 'premium',
       isFullTank: true,
@@ -229,8 +237,10 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
       vehicleId: GARAGE_IDS.ds3,
       occurredAt: at(i * 30 + 4),
       odometerKm: odometer,
-      volume: partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4,
-      pricePerUnit: 305 + (i % 4) * 3.5,
+      ...fuelForStorage(
+        { volume: partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4, pricePerUnit: 305 + (i % 4) * 3.5, fuelType: 'regular' },
+        'gal',
+      ),
       totalDop: (partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4) * (305 + (i % 4) * 3.5),
       fuelType: 'regular',
       isFullTank: !partial,

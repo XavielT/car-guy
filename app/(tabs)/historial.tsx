@@ -1,3 +1,4 @@
+import type { VolumeUnit } from '@/lib/domain/units';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -9,12 +10,13 @@ import { T } from '@/components/T';
 import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { radius, space } from '@/constants/theme';
+import { oilSummaries } from '@/lib/db/oilQueries';
 import { history } from '@/lib/db/repos';
 import type { HistoryEntry } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
 import { es } from '@/lib/i18n/es';
-import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -33,6 +35,7 @@ const FILTERS: { key: 'todo' | RecordKind; label: string }[] = [
   // appear with the screens that create them.
   ...(FEATURE_ALBUM ? [{ key: 'hito' as const, label: es.history.kinds.hito }] : []),
   ...(FEATURE_TRACK ? [{ key: 'pista' as const, label: es.history.kinds.pista }] : []),
+  ...(FEATURE_TRIPS ? [{ key: 'viaje' as const, label: es.history.kinds.viaje }] : []),
 ];
 
 const PAGE = 50;
@@ -56,6 +59,8 @@ export default function HistorialScreen() {
   const [limit, setLimit] = useState(PAGE);
   const [hasMore, setHasMore] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // "5W-30 sintético · Castrol" per maintenance record with an oil item (note 16).
+  const [oilLines, setOilLines] = useState<Map<string, string>>(new Map());
 
   const vehicleId = activeVehicle?.id;
 
@@ -74,7 +79,11 @@ export default function HistorialScreen() {
       });
       if (cancelled) return;
       setHasMore(rows.length > limit);
-      setEntries(rows.slice(0, limit));
+      const page = rows.slice(0, limit);
+      const oil = await oilSummaries(page.filter((e) => e.kind === 'mantenimiento').map((e) => e.id));
+      if (cancelled) return;
+      setOilLines(oil);
+      setEntries(page);
     })().catch(() => {});
 
     return () => {
@@ -159,9 +168,9 @@ export default function HistorialScreen() {
                   key={`${entry.kind}-${entry.id}`}
                   kind={entry.kind}
                   title={historyTitle(entry)}
-                  meta={metaFor(entry)}
+                  meta={metaFor(entry, oilLines.get(entry.id))}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
-                  tag={tagFor(entry, economy, fillUpsById)}
+                  tag={tagFor(entry, economy, fillUpsById, activeVehicle.detail?.volumeUnit ?? 'gal')}
                   onPress={() => openDetail(entry, router)}
                 />
               ))}
@@ -233,11 +242,13 @@ function groupByMonth(entries: HistoryEntry[]) {
   return groups;
 }
 
-function metaFor(entry: HistoryEntry): string {
+function metaFor(entry: HistoryEntry, oil?: string): string {
   const parts = [dateLabel(entry.occurredAt)];
   if (entry.odometerKm != null) parts.push(fmtKm(entry.odometerKm));
   const subtitle = historySubtitle(entry);
-  if (subtitle && entry.kind !== 'chequeo') parts.push(subtitle);
+  // A check's subtitle is now its photo count ("📷 2"), never the template id.
+  if (subtitle) parts.push(subtitle);
+  if (oil) parts.push(oil);
   return parts.join(' · ');
 }
 
@@ -250,12 +261,13 @@ function tagFor(
   entry: HistoryEntry,
   economy: ReturnType<typeof economyById>,
   fillUps: Map<string, FillUp>,
+  volumeUnit: VolumeUnit,
 ): string | null {
   if (entry.kind !== 'combustible') return null;
   const fill = fillUps.get(entry.id);
   if (fill && !fill.isFullTank) return es.history.partialTag;
   const point = economy.get(entry.id);
-  return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType) : null;
+  return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType, volumeUnit) : null;
 }
 
 function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
@@ -285,6 +297,10 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
   }
   if (entry.kind === 'pista') {
     router.push({ pathname: '/pista/evento/[id]', params: { id: entry.id } });
+    return;
+  }
+  if (entry.kind === 'viaje') {
+    router.push({ pathname: '/viaje/[id]', params: { id: entry.id } });
     return;
   }
   router.push({ pathname: '/inspeccion/[id]', params: { id: entry.id } });

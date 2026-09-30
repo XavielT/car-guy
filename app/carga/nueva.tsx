@@ -6,12 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FillUpForm } from '@/components/FillUpForm';
 import { FillUpReviewSheet } from '@/components/FillUpReviewSheet';
 import { reviewFillUp, type FillUpReview } from '@/lib/domain/economy';
+import { fuelCfgFor, partialEconomy, type SeriesPoint } from '@/lib/domain/partialEconomy';
 import { es } from '@/lib/i18n/es';
 import { defaultFuelForNewLoad, useOdometerHint, useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FillUp, FuelType } from '@/lib/types';
 
-type Result = { review: FillUpReview; fuelType: FuelType; missedPrevious: boolean };
+type Result = { review: FillUpReview; fuelType: FuelType; missedPrevious: boolean; estimate: SeriesPoint | null };
 
 export default function CargarScreen() {
   const router = useRouter();
@@ -47,12 +48,16 @@ export default function CargarScreen() {
               createdAt: new Date().toISOString(),
             };
             const review = reviewFillUp(current, vehicleFillups);
+            // Note 4: the gauge estimate for this fill-up, when it is a partial with readings.
+            const partial = partialEconomy([...vehicleFillups.filter((f) => f.id !== current.id), current], fuelCfgFor(activeVehicle.detail));
+            const estimate = partial.segments.find((s) => s.fillUpId === current.id) ?? null;
             upsertFillUp(draft);
             impact();
             setResult({
               review,
               fuelType: draft.fuelType,
               missedPrevious: Boolean(draft.missedPrevious),
+              estimate,
             });
           }}
         />
@@ -62,7 +67,9 @@ export default function CargarScreen() {
         visible={result != null}
         review={result?.review ?? null}
         fuelType={result?.fuelType ?? activeVehicle.defaultFuelType}
+        volumeUnit={activeVehicle.detail?.volumeUnit}
         missedPrevious={result?.missedPrevious ?? false}
+        estimate={result?.estimate ?? null}
         onClose={() => setResult(null)}
         onSeeHistory={() => {
           setResult(null);

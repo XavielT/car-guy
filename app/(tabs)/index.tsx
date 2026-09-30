@@ -1,6 +1,8 @@
-import { useRouter } from 'expo-router';
+import { useKeepAwake } from 'expo-keep-awake';
+import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SyncPill } from '@/components/SyncPill';
@@ -19,11 +21,17 @@ import {
 import { palette, radius, space } from '@/constants/theme';
 import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
-import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { SpeedCluster } from '@/components/ui/SpeedCluster';
+import { Alert } from '@/lib/alert';
+import { startManualTrip, stopTrip } from '@/lib/trips/live';
+import { useLiveTrip } from '@/lib/trips/liveStore';
+import { useInstallOffer } from '@/lib/release/useInstallOffer';
+import { tripsKeepAwake, tripsMode, type TripsMode } from '@/lib/trips/settings';
 import { garageFacts, lastWeeklyCheck, type GarageFacts } from '@/lib/db/garageQueries';
 import { lampStates, toKatakana, vehicleBadges } from '@/lib/domain/garage';
 import {
-  currentOdometer as currentOdometerQuery,
+  odometerNow,
   odometer as odometerRepo,
   settings as settingsRepo,
   tasks as taskRepo,
@@ -34,10 +42,12 @@ import type { Task } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
 import { mergeAttention, STATUS_LABEL } from '@/lib/domain/reminders';
-import { economyLabel, FUEL_CATALOG } from '@/lib/fuel';
-import { km as fmtKm, kmPerUnit, money } from '@/lib/format';
+import { economyLabel } from '@/lib/fuel';
+import { fuelCfgFor, latestKnown, partialEconomy, weightedAverage } from '@/lib/domain/partialEconomy';
+import { statusBadgeLabel } from '@/lib/domain/vehicleStatus';
+import { km as fmtKm, kmPerUnit, money, volume as fmtVolume } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
-import { computeEconomy, inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
+import { inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -59,6 +69,21 @@ export default function HomeScreen() {
   const { activeVehicle, vehicleFillups, vehicleExpenses, data, setActiveVehicle } = useStore();
 
   const [odometerKm, setOdometerKm] = useState<number | null>(null);
+  // ADR-30: the number on the LCD may be a trip's GPS estimate (shown with "≈").
+  const [odometerEstimated, setOdometerEstimated] = useState(false);
+  // Viajes (Phase 5A): the live trip, the device's trip mode, keep-awake, a short notice.
+  const live = useLiveTrip();
+  const installOffer = useInstallOffer();
+  const [tripsModeNow, setTripsModeNow] = useState<TripsMode>('manual');
+  const [keepAwake, setKeepAwake] = useState(true);
+  const [tripNotice, setTripNotice] = useState<string | null>(null);
+  const [tripBusy, setTripBusy] = useState(false);
+  const focused = useIsFocused();
+  useEffect(() => {
+    if (!FEATURE_TRIPS) return;
+    void tripsMode().then(setTripsModeNow);
+    void tripsKeepAwake().then(setKeepAwake);
+  }, [focused]);
   const [daysSince, setDaysSince] = useState<number | null>(null);
   const [monthKm, setMonthKm] = useState<number>(0);
   const [attention, setAttention] = useState<EvaluatedReminder[]>([]);
@@ -70,6 +95,7 @@ export default function HomeScreen() {
   const [weekly, setWeekly] = useState<{ lastAt: string | null; lastHadFailures: boolean } | null>(null);
   const [facts, setFacts] = useState<GarageFacts | null>(null);
   const { width } = useWindowDimensions();
+  const reduced = useReducedMotion();
 
   // The account nudge: shown once the garage has something worth protecting,
   // dismissible for good. `null` means "not read from storage yet", which keeps
@@ -94,14 +120,15 @@ export default function HomeScreen() {
     let cancelled = false;
 
     (async () => {
-      const [max, readings, vehicle] = await Promise.all([
-        currentOdometerQuery(vehicleId),
+      const [odo, readings, vehicle] = await Promise.all([
+        odometerNow(vehicleId),
         odometerRepo.list(vehicleId, { orderBy: 'occurred_at', direction: 'DESC' }),
         vehicleRepo.getById(vehicleId),
       ]);
       if (cancelled) return;
 
-      setOdometerKm(max);
+      setOdometerKm(odo.km);
+      setOdometerEstimated(odo.estimated);
       setModelYear(vehicle?.year ?? null);
       setDaysSince(readings[0] ? daysBetween(readings[0].occurredAt, todayIso()) : null);
 
@@ -171,10 +198,14 @@ export default function HomeScreen() {
   );
   const monthSpend = sumSpend(monthLogs) + monthExpenses.reduce((total, e) => total + e.amountDop, 0);
 
-  const economy = computeEconomy(vehicleFillups);
-  const last = economy[economy.length - 1];
+  // Note 4: measured tanks plus the gauge estimates (research 02 §1). The
+  // insight stays on measured tanks only — never an alarm on an estimate.
+  const includeEstimates = Boolean(data.settings.includeEstimates);
+  const partial = partialEconomy(vehicleFillups, fuelCfgFor(activeVehicle.detail), { includeEstimates });
+  const last = latestKnown(partial.series);
+  const lastEstimated = last?.status === 'estimated';
   const insight = latestEconomyInsight(vehicleFillups);
-  const avg = economy.length ? economy.reduce((a, p) => a + p.kmPerUnit, 0) / economy.length : null;
+  const avg = partial.average;
 
   // Pendientes: one list, worst first across reminders and tasks (see
   // `mergeAttention`) — a critical task from a failed check outranks an
@@ -204,13 +235,43 @@ export default function HomeScreen() {
     onPress: l.icon === 'checklist' ? () => router.push('/chequeo') : () => router.push('/recordatorios'),
   }));
 
+  const notify = (text: string) => {
+    setTripNotice(text);
+    setTimeout(() => setTripNotice(null), 4000);
+  };
+  const beginTrip = async () => {
+    setTripBusy(true);
+    const result = await startManualTrip(activeVehicle.id);
+    setTripBusy(false);
+    if (result.ok) return;
+    if (result.reason === 'permission') {
+      Alert.alert(es.trips.title, es.trips.permissionDenied, [
+        { text: es.common.cancel, style: 'cancel' },
+        { text: es.trips.openSettings, onPress: () => void Linking.openSettings() },
+      ]);
+    } else if (result.reason !== 'busy') notify(es.trips.needPermission);
+  };
+  const finishTrip = async () => {
+    const result = await stopTrip();
+    if (result.kind === 'discarded') {
+      notify(
+        result.reason === 'duration'
+          ? es.trips.discardedBrief(Math.max(1, Math.round(result.durationS / 60)))
+          : es.trips.discardedShort(Math.round(result.distanceM)),
+      );
+    }
+    else if (result.kind === 'saved') notify(es.trips.saved((result.distanceM / 1000).toFixed(1)));
+  };
+
   const detail = activeVehicle.detail;
   const badges = detail ? vehicleBadges(detail, facts ?? { installedMods: 0 }) : [];
 
   const marbeteNotice = currentMarbeteNudge(todayIso());
   const marbeteTier = marbeteNotice ? marbeteTierLabel(modelYear, todayIso()) : null;
-  const monthEconomy = economy.filter((p) => inMonth(p.occurredAt, now.getFullYear(), now.getMonth()));
-  const monthAvg = monthEconomy.length ? monthEconomy.reduce((a, p) => a + p.kmPerUnit, 0) / monthEconomy.length : avg;
+  const monthEconomy = partial.series.filter(
+    (p) => inMonth(p.occurredAt, now.getFullYear(), now.getMonth()) && (p.status !== 'estimated' || includeEstimates),
+  );
+  const monthAvg = weightedAverage(monthEconomy) ?? avg;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -230,6 +291,16 @@ export default function HomeScreen() {
             </T>
           </View>
           {/* Signed in only: without an account there is nothing to be in step with. */}
+          {installOffer ? (
+            <Pressable
+              onPress={() => router.push('/instalar')}
+              accessibilityRole="link"
+              style={[styles.installPill, { borderColor: theme.accent }]}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 12 }}>
+                {es.install.pill}
+              </T>
+            </Pressable>
+          ) : null}
           {FEATURE_SYNC && session ? <SyncPill /> : null}
           <Pressable
             onPress={() => router.push('/cuenta')}
@@ -244,14 +315,15 @@ export default function HomeScreen() {
           {data.vehicles.filter((v) => !v.isArchived).map((v) => {
             const on = v.id === activeVehicle.id;
             const kana = toKatakana(v.detail?.nickname);
-            const proyecto = v.detail?.status === 'proyecto';
+            // v6: any non-active status on the chip (PROYECTO, EN TALLER, ACCIDENTADO…).
+            const statusTag = v.detail && v.detail.status !== 'activo' ? statusBadgeLabel(v.detail.status) : null;
             return (
               <Pressable
                 key={v.id}
                 onPress={() => setActiveVehicle(v.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                accessibilityLabel={[v.name, v.detail?.nickname, proyecto ? es.vehicleStatus.proyecto : null].filter(Boolean).join(', ')}
+                accessibilityLabel={[v.name, v.detail?.nickname, v.detail && statusTag ? es.vehicleStatus[v.detail.status] : null].filter(Boolean).join(', ')}
                 style={[
                   styles.chip,
                   { backgroundColor: on ? theme.accentFill : theme.bg.surface, borderColor: on ? theme.accentFill : theme.lineStrong },
@@ -264,10 +336,10 @@ export default function HomeScreen() {
                     {kana}
                   </T>
                 ) : null}
-                {proyecto ? (
+                {statusTag ? (
                   <T face="title" style={[styles.chipLabel, { color: on ? theme.accentFillInk : theme.statusText.urgente }]}>
                     {' · '}
-                    {es.vehicleStatus.proyecto.toUpperCase()}
+                    {statusTag}
                   </T>
                 ) : null}
               </Pressable>
@@ -283,10 +355,29 @@ export default function HomeScreen() {
           </Pressable>
         </ScrollView>
 
+        {tripNotice ? (
+          <Surface style={{ marginBottom: space.md }}>
+            <T face="body" accessibilityRole="alert" style={{ color: theme.text.secondary, fontSize: 14 }}>
+              {tripNotice}
+            </T>
+          </Surface>
+        ) : null}
+
+        {FEATURE_TRIPS && live && live.vehicleId === activeVehicle.id ? (
+          <Animated.View key="speed" entering={reduced ? undefined : FadeIn.duration(300)} exiting={reduced ? undefined : FadeOut.duration(300)}>
+            {keepAwake && focused && Platform.OS !== 'web' ? <KeepScreenOn /> : null}
+            <SpeedCluster
+              limitKmh={activeVehicle.detail?.limitKmh ?? 120}
+              size={Math.min(340, Math.max(240, width - 72))}
+              onStop={() => void finishTrip()}
+            />
+          </Animated.View>
+        ) : (
+        <Animated.View key="odo" entering={reduced ? undefined : FadeIn.duration(300)}>
         <ClusterHero
           odometerKm={odometerKm}
           reading={clusterReading(allReminders)}
-          caption={odometerCaption(daysSince)}
+          caption={odometerEstimated ? es.trips.odometerEstimated : odometerCaption(daysSince)}
           size={Math.min(340, Math.max(240, width - 72))}
           onPress={() => router.push('/recordatorios')}
           onPressOdometer={() => router.push('/odometro')}
@@ -304,6 +395,25 @@ export default function HomeScreen() {
             <TelltaleRow lamps={lamps} />
           </View>
         </ClusterHero>
+        </Animated.View>
+        )}
+
+        {FEATURE_TRIPS && tripsModeNow !== 'off' && !live ? (
+          <Pressable
+            onPress={() => void beginTrip()}
+            disabled={tripBusy}
+            accessibilityRole="button"
+            style={[styles.pendingRow, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, borderLeftColor: theme.accent }]}>
+            <View style={{ flex: 1 }}>
+              <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+                {es.trips.start}
+              </T>
+              <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
+                {tripsModeNow === 'auto' ? es.trips.startHintAuto : es.trips.startHint}
+              </T>
+            </View>
+          </Pressable>
+        ) : null}
 
         {pending.length ? (
           <View style={styles.pending}>
@@ -408,7 +518,7 @@ export default function HomeScreen() {
             <MonthStat label={es.home.monthKm} value={fmtKm(Math.round(monthKm))} />
             <MonthStat
               label={es.home.monthEconomy}
-              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType) : '—'}
+              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit) : '—'}
             />
           </View>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
@@ -439,17 +549,17 @@ export default function HomeScreen() {
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
             {es.home.lastTank}
           </T>
-          <T face="monoBold" style={[styles.statVal, { color: theme.text.primary }]}>
-            {last ? kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType) : '—'}
+          <T face="monoBold" style={[styles.statVal, { color: lastEstimated ? theme.text.muted : theme.text.primary }]}>
+            {last ? `${lastEstimated ? '≈ ' : ''}${kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit)}` : '—'}
           </T>
           <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
             {last
               ? es.home.lastTankHint(
                   fmtKm(last.distanceKm),
-                  `${last.volume} ${FUEL_CATALOG[activeVehicle.defaultFuelType].unitLabel}`,
+                  fmtVolume(last.volume, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit),
                 )
               : avg == null
-                ? es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType))
+                ? es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit))
                 : es.home.lastTankEmpty}
           </T>
         </Surface>
@@ -488,6 +598,12 @@ function countdown(status: EvaluatedReminder['status']): string {
   if (byKm) return `${status.dueKm! < 0 ? '−' : ''}${fmtKm(Math.abs(Math.round(status.dueKm!)))}`;
   if (status.dueDays != null) return `${status.dueDays < 0 ? '−' : ''}${Math.abs(status.dueDays)} d`;
   return STATUS_LABEL[status.status];
+}
+
+/** expo-keep-awake's hook, mounted only while the speed cluster is up and Inicio is focused. */
+function KeepScreenOn() {
+  useKeepAwake('car-guy-trip');
+  return null;
 }
 
 function odometerCaption(daysSince: number | null): string {
@@ -539,6 +655,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipLabel: { fontSize: 14, letterSpacing: 0.8 },
+  installPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginRight: space.sm },
   heroHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.sm },
   pending: { gap: space.sm, marginBottom: space.lg },
   pendingRow: {

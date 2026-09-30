@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ZoomableImage } from '@/components/album/ZoomableImage';
+import { vehicleGallery } from '@/lib/db/tripOps';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
@@ -36,7 +37,8 @@ import { useStore } from '@/lib/store';
 const ink = palette.dark;
 
 export default function PhotoViewer() {
-  const { id, vehicleId } = useLocalSearchParams<{ id: string; vehicleId?: string }>();
+  // `gallery=1`: page through the vehicle's gallery (its photos, in the user's order) instead of the album.
+  const { id, vehicleId, gallery } = useLocalSearchParams<{ id: string; vehicleId?: string; gallery?: string }>();
   const router = useRouter();
   const { refresh } = useStore();
   const { width, height } = useWindowDimensions();
@@ -54,6 +56,13 @@ export default function PhotoViewer() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      if (vehicleId && gallery) {
+        const items = await vehicleGallery(vehicleId);
+        const all = await albumPhotos(vehicleId);
+        const byId = new Map(all.map((p) => [p.id, p]));
+        const list = items.map((item) => byId.get(item.mediaId)).filter((p): p is AlbumPhoto => p != null);
+        if (list.some((p) => p.id === id)) return list;
+      }
       if (vehicleId) {
         const list = await albumPhotos(vehicleId);
         if (list.some((p) => p.id === id)) return list;
@@ -67,7 +76,7 @@ export default function PhotoViewer() {
     return () => {
       cancelled = true;
     };
-  }, [id, vehicleId]);
+  }, [id, vehicleId, gallery]);
 
   const start = photos ? Math.max(0, photos.findIndex((p) => p.id === id)) : 0;
   const index = swiped ?? start;

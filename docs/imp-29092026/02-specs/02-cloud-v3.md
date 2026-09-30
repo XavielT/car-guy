@@ -1,5 +1,10 @@
 # Cloud v3 — x-core, schema `carguy` (IMP 29092026)
 
+> **Renumbered (Phase 2, 2026-09-29).** 2.1.3 used `sql/018` for Car Guy-only accounts
+> (`018_app_membership.sql`). Everything below moved up one: **§018 → `019_schema_v3.sql`,
+> §019 → `020_rls_v3.sql`, §020 → `021_feedback.sql`** (Phase 6). Any new carguy table also needs
+> 018's restrictive `carguy_app_only` policy (020 gives it to `trip`).
+
 Additive only. `node tools/apply-sql.mjs sql/0NN_*.sql` is the only write path; `--shared` only
 for the statements listed here (storage bucket for feedback). Music Hub (`public`) untouched.
 After every file: `node tools/verify-x-core.mjs`, `node tools/verify-sync.mjs`,

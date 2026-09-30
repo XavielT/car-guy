@@ -26,6 +26,17 @@ let sweptThisSession = false;
 let lampTestDone = false;
 const listeners = new Set<() => void>();
 
+/**
+ * The animated launch (components/LaunchOverlay.tsx, ADR-36) is this
+ * session's sweep: after it, the cluster opens already on its reading, with no
+ * second sweep and no lamp test — one sweep per launch. Called at module scope
+ * of app/_layout.tsx, before any cluster can mount.
+ */
+export function markGaugeSweptThisSession(): void {
+  sweptThisSession = true;
+  lampTestDone = true;
+}
+
 /** For the tokens page: sweep every mounted cluster again, lamp test included. */
 export function replayGaugeSweep(): void {
   sweptThisSession = false;

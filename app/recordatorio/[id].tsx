@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { lastOilFor } from '@/lib/db/oilQueries';
+import { oilSummary } from '@/lib/domain/oil';
 import { CompleteReminderSheet } from '@/components/CompleteReminderSheet';
 import { ReminderForm } from '@/components/ReminderForm';
 import { MissingRecord } from '@/components/MissingRecord';
@@ -36,6 +38,8 @@ export default function RecordatorioScreen() {
 
   const [row, setRow] = useState<EvaluatedReminder | null | undefined>(undefined);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  // Note 16: the oil that went in last time, on the oil-change reminder.
+  const [lastOil, setLastOil] = useState<string | null>(null);
   const [completing, setCompleting] = useState(complete === '1');
 
   useEffect(() => {
@@ -45,11 +49,13 @@ export default function RecordatorioScreen() {
       const reminder = await reminderRepo.getById(id);
       if (cancelled) return;
       if (!reminder) return setRow(null);
-      const [rows, v] = await Promise.all([
+      const [rows, v, oilRow] = await Promise.all([
         evaluatedReminders(reminder.vehicleId, todayIso(), { includeDisabled: true }),
         vehicleRepo.getById(reminder.vehicleId),
+        reminder.serviceTypeId === 'aceite_motor' ? lastOilFor(reminder.vehicleId, 'aceite_motor') : Promise.resolve(null),
       ]);
       if (cancelled) return;
+      setLastOil(oilSummary(oilRow));
       setRow(rows.find((r) => r.reminder.id === id) ?? null);
       setVehicle(v);
     })().catch(() => {});
@@ -99,6 +105,11 @@ export default function RecordatorioScreen() {
               .filter(Boolean)
               .join(' · ') || es.reminders.noData}
           </T>
+          {lastOil ? (
+            <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
+              {es.oil.lastTime(lastOil)}
+            </T>
+          ) : null}
           {reminder.notes ? (
             <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
               {reminder.notes}

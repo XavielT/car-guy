@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { Platform } from 'react-native';
 
 import { historyFeedV3, historyFeedV4, migrationV2 } from './migrationV2';
+import { migrationV6 } from './migrationV6';
 
 /**
  * Schema migrations, applied in order under `PRAGMA user_version`.
@@ -266,6 +267,8 @@ export const MIGRATIONS: Migration[] = [
   { version: 4, up: historyFeedV4() },
   // v5 (2.1.2): the circuit's layout on a track event, so best laps are per venue + layout.
   { version: 5, up: [`ALTER TABLE track_event ADD COLUMN layout TEXT`] },
+  // v6 (2.2, IMP 29092026): liters, statuses, gauges, oil, trips, history_feed v5 — ./migrationV6.ts.
+  { version: 6, up: migrationV6() },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

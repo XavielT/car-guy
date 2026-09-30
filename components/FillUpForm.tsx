@@ -9,7 +9,8 @@ import { Chip, GhostButton, PrimaryButton, Segmented } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { completeAmounts, odometerBounds, parseDecimal } from '@/lib/domain/economy';
-import { FUEL_CATALOG, STATIONS } from '@/lib/fuel';
+import { FUEL_CATALOG, perUnitLabelFor, STATIONS, unitLabelFor } from '@/lib/fuel';
+import { GaugePicker } from '@/components/fuel/GaugePicker';
 import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtVol } from '@/lib/format';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
@@ -46,13 +47,19 @@ export function FillUpForm({
   const [total, setTotal] = useState(initial ? String(initial.totalDop) : '');
   const [full, setFull] = useState(initial?.isFullTank ?? true);
   const [missedPrevious, setMissedPrevious] = useState(initial?.missedPrevious ?? false);
+  // Note 4: the gauge before and after pumping, both optional.
+  const [gaugeBefore, setGaugeBefore] = useState<number | null>(initial?.gaugeBefore8 ?? null);
+  const [gaugeAfter, setGaugeAfter] = useState<number | null>(initial?.gaugeAfter8 ?? null);
+  const [inReserve, setInReserve] = useState(initial?.inReserve ?? false);
   const [station, setStation] = useState(initial?.station ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [customStation, setCustomStation] = useState(
     initial?.station && !(STATIONS as readonly string[]).includes(initial.station) ? initial.station : '',
   );
 
-  const meta = FUEL_CATALOG[fuel];
+  // v6: labels follow the vehicle's volume unit (GNV stays m³).
+  const volumeUnit = data.vehicles.find((v) => v.id === vehicleId)?.detail?.volumeUnit ?? 'gal';
+  const meta = { unitLabel: unitLabelFor(fuel, volumeUnit), perUnitLabel: perUnitLabelFor(fuel, volumeUnit) };
   const amounts = useMemo(
     () =>
       completeAmounts({
@@ -101,6 +108,9 @@ export function FillUpForm({
       missedPrevious,
       station: chosenStation,
       notes: notes.trim(),
+      gaugeBefore8: inReserve ? null : gaugeBefore,
+      gaugeAfter8: gaugeAfter,
+      inReserve,
     });
   }
 
@@ -113,7 +123,7 @@ export function FillUpForm({
         </T>
       </T>
       <T face="body" style={[styles.p, { color: theme.text.secondary }]}>
-        {es.fuel.intro(es.fuel.unitWord(FUEL_CATALOG[fuel].unit))}
+        {es.fuel.intro(es.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
       </T>
 
       <DateField label={es.fuel.date} value={date} onChange={setDate} noFuture />
@@ -155,7 +165,7 @@ export function FillUpForm({
       {amounts ? (
         <View style={[styles.calc, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
           <T face="monoBold" style={[styles.calcTxt, { color: theme.text.primary }]}>
-            {fmtVol(amounts.volume, fuel)} · {money(amounts.pricePerUnit)}/{meta.unitLabel} ·{' '}
+            {fmtVol(amounts.volume, fuel, volumeUnit)} · {money(amounts.pricePerUnit)}/{meta.unitLabel} ·{' '}
             {money(amounts.totalDop)}
           </T>
         </View>
@@ -180,6 +190,39 @@ export function FillUpForm({
         {es.fuel.partialHint(meta.unitLabel)}
       </T>
 
+      {/* Medidor (note 4): with the level before and after, a partial gets a number too. GNV has no gauge like this. */}
+      {FUEL_CATALOG[fuel].unit === 'm3' ? null : (
+        <View style={styles.gauges}>
+          <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
+            {es.gauge.title}
+          </T>
+          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
+            {es.gauge.hint}
+          </T>
+          <GaugePicker
+            label={es.gauge.before}
+            value={gaugeBefore}
+            onChange={setGaugeBefore}
+            reserve={{ on: inReserve, onToggle: setInReserve }}
+          />
+          <GaugePicker label={es.gauge.after} value={gaugeAfter} onChange={setGaugeAfter} />
+          {/* F without "Tanque lleno": probably it was full — say so, do not decide (research 02 §1.4). */}
+          {gaugeAfter === 8 && !full ? (
+            <Pressable
+              onPress={() => setFull(true)}
+              accessibilityRole="button"
+              style={[styles.prompt, { borderColor: theme.accent, backgroundColor: theme.bg.raised }]}>
+              <T face="body" style={{ color: theme.text.primary, fontSize: 14, lineHeight: 20 }}>
+                {es.gauge.fullPrompt}
+              </T>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 14, marginTop: 4 }}>
+                {es.gauge.fullPromptAction}
+              </T>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+
       {/* The honest answer to "my km/gal looks wrong": the chain is only as good
           as the log, so the driver gets a way to say a link is missing. */}
       <Pressable
@@ -202,7 +245,7 @@ export function FillUpForm({
             {es.fuel.missedPrevious}
           </T>
           <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: 2 }]}>
-            {es.fuel.missedPreviousHint(es.fuel.unitWord(FUEL_CATALOG[fuel].unit))}
+            {es.fuel.missedPreviousHint(es.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
           </T>
         </View>
       </Pressable>
@@ -233,6 +276,8 @@ export function FillUpForm({
 }
 
 const styles = StyleSheet.create({
+  gauges: { marginTop: space.lg },
+  prompt: { borderWidth: 1, borderRadius: 12, padding: space.md, marginBottom: space.md },
   pad: { padding: space.gutter, paddingBottom: 56 },
   h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.sm },
   p: { marginBottom: 18, fontSize: 15, lineHeight: 22 },

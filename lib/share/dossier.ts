@@ -82,6 +82,20 @@ export type RawDossier = {
   services?: { kind: string; occurred_at: string; title: string; odometer_km?: number | null; total_dop?: number | null }[];
   track?: { id: string; occurred_at: string; title: string; discipline: string; venue_id: string | null; venue: string | null; layout?: string | null; sessions: number; runs: number | null; best_lap_ms: number | null }[];
   milestones?: { kind: string; occurred_at: string; title: string; story: string }[];
+  /**
+   * "Lo que me ha costado" (IMP 29092026 note 8), precomputed by
+   * `ownershipCost` on the phone — present only when the owner turned "costos"
+   * on. `public_dossier()` (sql/017) does not send it yet, so the web page
+   * simply shows nothing here.
+   */
+  costs?: {
+    purchase_dop: number | null;
+    sold_dop: number | null;
+    by_category: { mods: number; mantenimiento: number; combustible: number; pista: number; otros: number };
+    total_dop: number;
+    per_km_dop: number | null;
+    since: string | null;
+  } | null;
   photos: string[];
 };
 
@@ -102,6 +116,8 @@ export type Dossier = {
   modsTotal: string | null;
   maintenance: { count: number; last: { title: string; date: string } | null; total: string | null; recent: { title: string; date: string; cost: string | null }[] } | null;
   track: { events: number; bests: { venue: string; lap: string }[]; recent: { title: string; date: string; line: string }[] } | null;
+  /** Only with "costos" on; the rows of the Cifras card, already worded. */
+  costs: { rows: { label: string; value: string }[]; total: string; perKm: string | null; since: string | null } | null;
   heroUrl: string | null;
   photos: { id: string; full: string; thumb: string }[];
 };
@@ -124,6 +140,14 @@ export function monthYear(iso: string | null | undefined): string {
 export function dop(n: number): string {
   return `RD$ ${Math.round(n).toLocaleString('en-US')}`;
 }
+
+const COST_LABELS: [keyof NonNullable<RawDossier['costs']>['by_category'], string][] = [
+  ['mods', 'Mods'],
+  ['mantenimiento', 'Mantenimiento'],
+  ['combustible', 'Combustible'],
+  ['pista', 'Pista'],
+  ['otros', 'Otros'],
+];
 
 const km = (n: number) => `${Math.round(n).toLocaleString('en-US')} km`;
 
@@ -254,6 +278,24 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
     };
   }
 
+  let costs: Dossier['costs'] = null;
+  if (raw.show.costs && raw.costs) {
+    const c = raw.costs;
+    const rows: { label: string; value: string }[] = [];
+    if (c.purchase_dop != null) rows.push({ label: 'Compra', value: dop(c.purchase_dop) });
+    if (c.sold_dop != null) rows.push({ label: 'Venta', value: `− ${dop(c.sold_dop)}` });
+    for (const [key, label] of COST_LABELS) {
+      const n = c.by_category[key] ?? 0;
+      if (n !== 0) rows.push({ label, value: dop(n) });
+    }
+    costs = {
+      rows,
+      total: dop(c.total_dop),
+      perKm: c.per_km_dop != null ? `RD$ ${c.per_km_dop.toFixed(2)}/km` : null,
+      since: c.since ? `Desde ${monthYear(c.since)}` : null,
+    };
+  }
+
   const s = raw.slug;
   const photos = s ? raw.photos.map((id) => ({ id, full: publicPhotoUrl(opts.storageBase, s, id), thumb: publicPhotoUrl(opts.storageBase, s, id, true) })) : [];
   const heroId = v.hero_media_id ?? raw.photos[0] ?? null;
@@ -284,6 +326,7 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
     modsTotal,
     maintenance,
     track,
+    costs,
     heroUrl: s && heroId ? publicPhotoUrl(opts.storageBase, s, heroId) : null,
     photos,
   };

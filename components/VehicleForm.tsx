@@ -5,10 +5,18 @@ import { radius, space } from '@/constants/theme';
 import { FuelPicker } from '@/components/FuelPicker';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
-import { PhotoPicker } from '@/components/PhotoPicker';
+import { SwatchGrid } from '@/components/pickers';
 import { T } from '@/components/T';
-import { Chip, PrimaryButton } from '@/components/ui';
+import { Chip, PrimaryButton, Segmented } from '@/components/ui';
+import { IdentitySection, type IdentityValue } from '@/components/vehicle/IdentitySection';
+import { MakeModelYear, type MakeModelValue } from '@/components/vehicle/MakeModelYear';
+import { PhotosSection } from '@/components/vehicle/PhotosSection';
 import { parseDecimal } from '@/lib/domain/economy';
+import { normalizeGallery, type Gallery } from '@/lib/domain/gallery';
+import { bodyTypeFromLegacy, bodyTypes, colors, legacyTypeFor } from '@/lib/domain/refdata';
+import type { VolumeUnit } from '@/lib/domain/units';
+import { convertTankText, tankCaption, yearError } from '@/lib/domain/vehicleForm';
+import { statusLabel } from '@/lib/domain/vehicleStatus';
 import { useTheme } from '@/lib/theme/useTheme';
 import { es } from '@/lib/i18n/es';
 import type { FuelType } from '@/lib/types';
@@ -25,6 +33,7 @@ export type VehicleDraft = {
   plate: string | null;
   vin: string | null;
   defaultFuelType: FuelType;
+  /** In `volumeUnit`, as typed; saveVehicleDraft stores liters. */
   tankVolume: number | null;
   /** Written as an `odometer_reading` with source 'manual', not a vehicle column. */
   odometerKm: number | null;
@@ -32,6 +41,7 @@ export type VehicleDraft = {
   synthetic: boolean;
   purchaseDate: string | null;
   purchasePrice: number | null;
+  /** The cover; always one of `galleryIds` when there are photos. */
   photoMediaId: string | null;
   notes: string;
   // schema v2 identity (IMP 28092026)
@@ -45,19 +55,31 @@ export type VehicleDraft = {
   origin: VehicleOrigin | null;
   importedYear: number | null;
   story: string;
+  // schema v6 (IMP 29092026 Phase 3). Optional so older callers still type-check.
+  makeId?: string | null;
+  modelId?: string | null;
+  bodyType?: string | null;
+  colorId?: string | null;
+  interiorColorId?: string | null;
+  interiorMaterial?: string | null;
+  volumeUnit?: VolumeUnit;
+  statusNote?: string;
+  statusSince?: string | null;
+  /** The gallery in order (album items with role 'vehicle'). */
+  galleryIds?: string[];
 };
 
-/** "vendido" is not picked here: selling goes through the sale sheet, which closes the ownership period. */
-const STATUSES: VehicleStatus[] = ['activo', 'proyecto', 'guardado'];
-const TRANSMISSIONS: Transmission[] = ['manual', 'automatica', 'cvt', 'otro'];
-const DRIVETRAINS: Drivetrain[] = ['fwd', 'rwd', 'awd'];
-const ORIGINS: VehicleOrigin[] = ['jdm', 'usdm', 'eudm', 'local', 'otro'];
+/** vendido and perdido are not picked here: the sale sheet closes the ownership period. */
+const STATUSES: VehicleStatus[] = ['activo', 'proyecto', 'en_taller', 'accidentado', 'guardado', 'restauracion', 'prestado'];
 
-const TYPES: VehicleType[] = ['carro', 'jeepeta', 'camioneta', 'motor', 'camion', 'guagua', 'otro'];
+const MATERIALS = colors('material').filter((m) => m.id !== 'material-otro');
+const swatches = (kind: 'exterior' | 'interior') => colors(kind).map((c) => ({ id: c.id, label: c.es, hex: c.hex, light: c.light }));
 
-const CURRENT_YEAR = new Date().getFullYear();
-const MIN_YEAR = 1950;
-
+/**
+ * The vehicle form v2 (IMP 29092026 Phase 3, 03-screens.md "Phase 3"): the
+ * fast path first — name, photos, make/model/year — and everything after the
+ * name optional. The order is fixed by the spec.
+ */
 export function VehicleForm({
   initial,
   submitLabel,
@@ -69,92 +91,138 @@ export function VehicleForm({
 }) {
   const { theme } = useTheme();
   const [name, setName] = useState(initial?.name ?? '');
-  const [type, setType] = useState<VehicleType>(initial?.type ?? 'carro');
-  const [make, setMake] = useState(initial?.make ?? '');
-  const [model, setModel] = useState(initial?.model ?? '');
-  const [year, setYear] = useState(initial?.year ? String(initial.year) : '');
-  const [color, setColor] = useState(initial?.color ?? '');
+  const [bodyType, setBodyType] = useState<string | null>(initial?.bodyType ?? bodyTypeFromLegacy(initial?.type));
+  const [mmy, setMmy] = useState<MakeModelValue>({
+    makeId: initial?.makeId ?? null,
+    make: initial?.make ?? '',
+    modelId: initial?.modelId ?? null,
+    model: initial?.model ?? '',
+    year: initial?.year ? String(initial.year) : '',
+  });
+  const [color, setColor] = useState<{ id: string | null; label: string | null }>({
+    id: initial?.colorId ?? null,
+    label: initial?.color ?? null,
+  });
+  const [interior, setInterior] = useState<{ id: string | null; label: string | null }>({
+    id: initial?.interiorColorId ?? null,
+    label: null,
+  });
+  const [material, setMaterial] = useState<string | null>(initial?.interiorMaterial ?? null);
   const [plate, setPlate] = useState(initial?.plate ?? '');
   const [vin, setVin] = useState(initial?.vin ?? '');
   const [fuel, setFuel] = useState<FuelType>(initial?.defaultFuelType ?? 'regular');
+  const [unit, setUnit] = useState<VolumeUnit>(initial?.volumeUnit ?? 'gal');
   const [tank, setTank] = useState(initial?.tankVolume ? String(initial.tankVolume) : '');
   const [odometer, setOdometer] = useState(initial?.odometerKm ? String(initial.odometerKm) : '');
   const [synthetic, setSynthetic] = useState(initial?.synthetic ?? false);
-  const [showPurchase, setShowPurchase] = useState(Boolean(initial?.purchaseDate || initial?.purchasePrice));
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? '');
-  const [purchasePrice, setPurchasePrice] = useState(
-    initial?.purchasePrice ? String(initial.purchasePrice) : '',
+  const [purchasePrice, setPurchasePrice] = useState(initial?.purchasePrice ? String(initial.purchasePrice) : '');
+  const [gallery, setGallery] = useState<Gallery>(() =>
+    normalizeGallery(
+      [...(initial?.galleryIds ?? []), ...(initial?.photoMediaId ? [initial.photoMediaId] : [])],
+      initial?.photoMediaId ?? null,
+    ),
   );
-  const [photoMediaId, setPhotoMediaId] = useState<string | null>(initial?.photoMediaId ?? null);
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [status, setStatus] = useState<VehicleStatus>(initial?.status ?? 'activo');
-  const [nickname, setNickname] = useState(initial?.nickname ?? '');
-  const [chassisCode, setChassisCode] = useState(initial?.chassisCode ?? '');
-  const [chassisNumber, setChassisNumber] = useState(initial?.chassisNumber ?? '');
-  const [engineCode, setEngineCode] = useState(initial?.engineCode ?? '');
-  const [transmission, setTransmission] = useState<Transmission | null>(initial?.transmission ?? null);
-  const [drivetrain, setDrivetrain] = useState<Drivetrain | null>(initial?.drivetrain ?? null);
-  const [origin, setOrigin] = useState<VehicleOrigin | null>(initial?.origin ?? null);
-  const [importedYear, setImportedYear] = useState(initial?.importedYear ? String(initial.importedYear) : '');
-  const [story, setStory] = useState(initial?.story ?? '');
+  const [statusSince, setStatusSince] = useState(initial?.statusSince ?? '');
+  const [statusNote, setStatusNote] = useState(initial?.statusNote ?? '');
+  const [identity, setIdentity] = useState<IdentityValue>({
+    nickname: initial?.nickname ?? '',
+    chassisCode: initial?.chassisCode ?? '',
+    chassisNumber: initial?.chassisNumber ?? '',
+    engineCode: initial?.engineCode ?? '',
+    transmission: initial?.transmission ?? null,
+    drivetrain: initial?.drivetrain ?? null,
+    origin: initial?.origin ?? null,
+    importedYear: initial?.importedYear ? String(initial.importedYear) : '',
+    story: initial?.story ?? '',
+  });
   const [showIdentity, setShowIdentity] = useState(
     Boolean(initial?.nickname || initial?.chassisCode || initial?.engineCode || initial?.story),
   );
   const [error, setError] = useState<string | null>(null);
 
   // A stable owner id so a photo picked before the vehicle is saved still has
-  // somewhere to belong.
+  // somewhere to belong. Created once (useState initializer), never re-keyed.
   const [draftId] = useState(() => initial?.id ?? `veh_${Date.now()}`);
+
+  const sold = status === 'vendido' || status === 'perdido';
+  const tankValue = tank.trim() ? parseDecimal(tank) : null;
+  const caption = tankCaption(tankValue, unit);
+  const unitLabel = (u: VolumeUnit) => (u === 'gal' ? 'gal' : 'L');
+
+  function changeUnit(next: VolumeUnit) {
+    // The number follows the unit, so the liters stored do not change.
+    setTank((t) => convertTankText(t, unit, next, parseDecimal));
+    setUnit(next);
+  }
 
   function save() {
     const trimmed = name.trim();
     if (!trimmed) return setError(es.vehicle.nameRequired);
 
-    const parsedYear = year.trim() ? Number(year.trim()) : null;
-    if (parsedYear != null && (!Number.isInteger(parsedYear) || parsedYear < MIN_YEAR || parsedYear > CURRENT_YEAR + 1)) {
-      return setError(es.vehicle.yearRange(MIN_YEAR, CURRENT_YEAR + 1));
-    }
+    const badYear = yearError(mmy.year);
+    if (badYear) return setError(es.vehicle.yearRange(badYear.min, badYear.max));
+    const parsedYear = mmy.year.trim() ? Number(mmy.year.trim()) : null;
 
     const parsedOdometer = odometer.trim() ? parseDecimal(odometer) : null;
     if (odometer.trim() && parsedOdometer == null) {
       // "-5" and "abc" both land here; only one of them is negative.
       return setError(/^\s*-/.test(odometer) ? es.vehicle.odometerNegative : es.common.invalidNumber(es.vehicle.odometer));
     }
+    if (tank.trim() && tankValue == null) return setError(es.common.invalidNumber(es.vehicleForm.tank));
+    if (purchasePrice.trim() && parseDecimal(purchasePrice) == null) {
+      return setError(es.common.invalidNumber(es.vehicleForm.purchasePrice));
+    }
 
-    const parsedImported = importedYear.trim() ? Number(importedYear.trim()) : null;
-    if (parsedImported != null && (!Number.isInteger(parsedImported) || parsedImported < MIN_YEAR || parsedImported > CURRENT_YEAR)) {
-      return setError(es.vehicle.yearRange(MIN_YEAR, CURRENT_YEAR));
+    const importedRaw = identity.importedYear.trim();
+    const parsedImported = importedRaw ? Number(importedRaw) : null;
+    const now = new Date().getFullYear();
+    if (parsedImported != null && (!Number.isInteger(parsedImported) || parsedImported < 1950 || parsedImported > now)) {
+      return setError(es.vehicle.yearRange(1950, now));
     }
 
     setError(null);
+    const active = status === 'activo';
     onSubmit({
       id: initial?.id ?? draftId,
       name: trimmed,
-      type,
-      make: make.trim() || null,
-      model: model.trim() || null,
+      type: legacyTypeFor(bodyType),
+      bodyType,
+      make: mmy.make.trim() || null,
+      makeId: mmy.makeId,
+      model: mmy.model.trim() || null,
+      modelId: mmy.modelId,
       year: parsedYear,
-      color: color.trim() || null,
+      color: color.label?.trim() || null,
+      colorId: color.id,
+      interiorColorId: interior.id,
+      interiorMaterial: material,
       plate: plate.trim().toUpperCase() || null,
       vin: vin.trim().toUpperCase() || null,
       defaultFuelType: fuel,
-      tankVolume: tank.trim() ? parseDecimal(tank) : null,
+      volumeUnit: unit,
+      tankVolume: tankValue,
       odometerKm: parsedOdometer,
       synthetic,
       purchaseDate: purchaseDate || null,
       purchasePrice: purchasePrice.trim() ? parseDecimal(purchasePrice) : null,
-      photoMediaId,
+      photoMediaId: gallery.cover,
+      galleryIds: gallery.ids,
       notes: notes.trim(),
-      nickname: nickname.trim() || null,
+      nickname: identity.nickname.trim() || null,
       status,
-      chassisCode: chassisCode.trim().toUpperCase() || null,
-      chassisNumber: chassisNumber.trim().toUpperCase() || null,
-      engineCode: engineCode.trim() || null,
-      transmission,
-      drivetrain,
-      origin,
+      statusSince: active ? null : statusSince || null,
+      statusNote: active ? '' : statusNote.trim(),
+      chassisCode: identity.chassisCode.trim().toUpperCase() || null,
+      chassisNumber: identity.chassisNumber.trim().toUpperCase() || null,
+      engineCode: identity.engineCode.trim() || null,
+      transmission: identity.transmission,
+      drivetrain: identity.drivetrain,
+      origin: identity.origin,
       importedYear: parsedImported,
-      story: story.trim(),
+      story: identity.story.trim(),
     });
   }
 
@@ -164,55 +232,46 @@ export function VehicleForm({
         {initial?.id ? es.vehicle.editTitle : es.vehicle.newTitle}
       </T>
 
-      <Field
-        label={es.vehicle.name}
-        placeholder={es.vehicle.namePlaceholder}
-        value={name}
-        onChangeText={setName}
-      />
+      {/* 1 · Nombre, Fotos */}
+      <Field label={es.vehicle.name} placeholder={es.vehicle.namePlaceholder} value={name} onChangeText={setName} />
+      <PhotosSection gallery={gallery} onChange={setGallery} vehicleId={draftId} />
 
+      {/* 2 · Marca, Modelo, Año */}
+      <MakeModelYear value={mmy} onChange={setMmy} />
+
+      {/* 3 · Tipo */}
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicle.type}
+        {es.vehicleForm.bodyType}
       </T>
       <View style={styles.row}>
-        {TYPES.map((t) => (
-          <Chip key={t} label={es.vehicleTypes[t]} selected={type === t} onPress={() => setType(t)} />
+        {bodyTypes().map((b) => (
+          <Chip key={b.id} label={b.es} selected={bodyType === b.id} onPress={() => setBodyType(bodyType === b.id ? null : b.id)} />
         ))}
       </View>
 
-      <View style={styles.pair}>
-        <View style={styles.half}>
-          <Field label={es.vehicle.make} placeholder={es.vehicle.makePlaceholder} value={make} onChangeText={setMake} />
-        </View>
-        <View style={styles.half}>
-          <Field label={es.vehicle.model} placeholder={es.vehicle.modelPlaceholder} value={model} onChangeText={setModel} />
-        </View>
+      {/* 4 · Color, Interior */}
+      <SwatchGrid label={es.vehicleForm.color} swatches={swatches('exterior')} value={color.id} otherText={color.id ? null : color.label} onChange={setColor} />
+      <SwatchGrid label={es.vehicleForm.interior} swatches={swatches('interior')} value={interior.id} onChange={setInterior} />
+      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
+        {es.vehicleForm.interiorMaterial}
+      </T>
+      <View style={styles.row}>
+        {MATERIALS.map((m) => {
+          const id = m.id.replace(/^material-/, '');
+          return <Chip key={m.id} label={m.es} selected={material === id} onPress={() => setMaterial(material === id ? null : id)} />;
+        })}
       </View>
 
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field label={es.vehicle.year} placeholder="2015" keyboardType="number-pad" value={year} onChangeText={setYear} />
-        </View>
-        <View style={styles.half}>
-          <Field label={es.vehicle.color} placeholder={es.vehicle.colorPlaceholder} value={color} onChangeText={setColor} />
-        </View>
-      </View>
-
-      <View style={styles.pair}>
-        <View style={styles.half}>
-          <Field
-            label={es.vehicle.plate}
-            placeholder="A123456"
-            autoCapitalize="characters"
-            value={plate}
-            onChangeText={setPlate}
-          />
+          <Field label={es.vehicle.plate} placeholder="A123456" autoCapitalize="characters" value={plate} onChangeText={setPlate} />
         </View>
         <View style={styles.half}>
           <Field label={es.vehicle.vin} autoCapitalize="characters" value={vin} onChangeText={setVin} />
         </View>
       </View>
 
+      {/* 5 · Combustible, Tanque (gal | L), Odómetro */}
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
         {es.vehicle.fuel}
       </T>
@@ -220,7 +279,27 @@ export function VehicleForm({
 
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field label={es.vehicle.tank} placeholder="12.5" keyboardType="decimal-pad" value={tank} onChangeText={setTank} />
+          <Field
+            label={`${es.vehicleForm.tank} (${unitLabel(unit)})`}
+            placeholder={unit === 'gal' ? '12.5' : '47'}
+            keyboardType="decimal-pad"
+            value={tank}
+            onChangeText={setTank}
+            hint={
+              caption
+                ? es.vehicleForm.tankConverted(caption.typed, unitLabel(unit), caption.other, unitLabel(caption.otherUnit))
+                : undefined
+            }
+          />
+          <Segmented<VolumeUnit>
+            options={[
+              { key: 'gal', label: 'gal' },
+              { key: 'l', label: 'L' },
+            ]}
+            value={unit}
+            onChange={changeUnit}
+            style={styles.unit}
+          />
         </View>
         <View style={styles.half}>
           <Field
@@ -243,10 +322,7 @@ export function VehicleForm({
         <View
           style={[
             styles.checkbox,
-            {
-              borderColor: synthetic ? theme.accent : theme.line,
-              backgroundColor: synthetic ? theme.accent : theme.bg.raised,
-            },
+            { borderColor: synthetic ? theme.accent : theme.line, backgroundColor: synthetic ? theme.accent : theme.bg.raised },
           ]}
         />
         <View style={{ flex: 1 }}>
@@ -259,39 +335,55 @@ export function VehicleForm({
         </View>
       </Pressable>
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicle.photo}
-      </T>
-      <PhotoPicker
-        mediaId={photoMediaId}
-        ownerTable="vehicle"
-        ownerId={draftId}
-        vehicleId={draftId}
-        recoverPending
-        onChange={setPhotoMediaId}
-      />
-
-      <Pressable
-        onPress={() => setShowPurchase((v) => !v)}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: showPurchase }}
-        style={styles.sectionToggle}>
-        <T face="semibold" style={[styles.sectionToggleLabel, { color: theme.accent }]}>
-          {showPurchase ? '−' : '+'}  {es.vehicle.purchaseSection}
-        </T>
-      </Pressable>
-      {showPurchase ? (
-        <>
-          <DateField label={es.vehicle.purchaseDate} value={purchaseDate} onChange={setPurchaseDate} noFuture />
+      {/* 6 · Precio y fecha de compra — visible (note 8) */}
+      <View style={styles.pair}>
+        <View style={styles.half}>
           <Field
-            label={es.vehicle.purchasePrice}
+            label={es.vehicleForm.purchasePrice}
+            placeholder="875,000"
             keyboardType="decimal-pad"
             value={purchasePrice}
             onChangeText={setPurchasePrice}
           />
-        </>
-      ) : null}
+        </View>
+        <View style={styles.half}>
+          <DateField label={es.vehicle.purchaseDate} value={purchaseDate} onChange={setPurchaseDate} noFuture />
+        </View>
+      </View>
+      <T face="body" style={[styles.caption, { color: theme.text.muted }]}>
+        {es.vehicleForm.purchaseCaption}
+      </T>
 
+      {/* 7 · Estado (+ Desde, Nota) — a sold car keeps its status; "Cambiar estado" on the hub changes it back */}
+      {sold ? null : (
+        <>
+          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
+            {es.vehicleForm.status}
+          </T>
+          <View style={styles.row}>
+            {STATUSES.map((s) => (
+              <Chip key={s} label={statusLabel(s)} selected={status === s} onPress={() => setStatus(s)} />
+            ))}
+          </View>
+          {status !== 'activo' ? (
+            <View style={styles.pair}>
+              <View style={styles.half}>
+                <DateField label={es.vehicleForm.statusSince} value={statusSince} onChange={setStatusSince} noFuture />
+              </View>
+              <View style={styles.half}>
+                <Field
+                  label={es.vehicleForm.statusNote}
+                  placeholder={es.vehicleForm.statusNotePlaceholder}
+                  value={statusNote}
+                  onChangeText={setStatusNote}
+                />
+              </View>
+            </View>
+          ) : null}
+        </>
+      )}
+
+      {/* 8 · + Identidad */}
       <Pressable
         onPress={() => setShowIdentity((v) => !v)}
         accessibilityRole="button"
@@ -301,101 +393,13 @@ export function VehicleForm({
           {showIdentity ? '−' : '+'}  {es.vehicle.identitySection}
         </T>
       </Pressable>
-      {showIdentity ? (
-        <>
-          <Field
-            label={es.vehicle.nickname}
-            placeholder={es.vehicle.nicknamePlaceholder}
-            value={nickname}
-            onChangeText={setNickname}
-          />
-          {/* A sold car keeps its status; changing it back is the profile's "Cambiar estado". */}
-          {status === 'vendido' || status === 'perdido' ? null : (
-            <>
-              <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-                {es.vehicle.status}
-              </T>
-              <View style={styles.row}>
-                {STATUSES.map((s) => (
-                  <Chip key={s} label={es.vehicleStatus[s]} selected={status === s} onPress={() => setStatus(s)} />
-                ))}
-              </View>
-            </>
-          )}
-          <View style={styles.pair}>
-            <View style={styles.half}>
-              <Field
-                label={es.vehicle.chassisCode}
-                placeholder="AE85"
-                autoCapitalize="characters"
-                value={chassisCode}
-                onChangeText={setChassisCode}
-              />
-            </View>
-            <View style={styles.half}>
-              <Field label={es.vehicle.engineCode} placeholder="4A-GE 20V" value={engineCode} onChangeText={setEngineCode} />
-            </View>
-          </View>
-          <Field
-            label={es.vehicle.chassisNumber}
-            hint={es.vehicle.chassisNumberHint}
-            autoCapitalize="characters"
-            value={chassisNumber}
-            onChangeText={setChassisNumber}
-          />
-          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-            {es.vehicle.transmission}
-          </T>
-          <View style={styles.row}>
-            {TRANSMISSIONS.map((t) => (
-              <Chip
-                key={t}
-                label={es.transmissions[t]}
-                selected={transmission === t}
-                onPress={() => setTransmission(transmission === t ? null : t)}
-              />
-            ))}
-          </View>
-          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-            {es.vehicle.drivetrain}
-          </T>
-          <View style={styles.row}>
-            {DRIVETRAINS.map((d) => (
-              <Chip key={d} label={d.toUpperCase()} selected={drivetrain === d} onPress={() => setDrivetrain(drivetrain === d ? null : d)} />
-            ))}
-          </View>
-          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-            {es.vehicle.origin}
-          </T>
-          <View style={styles.row}>
-            {ORIGINS.map((o) => (
-              <Chip key={o} label={es.origins[o]} selected={origin === o} onPress={() => setOrigin(origin === o ? null : o)} />
-            ))}
-          </View>
-          <Field
-            label={es.vehicle.importedYear}
-            placeholder="2012"
-            keyboardType="number-pad"
-            value={importedYear}
-            onChangeText={setImportedYear}
-          />
-          <Field
-            label={es.vehicle.story}
-            placeholder={es.vehicle.storyPlaceholder}
-            value={story}
-            onChangeText={setStory}
-            multiline
-          />
-        </>
-      ) : null}
+      {showIdentity ? <IdentitySection value={identity} onChange={setIdentity} /> : null}
 
+      {/* 9 · Notas */}
       <Field label={es.vehicle.notes} value={notes} onChangeText={setNotes} multiline />
 
       {error ? (
-        <T
-          face="body"
-          accessibilityRole="alert"
-          style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>
+        <T face="body" accessibilityRole="alert" style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>
           {error}
         </T>
       ) : null}
@@ -412,23 +416,13 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
   pair: { flexDirection: 'row', gap: space.md },
   half: { flex: 1 },
-  toggle: {
-    flexDirection: 'row',
-    gap: space.md,
-    alignItems: 'flex-start',
-    marginBottom: space.lg,
-    minHeight: 44,
-  },
+  unit: { marginTop: -space.sm, marginBottom: space.md },
+  caption: { fontSize: 12, marginTop: -space.sm, marginBottom: space.lg, lineHeight: 17 },
+  toggle: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start', marginBottom: space.lg, minHeight: 44 },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, marginTop: 2 },
   toggleLabel: { fontSize: 15 },
   hint: { fontSize: 12, marginTop: 2, lineHeight: 17 },
   sectionToggle: { paddingVertical: space.md, minHeight: 44, justifyContent: 'center' },
   sectionToggleLabel: { fontSize: 14 },
-  error: {
-    fontSize: 13,
-    marginBottom: space.md,
-    padding: space.md,
-    borderRadius: radius.input,
-    overflow: 'hidden',
-  },
+  error: { fontSize: 13, marginBottom: space.md, padding: space.md, borderRadius: radius.input, overflow: 'hidden' },
 });

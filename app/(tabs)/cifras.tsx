@@ -4,19 +4,25 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DistanceBars } from '@/components/charts/DistanceBars';
+import { GarageCostCard, OwnershipCard } from '@/components/costs/OwnershipCard';
 import { Donut } from '@/components/charts/Donut';
-import { EconomyLine } from '@/components/charts/EconomyLine';
+import { EconomyLegend, EconomyLine } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
 import { T } from '@/components/T';
+import { TripsCifrasBlock } from '@/components/trips/TripPieces';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
-import { vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
-import { computeEconomy, latestEconomyInsight } from '@/lib/domain/economy';
+import { garageOwnershipCost, vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
+import type { GarageCost } from '@/lib/domain/costs';
+import { latestEconomyInsight } from '@/lib/domain/economy';
+import { capacityHint, fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
+import { fromLiters } from '@/lib/domain/units';
+import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
 import { economyNumber, km, money } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
-import { FEATURE_BUILD, FEATURE_TRACK } from '@/lib/flags';
+import { FEATURE_BUILD, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -33,10 +39,11 @@ const PERIODS: PeriodKey[] = ['mes', 'trimestre', 'ano', 'todo'];
 export default function CifrasScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { activeVehicle, vehicleFillups, data } = useStore();
+  const { activeVehicle, vehicleFillups, data, updateSettings, refresh } = useStore();
 
   const [period, setPeriod] = useState<PeriodKey>('trimestre');
   const [stats, setStats] = useState<VehicleStats | null>(null);
+  const [garage, setGarage] = useState<GarageCost | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const chartOffsets = useRef<Record<string, number>>({});
@@ -56,10 +63,43 @@ export default function CifrasScreen() {
     };
   }, [vehicleId, period, data]);
 
+  // The garage total is lifetime and period-free, so it reloads with the data only —
+  // and only when there is a garage to total (the card needs two cars).
+  const garageSize = data.vehicles.length;
+  useEffect(() => {
+    if (garageSize < 2) return;
+    let cancelled = false;
+    garageOwnershipCost()
+      .then((result) => {
+        if (!cancelled) setGarage(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [data, garageSize]);
+
   // Economy is a fill-up series, not a spend series, so it comes from the store
   // rather than from the stats query — and from computeEconomy, which drops the
   // tanks it cannot measure.
-  const points = computeEconomy(vehicleFillups);
+  // Note 4: measured tanks, reconciled parts, gauge estimates and gaps.
+  const includeEstimates = Boolean(data.settings.includeEstimates);
+  const partial = partialEconomy(vehicleFillups, fuelCfgFor(activeVehicle?.detail), { includeEstimates });
+  const points = partial.series;
+  const hasEstimates = points.some((p) => p.status !== 'measured');
+  // §1.4: a tank that keeps taking more than its stated size.
+  const capacity = capacityHint(vehicleFillups, fuelCfgFor(activeVehicle?.detail));
+  const unitOf = activeVehicle?.detail?.volumeUnit ?? 'gal';
+  const applyCapacity = () => {
+    if (!activeVehicle || !capacity) return;
+    void vehicleRepo
+      .upsert({
+        id: activeVehicle.id,
+        tankVolume: capacity.suggestedL,
+        tankVolumeEntered: Math.round(fromLiters(capacity.suggestedL, unitOf) * 10) / 10,
+      })
+      .then(refresh);
+  };
   const insight = latestEconomyInsight(vehicleFillups);
 
   const scrollTo = useCallback((key: string) => {
@@ -80,7 +120,7 @@ export default function CifrasScreen() {
   if (!activeVehicle) return null;
 
   const empty = stats != null && stats.kpis.spend === 0 && points.length === 0;
-  const unit = economyLabel(activeVehicle.defaultFuelType);
+  const unit = economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
@@ -129,7 +169,7 @@ export default function CifrasScreen() {
               />
               <Kpi
                 label={es.stats.economy}
-                value={points.length ? `${economyNumber(averageOf(points))} ${unit}` : '—'}
+                value={partial.average != null ? `${economyNumber(partial.average)} ${unit}` : '—'}
                 onPress={() => scrollTo('economy')}
               />
               {FEATURE_BUILD && stats.modsInvested > 0 ? (
@@ -159,7 +199,50 @@ export default function CifrasScreen() {
             </View>
 
             <View onLayout={rememberOffset('economy')}>
-              <EconomyLine points={points} fuelType={activeVehicle.defaultFuelType} />
+              <EconomyLine
+                points={points}
+                average={partial.average}
+                fuelType={activeVehicle.defaultFuelType}
+                volumeUnit={activeVehicle.detail?.volumeUnit}
+              />
+              {hasEstimates ? (
+                <>
+                  <EconomyLegend />
+                  <Pressable
+                    onPress={() => updateSettings({ includeEstimates: !includeEstimates })}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: includeEstimates }}
+                    style={styles.estimatesToggle}>
+                    <View
+                      style={[
+                        styles.estimatesBox,
+                        { borderColor: includeEstimates ? theme.accentFill : theme.lineStrong, backgroundColor: includeEstimates ? theme.accentFill : theme.bg.raised },
+                      ]}
+                    />
+                    <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
+                      {es.estimate.includeEstimates}
+                    </T>
+                  </Pressable>
+                </>
+              ) : null}
+              {capacity ? (
+                <Surface style={styles.card}>
+                  <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
+                    {es.estimate.capacity(
+                      economyNumber(fromLiters(capacity.extraL, unitOf)),
+                      unitOf === 'gal' ? 'gal' : 'L',
+                      capacity.samples,
+                    )}
+                  </T>
+                  <GhostButton
+                    label={es.estimate.capacityApply(
+                      economyNumber(fromLiters(capacity.suggestedL, unitOf)),
+                      unitOf === 'gal' ? 'gal' : 'L',
+                    )}
+                    onPress={applyCapacity}
+                  />
+                </Surface>
+              ) : null}
             </View>
 
             <View onLayout={rememberOffset('km')}>
@@ -196,26 +279,9 @@ export default function CifrasScreen() {
               </Surface>
             ) : null}
 
-            {stats.ownership ? (
-              <>
-                <SectionHeader title={es.stats.ownership} caption={es.stats.ownershipCaption} />
-                <Surface>
-                  <Row label={es.stats.ownershipPurchase} value={money(stats.ownership.purchasePrice)} />
-                  {stats.ownership.soldPrice != null ? (
-                    <Row label={es.stats.ownershipSold} value={`− ${money(stats.ownership.soldPrice)}`} />
-                  ) : null}
-                  <Row label={es.stats.ownershipSpend} value={money(stats.ownership.spend)} />
-                  <View style={[styles.rule, { backgroundColor: theme.line }]} />
-                  <Row label={es.stats.ownershipTotal} value={money(stats.ownership.total)} strong />
-                  {stats.ownership.costPerMonth != null ? (
-                    <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
-                      {es.stats.ownershipPerMonth}: {money(stats.ownership.costPerMonth)} ·{' '}
-                      {es.stats.ownershipMonths(stats.ownership.monthsOwned)}
-                    </T>
-                  ) : null}
-                </Surface>
-              </>
-            ) : null}
+            {/* Note 8: "lo que me ha costado" — lib/domain/costs.ts, the same figure as the report and the CSV. */}
+            {stats.ownership ? <OwnershipCard cost={stats.ownership} /> : null}
+            {garageSize >= 2 && garage ? <GarageCostCard garage={garage} /> : null}
 
             <SectionHeader title={es.stats.upcoming} caption={es.stats.upcomingCaption} />
             <Surface>
@@ -255,14 +321,14 @@ export default function CifrasScreen() {
             </View>
           </>
         ) : null}
+
+        {/* Phase 5: this month's trips; renders nothing without any. */}
+        {FEATURE_TRIPS ? <TripsCifrasBlock vehicleId={activeVehicle.id} /> : null}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function averageOf(points: { kmPerUnit: number }[]): number {
-  return points.reduce((sum, p) => sum + p.kmPerUnit, 0) / points.length;
-}
 
 /**
  * One headline number. Tapping it scrolls to the chart it came from, which is
@@ -361,6 +427,8 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 }
 
 const styles = StyleSheet.create({
+  estimatesToggle: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44, marginTop: space.sm },
+  estimatesBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1 },
   safe: { flex: 1 },
   pad: { padding: space.gutter, paddingBottom: 48 },
   periodHint: { fontSize: 13, marginTop: space.sm, marginBottom: space.lg },

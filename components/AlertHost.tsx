@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
-import { subscribeToAlerts, type AlertButton, type AlertRequest } from '@/lib/alert';
+import { openReport, subscribeToAlerts, type AlertButton, type AlertRequest } from '@/lib/alert';
+import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
@@ -97,6 +98,21 @@ export function AlertHost() {
               );
             })}
           </View>
+          {/* Error alerts (lib/alert.ts isErrorAlert): a quiet way to tell Xaviel. */}
+          {current.report ? (
+            <Pressable
+              onPress={() => {
+                dismiss();
+                openReport();
+              }}
+              accessibilityRole="link"
+              hitSlop={8}
+              style={styles.report}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 14, textDecorationLine: 'underline' }}>
+                {es.feedback.report}
+              </T>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -130,6 +146,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, textTransform: 'uppercase', letterSpacing: 0.6 },
   message: { fontSize: 15, lineHeight: 22, marginTop: space.sm },
   actions: { marginTop: space.xl, gap: space.sm },
+  report: { alignSelf: 'center', marginTop: space.md, minHeight: 32, justifyContent: 'center' },
   action: {
     minHeight: 48,
     borderRadius: radius.button,

@@ -42,6 +42,25 @@ export class UserError extends Error {
  */
 export function userMessage(where: string, error: unknown, fallback: string): string {
   if (error instanceof UserError) return error.message;
-  recordError(where, error);
+  recordReportable(where, error);
   return fallback;
+}
+
+let reportArmedAt = 0;
+
+/**
+ * An error the screen is about to tell the user about: recorded, and the next
+ * alert (within 1.5 s) offers "Reportar". Background errors (sync, trips, the
+ * outbox) use plain recordError and never put the link on an unrelated dialog.
+ */
+export function recordReportable(where: string, error: unknown): void {
+  recordError(where, error);
+  reportArmedAt = Date.now();
+}
+
+/** True once per recordReportable, for the alert that follows it. */
+export function takeReportable(now = Date.now(), windowMs = 1500): boolean {
+  const armed = reportArmedAt > 0 && now - reportArmedAt < windowMs;
+  reportArmedAt = 0;
+  return armed;
 }

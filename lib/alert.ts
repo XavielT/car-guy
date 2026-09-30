@@ -1,5 +1,7 @@
 import { Alert as RNAlert, Platform } from 'react-native';
 
+import { takeReportable } from './diagnostics';
+import { FEATURE_FEEDBACK } from './flags';
 import { es } from './i18n/es';
 
 /**
@@ -30,7 +32,26 @@ export type AlertRequest = {
   title: string;
   message?: string;
   buttons: AlertButton[];
+  /** An error alert: AlertHost adds the "Reportar" link (PROMPT-06 item 4). */
+  report?: boolean;
 };
+
+/**
+ * "Error alert": the one alert right after an error the screen chose to show
+ * (`userMessage()`'s fallback, the photo pickers — lib/diagnostics.ts
+ * `recordReportable`). A confirmation with its own choices (three buttons) is
+ * left alone. Consumes the mark, so only that alert gets the link.
+ */
+export function isErrorAlert(buttons: AlertButton[] | undefined, now = Date.now()): boolean {
+  if (!FEATURE_FEEDBACK) return false;
+  const armed = takeReportable(now);
+  return armed && (buttons?.length ?? 0) <= 2;
+}
+
+/** Opens Enviar comentario as a bug report, from the route the error happened on. */
+export function openReport(): void {
+  void import('./feedback').then((m) => m.openFeedback('bug'));
+}
 
 type Listener = (request: AlertRequest) => void;
 
@@ -57,6 +78,7 @@ function webAlert(title: string, message?: string, buttons?: AlertButton[]): voi
     title,
     message,
     buttons: buttons?.length ? buttons : OK,
+    report: isErrorAlert(buttons),
   };
 
   if (listener) {
@@ -77,6 +99,13 @@ export const Alert = {
       webAlert(title, message, buttons);
       return;
     }
-    RNAlert.alert(title, message, buttons);
+    // Native: the platform dialog takes up to three buttons. "Reportar" goes
+    // first — Android's neutral slot, on the left — so it never becomes the
+    // main button of the dialog.
+    RNAlert.alert(
+      title,
+      message,
+      isErrorAlert(buttons) ? [{ text: es.feedback.report, onPress: openReport }, ...(buttons?.length ? buttons : OK)] : buttons,
+    );
   },
 };

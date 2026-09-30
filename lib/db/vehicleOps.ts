@@ -1,10 +1,17 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
+
 import type { VehicleDraft } from '@/components/VehicleForm';
 
 import { addMonths, todayIso } from '../domain/dates';
 import { isArchivedFor } from '../domain/garage';
+import { statusLabel } from '../domain/vehicleStatus';
+import { tankForStorage } from '../domain/units';
+import { es } from '../i18n/es';
 import type { VehicleStatus } from './types';
 import { enqueue, now } from './client';
 import {
+  albumItems as albumItemRepo,
+  milestones as milestoneRepo,
   odometer as odometerRepo,
   reminders as reminderRepo,
   specsheets as specsheetRepo,
@@ -26,7 +33,18 @@ const SYNTHETIC_MONTHS = 12;
  * effect) and seeding is called explicitly afterwards.
  */
 export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
-  const isNew = draft.id ? (await vehicleRepo.getById(draft.id)) == null : true;
+  const existing = draft.id ? await vehicleRepo.getById(draft.id) : null;
+  const isNew = existing == null;
+  // The form types the tank in the vehicle's unit; storage is liters (v6).
+  const volumeUnit = draft.volumeUnit ?? existing?.volumeUnit ?? 'gal';
+  const tank = tankForStorage(draft.tankVolume, volumeUnit, draft.defaultFuelType);
+  const statusChanged = existing != null && existing.status !== draft.status;
+  // Back to activo: nothing to note and no "since".
+  const statusNote = draft.status === 'activo' ? '' : (draft.statusNote ?? existing?.statusNote ?? '');
+  const statusSince =
+    draft.status === 'activo'
+      ? null
+      : (draft.statusSince ?? (statusChanged || isNew ? todayIso() : existing?.statusSince ?? null));
 
   const saved = await enqueue(async (db) => {
     const vehicle = await vehicleRepo.upsertRaw(
@@ -41,7 +59,7 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         plate: draft.plate,
         vin: draft.vin,
         defaultFuelType: draft.defaultFuelType,
-        tankVolume: draft.tankVolume,
+        ...tank,
         initialOdometerKm: draft.odometerKm,
         purchaseDate: draft.purchaseDate,
         purchasePrice: draft.purchasePrice,
@@ -59,9 +77,40 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         origin: draft.origin,
         importedYear: draft.importedYear,
         story: draft.story,
+        // v6 (IMP 29092026 Phase 3). `undefined` leaves a column alone (upsertRaw skips it),
+        // so a caller that does not know these fields changes none of them.
+        volumeUnit,
+        economyUnit: volumeUnit === 'l' ? 'km_l' : 'km_gal',
+        makeId: draft.makeId,
+        modelId: draft.modelId,
+        bodyType: draft.bodyType,
+        colorId: draft.colorId,
+        interiorColorId: draft.interiorColorId,
+        interiorMaterial: draft.interiorMaterial,
+        statusNote,
+        statusSince,
       },
       db,
     );
+
+    if (draft.galleryIds) await syncVehicleGallery(vehicle.id, draft.galleryIds, db);
+
+    // A status change from the form is a milestone too (01-data-model-v6.md §1.8),
+    // like the hub's "Cambiar estado" (setVehicleStatus).
+    if (statusChanged) {
+      await milestoneRepo.upsert(
+        {
+          vehicleId: vehicle.id,
+          kind: 'estado',
+          occurredAt: statusSince ?? todayIso(),
+          odometerKm: null,
+          title: es.statusChanged(statusLabel(draft.status), statusNote),
+          story: statusNote,
+          coverMediaId: null,
+        },
+        db,
+      );
+    }
 
     // The ownership period mirrors the purchase fields, with migration v2's id
     // (own_<vehicle>) so a device that migrated and one that created converge.
@@ -243,8 +292,62 @@ export async function purgeVehicleLocal(vehicleId: string): Promise<void> {
  * — "lo compré otra vez" — but keeps the sale on record in the row's history
  * by leaving `sold_*` to the user's edit.
  */
-export async function setVehicleStatus(vehicleId: string, status: Exclude<VehicleStatus, 'vendido'>): Promise<void> {
-  await vehicleRepo.upsertRaw({ id: vehicleId, status, isArchived: isArchivedFor(status) });
+export async function setVehicleStatus(
+  vehicleId: string,
+  status: Exclude<VehicleStatus, 'vendido'>,
+  note?: string,
+): Promise<void> {
+  const before = await vehicleRepo.getById(vehicleId);
+  if (before && before.status === status && (note === undefined || note === before.statusNote)) return;
+  const today = todayIso();
+  await vehicleRepo.upsertRaw({
+    id: vehicleId,
+    status,
+    isArchived: isArchivedFor(status),
+    statusSince: before?.status === status ? before.statusSince : today,
+    ...(note === undefined ? {} : { statusNote: note.trim() }),
+  });
+  // v6: a status change is a milestone of kind 'estado', so the history and the
+  // album timeline show it without a table of its own (01-data-model-v6.md §1.8).
+  if (before?.status !== status) {
+    await milestoneRepo.upsert({
+      vehicleId,
+      kind: 'estado',
+      occurredAt: today,
+      odometerKm: null,
+      title: es.statusChanged(statusLabel(status), note),
+      story: note?.trim() ?? '',
+      coverMediaId: null,
+    });
+  }
+}
+
+/**
+ * The gallery as the form left it: album items with role 'vehicle', in order.
+ * A photo already in the album (role 'album') joins the gallery rather than
+ * getting a second album item; one dropped from the gallery is removed from it
+ * (its album item goes, the photo itself stays — it may be the cover of a
+ * milestone). The cover is `vehicle.photo_media_id`, written by the caller.
+ */
+export async function syncVehicleGallery(vehicleId: string, ids: string[], db?: SQLiteDatabase): Promise<void> {
+  const items = await albumItemRepo.listWhere({ vehicleId });
+  const byMedia = new Map(items.map((item) => [item.mediaId, item]));
+  for (const [sortOrder, mediaId] of ids.entries()) {
+    const item = byMedia.get(mediaId);
+    if (item) {
+      if (item.role !== 'vehicle' || item.sortOrder !== sortOrder) {
+        await albumItemRepo.upsert({ id: item.id, role: 'vehicle', sortOrder }, db);
+      }
+    } else {
+      await albumItemRepo.upsert(
+        { vehicleId, mediaId, role: 'vehicle', sortOrder, milestoneId: null, modId: null, trackEventId: null, deletedAt: null },
+        db,
+      );
+    }
+  }
+  for (const item of items) {
+    if (item.role === 'vehicle' && !ids.includes(item.mediaId)) await albumItemRepo.softDelete(item.id, db);
+  }
 }
 
 export type SaleDraft = {
