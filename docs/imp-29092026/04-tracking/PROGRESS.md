@@ -16,9 +16,9 @@ context between sessions.
 | 3 | Forms v2 | ✅ | `imp-29092026/phase-3-forms` | pickers, gallery, statuses, oil, check photos + atención; web verified, Android pending |
 | 4 | Carga parcial | ✅ | `imp-29092026/phase-4-fuel` | gauge estimates with bands, reconciliation, chart styles, CSV estado; web verified |
 | 5A | Viajes — manual + live | ✅ | `imp-29092026/phase-5-viajes` | manual trips, speed cluster, trip screens, odometer estimate; web verified, Redmi walk test pending |
-| 5B | Viajes — automático | 🟡 | `imp-29092026/phase-5-viajes` | task + engine + arming + permisos/MIUI + thresholds; tests green; device run and drive pending |
-| 6 | Bug reports / comments | 6 | 🟡 form, outbox, admin inbox built + local-rls green; live after sql/021 is applied |
-| 7 | Animated launch icon | 6 | 🟡 overlay built, web verified; Redmi cold-start check pending |
+| 5B | Viajes — automático | ✅ | `main` (merged) | shipped in 2.2.0 (opt-in); Redmi mock run done; real drive carried |
+| 6 | Bug reports / comments | 6 | ✅ live on x-core; sent from the Redmi; admin view to be confirmed by Xaviel |
+| 7 | Animated launch icon | 6 | ✅ verified on the Redmi (cold start, no flash, one sweep) |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -34,7 +34,7 @@ context between sessions.
 | 6 | Bug reports / comments | 6 | ⬜ |
 | 7 | Animated launch icon | 6 | ⬜ |
 | 8 | Mod costs + car price + what it cost me | 3 + 6 | ✅ «Lo que me ha costado» in Cifras, PDF, CSV, book (public web page pending SQL) |
-| 9 | Portfolio | 0 + 7 | 🟡 live card verified in Phase 0; APK button in 7 |
+| 9 | Portfolio | 0 + 7 | ✅ card live with releases/latest + Direct APK (e47283f), 2.2 text |
 | 10 | Several vehicle photos | 3 | ✅ gallery strip, cover, 1/N pager |
 | 11 | Liters/gallons, colour picker, make/model/year pickers, body types | 3 | ✅ |
 | 12 | Photo error on Android | 1 | ✅ compressPhoto + pending result; 8/8 on the Redmi; phone photo *upload* fixed too |
@@ -42,7 +42,7 @@ context between sessions.
 | 14 | Garage view with all photos, user-arranged | 6 | ✅ Portadas / Cuadrícula / Lista, Ordenar + Fijar, synced layout |
 | 15 | More statuses (the C3 case) | 2 + 3 | ✅ nine statuses, Desde + Nota, status line everywhere, milestone on change |
 | 16 | Oil types picker | 3 | ✅ |
-| 17 | APK from the web page | 1 (name) + 7 | 🟡 stable `car-guy.apk` asset from 2.1.3; the web button is Phase 7 |
+| 17 | APK from the web page | 1 + 7 | ✅ car-guy.vercel.app/instalar + /api/apk, Más row and pill on Android |
 | 18 | Folder rename | 0 (manual) | ✅ path check done (still `tu-gasolina-rd`); the rename itself is Xaviel's |
 | 19 | Where trips live in the app | 5A | ✅ Más → Viajes, hub tab, Historial rows, Cifras block, Inicio row |
 
@@ -138,7 +138,7 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 
 ## Phase 0 — Kickoff   (branch `imp-29092026/phase-0-kickoff`)
 
-**Status:** complete (folder rename pending — manual)
+**Status:** 2.2.0 "Kaidō" released 2026-09-30 (GitHub v2.2.0, web deployed, portfolio updated); Xaviel's real drive carried
 **Commits:** `chore(imp-29092026): kickoff — package, baseline, audit, portfolio check, seed`
 
 ### Changed
@@ -739,4 +739,26 @@ car's lifetime cost on each change.
 5. `bash tools/release-apk.sh --skip-build --publish`, merge to main + tag + push (deploys), smoke-public-page
    6/6 + smoke-apk 3/3, then the portfolio: `cd ~/dev2/xaviel-web-v2 && git checkout main && git merge
    --ff-only car-guy-2-2 && git push origin main`.
+
+## Release 2.2.0 "Kaidō" — 2026-09-30
+
+- Backup of Xaviel's real app first: `car-guy-2026-09-30.json` (427 KB, 13 vehicles) on the phone's SD card
+  Download and in `~/car-guy-backups/` on the laptop.
+- `releases/car-guy-v2.2.0.apk` (EAS release-apk, universal, versionCode 5): bundle has the cloud, signed with
+  the EAS key a16450a0…, versionName 2.2.0, sha256 `9eb1df8a299912ee80efa0488044573005e1898eda48eebd621bcf69db5fa711`.
+- Upgrade over 2.1.3 on the Redmi with his real data: migration v6 ran, Novedades 2.2.0 shown once, garage
+  intact (3 + Ex), still signed in ("Todo subido"), DS3 último tanque **19.9 km/gal = 2.1.3**, month
+  average 28.7 → 30.2 km/gal (distance-weighted, as the changelog says), trips in Solo manual (no
+  background location from the update).
+- `main` merged + pushed (Vercel deployed), GitHub release v2.2.0 (`car-guy.apk` + `car-guy-v2.2.0.apk`,
+  latest; the stable link serves `application/vnd.android.package-archive`).
+- Production: smoke-apk 3/3, smoke-public-page 6/6, Permissions-Policy geolocation=(self) live.
+- Portfolio `xaviel-web-v2` main → e47283f (Direct APK link + 2.2 text), live.
+- Not done (needs its own OK): `sql/999_cleanup_test_users.sql --shared` for the smoke run's
+  `carguy-test-*-smoke` account (its car is revoked); `tools/verify-x-core.mjs` 24–28.
+
+## Final state
+
+Every note of the brief is closed except **1 (Wheelz-style trips)**, whose automatic half shipped and waits
+for Xaviel's real drive to be called done. Hand-off: `docs/NEXT.md` → "Carried to the next cycle".
 
