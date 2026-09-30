@@ -14,6 +14,9 @@ import { ChartFrame } from './ChartFrame';
 
 type Point = EconomyPoint & { status?: EconomyStatus; kmPerUnitLow?: number | null; kmPerUnitHigh?: number | null };
 
+/** One "≈ por echada" figure (lib/domain/perFillEconomy.ts `perFillSeries`), km per volume unit. */
+export type PerFillPoint = { fillUpId: string; occurredAt: string; kmPerUnit: number };
+
 /** The plot's height in px; the whiskers are scaled against it. */
 const PLOT_H = 150;
 
@@ -32,6 +35,7 @@ export function EconomyLine({
   volumeUnit = 'gal',
   economyUnit,
   average: averageIn,
+  perFill: perFillIn,
 }: {
   points: Point[];
   fuelType: FuelType;
@@ -40,6 +44,11 @@ export function EconomyLine({
   economyUnit?: EconomyUnit | null;
   /** The headline average (distance-weighted); defaults to the mean of the drawn points. */
   average?: number | null;
+  /**
+   * Note 9: the dotted grey "Por echada (aprox.)" series — km since the previous
+   * log ÷ this log's volume. Drawn only; it never enters the average.
+   */
+  perFill?: PerFillPoint[] | null;
 }) {
   // Into the vehicle's economy unit. L/100 km inverts, so an estimate's low and high swap.
   const economy = fuelType === 'gnv' ? null : economyUnit;
@@ -52,6 +61,7 @@ export function EconomyLine({
     kmPerUnitHigh: (inverted ? p.kmPerUnitLow : p.kmPerUnitHigh) != null ? conv((inverted ? p.kmPerUnitLow : p.kmPerUnitHigh)!) : null,
   }));
   averageIn = averageIn != null ? conv(averageIn) : averageIn;
+  const perFill = (perFillIn ?? []).map((p) => ({ ...p, kmPerUnit: conv(p.kmPerUnit) }));
   const { theme, scheme } = useTheme();
   const line = scheme === 'light' ? categoryInkLight.combustible : categoryColors.combustible;
 
@@ -69,8 +79,16 @@ export function EconomyLine({
   const values = known.flatMap((p) =>
     p.status === 'estimated' ? [p.kmPerUnit, p.kmPerUnitLow ?? p.kmPerUnit, p.kmPerUnitHigh ?? p.kmPerUnit] : [p.kmPerUnit],
   );
-  const min = Math.min(...values, average);
-  const max = Math.max(...values, average);
+  // The per-fill figures widen the axis, but only so far: a small top-up after a
+  // long stretch reads absurdly high, and must not flatten the measured line.
+  // Beyond these bounds a dotted point is drawn at the edge.
+  const mainMin = Math.min(...values, average);
+  const mainMax = Math.max(...values, average);
+  const perFillLo = mainMin * 0.6;
+  const perFillHi = mainMax * 1.5;
+  const perFillShown = enough ? perFill.map((p) => Math.min(Math.max(p.kmPerUnit, perFillLo), perFillHi)) : [];
+  const min = Math.min(mainMin, ...perFillShown);
+  const max = Math.max(mainMax, ...perFillShown);
   // A flat series would otherwise collapse onto the axis.
   const pad = Math.max((max - min) * 0.2, 1);
   const offset = Math.max(0, min - pad);
@@ -101,12 +119,50 @@ export function EconomyLine({
     return <View style={[styles.solid, { backgroundColor: line }]} />;
   };
 
-  const data = points.map((point) => ({
-    // An unknown segment has no number: a gap in the line (interpolateMissingValues off).
-    value: point.status === 'unknown' ? undefined : point.kmPerUnit,
-    label: new Date(point.occurredAt).toLocaleDateString('es-DO', { month: 'short' }),
-    ...(styled && point.status !== 'unknown' ? { customDataPoint: () => dot(point) } : {}),
-  }));
+  // One x position per fill-up in either series, in time order. The per-fill
+  // series has the partials the tank series folds into its closing full tank.
+  type Slot = { id: string; occurredAt: string; point?: Point; perFill?: number };
+  const slots = new Map<string, Slot>();
+  for (const point of points) slots.set(point.fillUpId, { id: point.fillUpId, occurredAt: point.occurredAt, point });
+  if (perFillShown.length > 0) {
+    perFill.forEach((p, i) => {
+      const slot = slots.get(p.fillUpId) ?? { id: p.fillUpId, occurredAt: p.occurredAt };
+      slot.perFill = perFillShown[i];
+      slots.set(p.fillUpId, slot);
+    });
+  }
+  const timeline = [...slots.values()].sort((a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
+
+  // The tank line bridges the slots that exist only for the per-fill series (a
+  // straight segment, no dot), so adding the dotted series never breaks it; an
+  // unknown segment stays a gap.
+  const mainValues: (number | undefined)[] = timeline.map((slot) =>
+    slot.point ? (slot.point.status === 'unknown' ? undefined : slot.point.kmPerUnit) : undefined,
+  );
+  const bridged = [...mainValues];
+  for (let i = 0; i < timeline.length; i++) {
+    if (timeline[i].point) continue;
+    let a = i - 1;
+    while (a >= 0 && !timeline[a].point) a--;
+    let b = i + 1;
+    while (b < timeline.length && !timeline[b].point) b++;
+    const va = a >= 0 ? mainValues[a] : undefined;
+    const vb = b < timeline.length ? mainValues[b] : undefined;
+    if (va != null && vb != null) bridged[i] = va + ((vb - va) * (i - a)) / (b - a);
+  }
+
+  const data = timeline.map((slot, i) => {
+    const point = slot.point;
+    return {
+      // An unknown segment has no number: a gap in the line (interpolateMissingValues off).
+      value: bridged[i],
+      label: new Date(slot.occurredAt).toLocaleDateString('es-DO', { month: 'short' }),
+      ...(!point ? { hideDataPoint: true } : {}),
+      ...(point && styled && point.status !== 'unknown' ? { customDataPoint: () => dot(point) } : {}),
+    };
+  });
+  const data2 = perFillShown.length > 0 ? timeline.map((slot) => ({ value: slot.perFill })) : undefined;
+  const grey = theme.text.muted;
 
   return (
     <ChartFrame
@@ -135,6 +191,17 @@ export function EconomyLine({
           thickness={2}
           dataPointsColor={line}
           dataPointsRadius={3}
+          // Note 9: "Por echada (aprox.)" — dotted, grey, small dots; drawn only, never averaged.
+          {...(data2
+            ? {
+                data2,
+                color2: grey,
+                thickness2: 1.5,
+                strokeDashArray2: [2, 4],
+                dataPointsColor2: grey,
+                dataPointsRadius2: 2,
+              }
+            : {})}
           // gifted-charts subtracts the offset from every value and adds it
           // back when it writes the label, so `maxValue` is the range above the
           // offset rather than an absolute ceiling.
@@ -225,4 +292,11 @@ const legend = StyleSheet.create({
   item: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   mark: { width: 18, alignItems: 'center' },
   gap: { width: 14, height: 2, opacity: 0.6 },
+  dotted: { width: 16, height: 0, borderTopWidth: 2, borderStyle: 'dotted' },
 });
+
+/** The dotted grey mark that stands for the per-fill series (toggle / legend). */
+export function PerFillMark() {
+  const { theme } = useTheme();
+  return <View style={[legend.dotted, { borderColor: theme.text.muted }]} />;
+}

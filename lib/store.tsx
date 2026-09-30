@@ -158,11 +158,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
     serviceIds.current = new Set(maintenance.map((r) => r.id));
 
-    const [activeVehicleId, referencePrices, priceWeekLabel, includeEstimates] = await Promise.all([
+    const [activeVehicleId, referencePrices, priceWeekLabel, includeEstimates, perFill] = await Promise.all([
       settingsRepo.get<string | null>('active_vehicle_id', null),
       settingsRepo.get('reference_prices', EMPTY_DATA.settings.referencePrices),
       settingsRepo.get('price_week_label', EMPTY_DATA.settings.priceWeekLabel),
       settingsRepo.get<boolean>('economy_include_estimates', false),
+      settingsRepo.get<boolean>('economy_per_fill', true),
     ]);
 
     // v6: the database holds liters; everything below `data` works in each
@@ -216,7 +217,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           notes: r.notes,
           createdAt: r.createdAt,
         })),
-      settings: { activeVehicleId, referencePrices, priceWeekLabel, includeEstimates },
+      settings: { activeVehicleId, referencePrices, priceWeekLabel, includeEstimates, perFill },
     });
   }, []);
 
@@ -341,7 +342,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return {
           ...prev,
           fillups: exists
-            ? prev.fillups.map((f) => (f.id === fillId ? { ...f, ...next } : f))
+            ? // An edit keeps when the log was first saved (the dedupe window reads it).
+              prev.fillups.map((f) => (f.id === fillId ? { ...f, ...next, createdAt: f.createdAt } : f))
             : [next, ...prev.fillups],
         };
       });
@@ -469,6 +471,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           await settingsRepo.set('price_week_label', patch.priceWeekLabel);
         }
         if (patch.includeEstimates !== undefined) await settingsRepo.set('economy_include_estimates', patch.includeEstimates);
+        if (patch.perFill !== undefined) await settingsRepo.set('economy_per_fill', patch.perFill);
         await load();
       });
     },

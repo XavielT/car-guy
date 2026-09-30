@@ -28,6 +28,7 @@
     { "source": "/pista/evento/:id", "destination": "/pista/evento/[id]" },
     { "source": "/pista/sesion/:id", "destination": "/pista/sesion/[id]" },
     { "source": "/chequeo/:templateId/run", "destination": "/chequeo/[templateId]/run" },
+    { "source": "/carga/:id/editar", "destination": "/carga/[id]/editar" },
     { "source": "/carga/:id", "destination": "/carga/[id]" },
     { "source": "/gasto/:id", "destination": "/gasto/[id]" },
     { "source": "/servicio/:id", "destination": "/servicio/[id]" },

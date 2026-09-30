@@ -9,6 +9,7 @@ import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
+/** Editing a fill-up (opened from its detail, `app/carga/[id]/index.tsx` → Editar). */
 export default function EditCargaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function EditCargaScreen() {
         submitLabel={es.fuel.saveChanges}
         onSubmit={(draft) => {
           upsertFillUp({ ...draft, id: fill.id });
+          // Back to the detail it was opened from (note 8: detail first, editor behind "Editar").
           router.back();
         }}
         onDelete={() =>
@@ -41,7 +43,8 @@ export default function EditCargaScreen() {
               style: 'destructive',
               onPress: () => {
                 deleteFillUp(fill.id);
-                router.back();
+                // The detail under this editor is gone too.
+                router.dismissTo('/(tabs)/historial');
               },
             },
           ])

@@ -140,7 +140,8 @@ function segDist2(p: XY, a: XY, b: XY): number {
 }
 
 /**
- * Douglas–Peucker with the tolerance in meters (default 8 m, ADR-29), on the
+ * Douglas–Peucker with the tolerance in meters (default 8 m, ADR-29; the
+ * stored trip polyline uses 3 m since ADR-42), on the
  * equirectangular projection around the points' centroid. Returns a subset of
  * the input objects (first and last always kept), so extra fields survive.
  * Iterative, so a 2 000-point drive cannot overflow the stack.
@@ -301,27 +302,81 @@ export type TrackCfg = {
   maxJumpSpeedMs: number;
 };
 
+/** How many fixes each cleaning rule dropped (IMP 30092026 note 16 diagnostics, ADR-42). */
+export type CleanCounts = {
+  /** Fixes given. */
+  raw: number;
+  /** Fixes left after every rule. */
+  kept: number;
+  /** Accuracy worse than `trackAccM`. */
+  droppedAccuracy: number;
+  /** Same or earlier timestamp than the last accepted fix. */
+  droppedDuplicates: number;
+  /** Faster than `maxJumpSpeedMs` from the last accepted fix. */
+  droppedJumps: number;
+  /** Out-and-back excursions (dropExcursions). */
+  droppedExcursions: number;
+};
+
+export type CleanReport<T> = CleanCounts & { track: T[] };
+
 /**
- * The fixes a track is built from: sorted by time, one per timestamp, accuracy
- * ≤ `trackAccM` (unknown accuracy is kept), and no jump faster than
- * `maxJumpSpeedMs` from the last accepted fix. Same rules as the state machine,
- * so recomputing from stored points gives the same route.
+ * cleanTrack with the count of what each rule dropped — the same fixes come
+ * out; finalize logs the counts and the GeoJSON export carries them.
  */
-export function cleanTrack<T extends Fix>(points: readonly T[], cfg: Partial<TrackCfg> = {}): T[] {
+export function cleanTrackReport<T extends Fix>(points: readonly T[], cfg: Partial<TrackCfg> = {}): CleanReport<T> {
   const trackAccM = cfg.trackAccM ?? GEO_DEFAULTS.trackAccM;
   const maxJump = cfg.maxJumpSpeedMs ?? GEO_DEFAULTS.maxJumpSpeedMs;
   const sorted = points.slice().sort((a, b) => a.t - b.t);
   const out: T[] = [];
+  let droppedAccuracy = 0;
+  let droppedDuplicates = 0;
+  let droppedJumps = 0;
   for (const p of sorted) {
-    if (p.acc != null && p.acc > trackAccM) continue;
+    if (p.acc != null && p.acc > trackAccM) {
+      droppedAccuracy++;
+      continue;
+    }
     const last = out[out.length - 1];
     if (last) {
-      if (p.t <= last.t) continue;
-      if (isJump(last, p, maxJump)) continue;
+      if (p.t <= last.t) {
+        droppedDuplicates++;
+        continue;
+      }
+      if (isJump(last, p, maxJump)) {
+        droppedJumps++;
+        continue;
+      }
     }
     out.push(p);
   }
-  return dropExcursions(out);
+  const track = dropExcursions(out);
+  return {
+    raw: points.length,
+    kept: track.length,
+    droppedAccuracy,
+    droppedDuplicates,
+    droppedJumps,
+    droppedExcursions: out.length - track.length,
+    track,
+  };
+}
+
+/** The counts of a CleanReport, without the track. */
+export function cleanCounts(r: CleanCounts): CleanCounts {
+  const { raw, kept, droppedAccuracy, droppedDuplicates, droppedJumps, droppedExcursions } = r;
+  return { raw, kept, droppedAccuracy, droppedDuplicates, droppedJumps, droppedExcursions };
+}
+
+/**
+ * The fixes a track is built from: sorted by time, one per timestamp, accuracy
+ * ≤ `trackAccM` (unknown accuracy is kept), no jump faster than
+ * `maxJumpSpeedMs` from the last accepted fix, and no out-and-back excursion.
+ * Same rules as the state machine (plus the excursions), so recomputing from
+ * stored points gives the same route. The trip map draws through it too.
+ */
+export function cleanTrack<T extends Fix>(points: readonly T[], cfg: Partial<TrackCfg> = {}): T[] {
+  return cleanTrackReport(points, cfg).track;
 }
 
 /** An excursion leaves the track by more than this… */
@@ -419,6 +474,8 @@ export type TripStats = {
   bbox: BBox | null;
   /** The accepted fixes (after cleanTrack). */
   track: Fix[];
+  /** What the cleaning dropped, by rule. */
+  cleaning: CleanCounts;
 };
 
 const median3 = (a: number, b: number, c: number) => Math.max(Math.min(a, b), Math.min(Math.max(a, b), c));
@@ -429,7 +486,8 @@ const median3 = (a: number, b: number, c: number) => Math.max(Math.min(a, b), Ma
  * seconds; round when writing the INTEGER columns.
  */
 export function stats(points: readonly Fix[], cfg: Partial<TrackCfg> = {}): TripStats {
-  const track = cleanTrack(points, cfg);
+  const cleaned = cleanTrackReport(points, cfg);
+  const track = cleaned.track;
   const buckets: TripStats['speedBuckets'] = [0, 0, 0, 0, 0];
   let distanceM = 0;
   let movingS = 0;
@@ -471,5 +529,6 @@ export function stats(points: readonly Fix[], cfg: Partial<TrackCfg> = {}): Trip
     speedBuckets: buckets,
     bbox: bbox(track),
     track,
+    cleaning: cleanCounts(cleaned),
   };
 }

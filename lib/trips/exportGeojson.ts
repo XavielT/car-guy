@@ -7,7 +7,7 @@
  * a long press of the map.
  */
 import type { Trip } from '../db/types';
-import { decodePolyline, haversine, type Fix } from './geo';
+import { cleanCounts, cleanTrackReport, decodePolyline, haversine, type CleanCounts, type Fix } from './geo';
 
 type Feature = { type: 'Feature'; geometry: { type: string; coordinates: unknown }; properties: Record<string, unknown> };
 
@@ -23,6 +23,13 @@ export type TripDiagnostics = {
   medianAccM: number | null;
   distanceRawM: number;
   distanceSavedM: number;
+  /** Raw fixes after the trip's end (the parked tail of a 'stop' close) — left out of `cleaning`. */
+  pointsAfterEnd: number;
+  /**
+   * The stats' cleaning over the fixes up to the end (what finalize saw):
+   * raw vs kept, and what each rule dropped (ADR-42 — was it the excursion filter?).
+   */
+  cleaning: CleanCounts;
 };
 
 const median = (xs: number[]) => {
@@ -32,7 +39,7 @@ const median = (xs: number[]) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
-export function tripDiagnostics(trip: Pick<Trip, 'polyline' | 'distanceM'>, points: readonly Fix[]): TripDiagnostics {
+export function tripDiagnostics(trip: Pick<Trip, 'polyline' | 'distanceM'> & { endedAt?: string | null }, points: readonly Fix[]): TripDiagnostics {
   const pts = points.slice().sort((a, b) => a.t - b.t);
   let maxGapS: number | null = null;
   let maxGapM: number | null = null;
@@ -49,6 +56,8 @@ export function tripDiagnostics(trip: Pick<Trip, 'polyline' | 'distanceM'>, poin
     }
   }
   const acc = pts.map((p) => p.acc).filter((a): a is number => a != null);
+  const end = trip.endedAt ? Date.parse(trip.endedAt) : NaN;
+  const upToEnd = Number.isFinite(end) ? pts.filter((p) => p.t <= end) : pts;
   return {
     pointCount: pts.length,
     polylinePoints: trip.polyline ? decodePolyline(trip.polyline).length : 0,
@@ -60,10 +69,12 @@ export function tripDiagnostics(trip: Pick<Trip, 'polyline' | 'distanceM'>, poin
     medianAccM: median(acc),
     distanceRawM: Math.round(raw),
     distanceSavedM: trip.distanceM,
+    pointsAfterEnd: pts.length - upToEnd.length,
+    cleaning: cleanCounts(cleanTrackReport(upToEnd)),
   };
 }
 
-/** FeatureCollection: raw points (LineString + one Point per fix), the saved route, and the diagnostics. */
+/** FeatureCollection: raw points (LineString + one Point per fix, `kept` by the cleaning), the cleaned track, the saved route, and the diagnostics. */
 export function tripGeojson(trip: Trip, points: readonly Fix[]): string {
   const pts = points.slice().sort((a, b) => a.t - b.t);
   const features: Feature[] = [];
@@ -82,11 +93,22 @@ export function tripGeojson(trip: Trip, points: readonly Fix[]): string {
       properties: { kind: 'raw-track', stroke: '#FFB300' },
     });
   }
+  // What the stats and the trip map use (ADR-42): the cleaned track, and per fix whether it survived.
+  const end = trip.endedAt ? Date.parse(trip.endedAt) : NaN;
+  const clean = cleanTrackReport(Number.isFinite(end) ? pts.filter((p) => p.t <= end) : pts).track;
+  if (clean.length > 1) {
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: clean.map((p) => [p.lng, p.lat]) },
+      properties: { kind: 'clean-track', stroke: '#3DDC84' },
+    });
+  }
+  const kept = new Set(clean);
   for (const p of pts) {
     features.push({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-      properties: { kind: 'fix', t: new Date(p.t).toISOString(), speed: p.speed, acc: p.acc, alt: p.alt ?? null, heading: p.heading ?? null },
+      properties: { kind: 'fix', t: new Date(p.t).toISOString(), speed: p.speed, acc: p.acc, alt: p.alt ?? null, heading: p.heading ?? null, kept: kept.has(p) },
     });
   }
   return JSON.stringify({

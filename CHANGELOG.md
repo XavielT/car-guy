@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.3.1 (2026-09-30)
+
+- **Cada echada tiene su pantalla**: al guardar una carga llegas a su detalle (litros, total, precio, odómetro
+  y la revisión); desde ahí la editas o la borras. Historial e Inicio abren ese detalle.
+- **Sin echadas repetidas**: el botón Guardar se apaga mientras guarda, y si vuelves a guardar la misma carga
+  en menos de un minuto la app te avisa "Esta echada ya se guardó" en vez de duplicarla.
+- **Estaciones**: busca tu bomba en una lista con las marcas del país (Petronan, Sunix, Sigma, Nativa, United,
+  Gulf, Propagas, Tropigas y más); primero salen las que ya usas. "Total" y "total" cuentan como TotalEnergies.
+- **Solo la luz de reserva**: si no miraste la aguja pero se te prendió la luz, marca esa opción y la
+  estimación usa la reserva del tanque.
+- **≈ por echada**: las cargas parciales muestran un consumo aproximado (en la revisión, en Historial y en
+  el detalle), y Cifras puede dibujarlo como una línea punteada. Es aproximado porque no se sabe cuánto
+  tenía el tanque en cada parada; nunca entra en tus promedios, y si da una cifra imposible
+  (una recarga pequeña después de muchos km) no se muestra.
+- **Rutas más fieles**: los viajes guardan más puntos de la ruta y el detalle la dibuja con los puntos del
+  GPS cuando los tiene, así las curvas ya no se ven como líneas rectas.
+
 ## 2.3.0 (2026-09-30)
 
 - **Roles**: cada cuenta es Miembro; Premium ya existe pero todavía no desbloquea nada (no hay membresías).

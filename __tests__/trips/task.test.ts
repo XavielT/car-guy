@@ -48,6 +48,7 @@ jest.mock('expo-location', () => ({
 import { AppState } from 'react-native';
 
 import { settings as settingsRepo } from '@/lib/db/repos';
+import { recentErrors } from '@/lib/diagnostics';
 import { armAuto, disarmAuto, TRIP_TASK } from '@/lib/trips/auto';
 import { getLiveTrip } from '@/lib/trips/liveStore';
 import { startManualTrip, stopTrip } from '@/lib/trips/live';
@@ -137,6 +138,9 @@ it('records the GPX drive from background batches: one trip through the 2-min st
   expect(getLiveTrip()).toBeNull();
   const state = JSON.parse((db.prepare(`SELECT json FROM trip_state`).get() as { json: string }).json);
   expect(state.phase).toBe('idle');
+  // ADR-42: finalize notes what the cleaning dropped (raw/kept/dropped by rule).
+  const note = recentErrors().filter((e) => e.kind === 'note' && e.where === 'trip-finalize').at(-1);
+  expect(note?.message).toMatch(/raw \d+ kept \d+ route \d+ · dropped acc \d+ dup \d+ jump \d+ excursion \d+/);
   await disarmAuto();
 });
 

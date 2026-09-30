@@ -109,6 +109,8 @@ export type Settings = {
   priceWeekLabel: string;
   /** Cifras "Incluir estimados en el promedio" (setting economy_include_estimates, note 4). */
   includeEstimates?: boolean;
+  /** Cifras "Por echada (aprox.)" dotted series (setting economy_per_fill, note 9). Default on. */
+  perFill?: boolean;
 };
 
 export type AppData = {
