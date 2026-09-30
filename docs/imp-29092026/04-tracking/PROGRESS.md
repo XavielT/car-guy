@@ -754,8 +754,11 @@ car's lifetime cost on each change.
   latest; the stable link serves `application/vnd.android.package-archive`).
 - Production: smoke-apk 3/3, smoke-public-page 6/6, Permissions-Policy geolocation=(self) live.
 - Portfolio `xaviel-web-v2` main → e47283f (Direct APK link + 2.2 text), live.
-- Not done (needs its own OK): `sql/999_cleanup_test_users.sql --shared` for the smoke run's
-  `carguy-test-*-smoke` account (its car is revoked); `tools/verify-x-core.mjs` 24–28.
+- `tools/verify-x-core.mjs` **28/28** on x-core (24–28 feedback: anon RPC + idempotent retry, rate limit, no
+  anon select, own rows only, screenshot upload rules) — Xaviel's OK 2026-09-30.
+- `sql/999 --shared` applied after it (0 leftover profiles): every carguy-test-* account, test car and the
+  verify run's feedback rows (device `0000feed-%`, a line added to 999). One test screenshot object stays in
+  the private carguy-feedback bucket — Supabase only deletes storage rows through the Storage API.
 
 ## Final state
 

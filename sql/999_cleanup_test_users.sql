@@ -35,6 +35,9 @@ delete from carguy.vehicle_invite where vehicle_id like 'veh_test_%' or vehicle_
 
 -- Cascades to public.profiles and carguy.profiles, both of which reference
 -- auth.users(id) on delete cascade.
+-- verify-x-core 24–28 (sql/021): its devices are 0000feed-…; a real phone's id is a random v4 uuid.
+delete from carguy.feedback where device_id like '0000feed-%';
+-- (its test screenshot in carguy-feedback stays: storage rows can only be deleted through the Storage API)
 delete from auth.users
 where email like 'carguy-test-%@example.com'
    or email like 'carguy-sync-%@example.com'
