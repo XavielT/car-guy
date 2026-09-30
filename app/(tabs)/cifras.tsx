@@ -67,10 +67,7 @@ export default function CifrasScreen() {
   // and only when there is a garage to total (the card needs two cars).
   const garageSize = data.vehicles.length;
   useEffect(() => {
-    if (garageSize < 2) {
-      setGarage(null);
-      return;
-    }
+    if (garageSize < 2) return;
     let cancelled = false;
     garageOwnershipCost()
       .then((result) => {
@@ -284,7 +281,7 @@ export default function CifrasScreen() {
 
             {/* Note 8: "lo que me ha costado" — lib/domain/costs.ts, the same figure as the report and the CSV. */}
             {stats.ownership ? <OwnershipCard cost={stats.ownership} /> : null}
-            {garage ? <GarageCostCard garage={garage} /> : null}
+            {garageSize >= 2 && garage ? <GarageCostCard garage={garage} /> : null}
 
             <SectionHeader title={es.stats.upcoming} caption={es.stats.upcomingCaption} />
             <Surface>
