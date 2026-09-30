@@ -100,8 +100,8 @@ async function costExtras(vehicleId: string): Promise<{ modSales: DatedAmount[];
          FROM mod WHERE vehicle_id = ? AND deleted_at IS NULL AND status = 'vendido' AND sold_price_dop > 0`,
       [vehicleId],
     ),
-    db.getAllAsync<{ occurred_at: string | null; cost_dop: number | null; notes: string | null }>(
-      `SELECT COALESCE(acquired_at, created_at) AS occurred_at, cost_dop, notes
+    db.getAllAsync<{ occurred_at: string | null; cost_dop: number | null; notes: string | null; used_in_mod_id: string | null }>(
+      `SELECT COALESCE(acquired_at, created_at) AS occurred_at, cost_dop, notes, used_in_mod_id
          FROM inventory_item WHERE owner_vehicle_id = ? AND deleted_at IS NULL`,
       [vehicleId],
     ),
@@ -109,7 +109,7 @@ async function costExtras(vehicleId: string): Promise<{ modSales: DatedAmount[];
   return {
     modSales: sales.map((r) => ({ occurredAt: r.occurred_at, amountDop: r.amount_dop ?? 0 })),
     inventory: items
-      .filter((r) => inventoryCounts({ costDop: r.cost_dop, notes: r.notes }))
+      .filter((r) => inventoryCounts({ costDop: r.cost_dop, notes: r.notes, usedInModId: r.used_in_mod_id }))
       .map((r) => ({ occurredAt: r.occurred_at, amountDop: r.cost_dop ?? 0 })),
   };
 }

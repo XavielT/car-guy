@@ -35,7 +35,7 @@ beforeAll(async () => {
 });
 
 it('the schema is at v4 (the feed test below proves the harness applied it)', () => {
-  expect(LATEST_VERSION).toBe(6);
+  expect(LATEST_VERSION).toBe(7);
 });
 
 it('the DS3 preset fills only what is empty, as PRESET, unverified', async () => {

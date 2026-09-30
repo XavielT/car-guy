@@ -1,6 +1,6 @@
 import { getSupabase } from '../cloud/supabase';
 import { vehicleShares, vehicles as vehicleRepo } from '../db/repos';
-import { flagsPatch, getShare, shareId, sharedPhotoIds } from '../db/shareQueries';
+import { costsSummaryText, flagsPatch, getShare, shareId, sharedPhotoIds } from '../db/shareQueries';
 import type { VehicleShare } from '../db/types';
 import { sync } from '../sync/engine';
 import { localMediaBytes } from '../sync/mediaBytes';
@@ -36,6 +36,7 @@ async function signedIn(): Promise<boolean> {
 /** Saves the switches without publishing (or while published: the page follows them after the next sync). */
 export async function saveShareSettings(vehicleId: string, patch: { flags?: ShareFlags; visibility?: VehicleShare['visibility'] }): Promise<VehicleShare> {
   const existing = await getShare(vehicleId);
+  const showCosts = patch.flags ? patch.flags.costs : (existing?.showCosts ?? false);
   return vehicleShares.upsert({
     id: shareId(vehicleId),
     vehicleId,
@@ -43,6 +44,8 @@ export async function saveShareSettings(vehicleId: string, patch: { flags?: Shar
     deletedAt: null,
     ...(patch.flags ? flagsPatch(patch.flags) : {}),
     ...(patch.visibility ? { visibility: patch.visibility } : {}),
+    // What the page shows under "Lo que me ha costado" (sql/022): the phone's figure.
+    costsSummary: await costsSummaryText(vehicleId, showCosts),
   });
 }
 
@@ -97,6 +100,7 @@ export async function enableShare(vehicleId: string, flags: ShareFlags, visibili
     id: shareId(vehicleId),
     vehicleId,
     ...flagsPatch(flags),
+    costsSummary: await costsSummaryText(vehicleId, flags.costs),
     visibility,
     slug,
     publishedAt: existing?.publishedAt && existing.slug === slug ? existing.publishedAt : new Date().toISOString(),

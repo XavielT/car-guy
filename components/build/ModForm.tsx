@@ -57,7 +57,8 @@ export function ModForm({
   vehicleId: string;
   modId?: string;
   draft?: Partial<Mod> & { fromWishlistId?: string };
-  onDone: () => void;
+  /** The saved mod — "Usar en un mod" links the inventory item to it. */
+  onDone: (saved?: { id: string }) => void;
 }) {
   const { theme } = useTheme();
   // Known before the first save, so photos can be attached right away.
@@ -208,19 +209,19 @@ export function ModForm({
     const reset = saved.status === 'instalado' && !modId ? await reminderResetFor(vehicleId, saved.categoryId) : null;
     if (reset) {
       Alert.alert(es.modForm.reminderTitle, es.modForm.reminderBody(reset.titles.join('", "')), [
-        { text: es.modForm.reminderNo, style: 'cancel', onPress: onDone },
-        { text: es.modForm.reminderYes, onPress: () => void applyReminderReset(vehicleId, reset.serviceTypeId, { date: at, km: kmValue }).then(onDone) },
+        { text: es.modForm.reminderNo, style: 'cancel', onPress: () => onDone(saved) },
+        { text: es.modForm.reminderYes, onPress: () => void applyReminderReset(vehicleId, reset.serviceTypeId, { date: at, km: kmValue }).then(() => onDone(saved)) },
       ]);
       return;
     }
-    onDone();
+    onDone(saved);
   }
 
   function remove() {
     if (!modId) return;
     Alert.alert(es.modForm.delete, es.modForm.deleteBody, [
       { text: es.common.cancel, style: 'cancel' },
-      { text: es.common.delete, style: 'destructive', onPress: () => void modRepo.softDelete(modId).then(onDone) },
+      { text: es.common.delete, style: 'destructive', onPress: () => void modRepo.softDelete(modId).then(() => onDone()) },
     ]);
   }
 

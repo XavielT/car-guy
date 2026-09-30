@@ -14,7 +14,7 @@ function raw(over: Partial<RawDossier> = {}): RawDossier {
   return {
     slug: 'ae85hchg',
     visibility: 'link',
-    show: { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true },
+    show: { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true, status: false },
     vehicle: {
       name: 'Trueno AE85',
       make: 'Toyota',
@@ -199,5 +199,26 @@ describe('car book', () => {
   it('names the file car-guy_<nick>_<yyyymmdd>.pdf', () => {
     expect(bookFileName('Trueno AE85', 'hachi-gō', new Date(2026, 8, 28))).toBe('car-guy_hachi-go_20260928.pdf');
     expect(bookFileName('DS3', null, new Date(2026, 0, 5))).toBe('car-guy_ds3_20260105.pdf');
+  });
+});
+
+describe('status on the page (sql/022)', () => {
+  const withStatus = (on: boolean) =>
+    raw({
+      show: { ...raw().show, status: on },
+      vehicle: { ...raw().vehicle, status: 'en_taller', status_note: 'Esperando el turbo', status_since: '2026-09-01T12:00:00Z' },
+    });
+
+  it('shows "Estado" with since and note only with the switch on', () => {
+    const on = publicDossier(withStatus(true), { storageBase: BASE }).facts.find((f) => f.label === 'Estado');
+    expect(on?.value).toMatch(/desde/);
+    expect(on?.value).toContain('Esperando el turbo');
+    expect(publicDossier(withStatus(false), { storageBase: BASE }).facts.some((f) => f.label === 'Estado')).toBe(false);
+  });
+
+  it('ignores a status this build does not know', () => {
+    const r = withStatus(true);
+    r.vehicle.status = 'algo_nuevo';
+    expect(publicDossier(r, { storageBase: BASE }).facts.some((f) => f.label === 'Estado')).toBe(false);
   });
 });

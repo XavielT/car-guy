@@ -44,6 +44,39 @@ select t_as('anon');
 select t_ok('2b. the page carries each event''s layout (017)', (carguy.public_dossier('ae85hchg')->'track'->0->>'layout') = 'Completo', carguy.public_dossier('ae85hchg')->>'track');
 reset role;
 
+-- 022: the phone's cost summary and the status switch
+select t_as('a');
+update carguy.vehicle_share set costs_summary = '{"total_dop": 456686.4, "per_km_dop": 135.92, "since": "2019-05-01", "purchase_dop": 350000, "sold_dop": null, "by_category": {"mods": 1, "mantenimiento": 2, "combustible": 3, "pista": 4, "otros": 5}}'
+ where id = 'share_veh_a';
+update carguy.vehicle set status_note = 'Esperando el turbo', status_since = '2026-09-01' where id = 'veh_a';
+reset role;
+select t_as('anon');
+select t_ok('2c. a summary with "costos" off stays off the page (022)',
+  carguy.public_dossier('ae85hchg') -> 'costs' is null and carguy.public_dossier('ae85hchg')::text not like '%456686%');
+select t_ok('2d. status note/since only with show_status (022)',
+  carguy.public_dossier('ae85hchg') -> 'vehicle' ->> 'status_note' is null
+  and (carguy.public_dossier('ae85hchg') -> 'show' ->> 'status') = 'false');
+reset role;
+select t_as('a');
+update carguy.vehicle_share set show_costs = true, show_status = true where id = 'share_veh_a';
+reset role;
+select t_as('anon');
+select t_ok('2e. with both on: the published figure and the status note (022)',
+  (carguy.public_dossier('ae85hchg') -> 'costs' ->> 'total_dop')::numeric = 456686.4
+  and (carguy.public_dossier('ae85hchg') -> 'vehicle' ->> 'status_note') = 'Esperando el turbo',
+  carguy.public_dossier('ae85hchg')::text);
+reset role;
+select t_as('a');
+update carguy.vehicle_share set costs_summary = 'not json' where id = 'share_veh_a';
+reset role;
+select t_as('anon');
+select t_ok('2f. a malformed summary is left out, the page still renders (022)',
+  carguy.public_dossier('ae85hchg') -> 'costs' is null and (carguy.public_dossier('ae85hchg') -> 'vehicle' ->> 'name') = 'Trueno AE85');
+reset role;
+select t_as('a');
+update carguy.vehicle_share set show_costs = false, show_status = false, costs_summary = null where id = 'share_veh_a';
+reset role;
+
 -- 3/4 B outsider
 select t_as('b');
 select t_ok('3. B cannot publish A''s car', t_denied($q$insert into carguy.vehicle_share (id, vehicle_id, slug, visibility, published_at, created_at, updated_at) values ('share_b', 'veh_a', 'bbbbbbbb', 'link', now(), now(), now())$q$));

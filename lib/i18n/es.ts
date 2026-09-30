@@ -1834,6 +1834,7 @@ export const es = {
       costs: 'Costos',
       plate: 'Placa completa',
       vin: 'VIN completo',
+      status: 'Estado del carro',
     } as Record<string, string>,
     flagHints: {
       story: '',
@@ -1844,6 +1845,7 @@ export const es = {
       costs: 'Apagado: ningún RD$ sale en el link.',
       plate: 'Apagado se ve como A70••••.',
       vin: 'Apagado se ve como JT2••••.',
+      status: 'En el taller, accidentado, en venta… con su nota. Apagado no se ve.',
     } as Record<string, string>,
     photos: (n: number, max: number) => `FOTOS · ${n} DE ${max}`,
     pickPhotos: 'ELEGIR FOTOS',

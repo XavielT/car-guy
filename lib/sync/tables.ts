@@ -179,6 +179,7 @@ export const BOOLEAN_COLUMNS: Record<string, string[]> = {
     'show_track',
     'show_docs',
     'show_story',
+    'show_status',
   ],
 };
 

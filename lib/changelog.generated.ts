@@ -4,6 +4,24 @@ import type { ChangelogEntry } from './changelog/parse';
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "2.2.1",
+    "name": null,
+    "date": "2026-09-30",
+    "unreleased": false,
+    "intro": [],
+    "sections": [
+      {
+        "title": null,
+        "intro": [],
+        "items": [
+          "**Viajes más exactos**: si el GPS salta a otro sitio y vuelve (pasa cuando el teléfono mezcla GPS y Wi‑Fi), ese desvío ya no suma kilómetros ni velocidad al viaje guardado.",
+          "**Ficha pública**: con \"Costos\" encendido, el link muestra lo que te ha costado el carro (el mismo número de Cifras). Nuevo interruptor \"Estado del carro\": en el taller, accidentado… con su nota y desde cuándo.",
+          "**Inventario**: una pieza que usaste en un mod queda enlazada a ese mod, así su costo nunca se cuenta dos veces aunque edites la nota."
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.2.0",
     "name": "Kaidō",
     "date": "2026-09-30",

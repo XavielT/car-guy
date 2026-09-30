@@ -18,7 +18,7 @@ import { es } from '@/lib/i18n/es';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
-const FLAG_KEYS: (keyof ShareFlags)[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'costs', 'plate', 'vin'];
+const FLAG_KEYS: (keyof ShareFlags)[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'status', 'costs', 'plate', 'vin'];
 const MAX_PHOTOS = 24;
 
 /**

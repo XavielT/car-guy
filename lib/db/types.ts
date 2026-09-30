@@ -559,6 +559,8 @@ export type InventoryItem = Syncable & {
   fitsVehicleIds: string;
   mediaId: string | null;
   notes: string;
+  /** v7 / sql/023: the mod "Usar en un mod" put it into — its cost is then the mod's. */
+  usedInModId: string | null;
 };
 
 export type WheelSet = Syncable & {
@@ -785,6 +787,10 @@ export type VehicleShare = Syncable & {
   showTrack: boolean;
   showDocs: boolean;
   showStory: boolean;
+  /** v7 / sql/022: the car's status on the page (off unless chosen). */
+  showStatus: boolean;
+  /** v7 / sql/022: "lo que me ha costado" as the phone computed it (JSON), published only with showCosts. */
+  costsSummary: string | null;
   ogMediaId: string | null;
   publishedAt: string | null;
   revokedAt: string | null;

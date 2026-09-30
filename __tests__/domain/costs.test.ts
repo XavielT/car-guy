@@ -209,3 +209,15 @@ describe('ownershipCost — pure edges', () => {
     expect(inventoryCounts({ costDop: 0, notes: '' })).toBe(false);
   });
 });
+
+describe('inventory used in a mod (sql/023)', () => {
+  const { inventoryCounts: counts } = jest.requireActual('@/lib/domain/costs') as typeof import('@/lib/domain/costs');
+  it('the link wins, whatever the notes say', () => {
+    expect(counts({ costDop: 5000, notes: '', usedInModId: 'mod_1' })).toBe(false);
+    expect(counts({ costDop: 5000, notes: 'lo edité y borré la marca', usedInModId: 'mod_1' })).toBe(false);
+  });
+  it('old items keep the note rule; unused items count', () => {
+    expect(counts({ costDop: 5000, notes: 'Usado en: Turbo', usedInModId: null })).toBe(false);
+    expect(counts({ costDop: 5000, notes: '', usedInModId: null })).toBe(true);
+  });
+});

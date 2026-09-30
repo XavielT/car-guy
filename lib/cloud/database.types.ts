@@ -693,6 +693,7 @@ export type Database = {
           unit: string | null
           updated_at: string
           updated_by: string | null
+          used_in_mod_id: string | null
           user_id: string
         }
         Insert: {
@@ -716,6 +717,7 @@ export type Database = {
           unit?: string | null
           updated_at: string
           updated_by?: string | null
+          used_in_mod_id?: string | null
           user_id?: string
         }
         Update: {
@@ -739,6 +741,7 @@ export type Database = {
           unit?: string | null
           updated_at?: string
           updated_by?: string | null
+          used_in_mod_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2557,6 +2560,8 @@ export type Database = {
           show_odometer: boolean
           show_plate: boolean
           show_story: boolean
+          show_status: boolean
+          costs_summary: string | null
           show_track: boolean
           show_vin: boolean
           slug: string | null
@@ -2582,6 +2587,8 @@ export type Database = {
           show_odometer?: boolean
           show_plate?: boolean
           show_story?: boolean
+          show_status?: boolean
+          costs_summary?: string | null
           show_track?: boolean
           show_vin?: boolean
           slug?: string | null
@@ -2607,6 +2614,8 @@ export type Database = {
           show_odometer?: boolean
           show_plate?: boolean
           show_story?: boolean
+          show_status?: boolean
+          costs_summary?: string | null
           show_track?: boolean
           show_vin?: boolean
           slug?: string | null
