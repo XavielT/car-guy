@@ -10,7 +10,7 @@ import { documents as documentRepo } from '@/lib/db/repos';
 import type { VehicleDocument } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -42,14 +42,14 @@ export default function DocumentosScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.documents.title}
+          {t.documents.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.documents.subtitle}
+          {t.documents.subtitle}
         </T>
 
         {rows.length === 0 ? (
-          <EmptyState icon="document-text-outline" message={es.documents.empty} />
+          <EmptyState icon="document-text-outline" message={t.documents.empty} />
         ) : (
           rows.map((doc) => {
             const days = doc.expiresAt ? daysBetween(todayIso(), doc.expiresAt) : null;
@@ -66,13 +66,13 @@ export default function DocumentosScreen() {
                     {days != null ? (
                       <StatusPill
                         status={days < 0 ? 'vencido' : days <= 45 ? 'proximo' : 'ok'}
-                        label={es.documents.expiresOn(dateLabel(doc.expiresAt!))}
+                        label={t.documents.expiresOn(dateLabel(doc.expiresAt!))}
                       />
                     ) : null}
                   </View>
                   <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
-                    {es.documents.kinds[doc.kind]}
-                    {doc.expiresAt ? '' : ` · ${es.documents.noExpiry}`}
+                    {t.documents.kinds[doc.kind]}
+                    {doc.expiresAt ? '' : ` · ${t.documents.noExpiry}`}
                   </T>
                 </Surface>
               </Pressable>
@@ -81,7 +81,7 @@ export default function DocumentosScreen() {
         )}
 
         <View style={{ height: space.lg }} />
-        <PrimaryButton label={es.documents.new} onPress={() => router.push('/documento/nuevo')} />
+        <PrimaryButton label={t.documents.new} onPress={() => router.push('/documento/nuevo')} />
       </ScrollView>
     </SafeAreaView>
   );

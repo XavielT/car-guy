@@ -20,7 +20,7 @@ import { isEx, ownershipLine, toKatakana, vehicleBadges } from '@/lib/domain/gar
 import { canMove, garageLayoutReducer, orderByLayout, type GarageLayoutAction, type GarageMode } from '@/lib/domain/garageLayout';
 import { statusLine } from '@/lib/domain/vehicleStatus';
 import { km as fmtKm } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { getMedia } from '@/lib/media';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useStore } from '@/lib/store';
@@ -173,14 +173,14 @@ export default function GarajeScreen() {
           <View style={{ flexShrink: 1 }}>
             <View style={styles.brandRow}>
               <T face="eyebrow" style={{ color: theme.accent, fontSize: 12 }}>
-                {es.garage.eyebrow}
+                {t.garage.eyebrow}
               </T>
               <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
                 車庫
               </T>
             </View>
             <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-              {es.garage.title}
+              {t.garage.title}
             </T>
           </View>
           {FEATURE_GARAGE_V2 ? (
@@ -196,7 +196,7 @@ export default function GarajeScreen() {
                         accessibilityRole="tab"
                         accessibilityState={{ selected: on }}
                         aria-selected={on}
-                        accessibilityLabel={es.garageV2.modeLabel(es.garageV2.modes[m.key])}
+                        accessibilityLabel={t.garageV2.modeLabel(t.garageV2.modes[m.key])}
                         hitSlop={4}
                         style={[styles.toolBtn, { backgroundColor: theme.bg.surface, borderColor: on ? theme.accent : theme.lineStrong }]}>
                         <Ionicons name={m.icon} size={15} color={on ? theme.accent : theme.text.muted} />
@@ -212,7 +212,7 @@ export default function GarajeScreen() {
                 hitSlop={4}
                 style={[styles.sortBtn, { borderColor: sorting ? theme.accent : theme.lineStrong, backgroundColor: theme.bg.surface }]}>
                 <T face="title" style={{ color: sorting ? theme.accent : theme.text.secondary, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase' }}>
-                  {sorting ? es.garageV2.done : es.garageV2.sort}
+                  {sorting ? t.garageV2.done : t.garageV2.sort}
                 </T>
               </Pressable>
             </View>
@@ -221,11 +221,11 @@ export default function GarajeScreen() {
 
         <View style={styles.countRow}>
           <T face="mono" style={{ color: theme.text.muted, fontSize: 12 }}>
-            {es.garage.counts(inGarage.length, ex.length)}
+            {t.garage.counts(inGarage.length, ex.length)}
           </T>
           {sorting ? (
             <T face="title" style={{ color: theme.accent, fontSize: 10, letterSpacing: 1.4, textTransform: 'uppercase' }}>
-              {es.garageV2.sortHint}
+              {t.garageV2.sortHint}
             </T>
           ) : null}
         </View>
@@ -234,7 +234,7 @@ export default function GarajeScreen() {
           {(['activos', 'proyecto', 'ex'] as Filter[]).map((f) => (
             <Chip
               key={f}
-              label={es.garage.filters[f]}
+              label={t.garage.filters[f]}
               selected={filter === f}
               onPress={() => setFilter(filter === f ? null : f)}
             />
@@ -279,7 +279,7 @@ export default function GarajeScreen() {
           <>
             <View style={[styles.brandRow, { marginTop: space.xl, marginBottom: space.sm }]}>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-                {es.garage.exSection}
+                {t.garage.exSection}
               </T>
               <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
                 元愛車
@@ -307,13 +307,13 @@ export default function GarajeScreen() {
 
         {ready && !shown.length && !exShown.length ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 14, marginVertical: space.xl, textAlign: 'center' }}>
-            {es.garage.emptyFilter}
+            {t.garage.emptyFilter}
           </T>
         ) : null}
 
         {!sorting ? (
           <View style={{ marginTop: space.xl }}>
-            <PrimaryButton label={es.garage.add} onPress={() => router.push('/vehiculo/nuevo')} />
+            <PrimaryButton label={t.garage.add} onPress={() => router.push('/vehiculo/nuevo')} />
           </View>
         ) : null}
       </ScrollView>
@@ -340,11 +340,11 @@ function specLine(v: VehicleRow): string {
 function cardLine(card: Card): { text: string; tone: 'status' | 'overdue' | 'ok' } {
   const { vehicle, facts } = card;
   if (vehicle.status === 'proyecto' && !vehicle.statusNote && !vehicle.statusSince) {
-    return { text: es.garage.projectLine(facts.openTasks), tone: 'status' };
+    return { text: t.garage.projectLine(facts.openTasks), tone: 'status' };
   }
   const status = statusLine(vehicle);
   if (status) return { text: status, tone: 'status' };
-  return card.overdue ? { text: es.garage.overdue(card.overdue), tone: 'overdue' } : { text: es.garage.allGood, tone: 'ok' };
+  return card.overdue ? { text: t.garage.overdue(card.overdue), tone: 'overdue' } : { text: t.garage.allGood, tone: 'ok' };
 }
 
 function useLineColor(tone: ReturnType<typeof cardLine>['tone']): string {
@@ -355,7 +355,7 @@ function useLineColor(tone: ReturnType<typeof cardLine>['tone']): string {
 /** "88 120 km · 0 mods". */
 function kmLine(card: Card): string {
   const km = card.odometerKm != null ? fmtKm(Math.round(card.odometerKm)) : '—';
-  return es.garageV2.km(km, es.garage.mods(card.facts.installedMods));
+  return t.garageV2.km(km, t.garage.mods(card.facts.installedMods));
 }
 
 /**
@@ -403,7 +403,7 @@ const Cover = memo(function Cover({
 function PinMark() {
   const { theme } = useTheme();
   return (
-    <View style={[styles.pinMark, { backgroundColor: theme.bg.base }]} accessibilityLabel={es.garageV2.pinned}>
+    <View style={[styles.pinMark, { backgroundColor: theme.bg.base }]} accessibilityLabel={t.garageV2.pinned}>
       <Ionicons name="pin" size={12} color={theme.accent} />
     </View>
   );
@@ -415,7 +415,7 @@ function GalleryPill({ n }: { n: number }) {
   return (
     <View style={[styles.galleryPill, { backgroundColor: theme.bg.base }]}>
       <T face="mono" style={{ color: theme.text.secondary, fontSize: 10 }}>
-        {es.garageV2.coverCount(n)}
+        {t.garageV2.coverCount(n)}
       </T>
     </View>
   );
@@ -470,10 +470,10 @@ const CoverCard = memo(function CoverCard({ card, pinned, onPress }: { card: Car
             {card.odometerKm != null ? fmtKm(Math.round(card.odometerKm)) : '—'}
           </T>
           <T face="mono" style={{ color: theme.text.primary, fontSize: 13 }}>
-            {es.garage.mods(facts.installedMods)}
+            {t.garage.mods(facts.installedMods)}
           </T>
           <T face="mono" style={{ color: card.overdue ? theme.statusText.vencido : theme.statusText.ok, fontSize: 13 }}>
-            {card.overdue ? es.garage.overdue(card.overdue) : es.garage.allGood}
+            {card.overdue ? t.garage.overdue(card.overdue) : t.garage.allGood}
           </T>
         </View>
       </View>
@@ -541,7 +541,7 @@ const ListRow = memo(function ListRow({ card, pinned, onPress }: { card: Card; p
           <T face="title" numberOfLines={1} style={{ color: theme.text.primary, fontSize: 15, letterSpacing: 0.5, flexShrink: 1 }}>
             {title(vehicle)}
           </T>
-          {pinned ? <Ionicons name="pin" size={11} color={theme.accent} accessibilityLabel={es.garageV2.pinned} /> : null}
+          {pinned ? <Ionicons name="pin" size={11} color={theme.accent} accessibilityLabel={t.garageV2.pinned} /> : null}
         </View>
         <T face="medium" numberOfLines={1} style={{ color: lineColor, fontSize: 12 }}>
           {line.text}
@@ -651,15 +651,15 @@ function SortRow({
             style={styles.pinBtn}>
             <Ionicons name={pinned ? 'pin' : 'pin-outline'} size={12} color={pinned ? theme.accent : theme.text.muted} />
             <T face="title" style={{ color: pinned ? theme.accent : theme.text.muted, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' }}>
-              {pinned ? es.garageV2.unpin : es.garageV2.pin}
+              {pinned ? t.garageV2.unpin : t.garageV2.pin}
             </T>
           </Pressable>
         ) : null}
       </View>
       {pinned ? null : (
         <View style={styles.arrows}>
-          {arrow('chevron-up', canUp, onUp, es.garageV2.moveUp(name))}
-          {arrow('chevron-down', canDown, onDown, es.garageV2.moveDown(name))}
+          {arrow('chevron-up', canUp, onUp, t.garageV2.moveUp(name))}
+          {arrow('chevron-down', canDown, onDown, t.garageV2.moveDown(name))}
         </View>
       )}
     </View>
@@ -670,7 +670,7 @@ const ExCard = memo(function ExCard({ card, onPress }: { card: Card; onPress: ()
   const { theme } = useTheme();
   const { vehicle, facts } = card;
   const own = ownershipLine(facts.ownership);
-  const line = [own, es.garage.photos(facts.photos)].filter(Boolean).join(' · ');
+  const line = [own, t.garage.photos(facts.photos)].filter(Boolean).join(' · ');
 
   return (
     <Pressable
@@ -690,7 +690,7 @@ const ExCard = memo(function ExCard({ card, onPress }: { card: Card; onPress: ()
           {line}
         </T>
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-          {es.garage.exCaption}
+          {t.garage.exCaption}
         </T>
       </View>
       <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>

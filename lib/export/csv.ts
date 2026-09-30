@@ -1,6 +1,6 @@
 import { displayUnitLabel, fuelForDisplay, type VolumeUnit } from '../domain/units';
 import { partialEconomy, type FuelCfg, type SeriesPoint } from '../domain/partialEconomy';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 import type { FuelLog, HistoryEntry } from '../db/types';
 import { economyById } from '../domain/economy';
 import { COST_CATEGORIES, type GarageCost } from '../domain/costs';
@@ -207,7 +207,7 @@ function gaugeLabel(eighths: number): string {
 }
 
 function estadoFor(measured: boolean, point: SeriesPoint | undefined): string {
-  if (measured && (!point || point.status === 'measured')) return es.estimate.status.measured;
+  if (measured && (!point || point.status === 'measured')) return t.estimate.status.measured;
   if (!point) return '';
-  return es.estimate.status[point.status];
+  return t.estimate.status[point.status];
 }

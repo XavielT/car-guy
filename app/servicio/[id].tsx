@@ -19,7 +19,7 @@ import {
 import type { Part, ServiceKind, ServiceRecord } from '@/lib/db/types';
 import { oilSummary } from '@/lib/domain/oil';
 import { dateLabel, km as fmtKm, money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useStore } from '@/lib/store';
@@ -103,7 +103,7 @@ export default function ServicioDetalleScreen() {
             <View style={[styles.kindPill, { backgroundColor: `${KIND_COLOR[record.kind]}24` }]}>
               <View style={[styles.dot, { backgroundColor: inkOf(record.kind) }]} />
               <T face="eyebrow" style={{ color: inkOf(record.kind), fontSize: 11 }}>
-                {es.service.kinds[record.kind]}
+                {t.service.kinds[record.kind]}
                 {record.kind === 'mantenimiento' ? (
                   <T face="kana" style={styles.kana}>
                     {' 整備'}
@@ -117,7 +117,7 @@ export default function ServicioDetalleScreen() {
             </T>
           </View>
           {/* The "registrado" stamp on finished work (05-design-jdm.md §8). */}
-          <Hanko char="車" size={44} shape="square" accessibilityLabel={es.identity.stamped} />
+          <Hanko char="車" size={44} shape="square" accessibilityLabel={t.identity.stamped} />
         </View>
         <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 4, marginBottom: space.lg }}>
           {dateLabel(record.occurredAt)}
@@ -139,7 +139,7 @@ export default function ServicioDetalleScreen() {
             }
             style={{ marginBottom: space.md }}>
             <T face="body" style={{ color: theme.accent, fontSize: 13 }}>
-              {es.service.origin(origin.label)}
+              {t.service.origin(origin.label)}
             </T>
           </Pressable>
         ) : null}
@@ -147,9 +147,9 @@ export default function ServicioDetalleScreen() {
         {photoUri ? <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" /> : null}
 
         <Surface style={{ marginBottom: space.md }}>
-          <Row label={es.service.total} value={money(record.totalDop)} big />
-          {record.costPartsDop > 0 ? <Row label={es.service.costParts} value={money(record.costPartsDop)} /> : null}
-          {record.costLaborDop > 0 ? <Row label={es.service.costLabor} value={money(record.costLaborDop)} /> : null}
+          <Row label={t.service.total} value={money(record.totalDop)} big />
+          {record.costPartsDop > 0 ? <Row label={t.service.costParts} value={money(record.costPartsDop)} /> : null}
+          {record.costLaborDop > 0 ? <Row label={t.service.costLabor} value={money(record.costLaborDop)} /> : null}
         </Surface>
 
         {record.description ? (
@@ -161,7 +161,7 @@ export default function ServicioDetalleScreen() {
         {itemLines.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-              {es.service.items}
+              {t.service.items}
             </T>
             {itemLines.map((line) => (
               <View key={line.key} style={{ marginBottom: 4 }}>
@@ -170,7 +170,7 @@ export default function ServicioDetalleScreen() {
                 </T>
                 {line.oil ? (
                   <T face="mono" style={{ color: theme.text.primary, fontSize: 13, marginLeft: space.md, marginTop: 2 }}>
-                    {es.oil.title} · {line.oil}
+                    {t.oil.title} · {line.oil}
                   </T>
                 ) : null}
               </View>
@@ -181,7 +181,7 @@ export default function ServicioDetalleScreen() {
         {parts.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-              {es.service.parts}
+              {t.service.parts}
             </T>
             {parts.map((part) => (
               <T key={part.id} face="body" style={{ color: theme.text.secondary, marginBottom: 4 }}>
@@ -202,7 +202,7 @@ export default function ServicioDetalleScreen() {
 
         {record.warrantyUntilDate || record.warrantyUntilKm != null ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: space.md }}>
-            {es.service.warranty}:{' '}
+            {t.service.warranty}:{' '}
             <T face="mono" style={{ fontSize: 12 }}>
               {record.warrantyUntilDate ? dateLabel(record.warrantyUntilDate) : ''}
               {record.warrantyUntilKm != null ? ` · ${fmtKm(record.warrantyUntilKm)}` : ''}
@@ -211,7 +211,7 @@ export default function ServicioDetalleScreen() {
         ) : null}
 
         <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-          {es.service.reclassify}
+          {t.service.reclassify}
         </T>
         <View style={styles.row}>
           {KINDS.map((k) => {
@@ -234,7 +234,7 @@ export default function ServicioDetalleScreen() {
                   { borderColor: on ? inkOf(k) : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
                 ]}>
                 <T face="title" style={[styles.chipLabel, { color: on ? theme.text.primary : theme.text.secondary }]}>
-                  {es.service.kinds[k]}
+                  {t.service.kinds[k]}
                 </T>
               </Pressable>
             );
@@ -243,18 +243,18 @@ export default function ServicioDetalleScreen() {
 
         <View style={{ height: space.lg }} />
         <PrimaryButton
-          label={es.common.edit}
+          label={t.common.edit}
           onPress={() => router.push({ pathname: '/servicio/nuevo', params: { id: record.id } })}
         />
         <View style={{ height: space.sm }} />
         <GhostButton
           danger
-          label={es.common.delete}
+          label={t.common.delete}
           onPress={() =>
-            Alert.alert(record.title, es.service.deleteConfirm, [
-              { text: es.common.cancel, style: 'cancel' },
+            Alert.alert(record.title, t.service.deleteConfirm, [
+              { text: t.common.cancel, style: 'cancel' },
               {
-                text: es.common.delete,
+                text: t.common.delete,
                 style: 'destructive',
                 onPress: () => {
                   void (async () => {
@@ -282,7 +282,7 @@ async function describeOrigin(record: ServiceRecord | null): Promise<Origin | nu
 
   if (record.sourceTaskId) {
     const task = await taskRepo.getById(record.sourceTaskId);
-    if (task) return { kind: 'task', id: task.id, label: es.service.originTask(task.title) };
+    if (task) return { kind: 'task', id: task.id, label: t.service.originTask(task.title) };
   }
 
   if (record.sourceInspectionId) {
@@ -291,7 +291,7 @@ async function describeOrigin(record: ServiceRecord | null): Promise<Origin | nu
       return {
         kind: 'inspection',
         id: run.id,
-        label: es.service.originInspection(dateLabel(run.occurredAt)),
+        label: t.service.originInspection(dateLabel(run.occurredAt)),
       };
     }
   }

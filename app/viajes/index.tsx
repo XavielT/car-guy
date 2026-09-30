@@ -7,7 +7,7 @@ import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions } from '@
 import { Chip, EmptyState, GhostButton, Segmented } from '@/components/ui';
 import { space } from '@/constants/theme';
 import type { Trip } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { filterTrips, monthSummary, type TripFilter } from '@/lib/trips/present';
@@ -55,15 +55,15 @@ export default function TripsScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.trips.eyebrow}
+        {t.trips.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
-        {es.trips.title}
+        {t.trips.title}
       </T>
 
       {vehicles.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>
-          <Chip label={es.trips.allVehicles} selected={!scope} onPress={() => setScope('')} />
+          <Chip label={t.trips.allVehicles} selected={!scope} onPress={() => setScope('')} />
           {vehicles.map((v) => (
             <Chip key={v.id} label={v.name} selected={scope === v.id} onPress={() => setScope(v.id)} />
           ))}
@@ -72,16 +72,16 @@ export default function TripsScreen() {
 
       {list ? <TripsStrip summary={monthSummary(list)} /> : null}
 
-      <Segmented<TripFilter> options={FILTERS.map((key) => ({ key, label: es.trips.filters[key] }))} value={filter} onChange={setFilter} style={{ marginBottom: space.md }} />
+      <Segmented<TripFilter> options={FILTERS.map((key) => ({ key, label: t.trips.filters[key] }))} value={filter} onChange={setFilter} style={{ marginBottom: space.md }} />
 
       {map && shown.length ? <TripsHeatMap trips={shown} width={width - 2 * space.gutter} height={Math.round((width - 2 * space.gutter) * 0.62)} /> : null}
 
       {list && !list.length ? (
-        <EmptyState icon="navigate-outline" message={es.trips.empty} actionLabel={es.trips.start} onAction={() => router.push('/(tabs)')} />
+        <EmptyState icon="navigate-outline" message={t.trips.empty} actionLabel={t.trips.start} onAction={() => router.push('/(tabs)')} />
       ) : null}
       {list && list.length && !shown.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginBottom: space.md }}>
-          {es.trips.emptyFiltered}
+          {t.trips.emptyFiltered}
         </T>
       ) : null}
 
@@ -96,7 +96,7 @@ export default function TripsScreen() {
       ))}
 
       <View style={{ marginTop: space.md }}>
-        <GhostButton label={es.trips.settings} onPress={() => router.push('/viajes/ajustes')} />
+        <GhostButton label={t.trips.settings} onPress={() => router.push('/viajes/ajustes')} />
       </View>
     </ScrollView>
   );

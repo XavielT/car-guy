@@ -6,7 +6,7 @@ import { addMonths, todayIso } from '../domain/dates';
 import { isArchivedFor } from '../domain/garage';
 import { statusLabel } from '../domain/vehicleStatus';
 import { tankForStorage } from '../domain/units';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 import type { VehicleStatus } from './types';
 import { enqueue, now } from './client';
 import {
@@ -105,7 +105,7 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
           kind: 'estado',
           occurredAt: statusSince ?? todayIso(),
           odometerKm: null,
-          title: es.statusChanged(statusLabel(draft.status), statusNote),
+          title: t.statusChanged(statusLabel(draft.status), statusNote),
           story: statusNote,
           coverMediaId: null,
         },
@@ -318,7 +318,7 @@ export async function setVehicleStatus(
       kind: 'estado',
       occurredAt: today,
       odometerKm: null,
-      title: es.statusChanged(statusLabel(status), note),
+      title: t.statusChanged(statusLabel(status), note),
       story: note?.trim() ?? '',
       coverMediaId: null,
     });

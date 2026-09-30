@@ -22,7 +22,7 @@ import {
   type TimelineSection,
 } from '@/lib/domain/album';
 import { dateLabel, km as fmtKm, monthTitle } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -127,19 +127,19 @@ export default function AlbumScreen() {
       <View style={styles.titleRow}>
         <View style={{ flex: 1 }}>
           <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-            {es.album.eyebrow(name)}
+            {t.album.eyebrow(name)}
             <T face="kana" style={{ color: theme.text.muted, fontSize: 10, letterSpacing: 0, textTransform: 'none' }}>
               {' 記録'}
             </T>
           </T>
           <T face="display" accessibilityRole="header" style={[styles.h, { color: theme.text.primary }]}>
-            {mode === 'timeline' ? es.album.title : es.album.gridTitle}
+            {mode === 'timeline' ? t.album.title : t.album.gridTitle}
           </T>
         </View>
         <Pressable
           onPress={() => router.push({ pathname: '/album/importar', params: { vehicleId: id } })}
           accessibilityRole="button"
-          accessibilityLabel={es.album.import}
+          accessibilityLabel={t.album.import}
           style={[styles.importBtn, { backgroundColor: theme.accentFill }]}>
           <Ionicons name="images-outline" size={22} color={theme.accentFillInk} />
         </Pressable>
@@ -147,8 +147,8 @@ export default function AlbumScreen() {
 
       <Segmented<Mode>
         options={[
-          { key: 'timeline', label: es.album.viewTimeline },
-          { key: 'grid', label: es.album.viewGrid },
+          { key: 'timeline', label: t.album.viewTimeline },
+          { key: 'grid', label: t.album.viewGrid },
         ]}
         value={mode}
         onChange={setMode}
@@ -171,8 +171,8 @@ export default function AlbumScreen() {
       ) : null}
 
       <View style={styles.actions}>
-        <GhostButton label={es.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId: id } })} style={{ flex: 1 }} />
-        <GhostButton label={es.album.state} onPress={() => router.push({ pathname: '/vehiculo/[id]/album/estado', params: { id } })} style={{ flex: 1 }} />
+        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId: id } })} style={{ flex: 1 }} />
+        <GhostButton label={t.album.state} onPress={() => router.push({ pathname: '/vehiculo/[id]/album/estado', params: { id } })} style={{ flex: 1 }} />
       </View>
     </View>
   );
@@ -180,7 +180,7 @@ export default function AlbumScreen() {
   const footer = <StorageMeter vehicleId={id} style={{ marginTop: space.xl }} />;
   const empty =
     photos && !photos.length && !sections.length ? (
-      <EmptyState icon="images-outline" message={es.album.empty} actionLabel={es.album.import} onAction={() => router.push({ pathname: '/album/importar', params: { vehicleId: id } })} />
+      <EmptyState icon="images-outline" message={t.album.empty} actionLabel={t.album.import} onAction={() => router.push({ pathname: '/album/importar', params: { vehicleId: id } })} />
     ) : null;
 
   if (mode === 'grid') {
@@ -201,16 +201,16 @@ export default function AlbumScreen() {
           r.type === 'header' ? (
             <View style={[styles.gridHeader, { height: HEADER_H }]}>
               <T face="display" style={{ color: theme.text.primary, fontSize: 18, textTransform: 'uppercase' }}>
-                {r.month == null ? es.album.yearOnly(r.year) : monthTitle(r.year, r.month)}
+                {r.month == null ? t.album.yearOnly(r.year) : monthTitle(r.year, r.month)}
               </T>
               <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
-                {es.album.photos(r.count)}
+                {t.album.photos(r.count)}
               </T>
             </View>
           ) : (
             <View style={[styles.gridRow, { height: cell + GAP }]}>
               {r.photos.map((p) => (
-                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => openPhoto(p.id)} accessibilityLabel={p.takenAt ? dateLabel(p.takenAt) : es.viewer.noDate}>
+                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => openPhoto(p.id)} accessibilityLabel={p.takenAt ? dateLabel(p.takenAt) : t.viewer.noDate}>
                   {p.isFavorite ? <Ionicons name="star" size={14} color={theme.accentFill} style={styles.star} /> : null}
                 </PhotoThumb>
               ))}
@@ -278,7 +278,7 @@ function SectionHeader({ section, current }: { section: TimelineSection; current
   return (
     <View style={styles.sectionHeader} accessibilityRole="header">
       <T face="display" style={{ color: current ? theme.text.primary : theme.text.secondary, fontSize: 20, textTransform: 'uppercase' }}>
-        {section.month == null ? es.album.yearOnly(section.year) : monthTitle(section.year, section.month)}
+        {section.month == null ? t.album.yearOnly(section.year) : monthTitle(section.year, section.month)}
       </T>
       {/* The one hazard divider the screen gets: this month. */}
       {current ? <HazardDivider style={{ flex: 1 }} /> : <View style={[styles.rule, { backgroundColor: theme.lineStrong }]} />}
@@ -309,11 +309,11 @@ function TimelineCard({
   const { theme } = useTheme();
   const label =
     item.kind === 'mod' && item.removed
-      ? es.album.kinds.modRemoved
+      ? t.album.kinds.modRemoved
       : item.kind === 'pista'
-        ? es.album.disciplines[item.discipline] ?? es.album.kinds.pista
-        : es.album.kinds[item.kind];
-  const title = item.kind === 'fotos' ? es.album.photos(item.photos.length) : item.title;
+        ? t.album.disciplines[item.discipline] ?? t.album.kinds.pista
+        : t.album.kinds[item.kind];
+  const title = item.kind === 'fotos' ? t.album.photos(item.photos.length) : item.title;
   const note = item.kind === 'hito' ? [item.subtitle, item.story ? `“${item.story}”` : null].filter(Boolean).join(' · ') : item.kind !== 'fotos' ? item.subtitle : null;
   const pair = item.kind === 'mod' && (item.before || item.after) ? { before: item.before ?? null, after: item.after ?? null } : null;
 
@@ -341,10 +341,10 @@ function TimelineCard({
           <View style={styles.pair}>
             {(['before', 'after'] as const).map((k) =>
               pair[k] ? (
-                <PhotoThumb key={k} mediaId={pair[k]!} size={Math.floor((width - GAP) / 2)} height={92} onPress={() => onPhoto(pair[k]!)} accessibilityLabel={k === 'before' ? es.album.before : es.album.after}>
+                <PhotoThumb key={k} mediaId={pair[k]!} size={Math.floor((width - GAP) / 2)} height={92} onPress={() => onPhoto(pair[k]!)} accessibilityLabel={k === 'before' ? t.album.before : t.album.after}>
                   <View style={[styles.pairTag, { backgroundColor: k === 'after' ? theme.accentFill : 'rgba(18,18,18,0.7)' }]}>
                     <T face="eyebrow" style={{ color: k === 'after' ? theme.accentFillInk : '#B3B3B3', fontSize: 10 }}>
-                      {k === 'before' ? es.album.before : es.album.after}
+                      {k === 'before' ? t.album.before : t.album.after}
                     </T>
                   </View>
                 </PhotoThumb>
@@ -358,11 +358,11 @@ function TimelineCard({
             {shown.map((p, i) => {
               const last = i === shown.length - 1 && extra > 0;
               return (
-                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => onPhoto(p.id)} accessibilityLabel={last ? es.album.more(extra + 1) : p.takenAt ? dateLabel(p.takenAt) : title}>
+                <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => onPhoto(p.id)} accessibilityLabel={last ? t.album.more(extra + 1) : p.takenAt ? dateLabel(p.takenAt) : title}>
                   {last ? (
                     <View style={[StyleSheet.absoluteFill, styles.more]}>
                       <T face="monoBold" style={{ color: '#FFFFFF', fontSize: 15 }}>
-                        {es.album.more(extra + 1)}
+                        {t.album.more(extra + 1)}
                       </T>
                     </View>
                   ) : null}

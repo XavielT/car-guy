@@ -11,7 +11,7 @@ import type { Reminder } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { completeReminder, describeReset } from '@/lib/domain/reminders';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -78,22 +78,22 @@ export function CompleteReminderSheet({
       await reminderRepo.upsert(patch);
       await refresh();
       onClose();
-      Alert.alert(es.reminders.completedToast, describeReset(reminder, patch));
+      Alert.alert(t.reminders.completedToast, describeReset(reminder, patch));
     })();
   }
 
   return (
-    <Sheet visible={reminder != null} onClose={onClose} title={reminder?.title ?? es.reminders.completeTitle}>
-      <DateField label={es.reminders.completeDate} value={date} onChange={setDate} noFuture />
-      <Field label={es.reminders.completeKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
+    <Sheet visible={reminder != null} onClose={onClose} title={reminder?.title ?? t.reminders.completeTitle}>
+      <DateField label={t.reminders.completeDate} value={date} onChange={setDate} noFuture />
+      <Field label={t.reminders.completeKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
       <View style={{ gap: space.xs }}>
         {reminder?.serviceTypeId ? (
-          <PrimaryButton label={es.reminders.completeRegister} onPress={register} />
+          <PrimaryButton label={t.reminders.completeRegister} onPress={register} />
         ) : null}
         {reminder?.serviceTypeId ? (
-          <GhostButton label={es.reminders.completeJust} onPress={justDone} />
+          <GhostButton label={t.reminders.completeJust} onPress={justDone} />
         ) : (
-          <PrimaryButton label={es.reminders.completeJust} onPress={justDone} />
+          <PrimaryButton label={t.reminders.completeJust} onPress={justDone} />
         )}
       </View>
     </Sheet>

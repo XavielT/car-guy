@@ -8,7 +8,7 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { recordError } from '@/lib/diagnostics';
 import { MAX_CHECK_PHOTOS } from '@/lib/domain/inspections';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { pickCandidates, storePhoto, type Candidate } from '@/lib/media';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -81,11 +81,11 @@ export function CheckPhotoStrip({
     }
     if (failed.length && mounted.current) {
       Alert.alert(
-        es.common.photoErrorTitle,
-        failed.length > 1 ? `${es.check.photosFailed(failed.length)} ${es.common.photoErrorRetry}` : es.common.photoErrorRetry,
+        t.common.photoErrorTitle,
+        failed.length > 1 ? `${t.check.photosFailed(failed.length)} ${t.common.photoErrorRetry}` : t.common.photoErrorRetry,
         [
-          { text: es.common.cancel, style: 'cancel' },
-          { text: es.common.retry, onPress: () => void store(failed, camera) },
+          { text: t.common.cancel, style: 'cancel' },
+          { text: t.common.retry, onPress: () => void store(failed, camera) },
         ],
       );
     }
@@ -98,7 +98,7 @@ export function CheckPhotoStrip({
       picked = await pickCandidates({ camera, multiple: !camera });
     } catch (error) {
       recordError('photo-pick', error);
-      Alert.alert(es.common.photoErrorTitle, es.common.photoPickError);
+      Alert.alert(t.common.photoErrorTitle, t.common.photoPickError);
       return;
     }
     if (picked.length) await store(picked.slice(0, Math.max(0, MAX_CHECK_PHOTOS - current.current.length)), camera);
@@ -107,15 +107,15 @@ export function CheckPhotoStrip({
   return (
     <View style={styles.wrap}>
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: 6 }}>
-        {es.check.photoCount(mediaIds.length, MAX_CHECK_PHOTOS)}
+        {t.check.photoCount(mediaIds.length, MAX_CHECK_PHOTOS)}
       </T>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {mediaIds.map((id, i) => (
-          <PhotoThumb key={id} mediaId={id} size={THUMB} accessibilityLabel={es.check.photoOpen(label, i + 1)}>
+          <PhotoThumb key={id} mediaId={id} size={THUMB} accessibilityLabel={t.check.photoOpen(label, i + 1)}>
             <Pressable
               onPress={() => onChange(mediaIds.filter((m) => m !== id))}
               accessibilityRole="button"
-              accessibilityLabel={es.check.photoRemove(i + 1)}
+              accessibilityLabel={t.check.photoRemove(i + 1)}
               hitSlop={8}
               style={styles.remove}>
               <Ionicons name="close" size={14} color="#FFFFFF" />
@@ -133,7 +133,7 @@ export function CheckPhotoStrip({
               <Pressable
                 onPress={() => add(true)}
                 accessibilityRole="button"
-                accessibilityLabel={es.common.takePhoto}
+                accessibilityLabel={t.common.takePhoto}
                 style={[styles.slot, { borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
                 <Ionicons name="camera-outline" size={22} color={theme.text.secondary} />
               </Pressable>
@@ -141,11 +141,11 @@ export function CheckPhotoStrip({
             <Pressable
               onPress={() => add(false)}
               accessibilityRole="button"
-              accessibilityLabel={es.common.choosePhoto}
+              accessibilityLabel={t.common.choosePhoto}
               style={[styles.slot, { borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
               <Ionicons name="images-outline" size={22} color={theme.text.secondary} />
               <T face="semibold" style={{ color: theme.text.secondary, fontSize: 11 }}>
-                {es.check.photoAdd}
+                {t.check.photoAdd}
               </T>
             </Pressable>
           </>

@@ -18,7 +18,7 @@ import type { EconomyUnit, VolumeUnit } from '@/lib/domain/units';
 import { convertTankText, tankCaption, yearError } from '@/lib/domain/vehicleForm';
 import { statusLabel } from '@/lib/domain/vehicleStatus';
 import { useTheme } from '@/lib/theme/useTheme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import type { FuelType } from '@/lib/types';
 import type { Drivetrain, Transmission, VehicleOrigin, VehicleStatus, VehicleType } from '@/lib/db/types';
 
@@ -163,27 +163,27 @@ export function VehicleForm({
 
   function save() {
     const trimmed = name.trim();
-    if (!trimmed) return setError(es.vehicle.nameRequired);
+    if (!trimmed) return setError(t.vehicle.nameRequired);
 
     const badYear = yearError(mmy.year);
-    if (badYear) return setError(es.vehicle.yearRange(badYear.min, badYear.max));
+    if (badYear) return setError(t.vehicle.yearRange(badYear.min, badYear.max));
     const parsedYear = mmy.year.trim() ? Number(mmy.year.trim()) : null;
 
     const parsedOdometer = odometer.trim() ? parseDecimal(odometer) : null;
     if (odometer.trim() && parsedOdometer == null) {
       // "-5" and "abc" both land here; only one of them is negative.
-      return setError(/^\s*-/.test(odometer) ? es.vehicle.odometerNegative : es.common.invalidNumber(es.vehicle.odometer));
+      return setError(/^\s*-/.test(odometer) ? t.vehicle.odometerNegative : t.common.invalidNumber(t.vehicle.odometer));
     }
-    if (tank.trim() && tankValue == null) return setError(es.common.invalidNumber(es.vehicleForm.tank));
+    if (tank.trim() && tankValue == null) return setError(t.common.invalidNumber(t.vehicleForm.tank));
     if (purchasePrice.trim() && parseDecimal(purchasePrice) == null) {
-      return setError(es.common.invalidNumber(es.vehicleForm.purchasePrice));
+      return setError(t.common.invalidNumber(t.vehicleForm.purchasePrice));
     }
 
     const importedRaw = identity.importedYear.trim();
     const parsedImported = importedRaw ? Number(importedRaw) : null;
     const now = new Date().getFullYear();
     if (parsedImported != null && (!Number.isInteger(parsedImported) || parsedImported < 1950 || parsedImported > now)) {
-      return setError(es.vehicle.yearRange(1950, now));
+      return setError(t.vehicle.yearRange(1950, now));
     }
 
     setError(null);
@@ -233,11 +233,11 @@ export function VehicleForm({
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-        {initial?.id ? es.vehicle.editTitle : es.vehicle.newTitle}
+        {initial?.id ? t.vehicle.editTitle : t.vehicle.newTitle}
       </T>
 
       {/* 1 · Nombre, Fotos */}
-      <Field label={es.vehicle.name} placeholder={es.vehicle.namePlaceholder} value={name} onChangeText={setName} />
+      <Field label={t.vehicle.name} placeholder={t.vehicle.namePlaceholder} value={name} onChangeText={setName} />
       <PhotosSection gallery={gallery} onChange={setGallery} vehicleId={draftId} />
 
       {/* 2 · Marca, Modelo, Año */}
@@ -245,7 +245,7 @@ export function VehicleForm({
 
       {/* 3 · Tipo */}
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicleForm.bodyType}
+        {t.vehicleForm.bodyType}
       </T>
       <View style={styles.row}>
         {bodyTypes().map((b) => (
@@ -254,10 +254,10 @@ export function VehicleForm({
       </View>
 
       {/* 4 · Color, Interior */}
-      <SwatchGrid label={es.vehicleForm.color} swatches={swatches('exterior')} value={color.id} otherText={color.id ? null : color.label} onChange={setColor} />
-      <SwatchGrid label={es.vehicleForm.interior} swatches={swatches('interior')} value={interior.id} onChange={setInterior} />
+      <SwatchGrid label={t.vehicleForm.color} swatches={swatches('exterior')} value={color.id} otherText={color.id ? null : color.label} onChange={setColor} />
+      <SwatchGrid label={t.vehicleForm.interior} swatches={swatches('interior')} value={interior.id} onChange={setInterior} />
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicleForm.interiorMaterial}
+        {t.vehicleForm.interiorMaterial}
       </T>
       <View style={styles.row}>
         {MATERIALS.map((m) => {
@@ -268,30 +268,30 @@ export function VehicleForm({
 
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field label={es.vehicle.plate} placeholder="A123456" autoCapitalize="characters" value={plate} onChangeText={setPlate} />
+          <Field label={t.vehicle.plate} placeholder="A123456" autoCapitalize="characters" value={plate} onChangeText={setPlate} />
         </View>
         <View style={styles.half}>
-          <Field label={es.vehicle.vin} autoCapitalize="characters" value={vin} onChangeText={setVin} />
+          <Field label={t.vehicle.vin} autoCapitalize="characters" value={vin} onChangeText={setVin} />
         </View>
       </View>
 
       {/* 5 · Combustible, Tanque (gal | L), Odómetro */}
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicle.fuel}
+        {t.vehicle.fuel}
       </T>
       <FuelPicker value={fuel} onChange={setFuel} />
 
       <View style={styles.pair}>
         <View style={styles.half}>
           <Field
-            label={`${es.vehicleForm.tank} (${unitLabel(unit)})`}
+            label={`${t.vehicleForm.tank} (${unitLabel(unit)})`}
             placeholder={unit === 'gal' ? '12.5' : '47'}
             keyboardType="decimal-pad"
             value={tank}
             onChangeText={setTank}
             hint={
               caption
-                ? es.vehicleForm.tankConverted(caption.typed, unitLabel(unit), caption.other, unitLabel(caption.otherUnit))
+                ? t.vehicleForm.tankConverted(caption.typed, unitLabel(unit), caption.other, unitLabel(caption.otherUnit))
                 : undefined
             }
           />
@@ -307,18 +307,18 @@ export function VehicleForm({
         </View>
         <View style={styles.half}>
           <Field
-            label={es.vehicle.odometer}
+            label={t.vehicle.odometer}
             placeholder="51676"
             keyboardType="number-pad"
             value={odometer}
             onChangeText={setOdometer}
-            hint={es.vehicle.odometerHint}
+            hint={t.vehicle.odometerHint}
           />
         </View>
       </View>
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
-        {es.vehicleForm.economyUnit}
+        {t.vehicleForm.economyUnit}
       </T>
       <Segmented<'volume' | 'l_100km'>
         options={[
@@ -334,7 +334,7 @@ export function VehicleForm({
         onPress={() => setSynthetic((v) => !v)}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: synthetic }}
-        accessibilityLabel={es.vehicle.synthetic}
+        accessibilityLabel={t.vehicle.synthetic}
         style={styles.toggle}>
         <View
           style={[
@@ -344,10 +344,10 @@ export function VehicleForm({
         />
         <View style={{ flex: 1 }}>
           <T face="semibold" style={[styles.toggleLabel, { color: theme.text.primary }]}>
-            {es.vehicle.synthetic}
+            {t.vehicle.synthetic}
           </T>
           <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {es.vehicle.syntheticHint}
+            {t.vehicle.syntheticHint}
           </T>
         </View>
       </Pressable>
@@ -356,7 +356,7 @@ export function VehicleForm({
       <View style={styles.pair}>
         <View style={styles.half}>
           <Field
-            label={es.vehicleForm.purchasePrice}
+            label={t.vehicleForm.purchasePrice}
             placeholder="875,000"
             keyboardType="decimal-pad"
             value={purchasePrice}
@@ -364,18 +364,18 @@ export function VehicleForm({
           />
         </View>
         <View style={styles.half}>
-          <DateField label={es.vehicle.purchaseDate} value={purchaseDate} onChange={setPurchaseDate} noFuture />
+          <DateField label={t.vehicle.purchaseDate} value={purchaseDate} onChange={setPurchaseDate} noFuture />
         </View>
       </View>
       <T face="body" style={[styles.caption, { color: theme.text.muted }]}>
-        {es.vehicleForm.purchaseCaption}
+        {t.vehicleForm.purchaseCaption}
       </T>
 
       {/* 7 · Estado (+ Desde, Nota) — a sold car keeps its status; "Cambiar estado" on the hub changes it back */}
       {sold ? null : (
         <>
           <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-            {es.vehicleForm.status}
+            {t.vehicleForm.status}
           </T>
           <View style={styles.row}>
             {STATUSES.map((s) => (
@@ -385,12 +385,12 @@ export function VehicleForm({
           {status !== 'activo' ? (
             <View style={styles.pair}>
               <View style={styles.half}>
-                <DateField label={es.vehicleForm.statusSince} value={statusSince} onChange={setStatusSince} noFuture />
+                <DateField label={t.vehicleForm.statusSince} value={statusSince} onChange={setStatusSince} noFuture />
               </View>
               <View style={styles.half}>
                 <Field
-                  label={es.vehicleForm.statusNote}
-                  placeholder={es.vehicleForm.statusNotePlaceholder}
+                  label={t.vehicleForm.statusNote}
+                  placeholder={t.vehicleForm.statusNotePlaceholder}
                   value={statusNote}
                   onChangeText={setStatusNote}
                 />
@@ -407,13 +407,13 @@ export function VehicleForm({
         accessibilityState={{ expanded: showIdentity }}
         style={styles.sectionToggle}>
         <T face="semibold" style={[styles.sectionToggleLabel, { color: theme.accent }]}>
-          {showIdentity ? '−' : '+'}  {es.vehicle.identitySection}
+          {showIdentity ? '−' : '+'}  {t.vehicle.identitySection}
         </T>
       </Pressable>
       {showIdentity ? <IdentitySection value={identity} onChange={setIdentity} /> : null}
 
       {/* 9 · Notas */}
-      <Field label={es.vehicle.notes} value={notes} onChangeText={setNotes} multiline />
+      <Field label={t.vehicle.notes} value={notes} onChangeText={setNotes} multiline />
 
       {error ? (
         <T face="body" accessibilityRole="alert" style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>

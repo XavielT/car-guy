@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '@/components/T';
 import { HazardDivider, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -17,16 +17,16 @@ import { useTheme } from '@/lib/theme/useTheme';
  */
 type Segment = { readonly text: string; readonly strong?: boolean };
 
-const SECTIONS = [
-  es.guide.signs,
-  es.guide.ifItOverheats,
-  es.guide.whyCoolant,
-  es.guide.whyHere,
-  es.guide.fluids,
-  es.guide.tyres,
-  es.guide.lightsBrakes,
-  es.guide.diesel,
-  es.guide.motorcycle,
+const sections = () => [
+  t.guide.signs,
+  t.guide.ifItOverheats,
+  t.guide.whyCoolant,
+  t.guide.whyHere,
+  t.guide.fluids,
+  t.guide.tyres,
+  t.guide.lightsBrakes,
+  t.guide.diesel,
+  t.guide.motorcycle,
 ] as const;
 
 export default function GuiaScreen() {
@@ -36,7 +36,7 @@ export default function GuiaScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.guide.title}
+          {t.guide.title}
         </T>
 
         {/* The one hazard strip on this screen: the lesson the app was built around. */}
@@ -48,17 +48,17 @@ export default function GuiaScreen() {
           <HazardDivider tone="urgente" />
           <View style={styles.highlightBody}>
             <T face="title" style={[styles.sectionTitle, { color: theme.statusText.urgente }]}>
-              {es.guide.overheating.title}
+              {t.guide.overheating.title}
             </T>
             <Paragraph
-              segments={es.guide.overheating.body}
+              segments={t.guide.overheating.body}
               color={theme.text.primary}
               emphasis={theme.statusText.urgente}
             />
           </View>
         </View>
 
-        {SECTIONS.map((section) => (
+        {sections().map((section) => (
           <View key={section.title} style={styles.section}>
             <T face="title" style={[styles.sectionTitle, { color: theme.text.primary }]}>
               {section.title}
@@ -85,7 +85,7 @@ export default function GuiaScreen() {
 
         <Surface style={{ marginTop: space.xl }}>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 18 }}>
-            {es.guide.source}
+            {t.guide.source}
           </T>
         </Surface>
       </ScrollView>

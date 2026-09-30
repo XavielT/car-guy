@@ -12,11 +12,14 @@ import type * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
 import { recordError } from '../diagnostics';
+import { initLanguage } from '../i18n';
 import { switchIntensity, TRIP_TASK } from './auto';
 import { feed } from './engine';
 import { fixFromLocation } from './machine';
 
 export type TripTaskData = { locations?: Location.LocationObject[] };
+
+let languageRead = false;
 
 export async function handleTripTask({ data, error }: { data?: TripTaskData | null; error?: { message: string } | null }): Promise<void> {
   if (error) {
@@ -25,6 +28,12 @@ export async function handleTripTask({ data, error }: { data?: TripTaskData | nu
   }
   const locations = data?.locations ?? [];
   if (!locations.length) return;
+  // A headless start (the app was swiped away, the service kept running) has not
+  // read the stored language yet; the service notification it may rewrite needs it.
+  if (!languageRead) {
+    languageRead = true;
+    await initLanguage();
+  }
   try {
     const result = await feed(locations.map(fixFromLocation));
     if (result.switchTo) await switchIntensity(result.switchTo);

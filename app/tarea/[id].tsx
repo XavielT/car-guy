@@ -14,7 +14,7 @@ import {
 } from '@/lib/db/repos';
 import type { Task } from '@/lib/db/types';
 import { money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -81,13 +81,13 @@ export default function TareaScreen() {
         <View style={styles.meta}>
           <StatusPill
             status={task.priority === 'critica' ? 'vencido' : task.priority === 'baja' ? 'ok' : 'proximo'}
-            label={es.tasks.priorities[task.priority]}
+            label={t.tasks.priorities[task.priority]}
           />
         </View>
 
         <Surface style={{ marginBottom: space.md }}>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-            {es.service.kinds[task.kind]}
+            {t.service.kinds[task.kind]}
           </T>
           {task.estimatedCostDop != null ? (
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 18, marginTop: 4 }}>
@@ -104,7 +104,7 @@ export default function TareaScreen() {
               onPress={() => router.push({ pathname: '/inspeccion/[id]', params: { id: origin.inspectionId } })}
               accessibilityRole="link">
               <T face="semibold" style={{ color: theme.accent, fontSize: 14, marginTop: space.sm }}>
-                {es.tasks.fromInspection} ›
+                {t.tasks.fromInspection} ›
               </T>
             </Pressable>
           ) : null}
@@ -127,7 +127,7 @@ export default function TareaScreen() {
                   { backgroundColor: on ? theme.accentFill : theme.bg.raised, borderColor: on ? theme.accentFill : theme.line },
                 ]}>
                 <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
-                  {es.tasks.statuses[s]}
+                  {t.tasks.statuses[s]}
                 </T>
               </Pressable>
             );
@@ -137,12 +137,12 @@ export default function TareaScreen() {
         <View style={{ height: space.lg }} />
         <GhostButton
           danger
-          label={es.common.delete}
+          label={t.common.delete}
           onPress={() =>
-            Alert.alert(task.title, es.tasks.deleteConfirm, [
-              { text: es.common.cancel, style: 'cancel' },
+            Alert.alert(task.title, t.tasks.deleteConfirm, [
+              { text: t.common.cancel, style: 'cancel' },
               {
-                text: es.common.delete,
+                text: t.common.delete,
                 style: 'destructive',
                 onPress: () => {
                   void (async () => {
@@ -157,12 +157,12 @@ export default function TareaScreen() {
         />
       </ScrollView>
 
-      <Sheet visible={askRegister} onClose={() => setAskRegister(false)} title={es.tasks.markDoneTitle}>
+      <Sheet visible={askRegister} onClose={() => setAskRegister(false)} title={t.tasks.markDoneTitle}>
         <T face="body" style={{ color: theme.text.secondary, marginBottom: space.lg, lineHeight: 20 }}>
-          {es.tasks.markDoneBody}
+          {t.tasks.markDoneBody}
         </T>
         <PrimaryButton
-          label={es.tasks.registerNow}
+          label={t.tasks.registerNow}
           onPress={() => {
             setAskRegister(false);
             void (async () => {
@@ -180,7 +180,7 @@ export default function TareaScreen() {
           }}
         />
         <GhostButton
-          label={es.tasks.justClose}
+          label={t.tasks.justClose}
           onPress={() => {
             setAskRegister(false);
             void setStatus('hecha');

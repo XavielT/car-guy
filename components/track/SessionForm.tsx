@@ -15,7 +15,7 @@ import type { SetupSheet, Tire, TrackSession, WheelSet } from '@/lib/db/types';
 import { parseDecimal } from '@/lib/domain/economy';
 import { describeChanges, diffSheets, formatLap, isTimed, parseLap, pressureDeltas, type SheetValues } from '@/lib/domain/track';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { DaySummaryCard, disciplineLabel, shareCardImage, shareSummaryText, summaryText, venueShort } from './TrackPieces';
@@ -43,9 +43,9 @@ function NumField({ label, value, onChange, integer }: { label: string; value: n
       label={label}
       keyboardType={integer ? 'number-pad' : 'decimal-pad'}
       value={text}
-      onChangeText={(t) => {
-        setText(t);
-        const n = t.trim() ? parseDecimal(t) : null;
+      onChangeText={(x) => {
+        setText(x);
+        const n = x.trim() ? parseDecimal(x) : null;
         onChange(n == null || !Number.isFinite(n) ? null : integer ? Math.round(n) : n);
       }}
     />
@@ -61,13 +61,13 @@ function LapField({ label, value, onChange, seconds }: { label: string; value: n
       label={label}
       keyboardType="numbers-and-punctuation"
       value={text}
-      error={bad ? es.track.session.lapInvalid : undefined}
-      hint={bad ? es.track.session.lapInvalid : undefined}
-      onChangeText={(t) => {
-        setText(t);
-        if (!t.trim()) onChange(null);
+      error={bad ? t.track.session.lapInvalid : undefined}
+      hint={bad ? t.track.session.lapInvalid : undefined}
+      onChangeText={(x) => {
+        setText(x);
+        if (!x.trim()) onChange(null);
         else {
-          const ms = parseLap(t);
+          const ms = parseLap(x);
           if (ms != null) onChange(ms);
         }
       }}
@@ -152,7 +152,7 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
   const timed = isTimed(discipline);
   const set = <K extends keyof SheetValues>(key: K, value: SheetValues[K]) => setSheet((s) => ({ ...s, [key]: value }));
   const num = (key: NumKey, label: string, integer?: boolean) => <NumField key={key} label={label} value={sheet[key] as number | null | undefined} onChange={(n) => set(key, n as never)} integer={integer} />;
-  const text = (key: StrKey, label: string) => <Field key={key} label={label} value={(sheet[key] as string | null | undefined) ?? ''} onChangeText={(t) => set(key, (t.trim() ? t : null) as never)} />;
+  const text = (key: StrKey, label: string) => <Field key={key} label={label} value={(sheet[key] as string | null | undefined) ?? ''} onChangeText={(x) => set(key, (x.trim() ? x : null) as never)} />;
   const sess = <K extends keyof TrackSession>(key: K, value: TrackSession[K]) => setSession((s) => ({ ...s, [key]: value }));
 
   const deltas = pressureDeltas(sheet);
@@ -207,14 +207,14 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
     const vehicleName = data.vehicles.find((v) => v.id === d.event.vehicleId)?.name;
     await shareCardImage(shotRef, `pista-${d.event.occurredAt.slice(0, 10)}`);
     const copied = await shareSummaryText(summaryText(d.event, d.venue, d.summary, vehicleName));
-    if (copied) setNotice(es.track.summary.copied);
+    if (copied) setNotice(t.track.summary.copied);
   }
 
   function remove() {
     if (!sessionId) return;
-    Alert.alert(es.track.session.delete, es.track.session.deleteBody, [
-      { text: es.common.cancel, style: 'cancel' },
-      { text: es.common.delete, style: 'destructive', onPress: () => void deleteSession(sessionId).then(refresh).then(onDone) },
+    Alert.alert(t.track.session.delete, t.track.session.deleteBody, [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.common.delete, style: 'destructive', onPress: () => void deleteSession(sessionId).then(refresh).then(onDone) },
     ]);
   }
 
@@ -229,28 +229,28 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
       </T>
     </View>
   );
-  const weather = [ev.weather ? es.track.event.weathers[ev.weather] : null, ev.ambientC != null ? `${ev.ambientC} °C` : null].filter(Boolean).join(' · ') || '—';
-  const condition = [ev.trackCondition ? es.track.event.conditions[ev.trackCondition] : null, ev.trackTempC != null ? `${ev.trackTempC} °C` : null].filter(Boolean).join(' · ') || '—';
+  const weather = [ev.weather ? t.track.event.weathers[ev.weather] : null, ev.ambientC != null ? `${ev.ambientC} °C` : null].filter(Boolean).join(' · ') || '—';
+  const condition = [ev.trackCondition ? t.track.event.conditions[ev.trackCondition] : null, ev.trackTempC != null ? `${ev.trackTempC} °C` : null].filter(Boolean).join(' · ') || '—';
   const vehicleName = data.vehicles.find((v) => v.id === ev.vehicleId)?.name;
 
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.track.session.eyebrow(venueShort(event.venue).toUpperCase(), dateLabel(ev.occurredAt).toUpperCase())}
+        {t.track.session.eyebrow(venueShort(event.venue).toUpperCase(), dateLabel(ev.occurredAt).toUpperCase())}
       </T>
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.sm }}>
-        {es.track.session.title(disciplineLabel(discipline), seq)}
+        {t.track.session.title(disciplineLabel(discipline), seq)}
       </T>
       <View style={styles.stats}>
-        {stat(es.track.session.weather, weather)}
-        {stat(es.track.session.track, condition)}
-        {timed ? stat(es.track.session.best, session.bestLapMs ? formatLap(session.bestLapMs) : '—') : stat(es.track.session.runs, session.runs != null ? String(session.runs) : '—')}
+        {stat(t.track.session.weather, weather)}
+        {stat(t.track.session.track, condition)}
+        {timed ? stat(t.track.session.best, session.bestLapMs ? formatLap(session.bestLapMs) : '—') : stat(t.track.session.runs, session.runs != null ? String(session.runs) : '—')}
       </View>
 
-      {eyebrow(es.track.session.kind)}
+      {eyebrow(t.track.session.kind)}
       <View style={styles.chips}>
         {KINDS.map((k) => (
-          <Chip key={k} label={es.track.session.kinds[k]} selected={session.kind === k} onPress={() => sess('kind', k)} />
+          <Chip key={k} label={t.track.session.kinds[k]} selected={session.kind === k} onPress={() => sess('kind', k)} />
         ))}
       </View>
 
@@ -259,38 +259,38 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
         <>
           <View style={styles.cardHead}>
             <T face="eyebrow" style={{ color: theme.text.secondary, fontSize: 11, flex: 1 }}>
-              {es.track.session.pressures}
+              {t.track.session.pressures}
             </T>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
-              {es.track.session.coldToHot}
+              {t.track.session.coldToHot}
             </T>
           </View>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, marginBottom: 6 }}>
-            {es.track.session.cold}
+            {t.track.session.cold}
           </T>
           <CornerGrid values={corners(sheet, 'psiCold')} onChange={(c, v) => set(`psiCold${cap(c)}`, v)} />
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, marginTop: space.md, marginBottom: 6 }}>
-            {es.track.session.hot}
+            {t.track.session.hot}
           </T>
           <CornerGrid values={corners(sheet, 'psiHot')} compare={corners(sheet, 'psiCold')} flagDelta={8} onChange={(c, v) => set(`psiHot${cap(c)}`, v)} />
           {rearGrowth > 8 ? (
             <T face="semibold" style={{ color: theme.redlineText, fontSize: 13, marginTop: space.md }}>
-              {drift ? es.track.session.rearGrowth(String(Math.round(rearGrowth * 10) / 10)) : es.track.session.rearGrowthTimed(String(Math.round(rearGrowth * 10) / 10))}
+              {drift ? t.track.session.rearGrowth(String(Math.round(rearGrowth * 10) / 10)) : t.track.session.rearGrowthTimed(String(Math.round(rearGrowth * 10) / 10))}
             </T>
           ) : null}
           {previous ? (
             <T face="body" style={{ color: changes.length ? theme.accent : theme.text.muted, fontSize: 13, marginTop: 6 }}>
-              {changes.length ? es.track.session.changed(previous.session.seq, changes.join(' · ')) : es.track.session.noChange(previous.session.seq)}
+              {changes.length ? t.track.session.changed(previous.session.seq, changes.join(' · ')) : t.track.session.noChange(previous.session.seq)}
             </T>
           ) : null}
         </>,
       )}
 
-      {eyebrow(es.track.session.tires)}
+      {eyebrow(t.track.session.tires)}
       {sets.length ? (
         <>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 4 }}>
-            {es.track.session.tireSetF}
+            {t.track.session.tireSetF}
           </T>
           <View style={styles.chips}>
             {sets.map((w) => (
@@ -298,7 +298,7 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
             ))}
           </View>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 4 }}>
-            {es.track.session.tireSetR}
+            {t.track.session.tireSetR}
           </T>
           <View style={styles.chips}>
             {sets.map((w) => (
@@ -307,30 +307,30 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
           </View>
         </>
       ) : null}
-      {pair(text('tireSizeF', es.track.session.sizeF), text('tireSizeR', es.track.session.sizeR))}
-      {pair(text('compoundF', es.track.session.compoundF), text('compoundR', es.track.session.compoundR))}
+      {pair(text('tireSizeF', t.track.session.sizeF), text('tireSizeR', t.track.session.sizeR))}
+      {pair(text('compoundF', t.track.session.compoundF), text('compoundR', t.track.session.compoundR))}
 
       {sessionId && tires.length ? (
         <>
-          {eyebrow(es.track.consumables.sessionTitle)}
+          {eyebrow(t.track.consumables.sessionTitle)}
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
-            {es.track.consumables.sessionHint}
+            {t.track.consumables.sessionHint}
           </T>
           <View style={styles.chips}>
-            {tires.map((t) => {
-              const on = usedHere.has(t.id);
-              const label = [es.corners[t.position as 'fl'] ?? null, t.size].filter(Boolean).join(' · ') || es.inventory.tire.editTitle;
+            {tires.map((x) => {
+              const on = usedHere.has(x.id);
+              const label = [t.corners[x.position as 'fl'] ?? null, x.size].filter(Boolean).join(' · ') || t.inventory.tire.editTitle;
               return (
                 <Chip
-                  key={t.id}
+                  key={x.id}
                   label={on ? `✓ ${label}` : label}
                   selected={on}
                   onPress={() =>
-                    void setTireUsed(ev.id, t, !on, sessionId).then(() =>
+                    void setTireUsed(ev.id, x, !on, sessionId).then(() =>
                       setUsedHere((prev) => {
                         const next = new Set(prev);
-                        if (on) next.delete(t.id);
-                        else next.add(t.id);
+                        if (on) next.delete(x.id);
+                        else next.add(x.id);
                         return next;
                       }),
                     )
@@ -342,95 +342,95 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
         </>
       ) : null}
 
-      {eyebrow(es.track.session.alignment)}
+      {eyebrow(t.track.session.alignment)}
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
-        {es.track.session.camber}
+        {t.track.session.camber}
       </T>
       <CornerGrid values={corners(sheet, 'camber')} unit="°" onChange={(c, v) => set(`camber${cap(c)}`, v)} />
       <View style={{ height: space.md }} />
-      {pair(num('toeFMm', es.track.session.toeF), num('toeRMm', es.track.session.toeR))}
-      {pair(num('casterL', es.track.session.casterL), num('casterR', es.track.session.casterR))}
+      {pair(num('toeFMm', t.track.session.toeF), num('toeRMm', t.track.session.toeR))}
+      {pair(num('casterL', t.track.session.casterL), num('casterR', t.track.session.casterR))}
 
-      {eyebrow(es.track.session.heights)}
+      {eyebrow(t.track.session.heights)}
       <CornerGrid values={heights(sheet)} unit="mm" onChange={(c, v) => set(`rh${cap(c)}Mm`, v)} />
 
-      {eyebrow(es.track.session.suspension)}
-      {pair(num('springF', es.track.session.springF), num('springR', es.track.session.springR))}
-      {pair(num('bumpF', es.track.session.bumpF, true), num('reboundF', es.track.session.reboundF, true))}
-      {pair(num('bumpR', es.track.session.bumpR, true), num('reboundR', es.track.session.reboundR, true))}
-      {num('clicksTotal', es.track.session.clicks, true)}
-      {pair(text('swaybarF', es.track.session.swayF), text('swaybarR', es.track.session.swayR))}
+      {eyebrow(t.track.session.suspension)}
+      {pair(num('springF', t.track.session.springF), num('springR', t.track.session.springR))}
+      {pair(num('bumpF', t.track.session.bumpF, true), num('reboundF', t.track.session.reboundF, true))}
+      {pair(num('bumpR', t.track.session.bumpR, true), num('reboundR', t.track.session.reboundR, true))}
+      {num('clicksTotal', t.track.session.clicks, true)}
+      {pair(text('swaybarF', t.track.session.swayF), text('swaybarR', t.track.session.swayR))}
 
-      {eyebrow(es.track.session.brakes)}
-      {pair(text('padF', es.track.session.padF), text('padR', es.track.session.padR))}
-      {text('brakeBias', es.track.session.bias)}
+      {eyebrow(t.track.session.brakes)}
+      {pair(text('padF', t.track.session.padF), text('padR', t.track.session.padR))}
+      {text('brakeBias', t.track.session.bias)}
 
       {drift ? (
         <>
-          {eyebrow(es.track.session.drift)}
-          {pair(num('steeringAngleDeg', es.track.session.angle), text('lsdType', es.track.session.lsd))}
-          {text('lsdPreload', es.track.session.lsdPreload)}
+          {eyebrow(t.track.session.drift)}
+          {pair(num('steeringAngleDeg', t.track.session.angle), text('lsdType', t.track.session.lsd))}
+          {text('lsdPreload', t.track.session.lsdPreload)}
           <View style={styles.switchRow}>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-              {es.track.session.hydro}
+              {t.track.session.hydro}
             </T>
-            <Switch value={Boolean(sheet.hydro)} onValueChange={(v) => set('hydro', v)} accessibilityLabel={es.track.session.hydro} />
+            <Switch value={Boolean(sheet.hydro)} onValueChange={(v) => set('hydro', v)} accessibilityLabel={t.track.session.hydro} />
           </View>
         </>
       ) : null}
       {discipline === 'drag' ? (
         <>
-          {eyebrow(es.track.session.drag)}
-          {pair(num('twoStepRpm', es.track.session.twoStep, true), num('revLimitRpm', es.track.session.revLimit, true))}
+          {eyebrow(t.track.session.drag)}
+          {pair(num('twoStepRpm', t.track.session.twoStep, true), num('revLimitRpm', t.track.session.revLimit, true))}
         </>
       ) : null}
 
       {timed ? (
         <>
-          {eyebrow(es.track.session.timing)}
-          <NumField label={es.track.session.lapsCount} value={session.laps} onChange={(n) => sess('laps', n)} integer />
+          {eyebrow(t.track.session.timing)}
+          <NumField label={t.track.session.lapsCount} value={session.laps} onChange={(n) => sess('laps', n)} integer />
           {pair(
-            <LapField label={es.track.session.bestLap} value={session.bestLapMs ?? null} onChange={(ms) => sess('bestLapMs', ms)} />,
-            <LapField label={es.track.session.secondLap} value={session.secondBestMs ?? null} onChange={(ms) => sess('secondBestMs', ms)} />,
+            <LapField label={t.track.session.bestLap} value={session.bestLapMs ?? null} onChange={(ms) => sess('bestLapMs', ms)} />,
+            <LapField label={t.track.session.secondLap} value={session.secondBestMs ?? null} onChange={(ms) => sess('secondBestMs', ms)} />,
           )}
-          <Field label={es.track.session.sectors} value={sectors} onChangeText={setSectors} keyboardType="numbers-and-punctuation" />
+          <Field label={t.track.session.sectors} value={sectors} onChangeText={setSectors} keyboardType="numbers-and-punctuation" />
           {pair(
-            <LapField seconds label={es.track.session.zero100} value={session.zero100Ms ?? null} onChange={(ms) => sess('zero100Ms', ms)} />,
-            <LapField seconds label={es.track.session.sixty} value={session.sixtyFootMs ?? null} onChange={(ms) => sess('sixtyFootMs', ms)} />,
+            <LapField seconds label={t.track.session.zero100} value={session.zero100Ms ?? null} onChange={(ms) => sess('zero100Ms', ms)} />,
+            <LapField seconds label={t.track.session.sixty} value={session.sixtyFootMs ?? null} onChange={(ms) => sess('sixtyFootMs', ms)} />,
           )}
           {pair(
-            <LapField seconds label={es.track.session.quarter} value={session.quarterMileMs ?? null} onChange={(ms) => sess('quarterMileMs', ms)} />,
-            <NumField label={es.track.session.trap} value={session.quarterMileTrapKmh} onChange={(n) => sess('quarterMileTrapKmh', n)} />,
+            <LapField seconds label={t.track.session.quarter} value={session.quarterMileMs ?? null} onChange={(ms) => sess('quarterMileMs', ms)} />,
+            <NumField label={t.track.session.trap} value={session.quarterMileTrapKmh} onChange={(n) => sess('quarterMileTrapKmh', n)} />,
           )}
         </>
       ) : (
         <>
-          {eyebrow(es.track.session.runsBlock)}
-          <NumField label={es.track.session.runsCount} value={session.runs} onChange={(n) => sess('runs', n)} integer />
+          {eyebrow(t.track.session.runsBlock)}
+          <NumField label={t.track.session.runsCount} value={session.runs} onChange={(n) => sess('runs', n)} integer />
         </>
       )}
-      <Field label={es.track.session.incident} placeholder={es.track.session.incidentPlaceholder} value={session.incident ?? ''} onChangeText={(t) => sess('incident', t.trim() ? t : null)} />
+      <Field label={t.track.session.incident} placeholder={t.track.session.incidentPlaceholder} value={session.incident ?? ''} onChangeText={(x) => sess('incident', x.trim() ? x : null)} />
 
-      {eyebrow(es.track.session.feel)}
+      {eyebrow(t.track.session.feel)}
       <View style={styles.chips}>
         {FEELS.map((f) => (
-          <Chip key={f} label={es.track.session.feels[f]} selected={session.carFeel === f} onPress={() => sess('carFeel', session.carFeel === f ? null : f)} />
+          <Chip key={f} label={t.track.session.feels[f]} selected={session.carFeel === f} onPress={() => sess('carFeel', session.carFeel === f ? null : f)} />
         ))}
       </View>
       <View style={styles.stars}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <Pressable key={n} onPress={() => sess('rating', session.rating === n ? null : n)} accessibilityRole="button" accessibilityLabel={`${es.track.session.rating} ${n}`} accessibilityState={{ selected: (session.rating ?? 0) >= n }} hitSlop={4}>
+          <Pressable key={n} onPress={() => sess('rating', session.rating === n ? null : n)} accessibilityRole="button" accessibilityLabel={`${t.track.session.rating} ${n}`} accessibilityState={{ selected: (session.rating ?? 0) >= n }} hitSlop={4}>
             <Ionicons name={(session.rating ?? 0) >= n ? 'star' : 'star-outline'} size={26} color={(session.rating ?? 0) >= n ? theme.accentFill : theme.text.muted} />
           </Pressable>
         ))}
       </View>
-      <Field label={es.track.session.notes} placeholder={es.track.session.notesPlaceholder} value={session.notes ?? ''} onChangeText={(t) => sess('notes', t)} multiline />
+      <Field label={t.track.session.notes} placeholder={t.track.session.notesPlaceholder} value={session.notes ?? ''} onChangeText={(x) => sess('notes', x)} multiline />
       {pair(
-        <Field label={es.track.session.driver} value={session.driver ?? ''} onChangeText={(t) => sess('driver', t.trim() ? t : null)} />,
-        <Field label={es.track.session.video} value={session.videoUrl ?? ''} onChangeText={(t) => sess('videoUrl', t.trim() ? t.trim() : null)} autoCapitalize="none" keyboardType="url" />,
+        <Field label={t.track.session.driver} value={session.driver ?? ''} onChangeText={(x) => sess('driver', x.trim() ? x : null)} />,
+        <Field label={t.track.session.video} value={session.videoUrl ?? ''} onChangeText={(x) => sess('videoUrl', x.trim() ? x.trim() : null)} autoCapitalize="none" keyboardType="url" />,
       )}
 
-      <PrimaryButton label={es.track.session.save} onPress={() => void saveAndClose()} />
+      <PrimaryButton label={t.track.session.save} onPress={() => void saveAndClose()} />
 
       <View style={{ height: space.lg }} />
       <DaySummaryCard ref={shotRef} event={ev} venue={event.venue} summary={event.summary} vehicleName={vehicleName} />
@@ -440,10 +440,10 @@ export function SessionForm({ sessionId, eventId: givenEvent, onDone }: { sessio
         </T>
       ) : null}
       <View style={[styles.pair, { marginTop: space.sm }]}>
-        <GhostButton style={{ flex: 1 }} label={es.track.session.copyNext(Math.max(count, seq) + 1)} onPress={() => void copyNext()} />
-        <GhostButton style={{ flex: 1 }} label={es.track.session.share} onPress={() => void share()} />
+        <GhostButton style={{ flex: 1 }} label={t.track.session.copyNext(Math.max(count, seq) + 1)} onPress={() => void copyNext()} />
+        <GhostButton style={{ flex: 1 }} label={t.track.session.share} onPress={() => void share()} />
       </View>
-      {sessionId ? <GhostButton danger label={es.track.session.delete} onPress={remove} /> : null}
+      {sessionId ? <GhostButton danger label={t.track.session.delete} onPress={remove} /> : null}
       <View style={{ height: space.xl }} />
     </ScrollView>
   );

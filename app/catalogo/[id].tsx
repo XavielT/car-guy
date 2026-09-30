@@ -10,7 +10,7 @@ import { space } from '@/constants/theme';
 import { saveServiceTypeInterval } from '@/lib/db/catalogOps';
 import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -53,14 +53,14 @@ export default function CatalogoItemScreen() {
 
   function save() {
     // A typo must not quietly remove the interval (toInt maps it to null).
-    const bad = ([[km, es.catalog.intervalKm], [months, es.catalog.intervalMonths]] as const).find(
+    const bad = ([[km, t.catalog.intervalKm], [months, t.catalog.intervalMonths]] as const).find(
       ([text]) => isInvalidNumber(text) || (text.trim() !== '' && (parseDecimal(text) ?? 0) <= 0),
     );
-    if (bad) return Alert.alert(es.catalog.title, es.common.invalidNumber(bad[1]));
+    if (bad) return Alert.alert(t.catalog.title, t.common.invalidNumber(bad[1]));
     void (async () => {
       const { updated } = await saveServiceTypeInterval(type!.id, { km: toInt(km), months: toInt(months) });
       await refresh();
-      Alert.alert(es.catalog.saved, es.catalog.updated(updated));
+      Alert.alert(t.catalog.saved, t.catalog.updated(updated));
       router.back();
     })();
   }
@@ -72,16 +72,16 @@ export default function CatalogoItemScreen() {
           {type.name}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.catalog.hint}
+          {t.catalog.hint}
         </T>
-        <Field label={es.catalog.intervalKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
+        <Field label={t.catalog.intervalKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
         <Field
-          label={es.catalog.intervalMonths}
+          label={t.catalog.intervalMonths}
           keyboardType="number-pad"
           value={months}
           onChangeText={setMonths}
         />
-        <PrimaryButton label={es.catalog.save} onPress={save} />
+        <PrimaryButton label={t.catalog.save} onPress={save} />
       </ScrollView>
     </SafeAreaView>
   );

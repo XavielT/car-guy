@@ -1,5 +1,5 @@
 import { StatusPill, type Tone } from '@/components/ui/StatusPill';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useSync } from '@/lib/sync/useSync';
 
 /**
@@ -14,12 +14,12 @@ export function SyncPill() {
   const { status, pending, running } = useSync();
 
   const [tone, label]: [Tone, string] = running
-    ? ['neutral', es.sync.syncing]
+    ? ['neutral', t.sync.syncing]
     : status.state === 'error'
-      ? ['vencido', es.sync.errors.generic]
+      ? ['vencido', t.sync.errors.generic]
       : pending > 0
-        ? ['proximo', es.sync.pending(pending)]
-        : ['ok', es.sync.upToDate];
+        ? ['proximo', t.sync.pending(pending)]
+        : ['ok', t.sync.upToDate];
 
   return <StatusPill status={tone} label={label} />;
 }

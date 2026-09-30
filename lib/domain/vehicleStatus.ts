@@ -8,7 +8,7 @@
  * "EN EL TALLER · desde 12 sept · esperando piezas".
  */
 import type { Vehicle, VehicleStatus } from '../db/types';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 
 export const VEHICLE_STATUSES: VehicleStatus[] = [
   'activo',
@@ -27,7 +27,7 @@ export function isVehicleStatus(v: unknown): v is VehicleStatus {
 }
 
 export function statusLabel(status: VehicleStatus): string {
-  return es.vehicleStatus[status] ?? status;
+  return t.vehicleStatus[status] ?? status;
 }
 
 /** Out of the everyday selector. Status ⇔ is_archived, until is_archived is dropped. */
@@ -81,7 +81,7 @@ export function statusLine(vehicle: Pick<Vehicle, 'status' | 'statusSince' | 'st
   const note = vehicle.statusNote?.trim() ?? '';
   if (vehicle.status === 'activo' && !note) return null;
   const parts = [statusLabel(vehicle.status).toUpperCase()];
-  if (vehicle.statusSince) parts.push(es.statusSince(shortDate(vehicle.statusSince)));
+  if (vehicle.statusSince) parts.push(t.statusSince(shortDate(vehicle.statusSince)));
   if (note) parts.push(note);
   return parts.join(' · ');
 }

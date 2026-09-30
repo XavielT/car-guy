@@ -20,7 +20,7 @@ import { milestones as milestoneRepo } from '@/lib/db/repos';
 import type { MilestoneKind } from '@/lib/db/types';
 import { dateAtPrecision } from '@/lib/domain/album';
 import { id as newId, todayIsoDate } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { importCandidates, pickCandidates } from '@/lib/media';
 import { useTheme } from '@/lib/theme/useTheme';
 import { PhotoThumb } from './PhotoThumb';
@@ -89,7 +89,7 @@ export function MilestoneForm({
   }
 
   async function save() {
-    if (!title.trim()) return setError(es.hito.titleRequired);
+    if (!title.trim()) return setError(t.hito.titleRequired);
     const parsedKm = km.trim() ? Number(km.replace(/[^\d.]/g, '')) : null;
     const [y, m, d] = date.split('-').map(Number);
     await saveMilestone({
@@ -108,9 +108,9 @@ export function MilestoneForm({
   }
 
   function remove() {
-    Alert.alert(es.hito.delete, es.hito.deleteBody, [
-      { text: es.common.cancel, style: 'cancel' },
-      { text: es.common.delete, style: 'destructive', onPress: () => void deleteMilestone(id).then(onDone) },
+    Alert.alert(t.hito.delete, t.hito.deleteBody, [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.common.delete, style: 'destructive', onPress: () => void deleteMilestone(id).then(onDone) },
     ]);
   }
 
@@ -120,34 +120,34 @@ export function MilestoneForm({
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.lg }}>
-        {milestoneId ? es.hito.editTitle : es.hito.newTitle}
+        {milestoneId ? t.hito.editTitle : t.hito.newTitle}
       </T>
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {es.hito.kind}
+        {t.hito.kind}
       </T>
       <View style={styles.chips}>
         {KINDS.map((k) => (
-          <Chip key={k} label={es.hito.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
+          <Chip key={k} label={t.hito.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
         ))}
       </View>
 
-      <DateField label={es.hito.date} value={date} onChange={setDate} noFuture />
-      <Field label={es.hito.km} keyboardType="number-pad" value={km} onChangeText={setKm} />
-      <Field label={es.hito.title} placeholder={es.hito.titlePlaceholder} value={title} onChangeText={(t) => (setTitle(t), setError(null))} />
-      <Field label={es.hito.story} placeholder={es.hito.storyPlaceholder} value={story} onChangeText={setStory} multiline />
+      <DateField label={t.hito.date} value={date} onChange={setDate} noFuture />
+      <Field label={t.hito.km} keyboardType="number-pad" value={km} onChangeText={setKm} />
+      <Field label={t.hito.title} placeholder={t.hito.titlePlaceholder} value={title} onChangeText={(t) => (setTitle(t), setError(null))} />
+      <Field label={t.hito.story} placeholder={t.hito.storyPlaceholder} value={story} onChangeText={setStory} multiline />
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.sm }}>
-        {es.hito.photos}
+        {t.hito.photos}
       </T>
       {selectedPhotos.length ? (
         <View style={styles.grid}>
           {selectedPhotos.map((p) => (
-            <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => setCover(p.id)} accessibilityLabel={es.hito.cover}>
+            <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => setCover(p.id)} accessibilityLabel={t.hito.cover}>
               {(cover ?? photoIds[0]) === p.id ? (
                 <View style={[styles.coverTag, { backgroundColor: theme.accentFill }]}>
                   <T face="eyebrow" style={{ color: theme.accentFillInk, fontSize: 9 }}>
-                    {es.hito.cover}
+                    {t.hito.cover}
                   </T>
                 </View>
               ) : null}
@@ -156,8 +156,8 @@ export function MilestoneForm({
         </View>
       ) : null}
       <View style={styles.row}>
-        <GhostButton label={es.hito.attach} onPress={() => setPicking(true)} style={{ flex: 1 }} disabled={!album.length} />
-        <GhostButton label={es.hito.addNew} onPress={() => void addNew()} style={{ flex: 1 }} />
+        <GhostButton label={t.hito.attach} onPress={() => setPicking(true)} style={{ flex: 1 }} disabled={!album.length} />
+        <GhostButton label={t.hito.addNew} onPress={() => void addNew()} style={{ flex: 1 }} />
       </View>
 
       {error ? (
@@ -165,10 +165,10 @@ export function MilestoneForm({
           {error}
         </T>
       ) : null}
-      <PrimaryButton label={es.hito.save} onPress={() => void save()} />
-      {milestoneId ? <GhostButton danger label={es.hito.delete} onPress={remove} /> : null}
+      <PrimaryButton label={t.hito.save} onPress={() => void save()} />
+      {milestoneId ? <GhostButton danger label={t.hito.delete} onPress={remove} /> : null}
 
-      <Sheet visible={picking} onClose={() => setPicking(false)} title={es.hito.pickerTitle}>
+      <Sheet visible={picking} onClose={() => setPicking(false)} title={t.hito.pickerTitle}>
         <FlatList
           data={album}
           numColumns={3}
@@ -191,7 +191,7 @@ export function MilestoneForm({
             );
           }}
         />
-        <PrimaryButton label={es.hito.pickerDone(photoIds.length)} onPress={() => setPicking(false)} />
+        <PrimaryButton label={t.hito.pickerDone(photoIds.length)} onPress={() => setPicking(false)} />
       </Sheet>
     </ScrollView>
   );

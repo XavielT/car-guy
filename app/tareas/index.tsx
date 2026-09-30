@@ -9,7 +9,7 @@ import { radius, space } from '@/constants/theme';
 import { tasks as taskRepo } from '@/lib/db/repos';
 import type { Task } from '@/lib/db/types';
 import { money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -53,21 +53,21 @@ export default function TareasScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.tasks.title}
+          {t.tasks.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.tasks.subtitle}
+          {t.tasks.subtitle}
         </T>
 
         <Segmented
           style={styles.row}
-          options={STATUSES.map((s) => ({ key: s, label: es.tasks.statuses[s] }))}
+          options={STATUSES.map((s) => ({ key: s, label: t.tasks.statuses[s] }))}
           value={status}
           onChange={setStatus}
         />
 
         {rows.length === 0 ? (
-          <EmptyState icon="checkmark-done-outline" message={es.tasks.empty} />
+          <EmptyState icon="checkmark-done-outline" message={t.tasks.empty} />
         ) : (
           rows.map((task) => (
             <Pressable
@@ -79,16 +79,16 @@ export default function TareasScreen() {
                   <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
                     {task.title}
                   </T>
-                  {task.priority === 'critica' ? <StatusPill status="vencido" label={es.tasks.priorities.critica} /> : null}
+                  {task.priority === 'critica' ? <StatusPill status="vencido" label={t.tasks.priorities.critica} /> : null}
                 </View>
                 <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: 4 }}>
-                  {es.service.kinds[task.kind]}
+                  {t.service.kinds[task.kind]}
                   {task.estimatedCostDop != null ? (
                     <T face="mono" style={{ fontSize: 12 }}>
                       {` · ${money(task.estimatedCostDop)}`}
                     </T>
                   ) : null}
-                  {task.sourceInspectionResultId ? ` · ${es.tasks.fromInspection}` : ''}
+                  {task.sourceInspectionResultId ? ` · ${t.tasks.fromInspection}` : ''}
                 </T>
               </Surface>
             </Pressable>
@@ -96,7 +96,7 @@ export default function TareasScreen() {
         )}
 
         <View style={{ height: space.lg }} />
-        <PrimaryButton label={es.tasks.new} onPress={() => router.push('/tarea/nueva')} />
+        <PrimaryButton label={t.tasks.new} onPress={() => router.push('/tarea/nueva')} />
       </ScrollView>
     </SafeAreaView>
   );

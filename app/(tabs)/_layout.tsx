@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fonts } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -57,7 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: es.tabs.inicio,
+          title: t.tabs.inicio,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="speedometer-outline" size={size} color={color} />
           ),
@@ -66,21 +66,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="garaje"
         options={{
-          title: es.tabs.garaje,
+          title: t.tabs.garaje,
           tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="historial"
         options={{
-          title: es.tabs.historial,
+          title: t.tabs.historial,
           tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="cifras"
         options={{
-          title: es.tabs.cifras,
+          title: t.tabs.cifras,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
@@ -89,7 +89,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="mas"
         options={{
-          title: es.tabs.mas,
+          title: t.tabs.mas,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="ellipsis-horizontal" size={size} color={color} />
           ),

@@ -13,7 +13,7 @@ import {
 
 import { radius, space } from '@/constants/theme';
 import { matchesQuery } from '@/lib/domain/text';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { PrimaryButton, Sheet } from '../ui';
 import { useKeyboardHeight } from '../ui/Sheet';
@@ -47,7 +47,7 @@ export function SearchSheet({
   selectedKey,
   onPick,
   onClose,
-  otherLabel = es.pickers.other,
+  otherLabel = t.pickers.other,
   allowOther = true,
   searchable = true,
 }: {
@@ -109,7 +109,7 @@ export function SearchSheet({
               onSubmitEditing={() => other.trim() && pick({ other: other.trim() })}
               style={[styles.search, { backgroundColor: theme.bg.raised, borderColor: theme.line, color: theme.text.primary }]}
             />
-            <PrimaryButton label={es.pickers.use} onPress={() => pick({ other: other.trim() })} disabled={!other.trim()} />
+            <PrimaryButton label={t.pickers.use} onPress={() => pick({ other: other.trim() })} disabled={!other.trim()} />
           </View>
         ) : (
           <>
@@ -119,9 +119,9 @@ export function SearchSheet({
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
-                  placeholder={es.pickers.search}
+                  placeholder={t.pickers.search}
                   placeholderTextColor={theme.text.muted}
-                  accessibilityLabel={es.pickers.search}
+                  accessibilityLabel={t.pickers.search}
                   autoCorrect={false}
                   style={[styles.searchInput, { color: theme.text.primary }]}
                 />
@@ -166,7 +166,7 @@ export function SearchSheet({
               }}
               ListEmptyComponent={
                 <T face="body" style={[styles.empty, { color: theme.text.muted }]}>
-                  {es.pickers.noMatch}
+                  {t.pickers.noMatch}
                 </T>
               }
               ListFooterComponent={

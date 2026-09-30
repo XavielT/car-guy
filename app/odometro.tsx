@@ -11,7 +11,7 @@ import { radius, space } from '@/constants/theme';
 import { currentOdometer as currentOdometerQuery, odometer as odometerRepo } from '@/lib/db/repos';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { isoFromDateInput, km as fmtKm, todayIsoDate } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -48,10 +48,10 @@ export default function OdometroScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.odometerSheet.title}
+          {t.odometerSheet.title}
         </T>
         <T face="body" style={[styles.hint, { color: theme.text.secondary }]}>
-          {es.odometerSheet.hint}
+          {t.odometerSheet.hint}
         </T>
 
         {/* The LCD readout: the last reading, then what you type as you type it. */}
@@ -60,14 +60,14 @@ export default function OdometroScreen() {
         </View>
 
         <Field
-          label={es.odometerSheet.value}
+          label={t.odometerSheet.value}
           placeholder={current != null ? String(Math.round(current)) : '51676'}
           keyboardType="number-pad"
           value={value}
           onChangeText={setValue}
-          hint={current != null ? es.odometerSheet.lastReading(fmtKm(Math.round(current))) : undefined}
+          hint={current != null ? t.odometerSheet.lastReading(fmtKm(Math.round(current))) : undefined}
         />
-        <DateField label={es.odometerSheet.date} value={date} onChange={setDate} noFuture />
+        <DateField label={t.odometerSheet.date} value={date} onChange={setDate} noFuture />
 
         {warning ? (
           <T face="body" style={[styles.warning, { color: theme.statusText.proximo }]}>
@@ -76,7 +76,7 @@ export default function OdometroScreen() {
         ) : null}
 
         <PrimaryButton
-          label={es.odometerSheet.save}
+          label={t.odometerSheet.save}
           disabled={parsed == null}
           onPress={() => {
             if (parsed == null) return;

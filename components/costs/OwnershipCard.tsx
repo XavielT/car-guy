@@ -5,7 +5,7 @@ import { SectionHeader, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { COST_CATEGORIES, type GarageCost, type OwnershipCost } from '@/lib/domain/costs';
 import { dateLabel, money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -18,44 +18,44 @@ export function OwnershipCard({ cost }: { cost: OwnershipCost }) {
   const { theme } = useTheme();
   const since = cost.since
     ? cost.sinceBasis === 'compra'
-      ? es.costs.since(dateLabel(cost.since))
-      : es.costs.sinceFirst(dateLabel(cost.since))
+      ? t.costs.since(dateLabel(cost.since))
+      : t.costs.sinceFirst(dateLabel(cost.since))
     : null;
   const footnote = [
     cost.perKm == null
-      ? es.costs.noDistance
+      ? t.costs.noDistance
       : cost.purchasePrice != null && cost.runningPerKm != null
-        ? es.costs.perKmHint(money(cost.runningPerKm))
+        ? t.costs.perKmHint(money(cost.runningPerKm))
         : null,
     since,
-    cost.costPerMonth != null ? es.costs.perMonth(money(cost.costPerMonth), es.stats.ownershipMonths(cost.monthsOwned)) : null,
+    cost.costPerMonth != null ? t.costs.perMonth(money(cost.costPerMonth), t.stats.ownershipMonths(cost.monthsOwned)) : null,
   ]
     .filter(Boolean)
     .join(' · ');
 
   return (
     <>
-      <SectionHeader title={es.costs.title} caption={es.costs.caption} />
+      <SectionHeader title={t.costs.title} caption={t.costs.caption} />
       <Surface>
         {cost.purchasePrice != null ? (
-          <Row label={es.costs.purchase} value={money(cost.purchasePrice)} />
+          <Row label={t.costs.purchase} value={money(cost.purchasePrice)} />
         ) : (
           <T face="body" style={[styles.hint, styles.first, { color: theme.text.muted }]}>
-            {es.costs.noPurchase}
+            {t.costs.noPurchase}
           </T>
         )}
-        {cost.soldPrice != null ? <Row label={es.costs.sold} value={`− ${money(cost.soldPrice)}`} /> : null}
+        {cost.soldPrice != null ? <Row label={t.costs.sold} value={`− ${money(cost.soldPrice)}`} /> : null}
         {COST_CATEGORIES.map((key) => (
-          <Row key={key} label={es.costs.categories[key]} value={money(cost.byCategory[key])} muted={cost.byCategory[key] === 0} />
+          <Row key={key} label={t.costs.categories[key]} value={money(cost.byCategory[key])} muted={cost.byCategory[key] === 0} />
         ))}
         {cost.modsSold > 0 ? (
           <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {es.costs.modsSold(money(cost.modsSold))}
+            {t.costs.modsSold(money(cost.modsSold))}
           </T>
         ) : null}
         <View style={[styles.rule, { backgroundColor: theme.line }]} />
-        <Row label={es.costs.total} value={money(cost.total)} strong />
-        <Row label={es.costs.perKm} value={cost.perKm != null ? money(cost.perKm) : '—'} />
+        <Row label={t.costs.total} value={money(cost.total)} strong />
+        <Row label={t.costs.perKm} value={cost.perKm != null ? money(cost.perKm) : '—'} />
         {footnote ? (
           <T face="body" style={[styles.hint, { color: theme.text.secondary }]}>
             {footnote}
@@ -72,17 +72,17 @@ export function GarageCostCard({ garage }: { garage: GarageCost }) {
   if (garage.vehicles.length < 2) return null;
   return (
     <>
-      <SectionHeader title={es.costs.garage} caption={es.costs.garageCaption(garage.vehicles.length)} />
+      <SectionHeader title={t.costs.garage} caption={t.costs.garageCaption(garage.vehicles.length)} />
       <Surface>
         {garage.vehicles.map((entry) => (
           <Row key={entry.vehicleId} label={entry.name} value={money(entry.cost.total)} />
         ))}
         <View style={[styles.rule, { backgroundColor: theme.line }]} />
-        <Row label={es.costs.garageTotal} value={money(garage.total)} strong />
-        {garage.perKm != null ? <Row label={es.costs.perKm} value={money(garage.perKm)} /> : null}
+        <Row label={t.costs.garageTotal} value={money(garage.total)} strong />
+        {garage.perKm != null ? <Row label={t.costs.perKm} value={money(garage.perKm)} /> : null}
         {garage.since ? (
           <T face="body" style={[styles.hint, { color: theme.text.secondary }]}>
-            {es.costs.since(dateLabel(garage.since))}
+            {t.costs.since(dateLabel(garage.since))}
           </T>
         ) : null}
       </Surface>

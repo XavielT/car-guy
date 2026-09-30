@@ -8,7 +8,7 @@ import { T } from '@/components/T';
 import { space } from '@/constants/theme';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Vehicle } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -42,7 +42,7 @@ export default function NuevoRecordatorioScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.reminders.newTitle}
+          {t.reminders.newTitle}
         </T>
         <ReminderForm
           vehicle={vehicle}

@@ -9,7 +9,7 @@ import { radius, space } from '@/constants/theme';
 import { activeShares } from '@/lib/db/shareQueries';
 import type { VehicleShare } from '@/lib/db/types';
 import { shareUrl } from '@/lib/share/publish';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /** Más → Links compartidos: every car with a live public page. */
@@ -32,9 +32,9 @@ export default function SharesScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
-        {es.share.listTitle}
+        {t.share.listTitle}
       </T>
-      {list && !list.length ? <EmptyState icon="link-outline" message={es.share.listEmpty} /> : null}
+      {list && !list.length ? <EmptyState icon="link-outline" message={t.share.listEmpty} /> : null}
       {(list ?? []).map((s) => {
         const url = shareUrl(s.slug!);
         return (
@@ -44,12 +44,12 @@ export default function SharesScreen() {
                 {s.vehicleName}
               </T>
               <T face="mono" style={{ color: theme.accent, fontSize: 12 }}>
-                {`${url.replace('https://', '')} · ${es.share.visibility[s.visibility]}`}
+                {`${url.replace('https://', '')} · ${t.share.visibility[s.visibility]}`}
               </T>
             </Pressable>
             <View style={styles.pair}>
-              <GhostButton style={{ flex: 1 }} label={copied === s.id ? es.share.copied : es.share.copy} onPress={() => void Clipboard.setStringAsync(url).then(() => setCopied(s.id))} />
-              <GhostButton style={{ flex: 1 }} label={es.share.preview} onPress={() => void Linking.openURL(url)} />
+              <GhostButton style={{ flex: 1 }} label={copied === s.id ? t.share.copied : t.share.copy} onPress={() => void Clipboard.setStringAsync(url).then(() => setCopied(s.id))} />
+              <GhostButton style={{ flex: 1 }} label={t.share.preview} onPress={() => void Linking.openURL(url)} />
             </View>
           </View>
         );

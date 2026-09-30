@@ -11,7 +11,7 @@ import { flagsOf, getShare } from '@/lib/db/shareQueries';
 import type { Vehicle } from '@/lib/db/types';
 import type { ShareFlags } from '@/lib/share/dossier';
 import { saveShareSettings } from '@/lib/share/publish';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const FLAG_KEYS: (keyof ShareFlags)[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'costs', 'plate', 'vin'];
@@ -19,7 +19,7 @@ type Period = 'todo' | 'ano' | 'este';
 
 function range(p: Period, now = new Date()): { from: string | null; to: string | null; label: string | null } {
   if (p === 'todo') return { from: null, to: null, label: null };
-  if (p === 'ano') return { from: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString(), to: now.toISOString(), label: es.book.periods.ano };
+  if (p === 'ano') return { from: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString(), to: now.toISOString(), label: t.book.periods.ano };
   return { from: new Date(now.getFullYear(), 0, 1).toISOString(), to: now.toISOString(), label: String(now.getFullYear()) };
 }
 
@@ -65,12 +65,12 @@ export default function BookScreen() {
     try {
       const r = range(period);
       const book = await generateBook(id, { flags: flags!, photos, docs, from: r.from, to: r.to, periodLabel: r.label }, (done, total) => setProgress({ done, total }));
-      if (!book) return setNotice(es.book.failed);
-      const how = await deliverBook(book.bytes, book.filename, es.book.dialog);
-      setNotice(how === 'unavailable' ? es.book.unavailable : es.book.done(book.filename, Math.round(book.bytes.byteLength / 1024)));
+      if (!book) return setNotice(t.book.failed);
+      const how = await deliverBook(book.bytes, book.filename, t.book.dialog);
+      setNotice(how === 'unavailable' ? t.book.unavailable : t.book.done(book.filename, Math.round(book.bytes.byteLength / 1024)));
     } catch (error) {
       console.warn('[book]', error);
-      setNotice(es.book.failed);
+      setNotice(t.book.failed);
     } finally {
       setProgress(null);
     }
@@ -95,35 +95,35 @@ export default function BookScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.book.eyebrow(vehicle.name.toUpperCase())}
+        {t.book.eyebrow(vehicle.name.toUpperCase())}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.sm }}>
-        {es.book.title}
+        {t.book.title}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginBottom: space.md }}>
-        {es.book.intro}
+        {t.book.intro}
       </T>
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {es.book.period}
+        {t.book.period}
       </T>
       <View style={styles.chips}>
         {(['todo', 'ano', 'este'] as Period[]).map((p) => (
-          <Chip key={p} label={p === 'este' ? String(new Date().getFullYear()) : es.book.periods[p]} selected={period === p} onPress={() => setPeriod(p)} />
+          <Chip key={p} label={p === 'este' ? String(new Date().getFullYear()) : t.book.periods[p]} selected={period === p} onPress={() => setPeriod(p)} />
         ))}
       </View>
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.sm }}>
-        {es.share.sections}
+        {t.share.sections}
       </T>
       <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
-        {FLAG_KEYS.map((k) => row(es.share.flags[k], flags[k], (on) => void setFlag(k, on), es.share.flagHints[k] || undefined))}
-        {row(es.book.docs, docs, setDocs, es.book.docsHint)}
-        {row(es.book.photos, photos, setPhotos, es.book.photosHint)}
+        {FLAG_KEYS.map((k) => row(t.share.flags[k], flags[k], (on) => void setFlag(k, on), t.share.flagHints[k] || undefined))}
+        {row(t.book.docs, docs, setDocs, t.book.docsHint)}
+        {row(t.book.photos, photos, setPhotos, t.book.photosHint)}
       </View>
 
       <View style={{ height: space.lg }} />
-      <PrimaryButton label={progress ? es.book.generating(progress.done, progress.total) : es.book.generate} disabled={Boolean(progress)} onPress={() => void generate()} />
+      <PrimaryButton label={progress ? t.book.generating(progress.done, progress.total) : t.book.generate} disabled={Boolean(progress)} onPress={() => void generate()} />
       {notice ? (
         <T face="body" style={{ color: theme.accent, fontSize: 13, marginTop: space.sm }}>
           {notice}

@@ -9,7 +9,7 @@ import { radius, space } from '@/constants/theme';
 import { listContacts } from '@/lib/db/diyQueries';
 import type { Contact } from '@/lib/db/types';
 import { CONTACT_KINDS, formatPhone } from '@/lib/domain/contacts';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /** The garage's people, grouped by what they do, each a tap from a call or a WhatsApp. */
@@ -27,19 +27,19 @@ export default function ContactsScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.contacts.eyebrow}
+        {t.contacts.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
-        {es.contacts.title}
+        {t.contacts.title}
       </T>
-      {contacts && !contacts.length ? <EmptyState icon="people-outline" message={es.contacts.empty} /> : null}
+      {contacts && !contacts.length ? <EmptyState icon="people-outline" message={t.contacts.empty} /> : null}
       {CONTACT_KINDS.map((k) => {
         const list = (contacts ?? []).filter((c) => c.kind === k);
         if (!list.length) return null;
         return (
           <View key={k} style={{ marginBottom: space.md }}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-              {es.contacts.kinds[k]}
+              {t.contacts.kinds[k]}
             </T>
             {list.map((c) => (
               <View key={c.id} style={[styles.row, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
@@ -60,7 +60,7 @@ export default function ContactsScreen() {
           </View>
         );
       })}
-      <PrimaryButton label={es.contacts.add} onPress={() => router.push('/contactos/nuevo')} />
+      <PrimaryButton label={t.contacts.add} onPress={() => router.push('/contactos/nuevo')} />
     </ScrollView>
   );
 }

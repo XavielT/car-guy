@@ -12,7 +12,7 @@ import { vehicleOwnership } from '@/lib/db/repos';
 import { photoDate, stateAt, type StateMod } from '@/lib/domain/album';
 import { SPEC_FIELDS } from '@/lib/domain/build';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -38,7 +38,7 @@ export default function EstadoScreen() {
   const { width } = useWindowDimensions();
 
   const [range, setRange] = useState<{ from: number; to: number } | null>(null);
-  const [t, setT] = useState<number>(() => Date.now());
+  const [when, setT] = useState<number>(() => Date.now());
   const [inputs, setInputs] = useState<{ photos: AlbumPhoto[]; mods: StateMod[]; readings: { occurredAt: string; valueKm: number }[]; stock: Record<string, unknown> } | null>(null);
   const [trackWidth, setTrackWidth] = useState(1);
   const [pinned, setPinned] = useState(false);
@@ -64,11 +64,11 @@ export default function EstadoScreen() {
     })();
   }, [id]);
 
-  const state = useMemo(() => (inputs ? stateAt(new Date(t).toISOString(), inputs) : null), [inputs, t]);
+  const state = useMemo(() => (inputs ? stateAt(new Date(when).toISOString(), inputs) : null), [inputs, when]);
 
   function step(months: number) {
     if (!range) return;
-    const d = new Date(t);
+    const d = new Date(when);
     d.setMonth(d.getMonth() + months);
     setT(Math.min(range.to, Math.max(range.from, d.getTime())));
     setPinned(false);
@@ -83,33 +83,33 @@ export default function EstadoScreen() {
 
   async function pin() {
     if (!state || !id) return;
-    const label = es.estado.pinLabel(dateLabel(state.date));
+    const label = t.estado.pinLabel(dateLabel(state.date));
     await pinSnapshot({ vehicleId: id, label, asOf: state.date, specs: state.specs, coverMediaId: state.photos[0]?.id ?? null });
     setPinned(true);
   }
 
-  const ratio = range ? (t - range.from) / Math.max(1, range.to - range.from) : 1;
+  const ratio = range ? (when - range.from) / Math.max(1, range.to - range.from) : 1;
   const cell = Math.floor((width - space.gutter * 2 - 12) / 3);
   const specEntries = state ? Object.entries(state.specs).filter(([, v]) => v != null && v !== '') : [];
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.estado.eyebrow}
+        {t.estado.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase' }}>
-        {state ? es.estado.on(dateLabel(state.date)) : es.estado.title}
+        {state ? t.estado.on(dateLabel(state.date)) : t.estado.title}
       </T>
 
       <View style={styles.sliderRow}>
-        <Pressable onPress={() => step(-1)} accessibilityRole="button" accessibilityLabel={es.estado.prevMonth} hitSlop={8} style={[styles.stepBtn, { borderColor: theme.lineStrong }]}>
+        <Pressable onPress={() => step(-1)} accessibilityRole="button" accessibilityLabel={t.estado.prevMonth} hitSlop={8} style={[styles.stepBtn, { borderColor: theme.lineStrong }]}>
           <Ionicons name="chevron-back" size={20} color={theme.text.primary} />
         </Pressable>
         <Pressable
           onLayout={(e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width)}
           onPress={(e) => onTrack(e.nativeEvent.locationX)}
           accessibilityRole="adjustable"
-          accessibilityLabel={es.estado.slider}
+          accessibilityLabel={t.estado.slider}
           accessibilityValue={{ text: state ? dateLabel(state.date) : '' }}
           accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
           onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
@@ -118,7 +118,7 @@ export default function EstadoScreen() {
           <View style={[styles.rail, { backgroundColor: theme.accentFill, width: `${Math.round(ratio * 100)}%` }]} />
           <View style={[styles.knob, { left: `${Math.round(ratio * 100)}%`, backgroundColor: theme.accentFill, borderColor: theme.bg.base }]} />
         </Pressable>
-        <Pressable onPress={() => step(1)} accessibilityRole="button" accessibilityLabel={es.estado.nextMonth} hitSlop={8} style={[styles.stepBtn, { borderColor: theme.lineStrong }]}>
+        <Pressable onPress={() => step(1)} accessibilityRole="button" accessibilityLabel={t.estado.nextMonth} hitSlop={8} style={[styles.stepBtn, { borderColor: theme.lineStrong }]}>
           <Ionicons name="chevron-forward" size={20} color={theme.text.primary} />
         </Pressable>
       </View>
@@ -136,13 +136,13 @@ export default function EstadoScreen() {
       <View style={[styles.odo, { backgroundColor: palette.dark.bg.well, borderColor: palette.dark.lineStrong }]}>
         <LcdDigits value={state?.odometerKm ?? null} height={30} color={palette.dark.text.primary} lastColor={palette.dark.needle} />
         <T face="eyebrow" style={{ color: palette.dark.text.muted, fontSize: 10, marginTop: 6 }}>
-          {es.estado.odometer}
+          {t.estado.odometer}
         </T>
       </View>
 
       <Surface style={styles.card}>
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-          {es.estado.mods}
+          {t.estado.mods}
         </T>
         {state?.modsInstalled.length ? (
           state.modsInstalled.map((m) => (
@@ -152,40 +152,40 @@ export default function EstadoScreen() {
           ))
         ) : (
           <T face="body" style={{ color: theme.text.secondary, fontSize: 14 }}>
-            {es.estado.noMods}
+            {t.estado.noMods}
           </T>
         )}
       </Surface>
 
       <Surface style={styles.card}>
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-          {es.estado.specs}
+          {t.estado.specs}
         </T>
         {specEntries.length ? (
           specEntries.map(([k, v]) => (
             <View key={k} style={styles.specRow}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-                {es.estado.specLabels[k] ?? SPEC_FIELDS.find((f) => f.key === k)?.label ?? k}
+                {t.estado.specLabels[k] ?? SPEC_FIELDS.find((f) => f.key === k)?.label ?? k}
               </T>
               <View style={{ alignItems: 'flex-end' }}>
                 <T face="mono" style={{ color: theme.text.primary, fontSize: 14 }}>
                   {String(v)}
                 </T>
                 <T face="eyebrow" style={{ color: state!.specSource[k] ? theme.accent : theme.text.muted, fontSize: 9 }}>
-                  {state!.specSource[k] ? es.estado.from(state!.specSource[k]) : es.estado.stock}
+                  {state!.specSource[k] ? t.estado.from(state!.specSource[k]) : t.estado.stock}
                 </T>
               </View>
             </View>
           ))
         ) : (
           <T face="body" style={{ color: theme.text.secondary, fontSize: 14 }}>
-            {es.estado.noSpecs}
+            {t.estado.noSpecs}
           </T>
         )}
       </Surface>
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.sm }}>
-        {es.estado.photos}
+        {t.estado.photos}
       </T>
       {state?.photos.length ? (
         <View style={styles.grid}>
@@ -195,12 +195,12 @@ export default function EstadoScreen() {
         </View>
       ) : (
         <T face="body" style={{ color: theme.text.secondary, fontSize: 14 }}>
-          {es.estado.noPhotos}
+          {t.estado.noPhotos}
         </T>
       )}
 
       <View style={{ marginTop: space.xl }}>
-        <PrimaryButton label={pinned ? es.estado.pinned : es.estado.pin} disabled={pinned || !specEntries.length} onPress={() => void pin()} />
+        <PrimaryButton label={pinned ? t.estado.pinned : t.estado.pin} disabled={pinned || !specEntries.length} onPress={() => void pin()} />
       </View>
     </ScrollView>
   );

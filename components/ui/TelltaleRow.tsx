@@ -3,7 +3,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { palette, radius } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useBlink, useLampTest } from '@/lib/motion/gaugeSweep';
 import type { Status } from './StatusPill';
 
@@ -56,13 +56,13 @@ const ICONS: Record<LampIcon, { d: string; dots?: [number, number][] }> = {
   checklist: { d: 'M10 6h10 M10 12h10 M10 18h10 M4 6l1.2 1.2L7.6 4.8 M4 12l1.2 1.2 2.4-2.4 M4 18l1.2 1.2 2.4-2.4' },
 };
 
-const STATE_LABEL: Record<Lamp['status'], string> = {
-  off: es.telltale.off,
-  ok: es.telltale.ok,
-  proximo: es.telltale.proximo,
-  urgente: es.telltale.urgente,
-  vencido: es.telltale.vencido,
-};
+const stateLabel = (): Record<Lamp['status'], string> => ({
+  off: t.telltale.off,
+  ok: t.telltale.ok,
+  proximo: t.telltale.proximo,
+  urgente: t.telltale.urgente,
+  vencido: t.telltale.vencido,
+});
 
 export function TelltaleRow({ lamps }: { lamps: Lamp[] }) {
   const testing = useLampTest();
@@ -108,7 +108,7 @@ function LampView({ lamp, testing }: { lamp: Lamp; testing: boolean }) {
     </Animated.View>
   );
 
-  const a11y = `${lamp.label}: ${STATE_LABEL[lamp.status]}`;
+  const a11y = `${lamp.label}: ${stateLabel()[lamp.status]}`;
   return lamp.onPress ? (
     <Pressable onPress={lamp.onPress} accessibilityRole="button" accessibilityLabel={a11y} hitSlop={6}>
       {body}

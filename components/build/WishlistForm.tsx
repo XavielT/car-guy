@@ -13,7 +13,7 @@ import type { ModCategory, WishlistItem } from '@/lib/db/types';
 import { wishlistTotalDop } from '@/lib/domain/build';
 import { parseDecimal } from '@/lib/domain/economy';
 import { dateInputFromIso, isoFromDateInput, money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const STATUSES: WishlistItem['status'][] = ['idea', 'ahorrando', 'pedido', 'descartado'];
@@ -75,7 +75,7 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
 
   async function save(): Promise<WishlistItem | null> {
     if (!name.trim()) {
-      setError(es.modForm.nameRequired);
+      setError(t.modForm.nameRequired);
       return null;
     }
     return saveWishlistItem({
@@ -108,10 +108,10 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.md }}>
-        {itemId ? es.wishlist.editTitle : es.wishlist.newTitle}
+        {itemId ? t.wishlist.editTitle : t.wishlist.newTitle}
       </T>
-      <Field label={es.wishlist.name} placeholder={es.wishlist.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
-      {label(es.modForm.category)}
+      <Field label={t.wishlist.name} placeholder={t.wishlist.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
+      {label(t.modForm.category)}
       <View style={styles.chips}>
         {categories.map((c) => (
           <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
@@ -119,19 +119,19 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
       </View>
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.brand} value={brand} onChangeText={setBrand} />
+          <Field label={t.modForm.brand} value={brand} onChangeText={setBrand} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.partNumber} value={partNumber} onChangeText={setPartNumber} />
+          <Field label={t.modForm.partNumber} value={partNumber} onChangeText={setPartNumber} />
         </View>
       </View>
-      {label(es.wishlist.priority)}
+      {label(t.wishlist.priority)}
       <View style={styles.chips}>
         {([1, 2, 3] as const).map((p) => (
-          <Chip key={p} label={es.wishlist.priorities[p]} selected={priority === p} onPress={() => setPriority(p)} />
+          <Chip key={p} label={t.wishlist.priorities[p]} selected={priority === p} onPress={() => setPriority(p)} />
         ))}
       </View>
-      <Field label={es.wishlist.price} keyboardType="decimal-pad" value={price} onChangeText={setPrice} />
+      <Field label={t.wishlist.price} keyboardType="decimal-pad" value={price} onChangeText={setPrice} />
       <View style={styles.chips}>
         {CURRENCIES.map((c) => (
           <Chip key={c} label={c} selected={currency === c} onPress={() => setCurrency(c)} />
@@ -139,34 +139,34 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
       </View>
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.wishlist.shipping} keyboardType="decimal-pad" value={shipping} onChangeText={setShipping} />
+          <Field label={t.wishlist.shipping} keyboardType="decimal-pad" value={shipping} onChangeText={setShipping} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.wishlist.customs} keyboardType="decimal-pad" value={customs} onChangeText={setCustoms} />
+          <Field label={t.wishlist.customs} keyboardType="decimal-pad" value={customs} onChangeText={setCustoms} />
         </View>
       </View>
       <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15, marginBottom: space.md }}>
-        {`${es.wishlist.total}: ${estimate != null ? money(estimate) : '—'}${currency !== 'DOP' && rate ? ` (${currency} a ${rate})` : ''}`}
+        {`${t.wishlist.total}: ${estimate != null ? money(estimate) : '—'}${currency !== 'DOP' && rate ? ` (${currency} a ${rate})` : ''}`}
       </T>
-      <Field label={es.wishlist.vendor} value={vendor} onChangeText={setVendor} />
-      <Field label={es.wishlist.url} value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" />
-      <DateField label={es.wishlist.targetDate} value={target || new Date().toISOString().slice(0, 10)} onChange={setTarget} />
-      {label(es.wishlist.status)}
+      <Field label={t.wishlist.vendor} value={vendor} onChangeText={setVendor} />
+      <Field label={t.wishlist.url} value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" />
+      <DateField label={t.wishlist.targetDate} value={target || new Date().toISOString().slice(0, 10)} onChange={setTarget} />
+      {label(t.wishlist.status)}
       <View style={styles.chips}>
         {STATUSES.map((s) => (
-          <Chip key={s} label={es.build.wishStatuses[s]} selected={status === s} onPress={() => setStatus(s)} />
+          <Chip key={s} label={t.build.wishStatuses[s]} selected={status === s} onPress={() => setStatus(s)} />
         ))}
       </View>
-      <Field label={es.wishlist.notes} value={notes} onChangeText={setNotes} multiline />
+      <Field label={t.wishlist.notes} value={notes} onChangeText={setNotes} multiline />
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.sm }}>
           {error}
         </T>
       ) : null}
-      <PrimaryButton label={es.wishlist.save} onPress={() => void save().then((w) => w && onDone())} />
+      <PrimaryButton label={t.wishlist.save} onPress={() => void save().then((w) => w && onDone())} />
       {itemId ? (
         <GhostButton
-          label={es.wishlist.convert}
+          label={t.wishlist.convert}
           onPress={() =>
             void save().then((w) => {
               if (w) router.replace({ pathname: '/mod/nuevo', params: { vehicleId, fromWishlist: w.id } });
@@ -174,7 +174,7 @@ export function WishlistForm({ vehicleId, itemId, onDone }: { vehicleId: string;
           }
         />
       ) : null}
-      {itemId ? <GhostButton danger label={es.wishlist.delete} onPress={() => void wishlistRepo.softDelete(itemId).then(onDone)} /> : null}
+      {itemId ? <GhostButton danger label={t.wishlist.delete} onPress={() => void wishlistRepo.softDelete(itemId).then(onDone)} /> : null}
     </ScrollView>
   );
 }

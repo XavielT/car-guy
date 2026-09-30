@@ -8,7 +8,7 @@ import { NavRow } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -42,16 +42,16 @@ export default function CatalogoScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.catalog.title}
+          {t.catalog.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.catalog.subtitle}
+          {t.catalog.subtitle}
         </T>
         {types.map((type) => (
           <NavRow
             key={type.id}
             label={type.name}
-            caption={es.catalog.every(type.defaultIntervalKm, type.defaultIntervalMonths)}
+            caption={t.catalog.every(type.defaultIntervalKm, type.defaultIntervalMonths)}
             onPress={() => router.push({ pathname: '/catalogo/[id]', params: { id: type.id } })}
           />
         ))}

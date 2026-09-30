@@ -17,27 +17,28 @@ import { perFillEconomy, type PerFillEconomy } from '@/lib/domain/perFillEconomy
 import { dateLabel, economyNumber, economyValue, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
 import { historySubtitle, historyTitle } from '@/lib/domain/history';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FillUp } from '@/lib/types';
 
-const FILTERS: { key: 'todo' | RecordKind; label: string }[] = [
-  { key: 'todo', label: es.history.all },
-  { key: 'combustible', label: es.history.kinds.combustible },
-  { key: 'mantenimiento', label: es.history.kinds.mantenimiento },
-  { key: 'reparacion', label: es.history.kinds.reparacion },
+/** The filter chips — a function so the labels follow the language (ADR-39). */
+const filters = (): { key: 'todo' | RecordKind; label: string }[] => [
+  { key: 'todo', label: t.history.all },
+  { key: 'combustible', label: t.history.kinds.combustible },
+  { key: 'mantenimiento', label: t.history.kinds.mantenimiento },
+  { key: 'reparacion', label: t.history.kinds.reparacion },
   // With the build log live the chip says MODS; it still finds v2.0 "mejora" records.
-  { key: 'mejora', label: FEATURE_BUILD ? es.build.tabs.mods : es.history.kinds.mejora },
-  { key: 'chequeo', label: es.history.kinds.chequeo },
-  { key: 'gasto', label: es.history.kinds.gasto },
+  { key: 'mejora', label: FEATURE_BUILD ? t.build.tabs.mods : t.history.kinds.mejora },
+  { key: 'chequeo', label: t.history.kinds.chequeo },
+  { key: 'gasto', label: t.history.kinds.gasto },
   // Milestones and track days are in the feed already (schema v2); their chips
   // appear with the screens that create them.
-  ...(FEATURE_ALBUM ? [{ key: 'hito' as const, label: es.history.kinds.hito }] : []),
-  ...(FEATURE_TRACK ? [{ key: 'pista' as const, label: es.history.kinds.pista }] : []),
-  ...(FEATURE_TRIPS ? [{ key: 'viaje' as const, label: es.history.kinds.viaje }] : []),
+  ...(FEATURE_ALBUM ? [{ key: 'hito' as const, label: t.history.kinds.hito }] : []),
+  ...(FEATURE_TRACK ? [{ key: 'pista' as const, label: t.history.kinds.pista }] : []),
+  ...(FEATURE_TRIPS ? [{ key: 'viaje' as const, label: t.history.kinds.viaje }] : []),
 ];
 
 const PAGE = 50;
@@ -106,14 +107,14 @@ export default function HistorialScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <ScreenTitle
-          title={es.history.title}
+          title={t.history.title}
           kana="記録"
           size={34}
           sub={`${activeVehicle.name}${activeVehicle.plate ? ` · ${activeVehicle.plate}` : ''}`}
         />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters}>
-          {FILTERS.map((f) => {
+          {filters().map((f) => {
             const on = filter === f.key;
             return (
               <Pressable
@@ -142,7 +143,7 @@ export default function HistorialScreen() {
         </ScrollView>
 
         <Field
-          label={es.history.search}
+          label={t.history.search}
           value={query}
           onChangeText={(v) => {
             setQuery(v);
@@ -153,7 +154,7 @@ export default function HistorialScreen() {
         {entries.length === 0 ? (
           <EmptyState
             icon="time-outline"
-            message={query.trim() || filter !== 'todo' ? es.history.emptyFiltered : es.history.empty}
+            message={query.trim() || filter !== 'todo' ? t.history.emptyFiltered : t.history.empty}
           />
         ) : (
           months.map((group) => (
@@ -181,34 +182,34 @@ export default function HistorialScreen() {
           ))
         )}
 
-        {hasMore ? <GhostButton label={es.history.loadMore} onPress={() => setLimit((l) => l + PAGE)} /> : null}
+        {hasMore ? <GhostButton label={t.history.loadMore} onPress={() => setLimit((l) => l + PAGE)} /> : null}
       </ScrollView>
 
       <Pressable
         onPress={() => setPickerOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={es.history.addTitle}
+        accessibilityLabel={t.history.addTitle}
         style={({ pressed }) => [styles.fab, { backgroundColor: pressed ? theme.accentPressed : theme.accentFill }]}>
         <Ionicons name="add" size={28} color={theme.accentFillInk} />
       </Pressable>
 
-      <Sheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={es.history.addTitle}>
+      <Sheet visible={pickerOpen} onClose={() => setPickerOpen(false)} title={t.history.addTitle}>
         {(
           [
-            [es.history.addFuel, '/carga/nueva'],
-            [es.history.addService, '/servicio/nuevo?kind=mantenimiento'],
-            [es.history.addRepair, '/servicio/nuevo?kind=reparacion'],
-            [es.history.addUpgrade, '/servicio/nuevo?kind=mejora'],
-            [es.history.addExpense, '/gasto/nuevo'],
-            [es.history.addInspection, '/chequeo'],
-            [es.history.addOdometer, '/odometro'],
+            [t.history.addFuel, '/carga/nueva'],
+            [t.history.addService, '/servicio/nuevo?kind=mantenimiento'],
+            [t.history.addRepair, '/servicio/nuevo?kind=reparacion'],
+            [t.history.addUpgrade, '/servicio/nuevo?kind=mejora'],
+            [t.history.addExpense, '/gasto/nuevo'],
+            [t.history.addInspection, '/chequeo'],
+            [t.history.addOdometer, '/odometro'],
             ...(FEATURE_ALBUM
               ? ([
-                  [es.history.addMilestone, '/hito/nuevo'],
-                  [es.history.addPhotos, '/album/importar'],
+                  [t.history.addMilestone, '/hito/nuevo'],
+                  [t.history.addPhotos, '/album/importar'],
                 ] as const)
               : []),
-            ...(FEATURE_DIY ? ([[es.history.addObd, '/obd?add=1']] as const) : []),
+            ...(FEATURE_DIY ? ([[t.history.addObd, '/obd?add=1']] as const) : []),
           ] as const
         ).map(([label, route]) => (
           <Pressable
@@ -273,9 +274,9 @@ function tagFor(
   if (fill && !fill.isFullTank) {
     // Note 9: a partial still says roughly how it went, marked approximate.
     const pf = perFill?.get(entry.id);
-    if (!pf) return es.history.partialTag;
+    if (!pf) return t.history.partialTag;
     const econ = fill.fuelType === 'gnv' ? null : economyUnit;
-    return `${es.history.partialTag} · ${es.perFill.short(economyNumber(economyValue(pf.kmPerUnit, volumeUnit, econ)), economyLabel(fill.fuelType, volumeUnit, econ))}`;
+    return `${t.history.partialTag} · ${t.perFill.short(economyNumber(economyValue(pf.kmPerUnit, volumeUnit, econ)), economyLabel(fill.fuelType, volumeUnit, econ))}`;
   }
   const point = economy.get(entry.id);
   return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType, volumeUnit, economyUnit) : null;

@@ -8,7 +8,7 @@ import { radius, space } from '@/constants/theme';
 import type { Mod } from '@/lib/db/types';
 import { modBadge, modTotalDop, parseTags } from '@/lib/domain/build';
 import { km as fmtKm, money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
@@ -48,7 +48,7 @@ export function ModRow({
   const badge = modBadge(parseTags(mod.tags));
   const on = mod.status === 'instalado';
   const status =
-    mod.status === 'quitado' ? es.build.removed : mod.status === 'vendido' ? es.build.sold : mod.status === 'danado' ? es.build.damaged : mod.status === 'planeado' ? es.build.planned : mod.status === 'pedido' ? es.build.ordered : null;
+    mod.status === 'quitado' ? t.build.removed : mod.status === 'vendido' ? t.build.sold : mod.status === 'danado' ? t.build.damaged : mod.status === 'planeado' ? t.build.planned : mod.status === 'pedido' ? t.build.ordered : null;
   const foreign = mod.priceForeign && mod.currency ? `${mod.currency} ${Math.round(mod.priceForeign).toLocaleString('en-US')}` : null;
   const meta = [
     status,
@@ -56,7 +56,7 @@ export function ModRow({
     mod.installedKm != null ? fmtKm(Math.round(mod.installedKm)) : null,
     installerName ?? mod.vendor,
     foreign,
-    mod.costCustomsDop ? es.build.customs(whole(mod.costCustomsDop)) : null,
+    mod.costCustomsDop ? t.build.customs(whole(mod.costCustomsDop)) : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -73,7 +73,7 @@ export function ModRow({
       delayLongPress={350}
       accessibilityRole="button"
       accessibilityLabel={[mod.name, badge?.label, meta, total ? whole(total) : null].filter(Boolean).join(', ')}
-      accessibilityActions={[{ name: 'longpress', label: es.build.actions(mod.name) }]}
+      accessibilityActions={[{ name: 'longpress', label: t.build.actions(mod.name) }]}
       onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && onLongPress()}
       style={styles.main}>
       {thumb ? (
@@ -107,7 +107,7 @@ export function ModRow({
     </Pressable>
       {/* A mouse has no long-press: web gets the actions as a button. */}
       {Platform.OS === 'web' ? (
-        <Pressable onPress={onLongPress} accessibilityRole="button" accessibilityLabel={es.build.actions(mod.name)} hitSlop={8} style={styles.more}>
+        <Pressable onPress={onLongPress} accessibilityRole="button" accessibilityLabel={t.build.actions(mod.name)} hitSlop={8} style={styles.more}>
           <Ionicons name="ellipsis-vertical" size={18} color={theme.text.muted} />
         </Pressable>
       ) : null}

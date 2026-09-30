@@ -9,7 +9,7 @@ import { space } from '@/constants/theme';
 import { listDtcEvents } from '@/lib/db/diyQueries';
 import type { VehicleDtcEvent } from '@/lib/db/types';
 import { lookup, normalizeCode } from '@/lib/domain/dtc';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -36,13 +36,13 @@ export default function ObdCodeScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <DtcCard dtc={lookup(code)} code={code} />
-      <PrimaryButton label={es.obd.log} onPress={() => setLogging(true)} />
+      <PrimaryButton label={t.obd.log} onPress={() => setLogging(true)} />
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
-        {es.obd.events}
+        {t.obd.events}
       </T>
       {!events.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-          {es.obd.noEvents}
+          {t.obd.noEvents}
         </T>
       ) : null}
       {events.map((e) => (

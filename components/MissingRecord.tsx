@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '@/components/T';
 import { PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -20,12 +20,12 @@ export function MissingRecord() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <View style={styles.wrap}>
         <T face="title" style={{ color: theme.text.primary, fontSize: 20, textAlign: 'center' }}>
-          {es.common.missingTitle}
+          {t.common.missingTitle}
         </T>
         <T face="body" style={[styles.body, { color: theme.text.secondary }]}>
-          {es.common.missingBody}
+          {t.common.missingBody}
         </T>
-        <PrimaryButton label={es.common.missingAction} onPress={() => router.replace('/(tabs)')} />
+        <PrimaryButton label={t.common.missingAction} onPress={() => router.replace('/(tabs)')} />
       </View>
     </SafeAreaView>
   );

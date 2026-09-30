@@ -20,7 +20,7 @@ import {
   taskPriorityFor,
   type Verdict,
 } from '../domain/inspections';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 
 export { baseTemplateId, scopedTemplateId };
 import { id as newId } from '../format';
@@ -218,7 +218,7 @@ async function reconcileResultPhotos(db: Handle, resultId: string, keep: string[
   const now = new Date().toISOString();
   for (const row of owned) {
     if (!kept.has(row.id)) await mediaRepo.upsert({ id: row.id, deletedAt: now }, db);
-    else if (!row.caption) await mediaRepo.upsert({ id: row.id, caption: es.album.checkCaption(label) }, db);
+    else if (!row.caption) await mediaRepo.upsert({ id: row.id, caption: t.album.checkCaption(label) }, db);
   }
 }
 

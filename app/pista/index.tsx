@@ -8,7 +8,7 @@ import { Chip, EmptyState, PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { listEvents, vehicleBests, type EventCard as Card, type PersonalBest } from '@/lib/db/trackQueries';
 import { todayIso } from '@/lib/domain/dates';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -49,24 +49,24 @@ export default function TrackIndexScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.track.eyebrow}
+        {t.track.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
-        {es.track.title}
+        {t.track.title}
       </T>
       {vehicles.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>
-          <Chip label={es.history.all} selected={!filter} onPress={() => setFilter(null)} />
+          <Chip label={t.history.all} selected={!filter} onPress={() => setFilter(null)} />
           {vehicles.map((v) => (
             <Chip key={v.id} label={v.name} selected={filter === v.id} onPress={() => setFilter(v.id)} />
           ))}
         </ScrollView>
       ) : null}
       <BestsStrip bests={bests} />
-      {cards && !cards.length ? <EmptyState icon="speedometer-outline" message={es.track.empty} /> : null}
+      {cards && !cards.length ? <EmptyState icon="speedometer-outline" message={t.track.empty} /> : null}
       {upcoming.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-          {es.track.upcoming}
+          {t.track.upcoming}
         </T>
       ) : null}
       {upcoming.map((c) => (
@@ -74,13 +74,13 @@ export default function TrackIndexScreen() {
       ))}
       {past.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm, marginTop: upcoming.length ? space.md : 0 }}>
-          {es.track.past}
+          {t.track.past}
         </T>
       ) : null}
       {past.map((c) => (
         <EventCard key={c.event.id} card={c} onPress={() => open(c.event.id)} />
       ))}
-      <PrimaryButton label={es.track.newEvent} onPress={() => router.push({ pathname: '/pista/evento/nuevo', params: filter ? { vehicleId: filter } : {} })} />
+      <PrimaryButton label={t.track.newEvent} onPress={() => router.push({ pathname: '/pista/evento/nuevo', params: filter ? { vehicleId: filter } : {} })} />
     </ScrollView>
   );
 }

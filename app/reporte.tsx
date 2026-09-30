@@ -15,7 +15,7 @@ import { todayIso } from '@/lib/domain/dates';
 import { computeEconomy } from '@/lib/domain/economy';
 import type { PeriodKey } from '@/lib/domain/stats';
 import { dateLabel, km, money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { printReport } from '@/lib/report/print';
 import { reportHtml } from '@/lib/report/html';
 import { photoDataUri } from '@/lib/report/photo';
@@ -85,14 +85,14 @@ export default function ReporteScreen() {
       // Android does not say whether the user shared or cancelled — an alert
       // claiming it was sent would be wrong half the time.
       if (result === 'unavailable') {
-        Alert.alert(es.report.unavailableTitle, es.report.unavailableBody);
+        Alert.alert(t.report.unavailableTitle, t.report.unavailableBody);
       }
       // 'printed' opens the browser's own dialog — saying so on top of it would
       // be talking over the thing the user is already looking at.
     } catch (error) {
       Alert.alert(
-        es.report.unavailableTitle,
-        userMessage('report', error, es.report.failed),
+        t.report.unavailableTitle,
+        userMessage('report', error, t.report.failed),
       );
     } finally {
       setBusy(false);
@@ -105,15 +105,15 @@ export default function ReporteScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.report.title}
+          {t.report.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.report.subtitle}
+          {t.report.subtitle}
         </T>
 
-        <SectionHeader title={es.report.period} style={styles.firstSection} />
+        <SectionHeader title={t.report.period} style={styles.firstSection} />
         <Segmented<PeriodKey>
-          options={PERIODS.map((key) => ({ key, label: es.stats.periods[key] }))}
+          options={PERIODS.map((key) => ({ key, label: t.stats.periods[key] }))}
           value={period}
           onChange={setPeriod}
         />
@@ -126,21 +126,21 @@ export default function ReporteScreen() {
             <T face="mono" style={[styles.range, { color: theme.text.secondary }]}>
               {stats.period.from
                 ? `${dateLabel(stats.period.from)} — ${dateLabel(stats.period.to)}`
-                : es.stats.periodHint.todo}
+                : t.stats.periodHint.todo}
             </T>
 
             <View style={[styles.rule, { backgroundColor: theme.line }]} />
 
-            <KeyValueRow label={es.stats.spend} value={money(stats.kpis.spend)} big />
+            <KeyValueRow label={t.stats.spend} value={money(stats.kpis.spend)} big />
             <KeyValueRow
-              label={es.stats.distance}
+              label={t.stats.distance}
               value={stats.kpis.distanceKm > 0 ? km(stats.kpis.distanceKm) : '—'}
             />
             <KeyValueRow
-              label={es.stats.costPerKm}
+              label={t.stats.costPerKm}
               value={stats.kpis.costPerKm != null ? money(stats.kpis.costPerKm) : '—'}
             />
-            <KeyValueRow label={es.report.historyTitle} value={es.report.rows(rows.length)} />
+            <KeyValueRow label={t.report.historyTitle} value={t.report.rows(rows.length)} />
           </Surface>
         ) : (
           <View style={styles.loading}>
@@ -150,12 +150,12 @@ export default function ReporteScreen() {
 
         {Platform.OS === 'web' ? (
           <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {es.report.webHint}
+            {t.report.webHint}
           </T>
         ) : null}
 
         <PrimaryButton
-          label={busy ? es.report.generating : es.report.generate}
+          label={busy ? t.report.generating : t.report.generate}
           onPress={generate}
           disabled={busy || !stats}
         />

@@ -9,7 +9,7 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { recordError, recordReportable } from '@/lib/diagnostics';
 import { addPhotos, movePhoto, removePhoto, setCover, type Gallery } from '@/lib/domain/gallery';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { pickCandidates, storePhoto, type Candidate } from '@/lib/media';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -67,9 +67,9 @@ export function PhotosSection({
       }
     }
     if (failed.length && mounted.current) {
-      Alert.alert(es.common.photoErrorTitle, es.common.photoErrorRetry, [
-        { text: es.common.cancel, style: 'cancel' },
-        { text: es.common.retry, onPress: () => void store(failed, camera) },
+      Alert.alert(t.common.photoErrorTitle, t.common.photoErrorRetry, [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.common.retry, onPress: () => void store(failed, camera) },
       ]);
     }
   }
@@ -82,7 +82,7 @@ export function PhotosSection({
       candidates = await pickCandidates({ camera, multiple: !camera });
     } catch (error) {
       recordReportable('photo-pick', error);
-      Alert.alert(es.common.photoErrorTitle, es.common.photoPickError);
+      Alert.alert(t.common.photoErrorTitle, t.common.photoPickError);
       return;
     }
     if (candidates.length) await store(candidates, camera);
@@ -110,17 +110,17 @@ export function PhotosSection({
   return (
     <View style={styles.wrap}>
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.vehicleForm.photos}
+        {t.vehicleForm.photos}
       </T>
       {empty ? (
         <Pressable
           onPress={() => setAdding(true)}
           accessibilityRole="button"
-          accessibilityLabel={es.vehicleForm.photosEmpty}
+          accessibilityLabel={t.vehicleForm.photosEmpty}
           style={[styles.emptyCard, { borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
           <Ionicons name="images-outline" size={26} color={theme.text.muted} />
           <T face="body" style={[styles.emptyText, { color: theme.text.secondary }]}>
-            {es.vehicleForm.photosEmpty}
+            {t.vehicleForm.photosEmpty}
           </T>
         </Pressable>
       ) : (
@@ -132,12 +132,12 @@ export function PhotosSection({
               size={THUMB}
               onPress={() => setSelected(id)}
               onLongPress={() => setSelected(id)}
-              accessibilityLabel={es.vehicleForm.photoN(i + 1, gallery.ids.length, id === gallery.cover)}
+              accessibilityLabel={t.vehicleForm.photoN(i + 1, gallery.ids.length, id === gallery.cover)}
               style={id === gallery.cover ? { borderWidth: 2, borderColor: theme.accent } : undefined}>
               {id === gallery.cover ? (
                 <View style={[styles.coverTag, { backgroundColor: theme.accentFill }]}>
                   <T face="eyebrow" style={[styles.coverText, { color: theme.accentFillInk }]}>
-                    {es.vehicleForm.cover}
+                    {t.vehicleForm.cover}
                   </T>
                 </View>
               ) : null}
@@ -151,35 +151,35 @@ export function PhotosSection({
           <Pressable
             onPress={() => setAdding(true)}
             accessibilityRole="button"
-            accessibilityLabel={es.vehicleForm.addPhotos}
+            accessibilityLabel={t.vehicleForm.addPhotos}
             style={[styles.add, { borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
             <Ionicons name="add" size={28} color={theme.text.secondary} />
           </Pressable>
         </ScrollView>
       )}
 
-      <Sheet visible={adding} onClose={() => setAdding(false)} title={es.vehicleForm.addPhotos}>
-        {Platform.OS !== 'web' ? <GhostButton label={es.common.takePhoto} onPress={() => void pick(true)} /> : null}
-        <GhostButton label={es.vehicleForm.fromGallery} onPress={() => void pick(false)} />
+      <Sheet visible={adding} onClose={() => setAdding(false)} title={t.vehicleForm.addPhotos}>
+        {Platform.OS !== 'web' ? <GhostButton label={t.common.takePhoto} onPress={() => void pick(true)} /> : null}
+        <GhostButton label={t.vehicleForm.fromGallery} onPress={() => void pick(false)} />
       </Sheet>
 
-      <Sheet visible={selected != null} onClose={() => setSelected(null)} title={es.vehicleForm.photoSheet(at + 1, gallery.ids.length)}>
+      <Sheet visible={selected != null} onClose={() => setSelected(null)} title={t.vehicleForm.photoSheet(at + 1, gallery.ids.length)}>
         {selected && selected !== gallery.cover ? (
           <GhostButton
-            label={es.vehicleForm.makeCover}
+            label={t.vehicleForm.makeCover}
             onPress={() => {
               onChange(setCover(gallery, selected));
               setSelected(null);
             }}
           />
         ) : null}
-        {at > 0 ? <GhostButton label={es.vehicleForm.moveLeft} onPress={() => onChange(movePhoto(gallery, selected!, -1))} /> : null}
+        {at > 0 ? <GhostButton label={t.vehicleForm.moveLeft} onPress={() => onChange(movePhoto(gallery, selected!, -1))} /> : null}
         {at >= 0 && at < gallery.ids.length - 1 ? (
-          <GhostButton label={es.vehicleForm.moveRight} onPress={() => onChange(movePhoto(gallery, selected!, 1))} />
+          <GhostButton label={t.vehicleForm.moveRight} onPress={() => onChange(movePhoto(gallery, selected!, 1))} />
         ) : null}
         <GhostButton
           danger
-          label={es.common.removePhoto}
+          label={t.common.removePhoto}
           onPress={() => {
             onChange(removePhoto(gallery, selected!));
             setSelected(null);

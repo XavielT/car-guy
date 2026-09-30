@@ -19,7 +19,7 @@ import type { Inspection, InspectionResult, Task } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { weeklyStreak } from '@/lib/domain/inspections';
 import { dateLabel, km as fmtKm } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { offerAfterFirstInspection } from '@/lib/notifications';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -135,9 +135,9 @@ export default function InspeccionScreen() {
             value={failures.length ? String(failures.length) : warnings.length ? String(warnings.length) : '✓'}
             label={
               failures.length
-                ? es.check.resultWithFails(failures.length)
+                ? t.check.resultWithFails(failures.length)
                 : warnings.length
-                  ? es.check.resultWithWarnings(warnings.length)
+                  ? t.check.resultWithWarnings(warnings.length)
                   : ''
             }
             color={failures.length ? theme.status.vencido : warnings.length ? theme.status.proximo : theme.status.ok}
@@ -161,10 +161,10 @@ export default function InspeccionScreen() {
                 },
               ]}>
               {failures.length
-                ? es.check.resultWithFails(failures.length)
+                ? t.check.resultWithFails(failures.length)
                 : warnings.length
-                  ? es.check.resultWithWarnings(warnings.length)
-                  : es.check.resultAllGood}
+                  ? t.check.resultWithWarnings(warnings.length)
+                  : t.check.resultAllGood}
             </T>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, marginTop: 2 }}>
               {templateName}
@@ -172,16 +172,16 @@ export default function InspeccionScreen() {
             <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 2 }}>
               {dateLabel(run.occurredAt)}
               {run.odometerKm != null ? ` · ${fmtKm(run.odometerKm)}` : ''}
-              {run.durationSec ? ` · ${es.common.minutes(Math.max(1, Math.round(run.durationSec / 60)))}` : ''}
+              {run.durationSec ? ` · ${t.common.minutes(Math.max(1, Math.round(run.durationSec / 60)))}` : ''}
             </T>
           </View>
           {/* The "registrado" stamp (05-design-jdm.md §8). */}
-          <Hanko char="車" size={44} shape="square" accessibilityLabel={es.identity.stamped} />
+          <Hanko char="車" size={44} shape="square" accessibilityLabel={t.identity.stamped} />
         </View>
 
         {failures.length === 0 && streak > 1 ? (
           <T face="title" style={{ color: theme.statusText.ok, fontSize: 18, marginBottom: space.lg }}>
-            {streak} {es.check.streakLabel(streak)}. {es.check.celebrate}
+            {streak} {t.check.streakLabel(streak)}. {t.check.celebrate}
           </T>
         ) : null}
 
@@ -190,7 +190,7 @@ export default function InspeccionScreen() {
         {warnings.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.statusText.proximo }]}>
-              {es.check.resultAttention}
+              {t.check.resultAttention}
             </T>
             {warnings.map(card)}
           </>
@@ -199,7 +199,7 @@ export default function InspeccionScreen() {
         {openTasks.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-              {es.check.resultTasks}
+              {t.check.resultTasks}
             </T>
             {openTasks.map((task) => (
               <GhostButton
@@ -214,7 +214,7 @@ export default function InspeccionScreen() {
         {createdReminders.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-              {es.check.resultReminders}
+              {t.check.resultReminders}
             </T>
             {createdReminders.map((title) => (
               <GhostButton key={title} label={title} onPress={() => router.push('/recordatorios')} />
@@ -225,14 +225,14 @@ export default function InspeccionScreen() {
         {rest.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-              {es.check.resultChecked}
+              {t.check.resultChecked}
             </T>
             {rest.map(card)}
           </>
         ) : null}
 
         <View style={{ height: space.lg }} />
-        <PrimaryButton label={es.common.back} onPress={() => router.replace('/chequeo')} />
+        <PrimaryButton label={t.common.back} onPress={() => router.replace('/chequeo')} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -254,12 +254,12 @@ function ResultCard({
   const { theme } = useTheme();
   const pill =
     result.result === 'falla'
-      ? { status: 'vencido' as const, label: es.check.fail }
+      ? { status: 'vencido' as const, label: t.check.fail }
       : result.result === 'atencion'
-        ? { status: 'proximo' as const, label: es.check.attention }
+        ? { status: 'proximo' as const, label: t.check.attention }
         : result.result === 'ok'
-          ? { status: 'ok' as const, label: es.check.ok }
-          : { status: 'neutral' as const, label: es.check.na };
+          ? { status: 'ok' as const, label: t.check.ok }
+          : { status: 'neutral' as const, label: t.check.na };
   return (
     <Surface style={{ marginBottom: space.sm }}>
       <View style={styles.row}>
@@ -281,7 +281,7 @@ function ResultCard({
               mediaId={mediaId}
               size={96}
               onPress={() => onPhoto(mediaId)}
-              accessibilityLabel={es.check.photoOpen(result.labelSnapshot, i + 1)}
+              accessibilityLabel={t.check.photoOpen(result.labelSnapshot, i + 1)}
             />
           ))}
         </ScrollView>

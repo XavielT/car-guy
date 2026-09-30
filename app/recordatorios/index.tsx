@@ -13,7 +13,7 @@ import type { Reminder } from '@/lib/db/types';
 import { addDays, todayIso } from '@/lib/domain/dates';
 import { STATUS_LABEL, type ReminderState } from '@/lib/domain/reminders';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -73,16 +73,16 @@ export default function RecordatoriosScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.reminders.title}
+          {t.reminders.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.reminders.subtitle}
+          {t.reminders.subtitle}
         </T>
 
-        <PrimaryButton label={es.reminders.add} onPress={() => router.push('/recordatorio/nuevo')} />
+        <PrimaryButton label={t.reminders.add} onPress={() => router.push('/recordatorio/nuevo')} />
 
         {rows.length === 0 ? (
-          <EmptyState icon="alarm-outline" message={es.reminders.empty} />
+          <EmptyState icon="alarm-outline" message={t.reminders.empty} />
         ) : (
           GROUPS.map((group) => {
             const members = rows.filter((row) => groupOf(row) === group);
@@ -90,7 +90,7 @@ export default function RecordatoriosScreen() {
             return (
               <View key={group}>
                 <T face="eyebrow" style={[styles.group, { color: theme.text.muted }]}>
-                  {`${es.reminders.groups[group]} · ${members.length}`}
+                  {`${t.reminders.groups[group]} · ${members.length}`}
                 </T>
                 {members.map(({ reminder, status }) => (
                   <Surface
@@ -103,10 +103,10 @@ export default function RecordatoriosScreen() {
                       {reminder.isEnabled ? (
                         <StatusPill
                           status={status.status === 'sin_datos' ? 'neutral' : status.status}
-                          label={status.snoozed ? es.reminders.snoozed : STATUS_LABEL[status.status]}
+                          label={status.snoozed ? t.reminders.snoozed : STATUS_LABEL[status.status]}
                         />
                       ) : (
-                        <StatusPill status="neutral" label={es.reminders.disabledLabel} />
+                        <StatusPill status="neutral" label={t.reminders.disabledLabel} />
                       )}
                     </View>
 
@@ -117,16 +117,16 @@ export default function RecordatoriosScreen() {
 
                     {status.status !== 'sin_datos' && status.confidence === 'baja' && status.dueKm != null ? (
                       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
-                        {es.reminders.lowConfidence}
+                        {t.reminders.lowConfidence}
                       </T>
                     ) : null}
 
                     <View style={styles.actions}>
                       {reminder.isEnabled ? (
                         <>
-                          <GhostButton label={es.reminders.done} onPress={() => setCompleting(reminder)} />
+                          <GhostButton label={t.reminders.done} onPress={() => setCompleting(reminder)} />
                           <GhostButton
-                            label={es.reminders.snooze}
+                            label={t.reminders.snooze}
                             onPress={() => {
                               void (async () => {
                                 await reminderRepo.upsert({
@@ -140,7 +140,7 @@ export default function RecordatoriosScreen() {
                         </>
                       ) : (
                         <GhostButton
-                          label={es.reminders.enable}
+                          label={t.reminders.enable}
                           onPress={() => {
                             void (async () => {
                               await reminderRepo.upsert({ id: reminder.id, isEnabled: true });
@@ -150,7 +150,7 @@ export default function RecordatoriosScreen() {
                         />
                       )}
                       <GhostButton
-                        label={es.reminders.edit}
+                        label={t.reminders.edit}
                         onPress={() =>
                           router.push({ pathname: '/recordatorio/[id]', params: { id: reminder.id } })
                         }
@@ -180,7 +180,7 @@ export default function RecordatoriosScreen() {
  */
 function describe(status: EvaluatedReminder['status']): string {
   if (status.status === 'sin_datos' && status.dueDays == null && status.dueKm == null) {
-    return es.reminders.noData;
+    return t.reminders.noData;
   }
 
   const parts: string[] = [];
@@ -188,8 +188,8 @@ function describe(status: EvaluatedReminder['status']): string {
   if (status.dueKm != null) {
     parts.push(
       status.dueKm < 0
-        ? es.reminders.overdueKm(Math.abs(Math.round(status.dueKm)))
-        : es.reminders.dueKm(Math.round(status.dueKm)),
+        ? t.reminders.overdueKm(Math.abs(Math.round(status.dueKm)))
+        : t.reminders.dueKm(Math.round(status.dueKm)),
     );
     // The predicted date is only worth showing when it comes before the
     // calendar limit — otherwise it just repeats a later date.
@@ -198,15 +198,15 @@ function describe(status: EvaluatedReminder['status']): string {
       (status.dueDays == null ||
         status.predictedDueDate < addDays(todayIso(), status.dueDays))
     ) {
-      parts.push(es.reminders.estimated(shortDate(status.predictedDueDate)));
+      parts.push(t.reminders.estimated(shortDate(status.predictedDueDate)));
     }
   }
 
   if (status.dueDays != null) {
     const due = addDays(todayIso(), status.dueDays);
-    if (status.dueDays < 0) parts.push(es.reminders.overdueDays(Math.abs(status.dueDays)));
-    else if (status.dueDays <= 1) parts.push(es.reminders.dueDays(status.dueDays));
-    else parts.push(es.reminders.dueOn(shortDate(due)));
+    if (status.dueDays < 0) parts.push(t.reminders.overdueDays(Math.abs(status.dueDays)));
+    else if (status.dueDays <= 1) parts.push(t.reminders.dueDays(status.dueDays));
+    else parts.push(t.reminders.dueOn(shortDate(due)));
   }
 
   return parts.join(' · ');

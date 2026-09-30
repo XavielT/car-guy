@@ -9,7 +9,7 @@ import { buildData, type BuildData } from '@/lib/db/buildQueries';
 import { jsonObject } from '@/lib/domain/album';
 import { currentSpecs, investedTotal, modBadge, parseTags } from '@/lib/domain/build';
 import { money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { StockActualCard } from './StockActualCard';
@@ -42,8 +42,8 @@ export function BuildTab({ vehicleId, version }: { vehicleId: string; version: n
     <View style={{ gap: space.sm }}>
       <BuildSummary vehicleId={vehicleId} version={version} build={build} />
       <StockActualCard current={current} onPress={() => open('specs')} />
-      <PrimaryButton label={es.build.open} onPress={() => open()} />
-      <GhostButton label={es.build.add} onPress={() => router.push({ pathname: '/mod/nuevo', params: { vehicleId } })} />
+      <PrimaryButton label={t.build.open} onPress={() => open()} />
+      <GhostButton label={t.build.add} onPress={() => router.push({ pathname: '/mod/nuevo', params: { vehicleId } })} />
     </View>
   );
 }
@@ -64,10 +64,10 @@ export function BuildSummary({ vehicleId, version, build: given }: { vehicleId: 
     <Pressable
       onPress={() => router.push({ pathname: '/vehiculo/[id]/build', params: { id: vehicleId } })}
       accessibilityRole="button"
-      accessibilityLabel={es.build.summary(installed.length, whole(investedTotal(build.mods)))}
+      accessibilityLabel={t.build.summary(installed.length, whole(investedTotal(build.mods)))}
       style={[styles.summary, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
       <T face="mono" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
-        {es.build.summary(installed.length, whole(investedTotal(build.mods)))}
+        {t.build.summary(installed.length, whole(investedTotal(build.mods)))}
       </T>
       {badges.map((b) => (
         <Badge key={b.label} label={b.label} tone={b.tone} />

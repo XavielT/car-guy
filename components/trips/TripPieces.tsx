@@ -13,7 +13,7 @@ import { odometer as odometerRepo } from '@/lib/db/repos';
 import { trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
 import { Alert } from '@/lib/alert';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
@@ -87,10 +87,10 @@ export async function setTripRole(trip: Trip, role: TripRole): Promise<boolean> 
 
 /** Asks, then soft-deletes the trip (and its odometer estimate). */
 export function confirmDeleteTrip(trip: Trip, onDone?: () => void) {
-  Alert.alert(es.trips.delete, es.trips.deleteBody, [
-    { text: es.common.cancel, style: 'cancel' },
+  Alert.alert(t.trips.delete, t.trips.deleteBody, [
+    { text: t.common.cancel, style: 'cancel' },
     {
-      text: es.common.delete,
+      text: t.common.delete,
       style: 'destructive',
       onPress: () =>
         void (async () => {
@@ -106,13 +106,13 @@ export function confirmDeleteTrip(trip: Trip, onDone?: () => void) {
 /** Long-press on a row: role toggle and delete. */
 export function tripActions(trip: Trip, onChanged?: () => void) {
   const toPassenger = trip.role !== 'pasajero';
-  Alert.alert(es.trips.actions, undefined, [
-    { text: es.common.cancel, style: 'cancel' },
+  Alert.alert(t.trips.actions, undefined, [
+    { text: t.common.cancel, style: 'cancel' },
     {
-      text: toPassenger ? es.trips.markPassenger : es.trips.markDriver,
+      text: toPassenger ? t.trips.markPassenger : t.trips.markDriver,
       onPress: () => void setTripRole(trip, toPassenger ? 'pasajero' : 'conductor').then(() => onChanged?.()),
     },
-    { text: es.trips.delete, style: 'destructive', onPress: () => confirmDeleteTrip(trip, onChanged) },
+    { text: t.trips.delete, style: 'destructive', onPress: () => confirmDeleteTrip(trip, onChanged) },
   ]);
 }
 
@@ -203,16 +203,16 @@ export function MiuiChecklist() {
   }, []);
   if (!isMiuiPhone()) return null;
   const verdict =
-    autostart === 'enabled' ? { text: es.trips.miuiAutostartOn, color: theme.statusText.ok } : autostart === 'disabled' ? { text: es.trips.miuiAutostartOff, color: theme.statusText.vencido } : null;
+    autostart === 'enabled' ? { text: t.trips.miuiAutostartOn, color: theme.statusText.ok } : autostart === 'disabled' ? { text: t.trips.miuiAutostartOff, color: theme.statusText.vencido } : null;
   return (
     <Surface padded style={{ gap: space.sm, marginTop: space.md }}>
       <T face="title" style={{ color: theme.text.primary, fontSize: 16, textTransform: 'uppercase' }}>
-        {es.trips.miuiTitle}
+        {t.trips.miuiTitle}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
-        {es.trips.miuiIntro}
+        {t.trips.miuiIntro}
       </T>
-      {es.trips.miuiSteps.map((step, i) => (
+      {t.trips.miuiSteps.map((step, i) => (
         <View key={step} style={{ gap: 2 }}>
           <T face="body" style={{ color: theme.text.primary, fontSize: 14, lineHeight: 20 }}>
             {`${i + 1}. ${step}`}
@@ -225,9 +225,9 @@ export function MiuiChecklist() {
         </View>
       ))}
       {autostart !== 'enabled' ? (
-        <GhostButton label={es.trips.miuiOpenAutostart} onPress={() => void (openAutostartSettings() || Linking.openSettings())} />
+        <GhostButton label={t.trips.miuiOpenAutostart} onPress={() => void (openAutostartSettings() || Linking.openSettings())} />
       ) : null}
-      <GhostButton label={es.trips.openSettings} onPress={() => void Linking.openSettings()} />
+      <GhostButton label={t.trips.openSettings} onPress={() => void Linking.openSettings()} />
     </Surface>
   );
 }
@@ -281,7 +281,7 @@ export function RouteSvg({ trip, points, width, height, map = false }: { trip: T
 
   const allPaths = runs.length ? runs.map((r) => r.d) : single ? [single] : [];
   const svg = (
-    <Svg width={width} height={height} accessibilityLabel={es.trips.routeA11y(kmLabel(trip.distanceM))} style={tiles.length ? StyleSheet.absoluteFill : undefined}>
+    <Svg width={width} height={height} accessibilityLabel={t.trips.routeA11y(kmLabel(trip.distanceM))} style={tiles.length ? StyleSheet.absoluteFill : undefined}>
       {tiles.length ? null : <Rect x={0} y={0} width={width} height={height} rx={radius.card} fill="#0B0B0D" />}
       {/* Glow: the same line, wider and faint. */}
       {allPaths.map((d, i) => (
@@ -319,7 +319,7 @@ export function RouteSvg({ trip, points, width, height, map = false }: { trip: T
         accessibilityRole="link"
         style={styles.osmCredit}>
         <T face="body" style={{ color: '#EDEDED', fontSize: 10 }}>
-          {es.trips.mapCredit}
+          {t.trips.mapCredit}
         </T>
       </Pressable>
     </View>
@@ -359,7 +359,7 @@ export function TripsHeatMap({ trips, width, height }: { trips: Trip[]; width: n
           />
         ))}
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(11,11,13,0.62)' }]} />
-        <Svg width={width} height={height} style={StyleSheet.absoluteFill} accessibilityLabel={es.trips.heatA11y(drawn.paths.length)}>
+        <Svg width={width} height={height} style={StyleSheet.absoluteFill} accessibilityLabel={t.trips.heatA11y(drawn.paths.length)}>
           {drawn.paths.map((d, i) => (
             <Path key={`w${i}`} d={d} stroke="#FF5F00" strokeOpacity={0.14} strokeWidth={10} fill="none" strokeLinejoin="round" strokeLinecap="round" />
           ))}
@@ -369,12 +369,12 @@ export function TripsHeatMap({ trips, width, height }: { trips: Trip[]; width: n
         </Svg>
         <Pressable onPress={() => void Linking.openURL(OSM_COPYRIGHT_URL)} accessibilityRole="link" style={styles.osmCredit}>
           <T face="body" style={{ color: '#EDEDED', fontSize: 10 }}>
-            {es.trips.mapCredit}
+            {t.trips.mapCredit}
           </T>
         </Pressable>
       </View>
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
-        {es.trips.heatCaption}
+        {t.trips.heatCaption}
       </T>
     </View>
   );
@@ -403,7 +403,7 @@ export function DistributionBar({ buckets }: { buckets: number[] }) {
   if (!pct) {
     return (
       <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-        {es.trips.distributionEmpty}
+        {t.trips.distributionEmpty}
       </T>
     );
   }
@@ -417,7 +417,7 @@ export function DistributionBar({ buckets }: { buckets: number[] }) {
           <View key={i} style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: BUCKET_COLORS[i] }]} />
             <T face="mono" style={{ color: theme.text.secondary, fontSize: 11 }}>
-              {es.trips.buckets[i]} · {p}%
+              {t.trips.buckets[i]} · {p}%
             </T>
           </View>
         ))}
@@ -439,8 +439,8 @@ export function TripRow({ trip, vehicleName, onPress, onLongPress }: { trip: Tri
       onPress={onPress}
       onLongPress={onLongPress}
       accessibilityRole="button"
-      accessibilityLabel={es.trips.rowA11y(dayLabel(trip.startedAt), kmLabel(trip.distanceM), durationLabel(trip.durationS))}
-      accessibilityHint={onLongPress ? es.trips.actions : undefined}
+      accessibilityLabel={t.trips.rowA11y(dayLabel(trip.startedAt), kmLabel(trip.distanceM), durationLabel(trip.durationS))}
+      accessibilityHint={onLongPress ? t.trips.actions : undefined}
       style={({ pressed }) => [styles.row, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, opacity: pressed ? 0.85 : 1 }]}>
       <RouteSparkline polyline={trip.polyline} />
       <View style={{ flex: 1, gap: 2 }}>
@@ -457,11 +457,11 @@ export function TripRow({ trip, vehicleName, onPress, onLongPress }: { trip: Tri
             {kmLabel(trip.distanceM)} km · {durationLabel(trip.durationS)}
           </T>
           <T face="monoBold" style={{ color: theme.statusText.proximo, fontSize: 13 }}>
-            {es.trips.maxShort(kmhLabel(trip.maxKmh))}
+            {t.trips.maxShort(kmhLabel(trip.maxKmh))}
           </T>
         </View>
       </View>
-      {trip.role === 'pasajero' ? <Badge label={es.trips.passenger} tone="amber" /> : null}
+      {trip.role === 'pasajero' ? <Badge label={t.trips.passenger} tone="amber" /> : null}
     </Pressable>
   );
 }
@@ -470,9 +470,9 @@ export function TripRow({ trip, vehicleName, onPress, onLongPress }: { trip: Tri
 export function TripsStrip({ summary }: { summary: TripSummary }) {
   const { theme } = useTheme();
   const cells: [string, string][] = [
-    [kmLabel(summary.distanceM), es.trips.strip.km],
-    [String(summary.count), es.trips.strip.count],
-    [durationLabel(summary.durationS), es.trips.strip.time],
+    [kmLabel(summary.distanceM), t.trips.strip.km],
+    [String(summary.count), t.trips.strip.count],
+    [durationLabel(summary.durationS), t.trips.strip.time],
   ];
   return (
     <View style={[styles.strip, { backgroundColor: theme.bg.well, borderColor: theme.lineStrong }]}>
@@ -511,17 +511,17 @@ export function TripsHubTab({ vehicleId, version }: { vehicleId: string; version
       <TripsStrip summary={monthSummary(list)} />
       {!list.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-          {es.trips.empty}
+          {t.trips.empty}
         </T>
       ) : (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-          {es.trips.hubRecent}
+          {t.trips.hubRecent}
         </T>
       )}
       {list.slice(0, 3).map((t) => (
         <TripRow key={t.id} trip={t} onPress={() => router.push({ pathname: '/viaje/[id]', params: { id: t.id } })} />
       ))}
-      <GhostButton label={es.trips.hubAll} onPress={() => router.push({ pathname: '/viajes', params: { vehicleId } })} />
+      <GhostButton label={t.trips.hubAll} onPress={() => router.push({ pathname: '/viajes', params: { vehicleId } })} />
     </View>
   );
 }
@@ -543,17 +543,17 @@ export function TripsCifrasBlock({ vehicleId }: { vehicleId: string }) {
 
   if (!summary || !summary.count) return null;
   const kmTotal = summary.distanceM / 1000;
-  const eq = equivalences(kmTotal, es.trips.equivalences);
+  const eq = equivalences(kmTotal, t.trips.equivalences);
   const tiles: [string, string][] = [
-    [String(summary.count), es.trips.cifras.count],
-    [kmLabel(summary.distanceM), es.trips.cifras.km],
-    [durationLabel(summary.durationS), es.trips.cifras.time],
-    [summary.maxKmh != null ? `${kmhLabel(summary.maxKmh)} km/h` : '—', es.trips.cifras.max],
+    [String(summary.count), t.trips.cifras.count],
+    [kmLabel(summary.distanceM), t.trips.cifras.km],
+    [durationLabel(summary.durationS), t.trips.cifras.time],
+    [summary.maxKmh != null ? `${kmhLabel(summary.maxKmh)} km/h` : '—', t.trips.cifras.max],
   ];
   return (
     <View style={{ marginTop: space.md }}>
-      <SectionHeader title={es.trips.cifrasTitle} caption={es.trips.cifrasCaption} />
-      <Pressable onPress={() => router.push({ pathname: '/viajes', params: { vehicleId } })} accessibilityRole="button" accessibilityLabel={es.trips.cifrasTitle}>
+      <SectionHeader title={t.trips.cifrasTitle} caption={t.trips.cifrasCaption} />
+      <Pressable onPress={() => router.push({ pathname: '/viajes', params: { vehicleId } })} accessibilityRole="button" accessibilityLabel={t.trips.cifrasTitle}>
         <Surface>
           <View style={styles.tiles}>
             {tiles.map(([v, l]) => (
@@ -568,7 +568,7 @@ export function TripsCifrasBlock({ vehicleId }: { vehicleId: string }) {
             ))}
           </View>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.xs }}>
-            {es.trips.equivalencesTitle.toUpperCase()}
+            {t.trips.equivalencesTitle.toUpperCase()}
           </T>
           {eq.map((e) => (
             <View key={e.key} style={styles.eqRow}>
@@ -576,12 +576,12 @@ export function TripsCifrasBlock({ vehicleId }: { vehicleId: string }) {
                 {timesLabel(e.times)}
               </T>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-                {es.trips.equivalences.find((d) => d.key === e.key)?.label}
+                {t.trips.equivalences.find((d) => d.key === e.key)?.label}
               </T>
             </View>
           ))}
           <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.xs }}>
-            {es.trips.equivalencesNote}
+            {t.trips.equivalencesNote}
           </T>
         </Surface>
       </Pressable>
@@ -599,10 +599,10 @@ export const TripShareCard = forwardRef<View, { trip: Trip; points: Fix[] | null
 ) {
   const h = Math.round(width * 0.62);
   const stats: [string, string][] = [
-    [`${kmLabel(trip.distanceM)} km`, es.trips.tiles.distance],
-    [durationLabel(trip.durationS), es.trips.tiles.duration],
-    [`${kmhLabel(trip.avgMovingKmh ?? trip.avgKmh)} km/h`, es.trips.tiles.avgMoving],
-    [`${kmhLabel(trip.maxKmh)} km/h`, es.trips.tiles.max],
+    [`${kmLabel(trip.distanceM)} km`, t.trips.tiles.distance],
+    [durationLabel(trip.durationS), t.trips.tiles.duration],
+    [`${kmhLabel(trip.avgMovingKmh ?? trip.avgKmh)} km/h`, t.trips.tiles.avgMoving],
+    [`${kmhLabel(trip.maxKmh)} km/h`, t.trips.tiles.max],
   ];
   return (
     // collapsable={false}: Android must keep this View in the native tree to capture it.
@@ -644,9 +644,9 @@ export function tripText(trip: Trip, vehicleName?: string): string {
     vehicleName ?? null,
     trip.startLabel || trip.endLabel ? `${trip.startLabel || '…'} → ${trip.endLabel || '…'}` : null,
     `${kmLabel(trip.distanceM)} km · ${durationLabel(trip.durationS)}`,
-    `${es.trips.tiles.max}: ${kmhLabel(trip.maxKmh)} km/h`,
+    `${t.trips.tiles.max}: ${kmhLabel(trip.maxKmh)} km/h`,
   ].filter((l): l is string => Boolean(l));
-  return es.trips.summaryText(lines);
+  return t.trips.summaryText(lines);
 }
 
 const styles = StyleSheet.create({

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { T } from '@/components/T';
 import { radius, space } from '@/constants/theme';
 import { FEATURE_SYNC } from '@/lib/flags';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useSync } from '@/lib/sync/useSync';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -42,12 +42,12 @@ export function FirstSyncBanner() {
   const running = status.state === 'running' && status.reason === 'first-login';
   if (!running && !shown) return null;
 
-  const title = running ? es.sync.firstLoginTitle : es.sync.firstLoginDoneTitle;
+  const title = running ? t.sync.firstLoginTitle : t.sync.firstLoginDoneTitle;
   const body = running
-    ? es.sync.firstLoginBody
+    ? t.sync.firstLoginBody
     : shown!.vehiclesAdded > 0
-      ? es.sync.vehiclesAdded(shown!.vehiclesAdded)
-      : es.sync.uploaded(shown!.pushed);
+      ? t.sync.vehiclesAdded(shown!.vehiclesAdded)
+      : t.sync.uploaded(shown!.pushed);
 
   return (
     <View

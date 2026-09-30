@@ -4,7 +4,7 @@ import { Animated, Keyboard, Modal, Platform, Pressable, StyleSheet, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
@@ -60,7 +60,7 @@ export function Sheet({
         style={styles.scrim}
         onPress={onClose}
         accessibilityRole="button"
-        accessibilityLabel={es.common.close}
+        accessibilityLabel={t.common.close}
       />
       <Animated.View
         style={[

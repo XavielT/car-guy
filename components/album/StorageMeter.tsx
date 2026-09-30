@@ -8,7 +8,7 @@ import { useSession } from '@/lib/cloud/auth';
 import { backedUpCount } from '@/lib/db/albumQueries';
 import { formatBytes } from '@/lib/domain/album';
 import { FEATURE_SYNC } from '@/lib/flags';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { meterLevel, readStorageMeter, type StorageMeter as Meter } from '@/lib/sync/storageMeter';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -41,7 +41,7 @@ export function StorageMeter({ vehicleId, style }: { vehicleId?: string; style?:
   return (
     <View
       accessible
-      accessibilityLabel={signedIn && meter?.quotaBytes ? `${es.album.storageOf(formatBytes(meter.usedBytes), formatBytes(meter.quotaBytes))}` : es.album.storageLocal}
+      accessibilityLabel={signedIn && meter?.quotaBytes ? `${t.album.storageOf(formatBytes(meter.usedBytes), formatBytes(meter.quotaBytes))}` : t.album.storageLocal}
       style={[styles.box, { backgroundColor: theme.bg.surface, borderColor: level === 'full' ? theme.redline : theme.lineStrong }, style]}>
       <Ionicons name={signedIn ? 'cloud-done-outline' : 'phone-portrait-outline'} size={20} color={theme.text.secondary} />
       <View style={{ flex: 1 }}>
@@ -49,23 +49,23 @@ export function StorageMeter({ vehicleId, style }: { vehicleId?: string; style?:
           <>
             {backed != null ? (
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 13 }}>
-                {es.album.storageBacked(backed)}
+                {t.album.storageBacked(backed)}
               </T>
             ) : null}
             {meter?.quotaBytes ? (
               <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
-                {es.album.storageOf(formatBytes(meter.usedBytes), formatBytes(meter.quotaBytes))}
+                {t.album.storageOf(formatBytes(meter.usedBytes), formatBytes(meter.quotaBytes))}
               </T>
             ) : null}
             {level !== 'ok' ? (
               <T face="body" style={{ color: level === 'full' ? theme.dangerText : theme.statusText.urgente, fontSize: 12, marginTop: 2 }}>
-                {level === 'full' ? es.album.storageFull : es.album.storageWarn}
+                {level === 'full' ? t.album.storageFull : t.album.storageWarn}
               </T>
             ) : null}
           </>
         ) : (
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
-            {es.album.storageLocal}
+            {t.album.storageLocal}
           </T>
         )}
       </View>

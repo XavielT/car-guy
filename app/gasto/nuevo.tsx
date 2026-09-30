@@ -17,7 +17,7 @@ import {
 import { saveExpense } from '@/lib/db/serviceOps';
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from '@/lib/db/types';
 import { dateInputFromIso, isoFromDateInput, todayIsoDate } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -91,8 +91,8 @@ export default function NuevoGastoScreen() {
 
   function save() {
     const parsedAmount = parseDecimal(amount);
-    if (parsedAmount == null || parsedAmount <= 0) return setError(es.expense.amountRequired);
-    if (isInvalidNumber(odometer)) return setError(es.common.invalidNumber(es.expense.odometer));
+    if (parsedAmount == null || parsedAmount <= 0) return setError(t.expense.amountRequired);
+    if (isInvalidNumber(odometer)) return setError(t.common.invalidNumber(t.expense.odometer));
     setError(null);
 
     void (async () => {
@@ -110,8 +110,8 @@ export default function NuevoGastoScreen() {
 
       if (result.resets.length) {
         Alert.alert(
-          es.service.savedTitle,
-          `${es.expense.legalDone}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`,
+          t.service.savedTitle,
+          `${t.expense.legalDone}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`,
         );
       }
       router.back();
@@ -122,11 +122,11 @@ export default function NuevoGastoScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {editingId ? es.expense.editTitle : es.expense.newTitle}
+          {editingId ? t.expense.editTitle : t.expense.newTitle}
         </T>
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {es.expense.category}
+          {t.expense.category}
         </T>
         <View style={styles.row}>
           {EXPENSE_CATEGORIES.map((c) => {
@@ -149,20 +149,20 @@ export default function NuevoGastoScreen() {
           })}
         </View>
 
-        <Field label={es.expense.amount} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} />
-        <DateField label={es.expense.date} value={date} onChange={setDate} noFuture />
+        <Field label={t.expense.amount} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} />
+        <DateField label={t.expense.date} value={date} onChange={setDate} noFuture />
         <Field
-          label={es.expense.odometer}
+          label={t.expense.odometer}
           keyboardType="number-pad"
           value={odometer}
           onChangeText={setOdometer}
           placeholder={currentKm != null ? String(Math.round(currentKm)) : undefined}
         />
-        <Field label={es.expense.description} value={description} onChangeText={setDescription} />
-        <Field label={es.expense.vendor} value={vendor} onChangeText={setVendor} />
+        <Field label={t.expense.description} value={description} onChangeText={setDescription} />
+        <Field label={t.expense.vendor} value={vendor} onChangeText={setVendor} />
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {es.expense.photo}
+          {t.expense.photo}
         </T>
         <PhotoPicker
           mediaId={photoMediaId}
@@ -177,7 +177,7 @@ export default function NuevoGastoScreen() {
             {error}
           </T>
         ) : null}
-        <PrimaryButton label={es.expense.save} onPress={save} />
+        <PrimaryButton label={t.expense.save} onPress={save} />
       </ScrollView>
     </SafeAreaView>
   );

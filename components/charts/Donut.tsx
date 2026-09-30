@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { space } from '@/constants/theme';
 import type { CategoryTotal } from '@/lib/domain/stats';
 import { money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 import { ChartFrame } from './ChartFrame';
@@ -30,9 +30,9 @@ export function Donut({ totals, total }: { totals: CategoryTotal[]; total: numbe
 
   return (
     <ChartFrame
-      title={es.stats.byCategory}
-      caption={es.stats.byCategoryCaption}
-      empty={totals.length ? undefined : es.stats.byCategoryEmpty}>
+      title={t.stats.byCategory}
+      caption={t.stats.byCategoryCaption}
+      empty={totals.length ? undefined : t.stats.byCategoryEmpty}>
       {() => (
         <View style={styles.row}>
           <PieChart
@@ -46,7 +46,7 @@ export function Donut({ totals, total }: { totals: CategoryTotal[]; total: numbe
             centerLabelComponent={() => (
               <View style={{ alignItems: 'center' }}>
                 <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
-                  {es.stats.total}
+                  {t.stats.total}
                 </T>
                 <T face="monoBold" style={{ color: theme.text.primary, fontSize: 13 }}>
                   {money(total)}
@@ -63,7 +63,7 @@ export function Donut({ totals, total }: { totals: CategoryTotal[]; total: numbe
                   face="body"
                   numberOfLines={1}
                   style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-                  {es.stats.categories[entry.category]}
+                  {t.stats.categories[entry.category]}
                 </T>
                 <View style={{ alignItems: 'flex-end' }}>
                   <T face="mono" style={{ color: theme.text.primary, fontSize: 12 }}>

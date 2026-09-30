@@ -8,7 +8,7 @@ import { vehicleGallery } from '@/lib/db/tripOps';
 import { saveVehicleDraft } from '@/lib/db/vehicleOps';
 import { tankForDisplay } from '@/lib/domain/units';
 import { dateInputFromIso } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -74,7 +74,7 @@ export default function EditarVehiculoScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <VehicleForm
         initial={initial}
-        submitLabel={es.vehicle.save}
+        submitLabel={t.vehicle.save}
         onSubmit={(draft) => {
           void (async () => {
             await saveVehicleDraft(draft);

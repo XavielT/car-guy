@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FillUpForm } from '@/components/FillUpForm';
 import { Alert } from '@/lib/alert';
 import { lastOdometer } from '@/lib/domain/economy';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -29,17 +29,17 @@ export default function EditCargaScreen() {
         defaultFuel={fill.fuelType}
         lastOdo={lastOdometer(others)}
         initial={fill}
-        submitLabel={es.fuel.saveChanges}
+        submitLabel={t.fuel.saveChanges}
         onSubmit={(draft) => {
           upsertFillUp({ ...draft, id: fill.id });
           // Back to the detail it was opened from (note 8: detail first, editor behind "Editar").
           router.back();
         }}
         onDelete={() =>
-          Alert.alert(es.fuel.deleteTitle, es.fuel.deleteBody, [
-            { text: es.common.cancel, style: 'cancel' },
+          Alert.alert(t.fuel.deleteTitle, t.fuel.deleteBody, [
+            { text: t.common.cancel, style: 'cancel' },
             {
-              text: es.common.delete,
+              text: t.common.delete,
               style: 'destructive',
               onPress: () => {
                 deleteFillUp(fill.id);

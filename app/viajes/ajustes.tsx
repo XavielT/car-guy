@@ -8,7 +8,7 @@ import { MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/compon
 import { GhostButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { armAuto } from '@/lib/trips/auto';
@@ -80,59 +80,59 @@ export default function TripSettingsScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.trips.eyebrow}
+        {t.trips.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase' }}>
-        {es.trips.settingsTitle}
+        {t.trips.settingsTitle}
       </T>
 
-      {eyebrow(es.trips.mode)}
+      {eyebrow(t.trips.mode)}
       {mode ? (
         <Segmented<TripsMode>
-          options={MODES.map((key) => ({ key, label: es.trips.modes[key] }))}
+          options={MODES.map((key) => ({ key, label: t.trips.modes[key] }))}
           value={shownMode}
           onChange={chooseMode}
         />
       ) : null}
       <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: space.sm }}>
-        {es.trips.modeHint[shownMode]}
+        {t.trips.modeHint[shownMode]}
       </T>
       {busyNote ? (
         <T face="body" style={{ color: theme.statusText.proximo, fontSize: 13, marginTop: 2 }}>
-          {es.trips.autoBusy}
+          {t.trips.autoBusy}
         </T>
       ) : null}
       {shownMode === 'auto' && auto.state ? (
         <T face="semibold" style={{ color: auto.state === 'ready' ? theme.statusText.ok : theme.statusText.proximo, fontSize: 13, marginTop: 2 }}>
-          {es.trips.readiness[auto.state]}
+          {t.trips.readiness[auto.state]}
         </T>
       ) : null}
       {shownMode === 'auto' ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginTop: space.sm }}>
-          {es.trips.battery}
+          {t.trips.battery}
         </T>
       ) : null}
       {shownMode === 'auto' ? <MiuiChecklist /> : null}
 
-      {eyebrow(es.trips.permission)}
+      {eyebrow(t.trips.permission)}
       <Surface padded>
         <View style={styles.rowBetween}>
           <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-            {es.trips.permissionState[perm.state]}
+            {t.trips.permissionState[perm.state]}
           </T>
           <View style={[styles.dot, { backgroundColor: perm.state === 'granted' ? theme.status.ok : perm.state === 'denied' ? theme.status.vencido : theme.status.proximo }]} />
         </View>
         {perm.state !== 'granted' ? (
-          <GhostButton label={perm.state === 'denied' && !perm.canAsk ? es.trips.openSettings : es.trips.permissionFix} onPress={() => void perm.ask()} />
+          <GhostButton label={perm.state === 'denied' && !perm.canAsk ? t.trips.openSettings : t.trips.permissionFix} onPress={() => void perm.ask()} />
         ) : null}
-        <GhostButton label={es.trips.permissionMore} onPress={() => router.push('/viajes/permisos')} />
+        <GhostButton label={t.trips.permissionMore} onPress={() => router.push('/viajes/permisos')} />
       </Surface>
 
-      {eyebrow(es.trips.keepAwake)}
+      {eyebrow(t.trips.keepAwake)}
       <Surface padded>
         <View style={styles.rowBetween}>
           <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-            {es.trips.keepAwakeHint}
+            {t.trips.keepAwakeHint}
           </T>
           <Switch
             value={awake}
@@ -140,17 +140,17 @@ export default function TripSettingsScreen() {
               setAwake(v);
               void setTripsKeepAwake(v);
             }}
-            accessibilityLabel={es.trips.keepAwake}
+            accessibilityLabel={t.trips.keepAwake}
             trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
           />
         </View>
       </Surface>
 
-      {eyebrow(es.trips.mapSetting)}
+      {eyebrow(t.trips.mapSetting)}
       <Surface padded>
         <View style={styles.rowBetween}>
           <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-            {es.trips.mapSettingHint}
+            {t.trips.mapSettingHint}
           </T>
           <Switch
             value={map}
@@ -158,7 +158,7 @@ export default function TripSettingsScreen() {
               setMap(v);
               void setTripsMap(v);
             }}
-            accessibilityLabel={es.trips.mapSetting}
+            accessibilityLabel={t.trips.mapSetting}
             trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
           />
         </View>
@@ -166,9 +166,9 @@ export default function TripSettingsScreen() {
 
       {vehicles.length ? (
         <>
-          {eyebrow(es.trips.redline)}
+          {eyebrow(t.trips.redline)}
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.sm }}>
-            {es.trips.redlineHint}
+            {t.trips.redlineHint}
           </T>
           {vehicles.map((v) => (
             <RedlineField key={`${v.id}:${v.detail!.limitKmh}`} vehicleId={v.id} name={v.name} value={v.detail!.limitKmh} />
@@ -179,13 +179,13 @@ export default function TripSettingsScreen() {
       {Platform.OS !== 'web' ? <AdvancedThresholds eyebrow={eyebrow} /> : null}
 
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.lg }}>
-        {es.trips.pointsInfo}
+        {t.trips.pointsInfo}
       </T>
     </ScrollView>
   );
 }
 
-type ThresholdKey = keyof typeof es.trips.thresholds;
+type ThresholdKey = keyof typeof t.trips.thresholds;
 
 /** The field's value ↔ the machine's cfg key (km/h is stored as m/s). */
 const THRESHOLD_CFG: Record<ThresholdKey, { key: keyof typeof DEFAULT_TRIP_CFG; toCfg: (n: number) => number; fromCfg: (n: number) => number }> = {
@@ -221,12 +221,12 @@ function AdvancedThresholds({ eyebrow }: { eyebrow: (label: string) => React.Rea
 
   return (
     <>
-      {eyebrow(es.trips.advanced)}
-      <GhostButton label={open ? es.common.close : es.trips.advanced} onPress={() => setOpen((o) => !o)} />
+      {eyebrow(t.trips.advanced)}
+      <GhostButton label={open ? t.common.close : t.trips.advanced} onPress={() => setOpen((o) => !o)} />
       {open && stored ? (
         <View>
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.sm }}>
-            {es.trips.advancedHint}
+            {t.trips.advancedHint}
           </T>
           {(Object.keys(THRESHOLD_CFG) as ThresholdKey[]).map((k) => {
             const map = THRESHOLD_CFG[k];
@@ -234,15 +234,15 @@ function AdvancedThresholds({ eyebrow }: { eyebrow: (label: string) => React.Rea
             return (
               <ThresholdField
                 key={`${k}:${v ?? ''}`}
-                label={es.trips.thresholds[k].label}
-                placeholder={String(es.trips.thresholds[k].def)}
+                label={t.trips.thresholds[k].label}
+                placeholder={String(t.trips.thresholds[k].def)}
                 value={v != null ? String(map.fromCfg(v)) : ''}
                 onCommit={(text) => save(k, text)}
               />
             );
           })}
           <GhostButton
-            label={es.trips.advancedReset}
+            label={t.trips.advancedReset}
             onPress={() => {
               setStored({});
               void setTripsThresholds({});
@@ -280,7 +280,7 @@ function RedlineField({ vehicleId, name, value }: { vehicleId: string; name: str
     }
     if (n !== value) void vehicleRepo.upsert({ id: vehicleId, limitKmh: n });
   };
-  return <Field label={es.trips.redlineField(name)} keyboardType="number-pad" value={text} onChangeText={setText} onBlur={commit} maxLength={3} />;
+  return <Field label={t.trips.redlineField(name)} keyboardType="number-pad" value={text} onChangeText={setText} onBlur={commit} maxLength={3} />;
 }
 
 const styles = StyleSheet.create({

@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { categoryColors, categoryInkLight, fonts, space, type CategoryKey } from '@/constants/theme';
 import { money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { STAT_CATEGORIES, type MonthlySpend, type StatCategory } from '@/lib/domain/stats';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
@@ -72,9 +72,9 @@ export function StackedBars({ months }: { months: MonthlySpend[] }) {
 
   return (
     <ChartFrame
-      title={es.stats.byMonth}
-      caption={es.stats.byMonthCaption}
-      empty={hasData ? undefined : es.stats.byMonthEmpty}>
+      title={t.stats.byMonth}
+      caption={t.stats.byMonthCaption}
+      empty={hasData ? undefined : t.stats.byMonthEmpty}>
       {(width) => (
         <View>
           <BarChart
@@ -127,7 +127,7 @@ function Legend({ months }: { months: MonthlySpend[] }) {
         <View key={category} style={styles.legendItem}>
           <View style={[styles.swatch, { backgroundColor: colorOf(category) }]} />
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
-            {es.stats.categories[category]}
+            {t.stats.categories[category]}
           </T>
           <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
             {money(total)}

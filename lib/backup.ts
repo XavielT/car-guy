@@ -1,5 +1,5 @@
 import { UserError } from './diagnostics';
-import { es } from './i18n/es';
+import { t } from './i18n';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
@@ -215,10 +215,10 @@ export async function importBackup(): Promise<ImportResult | null> {
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new UserError(es.backup.notJson);
+    throw new UserError(t.backup.notJson);
   }
   if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new UserError(es.backup.notBackup);
+    throw new UserError(t.backup.notBackup);
   }
 
   if (parsed.app === 'car-guy' && parsed.version === 2) {
@@ -226,7 +226,7 @@ export async function importBackup(): Promise<ImportResult | null> {
   }
   // Ours, but a format this build does not know — never hand it to the legacy
   // importer, which would call it "not a Tu Combustible RD backup".
-  if (parsed.app === 'car-guy') throw new UserError(es.backup.unknownVersion(String(parsed.version)));
+  if (parsed.app === 'car-guy') throw new UserError(t.backup.unknownVersion(String(parsed.version)));
 
   const looksLegacy =
     (typeof parsed.app === 'string' && (KNOWN_APPS as readonly string[]).includes(parsed.app)) ||
@@ -238,7 +238,7 @@ export async function importBackup(): Promise<ImportResult | null> {
     return { kind: 'legacy', counts: await importTuCombustible(parsed, { source: 'file' }) };
   }
 
-  throw new UserError(es.backup.notBackup);
+  throw new UserError(t.backup.notBackup);
 }
 
 /**

@@ -11,7 +11,7 @@ import { listFluids, saveFluid } from '@/lib/db/diyQueries';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { FluidGuideItem, Vehicle } from '@/lib/db/types';
 import { FLUID_KINDS } from '@/lib/domain/fluids';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -52,13 +52,13 @@ export default function FluidsScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.fluids.eyebrow((vehicle.nickname || vehicle.name).toUpperCase())}
+        {t.fluids.eyebrow((vehicle.nickname || vehicle.name).toUpperCase())}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase' }}>
-        {es.fluids.title}
+        {t.fluids.title}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginBottom: space.lg }}>
-        {es.fluids.hint}
+        {t.fluids.hint}
       </T>
       {FLUID_KINDS.map((f) => {
         const card = cards[f.kind];
@@ -76,13 +76,13 @@ export default function FluidsScreen() {
               height={160}
             />
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, marginTop: space.sm }}>
-              {es.fluids.how}
+              {t.fluids.how}
             </T>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>
               {f.how}
             </T>
-            <Field label={es.fluids.notes} placeholder={es.fluids.notesPlaceholder} value={notes[f.kind] ?? ''} onChangeText={(t) => setNotes((n) => ({ ...n, [f.kind]: t }))} multiline />
-            {(notes[f.kind] ?? '') !== (card?.notes ?? '') ? <GhostButton label={es.fluids.save} onPress={() => void save(f.kind, { notes: notes[f.kind] ?? '' })} /> : null}
+            <Field label={t.fluids.notes} placeholder={t.fluids.notesPlaceholder} value={notes[f.kind] ?? ''} onChangeText={(t) => setNotes((n) => ({ ...n, [f.kind]: t }))} multiline />
+            {(notes[f.kind] ?? '') !== (card?.notes ?? '') ? <GhostButton label={t.fluids.save} onPress={() => void save(f.kind, { notes: notes[f.kind] ?? '' })} /> : null}
           </View>
         );
       })}

@@ -10,7 +10,7 @@ import { categoryColors, categoryInkLight, radius, space } from '@/constants/the
 import { expenses as expenseRepo, media as mediaRepo } from '@/lib/db/repos';
 import { EXPENSE_CATEGORY_LABELS, type Expense } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useStore } from '@/lib/store';
@@ -86,7 +86,7 @@ export default function GastoDetalleScreen() {
         <Surface style={{ marginBottom: space.lg }}>
           <View style={styles.kv}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-              {es.expense.amount}
+              {t.expense.amount}
             </T>
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 20 }}>
               {money(expense.amountDop)}
@@ -95,18 +95,18 @@ export default function GastoDetalleScreen() {
         </Surface>
 
         <PrimaryButton
-          label={es.common.edit}
+          label={t.common.edit}
           onPress={() => router.push({ pathname: '/gasto/nuevo', params: { id: expense.id } })}
         />
         <View style={{ height: space.sm }} />
         <GhostButton
           danger
-          label={es.common.delete}
+          label={t.common.delete}
           onPress={() =>
-            Alert.alert(expense.description.trim() || label, es.expense.deleteConfirm, [
-              { text: es.common.cancel, style: 'cancel' },
+            Alert.alert(expense.description.trim() || label, t.expense.deleteConfirm, [
+              { text: t.common.cancel, style: 'cancel' },
               {
-                text: es.common.delete,
+                text: t.common.delete,
                 style: 'destructive',
                 onPress: () => {
                   void (async () => {

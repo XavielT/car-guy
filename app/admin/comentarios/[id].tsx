@@ -10,7 +10,7 @@ import { EmptyState, GhostButton, KeyValueRow, Segmented, StatusPill, Surface } 
 import { radius, space } from '@/constants/theme';
 import { useAdminGate } from '@/lib/cloud/admin';
 import { FEEDBACK_STATUSES, getFeedback, screenshotUrl, updateFeedback, type FeedbackRow, type FeedbackStatus } from '@/lib/feedback/inbox';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /** One comment: the message, who and from where, diagnostics, screenshot (signed URL), status, note. */
@@ -42,8 +42,8 @@ export default function ComentarioDetalle() {
     };
   }, [admin, id]);
 
-  const header = <Stack.Screen options={{ headerShown: true, title: es.feedback.admin.detailTitle }} />;
-  const a = es.feedback.admin;
+  const header = <Stack.Screen options={{ headerShown: true, title: t.feedback.admin.detailTitle }} />;
+  const a = t.feedback.admin;
 
   if (gate === 'loading' || (admin && row === undefined)) {
     return (
@@ -109,10 +109,10 @@ export default function ComentarioDetalle() {
 
       <Surface style={styles.block}>
         <KeyValueRow label={a.from} value={row.user_id ? (row.email ?? row.user_id.slice(0, 8)) : (row.email ?? a.anonymous)} />
-        <KeyValueRow label={es.feedback.fields.version} value={[row.app_version, row.build].filter(Boolean).join(' · ') || '—'} />
-        <KeyValueRow label={es.feedback.fields.platform} value={[row.platform, row.os_version].filter(Boolean).join(' · ') || '—'} />
-        <KeyValueRow label={es.feedback.fields.device} value={row.device ?? '—'} />
-        <KeyValueRow label={es.feedback.fields.screen} value={row.screen ?? '—'} />
+        <KeyValueRow label={t.feedback.fields.version} value={[row.app_version, row.build].filter(Boolean).join(' · ') || '—'} />
+        <KeyValueRow label={t.feedback.fields.platform} value={[row.platform, row.os_version].filter(Boolean).join(' · ') || '—'} />
+        <KeyValueRow label={t.feedback.fields.device} value={row.device ?? '—'} />
+        <KeyValueRow label={t.feedback.fields.screen} value={row.screen ?? '—'} />
         {row.email ? (
           <GhostButton label={a.replyTo(row.email)} onPress={() => void Linking.openURL(`mailto:${row.email}?subject=${encodeURIComponent('Car Guy — tu comentario')}`)} />
         ) : null}

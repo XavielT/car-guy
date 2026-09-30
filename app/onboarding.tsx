@@ -11,7 +11,7 @@ import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
 import { importBackup } from '@/lib/backup';
 import { saveVehicleDraft } from '@/lib/db/vehicleOps';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -50,16 +50,16 @@ export default function OnboardingScreen() {
       if (!result) return;
       await refresh();
       Alert.alert(
-        es.onboarding.importedTitle,
+        t.onboarding.importedTitle,
         result.kind === 'legacy'
-          ? es.onboarding.importedLegacy(describeCounts(result.counts))
-          : es.onboarding.importedMerge(result.counts.merged),
+          ? t.onboarding.importedLegacy(describeCounts(result.counts))
+          : t.onboarding.importedMerge(result.counts.merged),
       );
       router.replace('/(tabs)');
     } catch (error) {
       Alert.alert(
-        es.onboarding.importFailedTitle,
-        userMessage('onboarding-import', error, es.more.restoreFailed),
+        t.onboarding.importFailedTitle,
+        userMessage('onboarding-import', error, t.more.restoreFailed),
       );
     }
   }
@@ -69,13 +69,13 @@ export default function OnboardingScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View style={styles.formHeader}>
-            <GhostButton label={`‹ ${es.onboarding.backToWelcome}`} onPress={() => setStep('welcome')} />
+            <GhostButton label={`‹ ${t.onboarding.backToWelcome}`} onPress={() => setStep('welcome')} />
             <T face="display" style={[styles.formTitle, { color: theme.text.primary }]}>
-              {es.onboarding.formTitle}
+              {t.onboarding.formTitle}
             </T>
           </View>
           <VehicleForm
-            submitLabel={es.vehicle.create}
+            submitLabel={t.vehicle.create}
             onSubmit={(draft) => {
               void (async () => {
                 const id = await saveVehicleDraft(draft);
@@ -96,36 +96,36 @@ export default function OnboardingScreen() {
         <View style={styles.hero}>
           {/* The mark (the tach, needle into the red) with the hanko stamped beside it. */}
           <View style={styles.markRow}>
-            <Image source={MARK} style={styles.mark} accessibilityLabel={es.onboarding.markLabel} />
-            <Hanko char="車" size={48} shape="square" accessibilityLabel={es.onboarding.markLabel} />
+            <Image source={MARK} style={styles.mark} accessibilityLabel={t.onboarding.markLabel} />
+            <Hanko char="車" size={48} shape="square" accessibilityLabel={t.onboarding.markLabel} />
           </View>
           <T face="badge" style={[styles.eyebrow, { color: theme.accent }]}>
-            {es.home.eyebrow}
+            {t.home.eyebrow}
           </T>
           <T face="display" style={[styles.title, { color: theme.text.primary }]}>
-            {es.app.tagline}
+            {t.app.tagline}
           </T>
           <T face="body" style={[styles.lede, { color: theme.text.secondary }]}>
-            {es.onboarding.welcome}
+            {t.onboarding.welcome}
           </T>
         </View>
 
         <View style={styles.actions}>
-          <PrimaryButton label={es.onboarding.createFirst} onPress={() => setStep('vehicle')} />
+          <PrimaryButton label={t.onboarding.createFirst} onPress={() => setStep('vehicle')} />
           <T face="body" style={[styles.altText, { color: theme.text.secondary }]}>
-            {es.onboarding.legacyPrompt}
+            {t.onboarding.legacyPrompt}
           </T>
-          <GhostButton label={es.onboarding.legacyAction} onPress={handleImport} />
+          <GhostButton label={t.onboarding.legacyAction} onPress={handleImport} />
         </View>
 
         <Surface style={styles.account}>
           <T face="title" style={{ color: theme.text.primary, fontSize: 17, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-            {es.onboarding.accountTitle}
+            {t.onboarding.accountTitle}
           </T>
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-            {es.onboarding.accountBody}
+            {t.onboarding.accountBody}
           </T>
-          <GhostButton label={es.onboarding.accountAction} onPress={() => router.push('/cuenta')} />
+          <GhostButton label={t.onboarding.accountAction} onPress={() => router.push('/cuenta')} />
         </Surface>
       </ScrollView>
     </SafeAreaView>

@@ -2,7 +2,7 @@ import { lookup } from './dtc';
 import type { HistoryEntry } from '../db/types';
 import { FUEL_CATALOG } from '../fuel';
 import { EXPENSE_CATEGORY_LABELS } from '../db/types';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 
 /**
  * Turning a `history_feed` row into words.
@@ -23,7 +23,7 @@ export function historyTitle(entry: HistoryEntry): string {
     // v5 view: title = distance in meters, subtitle = "<duration_s>|<from>|<to>".
     const km = (Number(entry.title) || 0) / 1000;
     const seconds = Number(entry.subtitle?.split('|')[0]) || 0;
-    return es.history.tripTitle(km.toFixed(1), Math.round(seconds / 60));
+    return t.history.tripTitle(km.toFixed(1), Math.round(seconds / 60));
   }
   // An expense saved without a description is still a Marbete, not a "—".
   if (entry.kind === 'gasto' && !entry.title) return expenseLabel(entry.subtitle) ?? '—';
@@ -36,15 +36,15 @@ export function historyTitle(entry: HistoryEntry): string {
  * safer mistake for a check.
  */
 export function checkStatusTitle(status: string): string {
-  if (status === 'ok') return es.history.checkOk;
-  if (status === 'con_avisos') return es.history.checkWithWarnings;
-  return es.history.checkWithFails;
+  if (status === 'ok') return t.history.checkOk;
+  if (status === 'con_avisos') return t.history.checkWithWarnings;
+  return t.history.checkWithFails;
 }
 
 /** "📷 N" for a row that carries photos (history_feed v5 `photos`), else null. */
 export function historyPhotoTag(entry: Pick<HistoryEntry, 'photos'>): string | null {
   const n = Number(entry.photos ?? 0);
-  return n > 0 ? es.history.photoTag(n) : null;
+  return n > 0 ? t.history.photoTag(n) : null;
 }
 
 /**
@@ -73,7 +73,7 @@ function baseSubtitle(entry: HistoryEntry): string | null {
   if (entry.kind === 'mod' && entry.subtitle?.includes('|')) {
     // "<status>|<brand>" (history_feed v3): "Instalado · BC Racing".
     const [status, brand] = entry.subtitle.split('|');
-    const label = (es.build.statuses as Record<string, string>)[status] ?? status;
+    const label = (t.build.statuses as Record<string, string>)[status] ?? status;
     return brand ? `${label} · ${brand}` : label;
   }
   return entry.subtitle;
@@ -87,29 +87,29 @@ function expenseLabel(key: string | null): string | null {
 export function historyKindLabel(kind: HistoryEntry['kind']): string {
   switch (kind) {
     case 'combustible':
-      return es.stats.categories.combustible;
+      return t.stats.categories.combustible;
     case 'mantenimiento':
-      return es.stats.categories.mantenimiento;
+      return t.stats.categories.mantenimiento;
     case 'reparacion':
-      return es.stats.categories.reparacion;
+      return t.stats.categories.reparacion;
     case 'mejora':
-      return es.stats.categories.mejora;
+      return t.stats.categories.mejora;
     case 'gasto':
-      return es.history.kinds.gasto;
+      return t.history.kinds.gasto;
     case 'chequeo':
-      return es.history.kinds.chequeo;
+      return t.history.kinds.chequeo;
     case 'mod':
-      return es.history.kinds.mod;
+      return t.history.kinds.mod;
     case 'hito':
     // Events get their own label with their screens (PROMPT-05, FEATURE_EVENTS).
     case 'evento':
-      return es.history.kinds.hito;
+      return t.history.kinds.hito;
     case 'pista':
-      return es.history.kinds.pista;
+      return t.history.kinds.pista;
     case 'obd':
-      return es.history.kinds.obd;
+      return t.history.kinds.obd;
     case 'viaje':
-      return es.history.kinds.viaje;
+      return t.history.kinds.viaje;
     default:
       return kind;
   }

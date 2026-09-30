@@ -18,7 +18,7 @@ import { cleanSpecs, currentSpecs, investedTotal, modTotalDop, wishlistTotalDop 
 import { dotAge, parseTireSize } from '@/lib/domain/tires';
 import { parseDecimal } from '@/lib/domain/economy';
 import { money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -99,7 +99,7 @@ export default function BuildScreen() {
   const modsTab = (
     <View style={{ gap: space.sm }}>
       <StockActualCard current={current} onPress={() => setTab('specs')} />
-      {!data.mods.length ? <EmptyState icon="construct-outline" message={es.build.empty} /> : null}
+      {!data.mods.length ? <EmptyState icon="construct-outline" message={t.build.empty} /> : null}
       {groups.map((g) => {
         const subtotal = g.mods.reduce((t, m) => t + (m.status === 'planeado' || m.status === 'pedido' ? 0 : modTotalDop(m)), 0);
         return (
@@ -130,7 +130,7 @@ export default function BuildScreen() {
         <WishRow key={w.id} item={w} rate={rate} onPress={() => router.push({ pathname: '/wishlist/[id]', params: { id: w.id } })} />
       ))}
       <View style={{ marginTop: space.md }}>
-        <PrimaryButton label={es.build.add} onPress={() => router.push({ pathname: '/mod/nuevo', params: { vehicleId: vehicle.id } })} />
+        <PrimaryButton label={t.build.add} onPress={() => router.push({ pathname: '/mod/nuevo', params: { vehicleId: vehicle.id } })} />
       </View>
     </View>
   );
@@ -138,7 +138,7 @@ export default function BuildScreen() {
   // ------------------------------------------------------- WISHLIST tab
   const wishTab = (
     <View style={{ gap: space.sm }}>
-      {!data.wishlist.length ? <EmptyState icon="heart-outline" message={es.wishlist.empty} /> : null}
+      {!data.wishlist.length ? <EmptyState icon="heart-outline" message={t.wishlist.empty} /> : null}
       {([1, 2, 3] as const).map((p) => {
         const items = data.wishlist.filter((w) => w.priority === p && w.status !== 'convertido' && w.status !== 'descartado');
         if (!items.length) return null;
@@ -147,7 +147,7 @@ export default function BuildScreen() {
           <View key={p} style={{ gap: space.sm, marginTop: space.sm }}>
             <View style={styles.groupHead}>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-                {`${es.wishlist.priorities[p]} · ${items.length}`}
+                {`${t.wishlist.priorities[p]} · ${items.length}`}
               </T>
               <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
                 {total ? whole(total) : ''}
@@ -165,7 +165,7 @@ export default function BuildScreen() {
         </T>
       ) : null}
       <View style={{ marginTop: space.md }}>
-        <PrimaryButton label={es.wishlist.add} onPress={() => router.push({ pathname: '/wishlist/nuevo', params: { vehicleId: vehicle.id } })} />
+        <PrimaryButton label={t.wishlist.add} onPress={() => router.push({ pathname: '/wishlist/nuevo', params: { vehicleId: vehicle.id } })} />
       </View>
     </View>
   );
@@ -179,13 +179,13 @@ export default function BuildScreen() {
     <View style={{ gap: space.sm }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
         {kinds.map((k) => (
-          <Chip key={k} label={es.inventory.kinds[k]} selected={invKind === k} onPress={() => setInvKind(k)} />
+          <Chip key={k} label={t.inventory.kinds[k]} selected={invKind === k} onPress={() => setInvKind(k)} />
         ))}
       </ScrollView>
-      {!data.wheelSets.length && !data.tires.length && !data.inventory.length ? <EmptyState icon="cube-outline" message={es.inventory.empty} /> : null}
+      {!data.wheelSets.length && !data.tires.length && !data.inventory.length ? <EmptyState icon="cube-outline" message={t.inventory.empty} /> : null}
       {showSets && data.wheelSets.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.sm }}>
-          {es.inventory.wheelSets}
+          {t.inventory.wheelSets}
         </T>
       ) : null}
       {showSets
@@ -202,7 +202,7 @@ export default function BuildScreen() {
         : null}
       {showTires && data.tires.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.sm }}>
-          {es.inventory.tires}
+          {t.inventory.tires}
         </T>
       ) : null}
       {showTires
@@ -212,16 +212,16 @@ export default function BuildScreen() {
         : null}
       {items.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.sm }}>
-          {es.inventory.items}
+          {t.inventory.items}
         </T>
       ) : null}
       {items.map((i) => (
         <ItemRow key={i.id} item={i} onPress={() => router.push({ pathname: '/inventario/[id]', params: { id: i.id, vehicleId: vehicle.id } })} />
       ))}
       <View style={{ marginTop: space.md, gap: 0 }}>
-        <GhostButton label={es.inventory.addWheels} onPress={() => router.push({ pathname: '/ruedas/[setId]', params: { setId: 'nuevo', vehicleId: vehicle.id } })} />
-        <GhostButton label={es.inventory.addTire} onPress={() => router.push({ pathname: '/goma/[id]', params: { id: 'nuevo', vehicleId: vehicle.id } })} />
-        <GhostButton label={es.inventory.addItem} onPress={() => router.push({ pathname: '/inventario/nuevo', params: { vehicleId: vehicle.id } })} />
+        <GhostButton label={t.inventory.addWheels} onPress={() => router.push({ pathname: '/ruedas/[setId]', params: { setId: 'nuevo', vehicleId: vehicle.id } })} />
+        <GhostButton label={t.inventory.addTire} onPress={() => router.push({ pathname: '/goma/[id]', params: { id: 'nuevo', vehicleId: vehicle.id } })} />
+        <GhostButton label={t.inventory.addItem} onPress={() => router.push({ pathname: '/inventario/nuevo', params: { vehicleId: vehicle.id } })} />
       </View>
     </View>
   );
@@ -232,13 +232,13 @@ export default function BuildScreen() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-              {es.build.eyebrow(name)}
+              {t.build.eyebrow(name)}
               <T face="kana" style={{ color: theme.text.muted, fontSize: 10, letterSpacing: 0, textTransform: 'none' }}>
                 {' 改'}
               </T>
             </T>
             <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 34, lineHeight: 36, textTransform: 'uppercase' }}>
-              {es.build.tabs[tab]}
+              {t.build.tabs[tab]}
             </T>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
@@ -246,14 +246,14 @@ export default function BuildScreen() {
               {whole(invested)}
             </T>
             <T face="body" style={{ color: theme.text.muted, fontSize: 11 }}>
-              {`${es.build.invested} · ${es.build.installedCount(installed)}`}
+              {`${t.build.invested} · ${t.build.installedCount(installed)}`}
             </T>
           </View>
         </View>
 
         <View style={styles.tabs} accessibilityRole="tablist">
-          {TABS.map((t) => (
-            <Chip key={t} label={es.build.tabs[t]} selected={tab === t} onPress={() => setTab(t)} />
+          {TABS.map((tb) => (
+            <Chip key={tb} label={t.build.tabs[tb]} selected={tab === tb} onPress={() => setTab(tb)} />
           ))}
         </View>
 
@@ -266,17 +266,17 @@ export default function BuildScreen() {
       </ScrollView>
 
       {/* Long-press lifecycle: nothing is deleted, history keeps it. */}
-      <Sheet visible={Boolean(acting)} onClose={() => setActing(null)} title={acting ? es.build.actionsTitle(acting.name) : ''}>
+      <Sheet visible={Boolean(acting)} onClose={() => setActing(null)} title={acting ? t.build.actionsTitle(acting.name) : ''}>
         {acting ? (
           <>
             <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginBottom: space.sm }}>
-              {es.build.historyKeeps}
+              {t.build.historyKeeps}
             </T>
             {acting.status === 'instalado' ? (
               <>
-                <GhostButton label={es.build.remove} onPress={() => void act({ kind: 'quitar', at: new Date().toISOString() }, acting)} />
+                <GhostButton label={t.build.remove} onPress={() => void act({ kind: 'quitar', at: new Date().toISOString() }, acting)} />
                 <GhostButton
-                  label={es.build.sell}
+                  label={t.build.sell}
                   onPress={() => {
                     setSelling(acting);
                     setSellPrice('');
@@ -284,28 +284,28 @@ export default function BuildScreen() {
                     setActing(null);
                   }}
                 />
-                <GhostButton label={es.build.markDamaged} onPress={() => void act({ kind: 'danado', at: new Date().toISOString() }, acting)} />
+                <GhostButton label={t.build.markDamaged} onPress={() => void act({ kind: 'danado', at: new Date().toISOString() }, acting)} />
               </>
             ) : (
-              <GhostButton label={es.build.reinstall} onPress={() => void act({ kind: 'reinstalar' }, acting)} />
+              <GhostButton label={t.build.reinstall} onPress={() => void act({ kind: 'reinstalar' }, acting)} />
             )}
             <GhostButton
-              label={es.build.reclassify}
+              label={t.build.reclassify}
               onPress={() => {
                 setReclass(acting);
                 setActing(null);
               }}
             />
-            <GhostButton label={es.build.edit} onPress={() => (setActing(null), router.push({ pathname: '/mod/[id]', params: { id: acting.id } }))} />
+            <GhostButton label={t.build.edit} onPress={() => (setActing(null), router.push({ pathname: '/mod/[id]', params: { id: acting.id } }))} />
           </>
         ) : null}
       </Sheet>
 
-      <Sheet visible={Boolean(selling)} onClose={() => setSelling(null)} title={es.build.sellTitle}>
-        <Field label={es.build.sellPrice} keyboardType="decimal-pad" value={sellPrice} onChangeText={setSellPrice} />
-        <Field label={es.build.sellTo} value={sellTo} onChangeText={setSellTo} />
+      <Sheet visible={Boolean(selling)} onClose={() => setSelling(null)} title={t.build.sellTitle}>
+        <Field label={t.build.sellPrice} keyboardType="decimal-pad" value={sellPrice} onChangeText={setSellPrice} />
+        <Field label={t.build.sellTo} value={sellTo} onChangeText={setSellTo} />
         <PrimaryButton
-          label={es.build.sellSave}
+          label={t.build.sellSave}
           onPress={() => {
             if (!selling) return;
             const price = sellPrice.trim() ? parseDecimal(sellPrice) : null;
@@ -317,7 +317,7 @@ export default function BuildScreen() {
         />
       </Sheet>
 
-      <Sheet visible={Boolean(reclass)} onClose={() => setReclass(null)} title={es.build.reclassify}>
+      <Sheet visible={Boolean(reclass)} onClose={() => setReclass(null)} title={t.build.reclassify}>
         <ScrollView style={{ maxHeight: 420 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
             {data.categories.map((c) => (
@@ -343,7 +343,7 @@ function WishRow({ item, rate, onPress }: { item: WishlistItem; rate: number | n
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={[item.name, es.build.wishStatuses[item.status], foreign, item.vendor].filter(Boolean).join(', ')}
+      accessibilityLabel={[item.name, t.build.wishStatuses[item.status], foreign, item.vendor].filter(Boolean).join(', ')}
       style={[styles.wish, { backgroundColor: theme.bg.well, borderColor: theme.lineStrong }]}>
       <View style={[styles.wishIcon, { backgroundColor: theme.bg.raised }]}>
         <Ionicons name="heart-outline" size={20} color={theme.text.muted} />
@@ -353,12 +353,12 @@ function WishRow({ item, rate, onPress }: { item: WishlistItem; rate: number | n
           {item.name}
         </T>
         <T face="mono" numberOfLines={2} style={{ color: theme.text.muted, fontSize: 11 }}>
-          {es.build.wishlistInline(item.priority, foreign ?? (total ? whole(total) : null), item.vendor)}
+          {t.build.wishlistInline(item.priority, foreign ?? (total ? whole(total) : null), item.vendor)}
         </T>
       </View>
       <View style={[styles.saving, { borderColor: theme.accent }]}>
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 10 }}>
-          {es.build.wishStatuses[item.status]}
+          {t.build.wishStatuses[item.status]}
         </T>
       </View>
     </Pressable>
@@ -368,18 +368,18 @@ function WishRow({ item, rate, onPress }: { item: WishlistItem; rate: number | n
 function WheelSetCard({ set, tires, vehicleName, onOpen, onMount }: { set: WheelSet; tires: Tire[]; vehicleName: string; onOpen: () => void; onMount: () => void }) {
   const { theme } = useTheme();
   const spec = set.widthIn && set.diamIn ? `${set.diamIn}x${set.widthIn}${set.offsetMm != null ? ` ET${set.offsetMm}` : ''}` : null;
-  const line = es.inventory.wheelLine([spec ?? '', set.boltPattern ?? '', set.centerBoreMm ? `CB ${set.centerBoreMm}` : '']);
+  const line = t.inventory.wheelLine([spec ?? '', set.boltPattern ?? '', set.centerBoreMm ? `CB ${set.centerBoreMm}` : '']);
   const sizes = [...new Set(tires.map((t) => t.size).filter(Boolean))].join(' / ');
   return (
     <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: set.status === 'montado' ? theme.accentFill : theme.lineStrong }]}>
-      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${set.name}, ${line}, ${es.inventory.setStatus[set.status]}`} style={{ gap: 4 }}>
+      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${set.name}, ${line}, ${t.inventory.setStatus[set.status]}`} style={{ gap: 4 }}>
       <View style={styles.cardHead}>
         <T face="title" style={{ color: theme.text.primary, fontSize: 16, flex: 1, letterSpacing: 0.5 }}>
           {set.name}
         </T>
         <View style={[styles.pill, { borderColor: set.status === 'montado' ? theme.statusText.ok : theme.lineStrong }]}>
           <T face="eyebrow" style={{ color: set.status === 'montado' ? theme.statusText.ok : theme.text.muted, fontSize: 10 }}>
-            {es.inventory.setStatus[set.status]}
+            {t.inventory.setStatus[set.status]}
           </T>
         </View>
       </View>
@@ -395,7 +395,7 @@ function WheelSetCard({ set, tires, vehicleName, onOpen, onMount }: { set: Wheel
       ) : null}
       </Pressable>
       {/* Beside the card's button, not inside it (nested buttons are invalid HTML). */}
-      {set.status !== 'montado' && set.status !== 'vendido' ? <GhostButton label={es.inventory.mountOn(vehicleName)} onPress={onMount} /> : null}
+      {set.status !== 'montado' && set.status !== 'vendido' ? <GhostButton label={t.inventory.mountOn(vehicleName)} onPress={onMount} /> : null}
     </View>
   );
 }
@@ -403,17 +403,17 @@ function WheelSetCard({ set, tires, vehicleName, onOpen, onMount }: { set: Wheel
 function TireRow({ tire, setName, onPress }: { tire: Tire; setName: string | null; onPress: () => void }) {
   const { theme } = useTheme();
   const age = dotAge(tire.dotCode ?? (tire.dotWeek && tire.dotYear ? `${String(tire.dotWeek).padStart(2, '0')}${String(tire.dotYear).slice(-2)}` : null));
-  const dotText = !age ? null : 'legacy' in age ? es.inventory.dotOld : es.inventory.dot(age.week, age.year, age.ageYears.toFixed(1));
+  const dotText = !age ? null : 'legacy' in age ? t.inventory.dotOld : t.inventory.dot(age.week, age.year, age.ageYears.toFixed(1));
   const size = tire.size ?? '';
   const parsed = parseTireSize(size);
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={[size, dotText, es.inventory.positions[tire.position]].filter(Boolean).join(', ')} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={[size, dotText, t.inventory.positions[tire.position]].filter(Boolean).join(', ')} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
       <View style={styles.cardHead}>
         <T face="monoBold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }}>
           {size || [tire.brand, tire.model].filter(Boolean).join(' ') || '—'}
         </T>
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
-          {es.inventory.positions[tire.position]}
+          {t.inventory.positions[tire.position]}
         </T>
       </View>
       <View style={styles.tireLine}>
@@ -425,7 +425,7 @@ function TireRow({ tire, setName, onPress }: { tire: Tire; setName: string | nul
           </View>
         ) : null}
         <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
-          {[tire.brand, es.inventory.heatCycles(tire.heatCycles), tire.treadMmCurrent != null ? es.inventory.tread(String(tire.treadMmCurrent)) : null, setName, parsed.load && parsed.speed ? `${parsed.load}${parsed.speed}` : null].filter(Boolean).join(' · ')}
+          {[tire.brand, t.inventory.heatCycles(tire.heatCycles), tire.treadMmCurrent != null ? t.inventory.tread(String(tire.treadMmCurrent)) : null, setName, parsed.load && parsed.speed ? `${parsed.load}${parsed.speed}` : null].filter(Boolean).join(' · ')}
         </T>
       </View>
     </Pressable>
@@ -442,11 +442,11 @@ function ItemRow({ item, onPress }: { item: InventoryItem; onPress: () => void }
           {item.name}
         </T>
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
-          {es.inventory.item.kinds[item.kind] ?? item.kind}
+          {t.inventory.item.kinds[item.kind] ?? item.kind}
         </T>
       </View>
       <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
-        {es.inventory.qtyAt(qty, item.location)}
+        {t.inventory.qtyAt(qty, item.location)}
       </T>
     </Pressable>
   );

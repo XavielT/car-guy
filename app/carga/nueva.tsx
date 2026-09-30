@@ -12,7 +12,7 @@ import { perFillEconomyOf } from '@/lib/domain/perFillEconomy';
 import { economyNumber, economyValue } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
 import { Alert } from '@/lib/alert';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { defaultFuelForNewLoad, useOdometerHint, useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FillUp, FuelType } from '@/lib/types';
@@ -41,13 +41,13 @@ export default function CargarScreen() {
           vehicleId={activeVehicle.id}
           defaultFuel={defaultFuelForNewLoad(activeVehicle)}
           lastOdo={lastOdo}
-          submitLabel={es.fuel.save}
+          submitLabel={t.fuel.save}
           onSubmit={(draft) => {
             const dup = findRecentDuplicate(draft, data.fillups);
             if (dup) {
-              Alert.alert(es.fuel.duplicateTitle, es.fuel.duplicateBody, [
-                { text: es.common.cancel, style: 'cancel' },
-                { text: es.fuel.duplicateOpen, onPress: () => openSaved(dup.id) },
+              Alert.alert(t.fuel.duplicateTitle, t.fuel.duplicateBody, [
+                { text: t.common.cancel, style: 'cancel' },
+                { text: t.fuel.duplicateOpen, onPress: () => openSaved(dup.id) },
               ]);
               return false;
             }
@@ -67,7 +67,7 @@ export default function CargarScreen() {
             const volumeUnit = activeVehicle.detail?.volumeUnit ?? 'gal';
             const economyUnit = draft.fuelType === 'gnv' ? null : activeVehicle.detail?.economyUnit;
             const perFillLine = pf && review.kmPerUnit == null
-              ? es.perFill.line(economyNumber(economyValue(pf.kmPerUnit, volumeUnit, economyUnit)), economyLabel(draft.fuelType, volumeUnit, economyUnit))
+              ? t.perFill.line(economyNumber(economyValue(pf.kmPerUnit, volumeUnit, economyUnit)), economyLabel(draft.fuelType, volumeUnit, economyUnit))
               : null;
             const savedId = upsertFillUp(draft);
             impact();

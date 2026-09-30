@@ -17,7 +17,7 @@ import { costsCsv, exportFileName, fuelCsv, historyCsv } from '@/lib/export/csv'
 import { garageOwnershipCost } from '@/lib/db/statsQueries';
 import type { GarageCost } from '@/lib/domain/costs';
 import { money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -88,17 +88,17 @@ export default function ExportarScreen() {
             : fuelCsv(logs, activeVehicle.detail?.volumeUnit ?? 'gal', fuelCfgFor(activeVehicle.detail));
       // The costs file is the whole garage, so it is not named after one car.
       const name = exportFileName(kind, kind === 'costos' ? 'garaje' : activeVehicle.name, todayIso());
-      const result = await deliverText(content, name, 'text/csv', es.export.title);
+      const result = await deliverText(content, name, 'text/csv', t.export.title);
 
       // No alert on 'shared': the share sheet is the feedback, and Android does
       // not say whether the user sent the file or cancelled.
       if (result === 'shared') return;
-      if (result === 'downloaded') Alert.alert(es.export.doneTitle, es.export.downloadedBody(name));
-      else Alert.alert(es.export.doneTitle, es.export.unavailableBody);
+      if (result === 'downloaded') Alert.alert(t.export.doneTitle, t.export.downloadedBody(name));
+      else Alert.alert(t.export.doneTitle, t.export.unavailableBody);
     } catch (error) {
       Alert.alert(
-        es.export.title,
-        userMessage('export', error, es.export.failed),
+        t.export.title,
+        userMessage('export', error, t.export.failed),
       );
     } finally {
       setBusy(false);
@@ -107,21 +107,21 @@ export default function ExportarScreen() {
 
   if (!activeVehicle) return null;
 
-  const action = Platform.OS === 'web' ? es.export.download : es.export.share;
+  const action = Platform.OS === 'web' ? t.export.download : t.export.share;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.export.title}
+          {t.export.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.export.subtitle}
+          {t.export.subtitle}
         </T>
 
-        <SectionHeader title={es.export.period} style={styles.firstSection} />
+        <SectionHeader title={t.export.period} style={styles.firstSection} />
         <Segmented<PeriodKey>
-          options={PERIODS.map((key) => ({ key, label: es.stats.periods[key] }))}
+          options={PERIODS.map((key) => ({ key, label: t.stats.periods[key] }))}
           value={period}
           onChange={setPeriod}
         />
@@ -129,36 +129,36 @@ export default function ExportarScreen() {
         <View style={styles.cards}>
           <Surface>
             <T face="title" style={[styles.cardTitle, { color: theme.text.primary }]}>
-              {es.export.history}
+              {t.export.history}
             </T>
             <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-              {es.export.historyCaption}
+              {t.export.historyCaption}
             </T>
             <T face="mono" style={[styles.count, { color: theme.text.muted }]}>
-              {es.export.rows(rows.length)}
+              {t.export.rows(rows.length)}
             </T>
             <PrimaryButton label={action} onPress={() => run('historial')} disabled={busy || !rows.length} />
           </Surface>
 
           <Surface>
             <T face="title" style={[styles.cardTitle, { color: theme.text.primary }]}>
-              {es.export.fuel}
+              {t.export.fuel}
             </T>
             <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-              {es.export.fuelCaption}
+              {t.export.fuelCaption}
             </T>
             <T face="mono" style={[styles.count, { color: theme.text.muted }]}>
-              {es.export.rows(logs.length)}
+              {t.export.rows(logs.length)}
             </T>
             <GhostButton label={action} onPress={() => run('combustible')} disabled={busy || !logs.length} />
           </Surface>
 
           <Surface>
             <T face="title" style={[styles.cardTitle, { color: theme.text.primary }]}>
-              {es.costs.csv}
+              {t.costs.csv}
             </T>
             <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-              {es.costs.csvCaption}
+              {t.costs.csvCaption}
             </T>
             <T face="mono" style={[styles.count, { color: theme.text.muted }]}>
               {garage ? money(garage.total) : '—'}
@@ -168,7 +168,7 @@ export default function ExportarScreen() {
         </View>
 
         <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-          {es.export.encodingHint}
+          {t.export.encodingHint}
         </T>
       </ScrollView>
     </SafeAreaView>

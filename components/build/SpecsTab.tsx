@@ -11,7 +11,7 @@ import { deleteSnapshot, saveStock, setOverride } from '@/lib/db/buildQueries';
 import type { SpecSnapshot } from '@/lib/db/types';
 import { formatSpec, SPEC_FIELDS, SPEC_GROUPS, specValues, type CurrentSpec, type SpecField, type Specs } from '@/lib/domain/build';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -69,7 +69,7 @@ export function SpecsTab({
 
   async function pin() {
     const today = new Date().toISOString();
-    await pinSnapshot({ vehicleId, label: es.specs.snapshotLabel(dateLabel(today)), asOf: today, specs: specValues(current), coverMediaId: null });
+    await pinSnapshot({ vehicleId, label: t.specs.snapshotLabel(dateLabel(today)), asOf: today, specs: specValues(current), coverMediaId: null });
     setPinned(true);
     onChanged();
   }
@@ -101,7 +101,7 @@ export function SpecsTab({
         </T>
         {!hasAny ? (
           <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginBottom: space.md }}>
-            {es.specs.empty}
+            {t.specs.empty}
           </T>
         ) : null}
         {SPEC_GROUPS.map((g) => (
@@ -111,17 +111,17 @@ export function SpecsTab({
                 {g.label}
               </T>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, flex: 1, textAlign: 'right' }}>
-                {es.specs.stock}
+                {t.specs.stock}
               </T>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, flex: 1.3, textAlign: 'right' }}>
-                {es.specs.actual}
+                {t.specs.actual}
               </T>
             </View>
             {SPEC_FIELDS.filter((f) => f.group === g.key).map((f) => {
               const c = current[f.key];
               const src = c?.source;
               const changed = src && src.kind !== 'stock';
-              const chip = !src ? null : src.kind === 'stock' ? es.specs.stock : src.kind === 'override' ? es.specs.you : src.modName;
+              const chip = !src ? null : src.kind === 'stock' ? t.specs.stock : src.kind === 'override' ? t.specs.you : src.modName;
               return (
                 <Pressable
                   key={f.key}
@@ -152,12 +152,12 @@ export function SpecsTab({
         ))}
       </View>
 
-      <GhostButton label={es.specs.editStock} onPress={openStock} />
-      <PrimaryButton label={pinned ? es.specs.pinned : es.specs.pin} disabled={pinned || !hasAny} onPress={() => void pin()} />
-      <GhostButton label={es.specs.share} disabled={!hasAny} onPress={() => void share()} />
+      <GhostButton label={t.specs.editStock} onPress={openStock} />
+      <PrimaryButton label={pinned ? t.specs.pinned : t.specs.pin} disabled={pinned || !hasAny} onPress={() => void pin()} />
+      <GhostButton label={t.specs.share} disabled={!hasAny} onPress={() => void share()} />
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
-        {es.specs.snapshots}
+        {t.specs.snapshots}
       </T>
       {snapshots.length ? (
         snapshots.map((s) => (
@@ -173,34 +173,34 @@ export function SpecsTab({
                   .join(' · ')}
               </T>
             </View>
-            <GhostButton label={es.specs.deleteSnapshot} danger onPress={() => void deleteSnapshot(s.id).then(onChanged)} />
+            <GhostButton label={t.specs.deleteSnapshot} danger onPress={() => void deleteSnapshot(s.id).then(onChanged)} />
           </View>
         ))
       ) : (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-          {es.specs.noSnapshots}
+          {t.specs.noSnapshots}
         </T>
       )}
 
-      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? es.specs.overrideTitle(editing.label) : ''}>
+      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? t.specs.overrideTitle(editing.label) : ''}>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.md }}>
-          {es.specs.overrideHint}
+          {t.specs.overrideHint}
         </T>
         <Field
-          label={es.specs.override}
+          label={t.specs.override}
           value={value}
           onChangeText={setValue}
           keyboardType={editing?.kind === 'number' ? 'decimal-pad' : 'default'}
           placeholder={editing ? formatSpec(editing.key, current[editing.key]?.value ?? null) : ''}
         />
-        <PrimaryButton label={es.specs.save} onPress={() => void saveOverride()} />
-        {editing && current[editing.key]?.source?.kind === 'override' ? <GhostButton label={es.specs.clearOverride} onPress={() => void saveOverride(true)} /> : null}
+        <PrimaryButton label={t.specs.save} onPress={() => void saveOverride()} />
+        {editing && current[editing.key]?.source?.kind === 'override' ? <GhostButton label={t.specs.clearOverride} onPress={() => void saveOverride(true)} /> : null}
       </Sheet>
 
-      <Sheet visible={stockOpen} onClose={() => setStockOpen(false)} title={es.specs.stockTitle}>
+      <Sheet visible={stockOpen} onClose={() => setStockOpen(false)} title={t.specs.stockTitle}>
         <ScrollView style={{ maxHeight: 460 }} keyboardShouldPersistTaps="handled">
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.md }}>
-            {es.specs.stockHint}
+            {t.specs.stockHint}
           </T>
           {SPEC_FIELDS.map((f) => (
             <Field
@@ -212,7 +212,7 @@ export function SpecsTab({
             />
           ))}
         </ScrollView>
-        <PrimaryButton label={es.specs.save} onPress={() => void saveStockDraft()} />
+        <PrimaryButton label={t.specs.save} onPress={() => void saveStockDraft()} />
       </Sheet>
     </View>
   );

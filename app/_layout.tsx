@@ -26,10 +26,11 @@ import { fonts, palette } from '@/constants/theme';
 import { DATABASE_NAME } from '@/lib/db/client';
 import { migrate } from '@/lib/db/migrations';
 import { FEATURE_LAUNCH_ANIM } from '@/lib/flags';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { markGaugeSweptThisSession } from '@/lib/motion/gaugeSweep';
 import { configure as configureNotifications, requestResync, routeOf } from '@/lib/notifications';
 import { refreshFuelPriceRef } from '@/lib/cloud/fuelPriceRef';
+import { initLanguage, localeTag, refreshSystemLanguage, useLanguage } from '@/lib/i18n';
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
 import { useTripService } from '@/lib/trips/useTripService';
@@ -97,11 +98,19 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
+  // The stored language (ADR-39) before the first frame, so a Spanish splash
+  // never hands over to an English app or the other way round.
+  const [languageRead, setLanguageRead] = useState(false);
+  useEffect(() => {
+    void initLanguage().finally(() => setLanguageRead(true));
+  }, []);
+  const ready = loaded && languageRead;
+
   // With the launch animation the overlay hides the native splash itself, on
   // its first layout (components/LaunchOverlay.tsx).
   useEffect(() => {
-    if (loaded && !FEATURE_LAUNCH_ANIM) SplashScreen.hideAsync();
-  }, [loaded]);
+    if (ready && !FEATURE_LAUNCH_ANIM) SplashScreen.hideAsync();
+  }, [ready]);
 
   // Once per process: a root rebuilt later (the activity recreated after a swipe
   // from Recents while the trip service kept the process, an error boundary's
@@ -110,17 +119,32 @@ export default function RootLayout() {
   const endLaunch = useCallback(() => setLaunching(false), []);
   // Always the second child of the same fragment, so it keeps its state while
   // the first child goes from nothing to the boot screen to the app.
-  const overlay = launching ? <LaunchOverlay key="launch" ready={loaded} onDone={endLaunch} /> : null;
+  const overlay = launching ? <LaunchOverlay key="launch" ready={ready} onDone={endLaunch} /> : null;
 
   return (
     <>
-      <RootContent loaded={loaded} mounted={mounted} />
+      <RootContent loaded={ready} mounted={mounted} />
       {overlay}
     </>
   );
 }
 
 function RootContent({ loaded, mounted }: { loaded: boolean; mounted: boolean }) {
+  // A switch in Más → Idioma re-renders every screen: the navigator is keyed on
+  // the language (header titles set in `options` included). 'system' follows a
+  // device change when the app comes back to the front — Android does not
+  // restart the app for it.
+  const { resolved } = useLanguage();
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshSystemLanguage();
+    });
+    return () => listener.remove();
+  }, []);
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') document.documentElement.lang = localeTag(resolved);
+  }, [resolved]);
+
   if (!loaded) return null;
 
   // Car Guy's content comes from a local database, which exists only in the
@@ -146,7 +170,7 @@ function RootContent({ loaded, mounted }: { loaded: boolean; mounted: boolean })
             options={{ enableChangeListener: true }}
             useSuspense>
             <StoreProvider>
-              <Shell />
+              <Shell key={resolved} />
             </StoreProvider>
           </SQLiteProvider>
         </Suspense>
@@ -266,94 +290,94 @@ function Shell() {
         {/* These titles are what the browser tab shows on web: expo-router feeds
             the screen title to react-helmet, and a screen without one renders an
             empty <title> that wins over anything static in +html.tsx. */}
-        <Stack.Screen name="(tabs)" options={{ title: es.routes.home }} />
-        <Stack.Screen name="onboarding" options={{ title: es.routes.home }} />
+        <Stack.Screen name="(tabs)" options={{ title: t.routes.home }} />
+        <Stack.Screen name="onboarding" options={{ title: t.routes.home }} />
         <Stack.Screen
           name="vehiculo/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: es.routes.newVehicle }}
+          options={{ presentation: 'modal', headerShown: true, title: t.routes.newVehicle }}
         />
-        <Stack.Screen name="vehiculo/[id]" options={{ headerShown: true, title: es.routes.vehicle }} />
-        <Stack.Screen name="vehiculo/[id]/editar" options={{ headerShown: true, title: es.routes.editVehicle }} />
-        <Stack.Screen name="vehiculo/[id]/album/index" options={{ headerShown: true, title: es.routes.album }} />
-        <Stack.Screen name="vehiculo/[id]/album/estado" options={{ headerShown: true, title: es.routes.albumState }} />
-        <Stack.Screen name="album/importar" options={{ headerShown: true, title: es.routes.importPhotos }} />
+        <Stack.Screen name="vehiculo/[id]" options={{ headerShown: true, title: t.routes.vehicle }} />
+        <Stack.Screen name="vehiculo/[id]/editar" options={{ headerShown: true, title: t.routes.editVehicle }} />
+        <Stack.Screen name="vehiculo/[id]/album/index" options={{ headerShown: true, title: t.routes.album }} />
+        <Stack.Screen name="vehiculo/[id]/album/estado" options={{ headerShown: true, title: t.routes.albumState }} />
+        <Stack.Screen name="album/importar" options={{ headerShown: true, title: t.routes.importPhotos }} />
         {/* Always dark and edge to edge: a photo reads best on black. */}
-        <Stack.Screen name="foto/[id]" options={{ presentation: 'fullScreenModal', headerShown: false, title: es.routes.photo, contentStyle: { backgroundColor: '#000000' } }} />
-        <Stack.Screen name="hito/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newMilestone }} />
-        <Stack.Screen name="hito/[id]" options={{ headerShown: true, title: es.routes.milestone }} />
-        <Stack.Screen name="vehiculo/[id]/build" options={{ headerShown: true, title: es.routes.build }} />
-        <Stack.Screen name="mod/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newMod }} />
-        <Stack.Screen name="mod/[id]" options={{ headerShown: true, title: es.routes.mod }} />
-        <Stack.Screen name="wishlist/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newWish }} />
-        <Stack.Screen name="wishlist/[id]" options={{ headerShown: true, title: es.routes.wish }} />
-        <Stack.Screen name="inventario/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newInventory }} />
-        <Stack.Screen name="inventario/[id]" options={{ headerShown: true, title: es.routes.inventory }} />
-        <Stack.Screen name="ruedas/[setId]" options={{ headerShown: true, title: es.routes.wheelSet }} />
-        <Stack.Screen name="goma/[id]" options={{ headerShown: true, title: es.routes.tire }} />
-        <Stack.Screen name="vehiculo/[id]/ficha" options={{ headerShown: true, title: es.routes.ficha }} />
-        <Stack.Screen name="vehiculo/[id]/fluidos" options={{ headerShown: true, title: es.routes.fluids }} />
-        <Stack.Screen name="obd/index" options={{ headerShown: true, title: es.routes.obd }} />
-        <Stack.Screen name="obd/[code]" options={{ headerShown: true, title: es.routes.obdCode }} />
-        <Stack.Screen name="contactos/index" options={{ headerShown: true, title: es.routes.contacts }} />
-        <Stack.Screen name="contactos/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newContact }} />
-        <Stack.Screen name="contactos/[id]" options={{ headerShown: true, title: es.routes.contact }} />
-        <Stack.Screen name="vehiculo/[id]/compartir" options={{ headerShown: true, title: es.routes.share }} />
-        <Stack.Screen name="vehiculo/[id]/libro" options={{ headerShown: true, title: es.routes.book }} />
-        <Stack.Screen name="garaje/miembros" options={{ headerShown: true, title: es.routes.members }} />
-        <Stack.Screen name="invitacion/[code]" options={{ headerShown: true, title: es.routes.invite }} />
-        <Stack.Screen name="compartidos" options={{ headerShown: true, title: es.routes.shares }} />
-        <Stack.Screen name="pista/index" options={{ headerShown: true, title: es.routes.track }} />
-        <Stack.Screen name="pista/evento/nuevo" options={{ presentation: 'modal', headerShown: true, title: es.routes.newTrackEvent }} />
-        <Stack.Screen name="pista/evento/[id]" options={{ headerShown: true, title: es.routes.trackEvent }} />
-        <Stack.Screen name="pista/sesion/nueva" options={{ headerShown: true, title: es.routes.newTrackSession }} />
-        <Stack.Screen name="pista/sesion/[id]" options={{ headerShown: true, title: es.routes.trackSession }} />
-        <Stack.Screen name="viajes/index" options={{ headerShown: true, title: es.routes.trips }} />
-        <Stack.Screen name="viajes/ajustes" options={{ headerShown: true, title: es.routes.tripSettings }} />
-        <Stack.Screen name="viajes/permisos" options={{ headerShown: true, title: es.routes.tripPermissions }} />
-        <Stack.Screen name="viaje/[id]" options={{ headerShown: true, title: es.routes.trip }} />
+        <Stack.Screen name="foto/[id]" options={{ presentation: 'fullScreenModal', headerShown: false, title: t.routes.photo, contentStyle: { backgroundColor: '#000000' } }} />
+        <Stack.Screen name="hito/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newMilestone }} />
+        <Stack.Screen name="hito/[id]" options={{ headerShown: true, title: t.routes.milestone }} />
+        <Stack.Screen name="vehiculo/[id]/build" options={{ headerShown: true, title: t.routes.build }} />
+        <Stack.Screen name="mod/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newMod }} />
+        <Stack.Screen name="mod/[id]" options={{ headerShown: true, title: t.routes.mod }} />
+        <Stack.Screen name="wishlist/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newWish }} />
+        <Stack.Screen name="wishlist/[id]" options={{ headerShown: true, title: t.routes.wish }} />
+        <Stack.Screen name="inventario/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newInventory }} />
+        <Stack.Screen name="inventario/[id]" options={{ headerShown: true, title: t.routes.inventory }} />
+        <Stack.Screen name="ruedas/[setId]" options={{ headerShown: true, title: t.routes.wheelSet }} />
+        <Stack.Screen name="goma/[id]" options={{ headerShown: true, title: t.routes.tire }} />
+        <Stack.Screen name="vehiculo/[id]/ficha" options={{ headerShown: true, title: t.routes.ficha }} />
+        <Stack.Screen name="vehiculo/[id]/fluidos" options={{ headerShown: true, title: t.routes.fluids }} />
+        <Stack.Screen name="obd/index" options={{ headerShown: true, title: t.routes.obd }} />
+        <Stack.Screen name="obd/[code]" options={{ headerShown: true, title: t.routes.obdCode }} />
+        <Stack.Screen name="contactos/index" options={{ headerShown: true, title: t.routes.contacts }} />
+        <Stack.Screen name="contactos/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newContact }} />
+        <Stack.Screen name="contactos/[id]" options={{ headerShown: true, title: t.routes.contact }} />
+        <Stack.Screen name="vehiculo/[id]/compartir" options={{ headerShown: true, title: t.routes.share }} />
+        <Stack.Screen name="vehiculo/[id]/libro" options={{ headerShown: true, title: t.routes.book }} />
+        <Stack.Screen name="garaje/miembros" options={{ headerShown: true, title: t.routes.members }} />
+        <Stack.Screen name="invitacion/[code]" options={{ headerShown: true, title: t.routes.invite }} />
+        <Stack.Screen name="compartidos" options={{ headerShown: true, title: t.routes.shares }} />
+        <Stack.Screen name="pista/index" options={{ headerShown: true, title: t.routes.track }} />
+        <Stack.Screen name="pista/evento/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newTrackEvent }} />
+        <Stack.Screen name="pista/evento/[id]" options={{ headerShown: true, title: t.routes.trackEvent }} />
+        <Stack.Screen name="pista/sesion/nueva" options={{ headerShown: true, title: t.routes.newTrackSession }} />
+        <Stack.Screen name="pista/sesion/[id]" options={{ headerShown: true, title: t.routes.trackSession }} />
+        <Stack.Screen name="viajes/index" options={{ headerShown: true, title: t.routes.trips }} />
+        <Stack.Screen name="viajes/ajustes" options={{ headerShown: true, title: t.routes.tripSettings }} />
+        <Stack.Screen name="viajes/permisos" options={{ headerShown: true, title: t.routes.tripPermissions }} />
+        <Stack.Screen name="viaje/[id]" options={{ headerShown: true, title: t.routes.trip }} />
         <Stack.Screen
           name="odometro"
-          options={{ presentation: 'modal', headerShown: true, title: es.routes.odometer }}
+          options={{ presentation: 'modal', headerShown: true, title: t.routes.odometer }}
         />
-        <Stack.Screen name="carga/nueva" options={{ headerShown: true, title: es.routes.newFillUp }} />
+        <Stack.Screen name="carga/nueva" options={{ headerShown: true, title: t.routes.newFillUp }} />
         <Stack.Screen
           name="servicio/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: es.routes.newService }}
+          options={{ presentation: 'modal', headerShown: true, title: t.routes.newService }}
         />
-        <Stack.Screen name="servicio/[id]" options={{ headerShown: true, title: es.routes.service }} />
+        <Stack.Screen name="servicio/[id]" options={{ headerShown: true, title: t.routes.service }} />
         <Stack.Screen
           name="gasto/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: es.routes.expense }}
+          options={{ presentation: 'modal', headerShown: true, title: t.routes.expense }}
         />
-        <Stack.Screen name="gasto/[id]" options={{ headerShown: true, title: es.routes.expense }} />
-        <Stack.Screen name="chequeo/index" options={{ headerShown: true, title: es.routes.check }} />
-        <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: es.routes.check }} />
-        <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: es.routes.guide }} />
-        <Stack.Screen name="chequeo/plantillas/[id]" options={{ headerShown: true, title: es.routes.templateEditor }} />
-        <Stack.Screen name="inspeccion/[id]" options={{ headerShown: true, title: es.routes.inspection }} />
-        <Stack.Screen name="recordatorios/index" options={{ headerShown: true, title: es.routes.reminders }} />
-        <Stack.Screen name="recordatorio/[id]" options={{ headerShown: true, title: es.routes.reminder }} />
-        <Stack.Screen name="recordatorio/nuevo" options={{ headerShown: true, title: es.reminders.newTitle }} />
-        <Stack.Screen name="catalogo/index" options={{ headerShown: true, title: es.catalog.title }} />
-        <Stack.Screen name="catalogo/[id]" options={{ headerShown: true, title: es.catalog.title }} />
-        <Stack.Screen name="tareas/index" options={{ headerShown: true, title: es.routes.tasks }} />
-        <Stack.Screen name="tarea/nueva" options={{ presentation: 'modal', headerShown: true, title: es.routes.newTask }} />
-        <Stack.Screen name="tarea/[id]" options={{ headerShown: true, title: es.routes.task }} />
-        <Stack.Screen name="documentos/index" options={{ headerShown: true, title: es.routes.documents }} />
+        <Stack.Screen name="gasto/[id]" options={{ headerShown: true, title: t.routes.expense }} />
+        <Stack.Screen name="chequeo/index" options={{ headerShown: true, title: t.routes.check }} />
+        <Stack.Screen name="chequeo/[templateId]/run" options={{ headerShown: true, title: t.routes.check }} />
+        <Stack.Screen name="chequeo/guia" options={{ headerShown: true, title: t.routes.guide }} />
+        <Stack.Screen name="chequeo/plantillas/[id]" options={{ headerShown: true, title: t.routes.templateEditor }} />
+        <Stack.Screen name="inspeccion/[id]" options={{ headerShown: true, title: t.routes.inspection }} />
+        <Stack.Screen name="recordatorios/index" options={{ headerShown: true, title: t.routes.reminders }} />
+        <Stack.Screen name="recordatorio/[id]" options={{ headerShown: true, title: t.routes.reminder }} />
+        <Stack.Screen name="recordatorio/nuevo" options={{ headerShown: true, title: t.reminders.newTitle }} />
+        <Stack.Screen name="catalogo/index" options={{ headerShown: true, title: t.catalog.title }} />
+        <Stack.Screen name="catalogo/[id]" options={{ headerShown: true, title: t.catalog.title }} />
+        <Stack.Screen name="tareas/index" options={{ headerShown: true, title: t.routes.tasks }} />
+        <Stack.Screen name="tarea/nueva" options={{ presentation: 'modal', headerShown: true, title: t.routes.newTask }} />
+        <Stack.Screen name="tarea/[id]" options={{ headerShown: true, title: t.routes.task }} />
+        <Stack.Screen name="documentos/index" options={{ headerShown: true, title: t.routes.documents }} />
         <Stack.Screen
           name="documento/nuevo"
-          options={{ presentation: 'modal', headerShown: true, title: es.routes.newDocument }}
+          options={{ presentation: 'modal', headerShown: true, title: t.routes.newDocument }}
         />
-        <Stack.Screen name="documento/[id]" options={{ headerShown: true, title: es.routes.document }} />
-        <Stack.Screen name="notificaciones" options={{ headerShown: true, title: es.routes.notifications }} />
-        <Stack.Screen name="precios" options={{ headerShown: true, title: es.routes.prices }} />
-        <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: es.routes.editFillUp }} />
-        <Stack.Screen name="reporte" options={{ headerShown: true, title: es.routes.report }} />
-        <Stack.Screen name="exportar" options={{ headerShown: true, title: es.routes.export }} />
-        <Stack.Screen name="cuenta" options={{ headerShown: true, title: es.routes.account }} />
-        <Stack.Screen name="nueva-contrasena" options={{ headerShown: true, title: es.routes.newPassword }} />
-        <Stack.Screen name="versiones" options={{ headerShown: true, title: es.versions.title }} />
-        <Stack.Screen name="instalar" options={{ headerShown: true, title: es.install.title }} />
+        <Stack.Screen name="documento/[id]" options={{ headerShown: true, title: t.routes.document }} />
+        <Stack.Screen name="notificaciones" options={{ headerShown: true, title: t.routes.notifications }} />
+        <Stack.Screen name="precios" options={{ headerShown: true, title: t.routes.prices }} />
+        <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: t.routes.editFillUp }} />
+        <Stack.Screen name="reporte" options={{ headerShown: true, title: t.routes.report }} />
+        <Stack.Screen name="exportar" options={{ headerShown: true, title: t.routes.export }} />
+        <Stack.Screen name="cuenta" options={{ headerShown: true, title: t.routes.account }} />
+        <Stack.Screen name="nueva-contrasena" options={{ headerShown: true, title: t.routes.newPassword }} />
+        <Stack.Screen name="versiones" options={{ headerShown: true, title: t.versions.title }} />
+        <Stack.Screen name="instalar" options={{ headerShown: true, title: t.install.title }} />
       </Stack>
       <NovedadesSheet />
       <FirstSyncBanner />

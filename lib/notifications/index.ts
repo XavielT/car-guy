@@ -13,7 +13,7 @@ import { todayIso } from '../domain/dates';
 import { isMarbeteWindowOpen, marbeteNudges } from '../domain/legal-dr';
 import { kmPerDay } from '../domain/odometer';
 import { displayDueDate, evaluate } from '../domain/reminders';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 import { firstAttentionDay, planNotifications, type PlanInput, type PlannedNotification } from './plan';
 
 /**
@@ -247,15 +247,15 @@ export async function offerAfterFirstInspection(): Promise<void> {
   await settingsRepo.set(OFFERED_KEY, true);
   if (current.enabled) return;
 
-  Alert.alert(es.notifications.title, es.notifications.subtitle, [
-    { text: es.notifications.notNow, style: 'cancel' },
+  Alert.alert(t.notifications.title, t.notifications.subtitle, [
+    { text: t.notifications.notNow, style: 'cancel' },
     {
-      text: es.notifications.enable,
+      text: t.notifications.enable,
       onPress: () => {
         void (async () => {
           await configure();
           if (!(await requestPermission())) {
-            Alert.alert(es.notifications.title, es.notifications.denied);
+            Alert.alert(t.notifications.title, t.notifications.denied);
             return;
           }
           await setSettings({ ...(await getSettings()), enabled: true });

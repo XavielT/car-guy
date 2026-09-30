@@ -7,7 +7,7 @@ import { EmptyState, NavRow, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { fetchAdminStats, useAdminGate, type AdminStats } from '@/lib/cloud/admin';
 import { dateLabel, km } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -37,7 +37,7 @@ export default function AdminPanel() {
     }, [gate, load]),
   );
 
-  const header = <Stack.Screen options={{ headerShown: true, title: es.admin.title }} />;
+  const header = <Stack.Screen options={{ headerShown: true, title: t.admin.title }} />;
 
   if (gate === 'loading' || (gate === 'admin' && stats === null)) {
     return (
@@ -51,7 +51,7 @@ export default function AdminPanel() {
     return (
       <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
         {header}
-        <EmptyState icon="lock-closed-outline" message={gate === 'offline' ? es.admin.offline : es.admin.notAdmin} />
+        <EmptyState icon="lock-closed-outline" message={gate === 'offline' ? t.admin.offline : t.admin.notAdmin} />
       </View>
     );
   }
@@ -91,49 +91,49 @@ export default function AdminPanel() {
       }>
       {header}
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.admin.eyebrow}
+        {t.admin.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.md }}>
-        {es.admin.title}
+        {t.admin.title}
       </T>
 
       {stats === 'error' ? (
         <Surface padded style={{ marginBottom: space.lg }}>
           <T face="body" style={{ color: theme.statusText.vencido, fontSize: 14 }}>
-            {es.admin.loadFailed}
+            {t.admin.loadFailed}
           </T>
         </Surface>
       ) : stats ? (
         <>
-          {section(es.admin.sections.users, [
-            tile(stats.users, es.admin.tiles.users, true),
-            tile(stats.users_new_7d, es.admin.tiles.newWeek),
-            tile(stats.users_new_30d, es.admin.tiles.newMonth),
-            tile(stats.users_active_7d, es.admin.tiles.active),
+          {section(t.admin.sections.users, [
+            tile(stats.users, t.admin.tiles.users, true),
+            tile(stats.users_new_7d, t.admin.tiles.newWeek),
+            tile(stats.users_new_30d, t.admin.tiles.newMonth),
+            tile(stats.users_active_7d, t.admin.tiles.active),
           ])}
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: -space.sm, marginBottom: space.lg }}>
-            {es.admin.rolesLine(stats.roles.admin ?? 0, stats.roles.member ?? 0, stats.roles.premium ?? 0)}
+            {t.admin.rolesLine(stats.roles.admin ?? 0, stats.roles.member ?? 0, stats.roles.premium ?? 0)}
           </T>
-          {section(es.admin.sections.activity, [
-            tile(stats.vehicles, es.admin.tiles.vehicles),
-            tile(stats.fuel_logs, es.admin.tiles.fuelLogs),
-            tile(stats.fuel_logs_30d, es.admin.tiles.fuelLogs30),
-            tile(stats.trips, es.admin.tiles.trips),
-            tile(km(stats.trip_km), es.admin.tiles.tripKm),
+          {section(t.admin.sections.activity, [
+            tile(stats.vehicles, t.admin.tiles.vehicles),
+            tile(stats.fuel_logs, t.admin.tiles.fuelLogs),
+            tile(stats.fuel_logs_30d, t.admin.tiles.fuelLogs30),
+            tile(stats.trips, t.admin.tiles.trips),
+            tile(km(stats.trip_km), t.admin.tiles.tripKm),
           ])}
-          {section(es.admin.sections.community, [
-            tile(stats.shares_published, es.admin.tiles.shares),
-            tile(stats.feedback_new, es.admin.tiles.feedbackNew, stats.feedback_new > 0),
-            tile(stats.feedback_total, es.admin.tiles.feedbackTotal),
+          {section(t.admin.sections.community, [
+            tile(stats.shares_published, t.admin.tiles.shares),
+            tile(stats.feedback_new, t.admin.tiles.feedbackNew, stats.feedback_new > 0),
+            tile(stats.feedback_total, t.admin.tiles.feedbackTotal),
           ])}
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.md }}>
-            {es.admin.updated(dateLabel(stats.at))}
+            {t.admin.updated(dateLabel(stats.at))}
           </T>
         </>
       ) : null}
 
-      <NavRow label={es.admin.usersLink} caption={es.admin.usersCaption} onPress={() => router.push('/admin/usuarios')} />
-      <NavRow label={es.admin.feedbackLink} caption={es.feedback.admin.moreCaption} onPress={() => router.push('/admin/comentarios')} />
+      <NavRow label={t.admin.usersLink} caption={t.admin.usersCaption} onPress={() => router.push('/admin/usuarios')} />
+      <NavRow label={t.admin.feedbackLink} caption={t.feedback.admin.moreCaption} onPress={() => router.push('/admin/comentarios')} />
     </ScrollView>
   );
 }
