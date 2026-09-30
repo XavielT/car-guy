@@ -8,8 +8,7 @@ import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/fee
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, KeyValueRow, Segmented, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { isAdminEmail } from '@/lib/cloud/admin';
-import { useSession } from '@/lib/cloud/auth';
+import { useAdminGate } from '@/lib/cloud/admin';
 import { FEEDBACK_STATUSES, getFeedback, screenshotUrl, updateFeedback, type FeedbackRow, type FeedbackStatus } from '@/lib/feedback/inbox';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -18,8 +17,8 @@ import { useTheme } from '@/lib/theme/useTheme';
 export default function ComentarioDetalle() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
-  const { session, ready } = useSession();
-  const admin = isAdminEmail(session?.user.email);
+  const gate = useAdminGate();
+  const admin = gate === 'admin';
   const [row, setRow] = useState<FeedbackRow | null | undefined>(undefined);
   const [shot, setShot] = useState<string | null | 'failed'>(null);
   const [note, setNote] = useState('');
@@ -46,7 +45,7 @@ export default function ComentarioDetalle() {
   const header = <Stack.Screen options={{ headerShown: true, title: es.feedback.admin.detailTitle }} />;
   const a = es.feedback.admin;
 
-  if (!ready || (admin && row === undefined)) {
+  if (gate === 'loading' || (admin && row === undefined)) {
     return (
       <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
         {header}

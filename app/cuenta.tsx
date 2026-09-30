@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
 import {
+  Badge,
   GhostButton,
   Hanko,
   KeyValueRow,
@@ -18,6 +19,7 @@ import {
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { appVersion, gitSha } from '@/lib/appVersion';
+import { useRole } from '@/lib/cloud/admin';
 import { resetPassword, signIn, signOut, signUp, useSession } from '@/lib/cloud/auth';
 import { recentErrors } from '@/lib/diagnostics';
 import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
@@ -46,6 +48,7 @@ export default function CuentaScreen() {
   const { theme } = useTheme();
   const { resetAll } = useStore();
   const { session, ready, configured, otherApp } = useSession();
+  const role = useRole();
   const { status, pending, lastSyncAt, running, syncNow } = useSync();
 
   const [mode, setMode] = useState<Mode>('signIn');
@@ -159,7 +162,10 @@ export default function CuentaScreen() {
             <Surface style={styles.card}>
               <View style={styles.identity}>
                 <View style={{ flex: 1 }}>
-                  <StatusPill status="ok" label={es.account.signedInAs} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <StatusPill status="ok" label={es.account.signedInAs} />
+                    {role && role !== 'member' ? <Badge label={es.admin.roles[role]} tone={role === 'admin' ? 'red' : 'amber'} /> : null}
+                  </View>
                   <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
                     {es.account.versionLine(appVersion, gitSha)}
                   </T>

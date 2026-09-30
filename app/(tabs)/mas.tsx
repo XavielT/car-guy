@@ -18,14 +18,14 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { appVersion, gitSha } from '@/lib/appVersion';
 import { useVersionSeen } from '@/lib/changelog/seen';
-import { isAdminEmail } from '@/lib/cloud/admin';
+import { useIsAdmin } from '@/lib/cloud/admin';
 import { useSession } from '@/lib/cloud/auth';
 import { userMessage } from '@/lib/diagnostics';
 import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
-import { ADMIN_FEEDBACK_ROUTE, FEEDBACK_ROUTE } from '@/lib/feedback';
+import { FEEDBACK_ROUTE } from '@/lib/feedback';
 import { es } from '@/lib/i18n/es';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
@@ -42,6 +42,7 @@ export default function MasScreen() {
   const { data, activeVehicle, resetAll, refresh } = useStore();
   const archived = data.vehicles.filter((v) => v.isArchived);
   const installOffer = useInstallOffer();
+  const isAdmin = useIsAdmin();
   const { session } = useSession();
   const { unseen: versionUnseen } = useVersionSeen();
 
@@ -270,9 +271,7 @@ export default function MasScreen() {
             onPress={() => router.push({ pathname: FEEDBACK_ROUTE, params: { from: '/mas' } })}
           />
         ) : null}
-        {FEATURE_FEEDBACK && isAdminEmail(session?.user.email) ? (
-          <NavRow label={es.feedback.admin.more} caption={es.feedback.admin.moreCaption} onPress={() => router.push(ADMIN_FEEDBACK_ROUTE)} />
-        ) : null}
+        {isAdmin ? <NavRow label={es.admin.more} caption={es.admin.moreCaption} onPress={() => router.push('/admin')} /> : null}
         <Surface>
           <Pressable onPress={tapVersion} accessibilityRole="text">
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>

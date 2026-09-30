@@ -6,8 +6,7 @@ import { T } from '@/components/T';
 import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/feedback/present';
 import { Chip, EmptyState, StatusPill } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { useSession } from '@/lib/cloud/auth';
-import { isAdminEmail } from '@/lib/cloud/admin';
+import { useAdminGate } from '@/lib/cloud/admin';
 import { es } from '@/lib/i18n/es';
 import { FEEDBACK_STATUSES, listFeedback, type FeedbackListRow, type FeedbackStatus } from '@/lib/feedback/inbox';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -20,8 +19,8 @@ import { useTheme } from '@/lib/theme/useTheme';
 export default function ComentariosRecibidos() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { session, ready } = useSession();
-  const admin = isAdminEmail(session?.user.email);
+  const gate = useAdminGate();
+  const admin = gate === 'admin';
   const [rows, setRows] = useState<FeedbackListRow[] | null | undefined>(undefined);
   const [filter, setFilter] = useState<FeedbackStatus | 'all'>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -39,7 +38,7 @@ export default function ComentariosRecibidos() {
 
   const header = <Stack.Screen options={{ headerShown: true, title: es.feedback.admin.title }} />;
 
-  if (!ready || (admin && rows === undefined)) {
+  if (gate === 'loading' || (admin && rows === undefined)) {
     return (
       <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
         {header}

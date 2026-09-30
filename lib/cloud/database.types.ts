@@ -1174,6 +1174,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           media_quota_bytes: number
+          role: string
           updated_at: string
           user_id: string
         }
@@ -1181,6 +1182,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           media_quota_bytes?: number
+          role?: string
           updated_at?: string
           user_id: string
         }
@@ -1188,6 +1190,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           media_quota_bytes?: number
+          role?: string
           updated_at?: string
           user_id?: string
         }
@@ -3034,6 +3037,23 @@ export type Database = {
       }
       storage_usage_bytes: { Args: never; Returns: number }
       submit_feedback: { Args: { p: Json }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
+      admin_stats: { Args: never; Returns: Json }
+      admin_users: {
+        Args: { p_limit?: number }
+        Returns: {
+          user_id: string
+          email: string
+          role: string
+          created_at: string
+          last_sign_in_at: string | null
+          vehicles: number
+          fuel_logs: number
+          trips: number
+          last_activity: string | null
+        }[]
+      }
+      admin_set_role: { Args: { p_user: string; p_role: string }; Returns: string }
       vehicle_of: { Args: { row_id: string; tbl: string }; Returns: string }
       vehicle_role: { Args: { v: string }; Returns: string }
     }

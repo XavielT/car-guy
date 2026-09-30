@@ -227,11 +227,13 @@ select t_ok('13i. anon cannot read trips', t_denied('select 1 from carguy.trip')
 reset role;
 
 -- 14 feedback (sql/021 + 021_feedback_storage.shared): anon RPC insert, rate limit,
--- idempotent retry, own rows, admin by (lower-cased) email claim, screenshot bucket.
+-- idempotent retry, own rows, the admin (a role since sql/024), screenshot bucket.
 -- Supabase grants anon insert on storage.objects; the shim only grants authenticated.
 grant select, insert on storage.objects to anon;
 insert into auth.users (id, email, raw_user_meta_data) values
  ('00000000-0000-0000-0000-00000000000e', 'Tecnologia@ConstructoraSD.com', '{"app":"carguy"}');
+-- sql/024: the admin is a role on the profile (set here as the database owner, like the migration does).
+update carguy.profiles set role = 'admin' where user_id = '00000000-0000-0000-0000-00000000000e';
 create or replace function public.t_admin() returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000e","role":"authenticated","email":"Tecnologia@ConstructoraSD.com"}', false);
@@ -296,7 +298,7 @@ select t_as('d');
 select t_ok('14m. other-app account sees no feedback', (select count(*) from carguy.feedback) = 0);
 reset role;
 select t_admin();
-select t_ok('14n. admin (email claim in any case) reads every row and the screenshot object',
+select t_ok('14n. the admin role reads every row and the screenshot object',
   (select count(*) from carguy.feedback) = 6
   and (select count(*) from storage.objects where bucket_id = 'carguy-feedback') = 1);
 select t_ok('14o. admin marks seen/done and writes a note',
@@ -306,6 +308,31 @@ select t_ok('14p. admin cannot rewrite the message or delete rows',
   and t_denied($q$delete from carguy.feedback$q$));
 reset role;
 select t_as('b');
-select t_ok('14q. a non-admin email claim is not the admin',
+select t_ok('14q. an account without the admin role sees only its own (none here)',
   (select count(*) from carguy.feedback) = 0);
+reset role;
+
+-- 15 roles and the admin panel (sql/024)
+select t_as('a');
+select t_ok('15a. a member cannot promote themselves (the role stays member)',
+  t_rows($q$update carguy.profiles set role = 'admin' where user_id = (select auth.uid())$q$) >= 0
+  and (select role from carguy.profiles where user_id = (select auth.uid())) = 'member');
+select t_ok('15b. a member cannot call the admin panel functions',
+  t_raises($q$select carguy.admin_stats()$q$, '%forbidden%')
+  and t_raises($q$select * from carguy.admin_users()$q$, '%forbidden%')
+  and t_raises($q$select carguy.admin_set_role((select auth.uid()), 'premium')$q$, '%forbidden%'));
+reset role;
+select t_admin();
+select t_ok('15c. the admin reads the stats and the user list (counts, never contents)',
+  (carguy.admin_stats() ->> 'users')::int >= 3
+  and (carguy.admin_stats() -> 'roles' ->> 'admin')::int = 1
+  and (select count(*) from carguy.admin_users()) >= 3
+  and (select vehicles from carguy.admin_users() where email = 'a@example.com') >= 1,
+  carguy.admin_stats()::text);
+select t_ok('15d. the admin makes A premium; cannot demote themselves',
+  carguy.admin_set_role((select user_id from carguy.admin_users() where email = 'a@example.com'), 'premium') = 'premium'
+  and t_raises($q$select carguy.admin_set_role((select auth.uid()), 'member')$q$, '%self_demote%'));
+reset role;
+select t_as('a');
+select t_ok('15e. A sees its own new role', (select role from carguy.profiles where user_id = (select auth.uid())) = 'premium');
 reset role;
