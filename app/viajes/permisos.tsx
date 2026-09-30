@@ -31,14 +31,15 @@ export default function TripPermissionsScreen() {
   useEffect(() => {
     void tripsMode().then(setMode);
   }, []);
-  useEffect(() => {
-    if (!pending.current || auto.state !== 'ready') return;
+  const turnOn = async () => {
     pending.current = false;
-    void (async () => {
-      await setTripsMode('auto');
-      setMode('auto');
-      await armAuto();
-    })();
+    await setTripsMode('auto');
+    setMode('auto');
+    await armAuto();
+  };
+  // Back from the system settings with "todo el tiempo" granted.
+  useEffect(() => {
+    if (pending.current && auto.state === 'ready') void turnOn();
   }, [auto.state]);
 
   const enableAuto = async () => {
@@ -53,7 +54,9 @@ export default function TripPermissionsScreen() {
     } catch (error) {
       recordError('trip-permission', error);
     }
-    await auto.check();
+    // Already granted (the prompt returned at once): the state does not change,
+    // so the effect above would not run — turn it on here.
+    if ((await auto.check()) === 'ready') await turnOn();
   };
   const autoOn = mode === 'auto' && auto.state === 'ready';
   const back = () => (router.canGoBack() ? router.back() : router.replace('/viajes/ajustes'));

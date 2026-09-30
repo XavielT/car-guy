@@ -90,6 +90,7 @@ const tripRows = () =>
 beforeAll(async () => {
   const t = new Date().toISOString();
   db.prepare(`INSERT INTO vehicle (id, name, default_fuel_type, created_at, updated_at) VALUES ('v', 'DS3', 'regular', ?, ?)`).run(t, t);
+  db.prepare(`INSERT INTO vehicle (id, name, default_fuel_type, created_at, updated_at) VALUES ('v2', 'AE85', 'regular', ?, ?)`).run(t, t);
   await settingsRepo.set('active_vehicle_id', 'v');
 });
 
@@ -161,6 +162,23 @@ it('"Iniciar viaje" while Automático watches adopts the stream: one manual trip
   await disarmAuto();
 });
 
+it('"Iniciar viaje" on an open automatic trip adopts it with the car and role the user picked', async () => {
+  await settingsRepo.set('trips_enabled', 'auto');
+  await armAuto();
+  const drive = loadDrive(8);
+  await deliver(drive.slice(0, 200));
+  expect(tripRows()[0]).toMatchObject({ source: 'auto', vehicle_id: 'v' });
+  const clock = jest.spyOn(Date, 'now').mockReturnValue(drive[200].t);
+  expect(await startManualTrip('v2', 'pasajero')).toEqual({ ok: true });
+  clock.mockRestore();
+  const row = db.prepare(`SELECT source, vehicle_id, role FROM trip`).get();
+  expect(row).toEqual({ source: 'manual', vehicle_id: 'v2', role: 'pasajero' });
+  expect(getLiveTrip()).toMatchObject({ vehicleId: 'v2', role: 'pasajero' });
+  expect(tripRows()).toHaveLength(1);
+  await stopTrip();
+  await disarmAuto();
+});
+
 it('leaving Automático closes an open automatic trip instead of leaving it hanging', async () => {
   await settingsRepo.set('trips_enabled', 'auto');
   await armAuto();
@@ -185,8 +203,16 @@ it('a background switch that fails falls back to the single configuration for go
   await deliver(loadDrive(8).slice(0, 300));
   (AppState as { currentState: string }).currentState = was;
   expect(await settingsRepo.get('trips_single_config', 0)).toBe(1);
-  expect(mockLoc.starts.at(-1)).toMatchObject({ accuracy: 4, timeInterval: 2000 });
+  // No retry from the background (it would be refused the same way)…
+  const attempts = mockLoc.starts.length;
   expect(tripRows()[0]?.status).toBe('recording');
+  // …and no more switches once single is on, even from a fresh context.
+  const { switchIntensity } = jest.requireActual('@/lib/trips/auto') as typeof import('@/lib/trips/auto');
+  await switchIntensity('watching');
+  expect(mockLoc.starts.length).toBe(attempts);
+  // The next time the app is in front, the single configuration starts.
+  expect(await armAuto()).toBe(true);
+  expect(mockLoc.starts.at(-1)).toMatchObject({ accuracy: 4, timeInterval: 2000 });
   await settingsRepo.set('trips_single_config', 0);
   await disarmAuto();
 });

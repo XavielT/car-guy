@@ -74,8 +74,17 @@ begin
   if exists (select 1 from carguy.feedback where id = v_id and device_id = v_device) then
     return v_id;
   end if;
+  -- device_id is the client's own word, so it only paces an honest phone. What
+  -- a script cannot reset: the account (signed in) and a ceiling on anonymous
+  -- sends for everyone together — a flood fills the ceiling, not the inbox.
   if (select count(*) from carguy.feedback
-      where device_id = v_device and created_at > now() - interval '1 hour') >= 5 then
+      where device_id = v_device and created_at > now() - interval '1 hour') >= 5
+     or (auth.uid() is not null and (select count(*) from carguy.feedback
+      where user_id = auth.uid() and created_at > now() - interval '1 hour') >= 5)
+     or (auth.uid() is null and (select count(*) from carguy.feedback
+      where user_id is null and created_at > now() - interval '1 hour') >= 30)
+     or (auth.uid() is null and (select count(*) from carguy.feedback
+      where user_id is null and created_at > now() - interval '1 day') >= 100) then
     raise exception 'rate_limited' using errcode = 'P0001';
   end if;
   insert into carguy.feedback (id, kind, message, app_version, build, platform, os_version, device, screen,

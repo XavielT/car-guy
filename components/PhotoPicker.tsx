@@ -5,7 +5,7 @@ import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, View } from 
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { es } from '@/lib/i18n/es';
-import { recordError } from '@/lib/diagnostics';
+import { recordError, recordReportable } from '@/lib/diagnostics';
 import { pickCandidates, storePhoto, type Candidate } from '@/lib/media';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -60,7 +60,7 @@ export function PhotoPicker({
       if (saved && mounted.current) onChange(saved.id);
     } catch (error) {
       // The raw text (a Kotlin stack, often) is for the diagnostics, never the screen.
-      recordError('photo', error);
+      recordReportable('photo', error);
       if (!mounted.current) return;
       Alert.alert(es.common.photoErrorTitle, es.common.photoErrorRetry, [
         { text: es.common.cancel, style: 'cancel' },
@@ -78,7 +78,7 @@ export function PhotoPicker({
       // <input type="file"> and clicks it, which only works inside a gesture.
       [candidate] = await pickCandidates({ camera });
     } catch (error) {
-      recordError('photo-pick', error);
+      recordReportable('photo-pick', error);
       Alert.alert(es.common.photoErrorTitle, es.common.photoPickError);
       return;
     }

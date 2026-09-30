@@ -109,3 +109,8 @@ export function createOutbox(deps: {
 
   return { read, enqueue, flush };
 }
+
+/** Only a local file path is worth keeping in the outbox (a web blob:/data: URL dies or bloats storage). */
+export function persistableUri(uri: string | null): string | null {
+  return uri && /^file:/i.test(uri) ? uri : null;
+}

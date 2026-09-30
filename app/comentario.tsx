@@ -129,7 +129,7 @@ export default function ComentarioScreen() {
             {queued ? es.feedback.queuedTitle : es.feedback.thanksTitle}
           </T>
           <T face="body" accessibilityLiveRegion="polite" style={[styles.doneBody, { color: theme.text.secondary }]}>
-            {queued ? es.feedback.queued : es.feedback.thanks}
+            {queued ? (result.screenshotDropped ? es.feedback.queuedNoShot : es.feedback.queued) : es.feedback.thanks}
           </T>
           {result.status === 'sent' && result.screenshot === 'failed' ? (
             <T face="body" style={[styles.doneBody, { color: theme.text.muted, fontSize: 13 }]}>

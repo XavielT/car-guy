@@ -254,8 +254,12 @@ export async function vehicleStats(
 }
 
 /** "Lo que me ha costado" for one vehicle — the same figure `vehicleStats` carries. */
-export async function vehicleOwnershipCost(vehicleId: string, today: string = todayIso()): Promise<OwnershipCost | null> {
-  const vehicle = await vehicles.getById(vehicleId);
+export async function vehicleOwnershipCost(
+  vehicleId: string,
+  today: string = todayIso(),
+  row?: Vehicle,
+): Promise<OwnershipCost | null> {
+  const vehicle = row ?? (await vehicles.getById(vehicleId));
   if (!vehicle || vehicle.deletedAt) return null;
   const [spend, odoReadings, extras] = await Promise.all([spendRows(vehicleId), readings(vehicleId), costExtras(vehicleId)]);
   return ownershipCost({ vehicle, spend, readings: odoReadings, ...extras }, today);
@@ -268,7 +272,7 @@ export async function vehicleOwnershipCost(vehicleId: string, today: string = to
 export async function garageOwnershipCost(today: string = todayIso()): Promise<GarageCost> {
   const list = (await vehicles.list(undefined, { orderBy: 'sort_order', direction: 'ASC' })).filter((v) => !v.deletedAt);
   const entries = await Promise.all(
-    list.map(async (v) => ({ vehicleId: v.id, name: v.name, cost: await vehicleOwnershipCost(v.id, today) })),
+    list.map(async (v) => ({ vehicleId: v.id, name: v.name, cost: await vehicleOwnershipCost(v.id, today, v) })),
   );
   return garageCost(
     entries.filter((e): e is { vehicleId: string; name: string; cost: OwnershipCost } => e.cost != null),

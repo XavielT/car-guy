@@ -12,7 +12,8 @@
  * open and on every return to the foreground; a terminated app is not
  * restarted by the OS. Switching intensity from the background only
  * reconfigures the running service; if that throws on a phone, the phone gets
- * ADR-27's fallback — one High / 2 s / 10 m configuration from then on.
+ * ADR-27's fallback — one High / 2 s / 10 m configuration from then on,
+ * started by the next armAuto() in the foreground.
  */
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
@@ -134,11 +135,14 @@ export async function disarmAuto(): Promise<void> {
 /**
  * The machine asked for another intensity (a trip opened or closed). From the
  * foreground this is a normal start; from the background it reconfigures the
- * running service — and if the phone refuses, it switches to the single
- * configuration for good (ADR-27) and says so in diagnostics.
+ * running service — and if the phone refuses, the phone switches to the single
+ * configuration for good (ADR-27), started by the next foreground armAuto().
  */
 export async function switchIntensity(to: 'watching' | 'recording'): Promise<void> {
   if (Platform.OS === 'web') return;
+  // One configuration for both phases: there is nothing to switch (and a fresh
+  // background context, where `current` is unknown, must not restart the service).
+  if (await tripsSingleConfig()) return;
   const intensity = await wanted(to === 'recording' ? 'recording' : 'idle');
   if (current === intensity) return;
   try {
@@ -149,12 +153,9 @@ export async function switchIntensity(to: 'watching' | 'recording'): Promise<voi
     const background = AppState.currentState !== 'active';
     recordError(background ? 'trip-switch-bg' : 'trip-switch', error);
     if (!background) return;
+    // Retrying from the background would hit the same refusal. The service keeps
+    // whatever it runs now; the next armAuto() (app in front) starts the single one.
     await setTripsSingleConfig(true);
-    try {
-      await Location.startLocationUpdatesAsync(TRIP_TASK, TASK_OPTIONS.single);
-      current = 'single';
-    } catch (again) {
-      recordError('trip-switch-single', again);
-    }
+    current = null;
   }
 }

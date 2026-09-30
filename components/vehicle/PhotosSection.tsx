@@ -7,7 +7,7 @@ import { T } from '@/components/T';
 import { GhostButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
-import { recordError } from '@/lib/diagnostics';
+import { recordError, recordReportable } from '@/lib/diagnostics';
 import { addPhotos, movePhoto, removePhoto, setCover, type Gallery } from '@/lib/domain/gallery';
 import { es } from '@/lib/i18n/es';
 import { pickCandidates, storePhoto, type Candidate } from '@/lib/media';
@@ -60,7 +60,7 @@ export function PhotosSection({
         const saved = await storePhoto(candidate, { camera, ownerTable: 'vehicle', ownerId: vehicleId, vehicleId });
         if (saved && mounted.current) onChange(addPhotos(latest.current, [saved.id]));
       } catch (error) {
-        recordError('photo', error);
+        recordReportable('photo', error);
         failed.push(candidate);
       } finally {
         if (mounted.current) setBusy((n) => n - 1);
@@ -81,7 +81,7 @@ export function PhotosSection({
       // Straight from the press: on web the picker needs the gesture.
       candidates = await pickCandidates({ camera, multiple: !camera });
     } catch (error) {
-      recordError('photo-pick', error);
+      recordReportable('photo-pick', error);
       Alert.alert(es.common.photoErrorTitle, es.common.photoPickError);
       return;
     }

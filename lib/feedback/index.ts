@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, type Href } from 'expo-router';
 
 import { getDeviceId, uuidv4 } from './deviceId';
-import { createOutbox } from './outbox';
+import { createOutbox, persistableUri } from './outbox';
 import { buildPayload, type FeedbackContext, type FeedbackDraft } from './payload';
 import { deliverNow, deliverQueued } from './send';
 
@@ -19,7 +19,7 @@ export const outbox = createOutbox({ storage: AsyncStorage, deliver: deliverQueu
 
 export type SendOutcome =
   | { status: 'sent'; screenshot: 'none' | 'ok' | 'failed' }
-  | { status: 'queued' }
+  | { status: 'queued'; screenshotDropped: boolean }
   | { status: 'rate_limited' }
   | { status: 'error' };
 
@@ -31,9 +31,13 @@ export async function sendFeedback(draft: FeedbackDraft, context: FeedbackContex
       return { status: 'sent', screenshot };
     case 'rate_limited':
       return { status: 'rate_limited' };
-    case 'network':
-      await outbox.enqueue({ payload, screenshotUri, queuedAt: new Date().toISOString() });
-      return { status: 'queued' };
+    case 'network': {
+      // A file on the phone survives until the next launch; a web blob:/data: URL
+      // does not (or would fill localStorage), so the queued comment goes without it.
+      const keep = persistableUri(screenshotUri);
+      await outbox.enqueue({ payload, screenshotUri: keep, queuedAt: new Date().toISOString() });
+      return { status: 'queued', screenshotDropped: screenshotUri != null && keep == null };
+    }
     default:
       return { status: 'error' };
   }

@@ -20,6 +20,8 @@ export async function loadState(): Promise<TripMachineState> {
 export type Applied = {
   state: TripMachineState;
   opened?: string;
+  /** An open automatic trip that manual_start took over. */
+  adopted?: string;
   closed?: { tripId: string; discarded: boolean; distanceM: number; durationS: number; reason?: 'distance' | 'duration'; trip: Trip | null };
   switchTo?: 'watching' | 'recording';
 };
@@ -58,7 +60,11 @@ export async function applyStep(
     out.opened = r.open.tripId;
   }
   if (r.merge) await trips.upsert({ id: r.merge.tripId, status: 'recording', endedAt: null, segments: r.merge.segments });
-  if (r.adopt) await trips.upsert({ id: r.adopt.tripId, source: 'manual' });
+  if (r.adopt) {
+    // "Iniciar viaje" names the car and the role: they win over the automatic guess.
+    await trips.upsert({ id: r.adopt.tripId, source: 'manual', ...(ctx.vehicleId ? { vehicleId: ctx.vehicleId, role: ctx.role } : {}) });
+    out.adopted = r.adopt.tripId;
+  }
   if (ctx.flushPoints !== false && r.points.length) await tripPoints.insertBatch(r.points as TripPoint[]);
   await saveTripStateJson(JSON.stringify(r.state));
   if (r.close) out.closed = await finalizeTrip(r.close);

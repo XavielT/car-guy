@@ -2583,6 +2583,7 @@ export const es = {
     screenshotFailed: 'El comentario llegó; la captura no se pudo subir.',
     queuedTitle: 'Guardado',
     queued: 'Sin conexión. Lo guardé y se envía solo la próxima vez que abras la app.',
+    queuedNoShot: 'Sin conexión. Guardé el mensaje y se envía solo la próxima vez que abras la app; la captura no se puede guardar en el navegador.',
     rateLimitedTitle: 'Gracias',
     rateLimited: 'Ya enviaste varios hoy, gracias. Mañana más.',
     errorTitle: 'No se envió',

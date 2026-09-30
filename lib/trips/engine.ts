@@ -20,7 +20,7 @@ import type { Trip } from '../db/types';
 import { applyStep, loadState, type Applied } from './finalize';
 import { displayKmh, effectiveSpeed, haversine, type Fix } from './geo';
 import { resolveTripCfg, stepAll, type TripCfg, type TripInput, type TripMachineState } from './machine';
-import { getLiveTrip, reduceLive, setLiveTrip } from './liveStore';
+import { getLiveTrip, reduceLive, setLiveTrip, type LiveTrip } from './liveStore';
 import { tripsMode } from './settings';
 
 /** Who a trip opened by this feed belongs to. Auto trips: the active vehicle, as driver. */
@@ -75,7 +75,7 @@ async function defaultVehicleId(): Promise<string | null> {
  * the machine opens with no vehicle to put it on (empty garage) is not opened:
  * the inputs are dropped and the state stays as it was.
  */
-export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}): Promise<FeedResult> {
+export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}, opts: { liveFixes?: boolean } = {}): Promise<FeedResult> {
   return serial(async () => {
     const inputs = Array.isArray(input) ? input : [input];
     const [state, cfg] = await Promise.all([loadState(), currentTripCfg()]);
@@ -93,7 +93,8 @@ export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}): Promise
       if (applied.switchTo) out.switchTo = applied.switchTo;
     }
 
-    await syncLive(out.state, out.applied, inputs.filter(isFix), ctx);
+    // The foreground watcher moves the needle per fix itself (pushLiveFix) and feeds in batches.
+    await syncLive(out.state, out.applied, opts.liveFixes === false ? [] : inputs.filter(isFix), ctx);
     return out;
   });
 }
@@ -121,6 +122,9 @@ async function syncLive(state: TripMachineState, applied: Applied[], fixes: Fix[
   }
   const open = state.trip;
   let live = getLiveTrip();
+  if (live && live.tripId === open.id && ctx.vehicleId && applied.some((a) => a.adopted === open.id)) {
+    live = { ...live, vehicleId: ctx.vehicleId, role: ctx.role ?? live.role };
+  }
   if (!live || live.tripId !== open.id) {
     const row = applied.some((a) => a.opened === open.id) ? null : await trips.getById(open.id);
     live = {
@@ -137,17 +141,27 @@ async function syncLive(state: TripMachineState, applied: Applied[], fixes: Fix[
     };
     prevFix = null;
   }
-  for (const fix of fixes) {
-    const speedMs = effectiveSpeed(prevFix, fix);
-    if (speedMs != null) {
-      const stepM = prevFix ? haversine(prevFix, fix) : 0;
-      // Jitter under the accuracy radius is not distance.
-      const jitter = stepM < Math.max(fix.acc ?? 0, prevFix?.acc ?? 0) && speedMs < 1;
-      live = reduceLive(live, { t: fix.t, speedKmh: displayKmh(speedMs), accM: fix.acc, stepM: jitter ? 0 : stepM, moving: speedMs >= MOVING_MS });
-    }
-    prevFix = fix;
-  }
+  for (const fix of fixes) live = advanceLive(live, fix);
   setLiveTrip(live);
+}
+
+function advanceLive(live: LiveTrip, fix: Fix): LiveTrip {
+  const speedMs = effectiveSpeed(prevFix, fix);
+  let next = live;
+  if (speedMs != null) {
+    const stepM = prevFix ? haversine(prevFix, fix) : 0;
+    // Jitter under the accuracy radius is not distance.
+    const jitter = stepM < Math.max(fix.acc ?? 0, prevFix?.acc ?? 0) && speedMs < 1;
+    next = reduceLive(live, { t: fix.t, speedKmh: displayKmh(speedMs), accM: fix.acc, stepM: jitter ? 0 : stepM, moving: speedMs >= MOVING_MS });
+  }
+  prevFix = fix;
+  return next;
+}
+
+/** One fix onto the cluster right away, without the machine (it gets the fix in the next batch). */
+export function pushLiveFix(fix: Fix): void {
+  const live = getLiveTrip();
+  if (live) setLiveTrip(advanceLive(live, fix));
 }
 
 /** Puts a trip that is recording (opened in the background, or before a restart) back on the cluster. */

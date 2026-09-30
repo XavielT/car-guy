@@ -63,8 +63,14 @@ export default function CifrasScreen() {
     };
   }, [vehicleId, period, data]);
 
-  // The garage total is lifetime and period-free, so it reloads with the data only.
+  // The garage total is lifetime and period-free, so it reloads with the data only —
+  // and only when there is a garage to total (the card needs two cars).
+  const garageSize = data.vehicles.length;
   useEffect(() => {
+    if (garageSize < 2) {
+      setGarage(null);
+      return;
+    }
     let cancelled = false;
     garageOwnershipCost()
       .then((result) => {
@@ -74,7 +80,7 @@ export default function CifrasScreen() {
     return () => {
       cancelled = true;
     };
-  }, [data]);
+  }, [data, garageSize]);
 
   // Economy is a fill-up series, not a spend series, so it comes from the store
   // rather than from the stats query — and from computeEconomy, which drops the

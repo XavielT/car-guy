@@ -3,7 +3,7 @@
  * a send whose answer was lost is repeated with the same id, and the server
  * (carguy.submit_feedback, sql/021: same id → no-op) never gets two rows.
  */
-import { createOutbox, OUTBOX_KEY, OUTBOX_MAX_AGE_MS, type DeliverResult, type OutboxItem } from '@/lib/feedback/outbox';
+import { createOutbox, persistableUri, OUTBOX_KEY, OUTBOX_MAX_AGE_MS, type DeliverResult, type OutboxItem } from '@/lib/feedback/outbox';
 import type { FeedbackPayload } from '@/lib/feedback/payload';
 
 function memoryStorage() {
@@ -101,4 +101,11 @@ describe('outbox', () => {
     const outbox = createOutbox({ storage, deliver: async () => ({ ok: true }), now: () => NOW });
     expect(await outbox.flush()).toEqual({ sent: 0, kept: 0, dropped: 0 });
   });
+});
+
+it('the outbox keeps a phone file for the screenshot, never a web blob:/data: URL', () => {
+  expect(persistableUri('file:///data/user/0/cache/shot.jpg')).toBe('file:///data/user/0/cache/shot.jpg');
+  expect(persistableUri('blob:https://car-guy.vercel.app/1234')).toBeNull();
+  expect(persistableUri('data:image/jpeg;base64,AAAA')).toBeNull();
+  expect(persistableUri(null)).toBeNull();
 });

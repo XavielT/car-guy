@@ -22,14 +22,23 @@ import { Platform } from 'react-native';
 import type { Trip } from '../db/types';
 import { recordError } from '../diagnostics';
 import { isAutoArmed, switchIntensity } from './auto';
-import { feed, machineState, type FeedResult } from './engine';
+import { feed, machineState, pushLiveFix, type FeedResult } from './engine';
+import type { Fix } from './geo';
 import { getLiveTrip } from './liveStore';
 import { fixFromLocation } from './machine';
 
 /** A parked phone sends no fixes (distanceInterval): a tick keeps the clock honest. */
 const TICK_MS = 20_000;
+/** Fixes reach the machine (and SQLite) in batches; the needle moves per fix. */
+const FLUSH_MS = 5000;
+const FLUSH_FIXES = 20;
 
-type Watcher = { sub: Location.LocationSubscription | null; tickTimer: ReturnType<typeof setInterval> | null };
+type Watcher = {
+  sub: Location.LocationSubscription | null;
+  tickTimer: ReturnType<typeof setInterval> | null;
+  flushTimer: ReturnType<typeof setInterval> | null;
+  buffer: Fix[];
+};
 
 let watcher: Watcher | null = null;
 
@@ -52,23 +61,38 @@ async function ensurePermission(): Promise<StartResult | null> {
   return null;
 }
 
+function flush(w: Watcher): Promise<unknown> {
+  if (!w.buffer.length) return Promise.resolve();
+  const batch = w.buffer.splice(0, w.buffer.length);
+  return feed(batch, {}, { liveFixes: false }).catch((e) => recordError('trip', e));
+}
+
 async function startWatcher(): Promise<void> {
-  const w: Watcher = { sub: null, tickTimer: null };
+  const w: Watcher = { sub: null, tickTimer: null, flushTimer: null, buffer: [] };
   watcher = w;
   w.sub = await Location.watchPositionAsync(
     { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 3 },
-    (loc) => void feed(fixFromLocation(loc)).catch((e) => recordError('trip', e)),
+    (loc) => {
+      const fix = fixFromLocation(loc);
+      pushLiveFix(fix);
+      w.buffer.push(fix);
+      if (w.buffer.length >= FLUSH_FIXES) void flush(w);
+    },
     (reason) => recordError('trip-gps', reason),
   );
+  w.flushTimer = setInterval(() => void flush(w), FLUSH_MS);
   w.tickTimer = setInterval(() => void feed({ type: 'tick', t: Date.now() }).catch((e) => recordError('trip', e)), TICK_MS);
 }
 
-function stopWatcher(): void {
+/** Stops the GPS; the fixes still buffered go to the machine first. */
+async function stopWatcher(): Promise<void> {
   const w = watcher;
   watcher = null;
   if (!w) return;
   w.sub?.remove();
   if (w.tickTimer) clearInterval(w.tickTimer);
+  if (w.flushTimer) clearInterval(w.flushTimer);
+  await flush(w);
 }
 
 export async function startManualTrip(vehicleId: string, role: Trip['role'] = 'conductor'): Promise<StartResult> {
@@ -86,7 +110,7 @@ export async function startManualTrip(vehicleId: string, role: Trip['role'] = 'c
     return { ok: true };
   } catch (error) {
     recordError('trip-start', error);
-    stopWatcher();
+    await stopWatcher();
     return { ok: false, reason: 'error' };
   }
 }
@@ -108,7 +132,7 @@ function toStop(result: FeedResult): StopResult {
 
 /** "Terminar": ends whatever is recording — a manual trip or an automatic one. */
 export async function stopTrip(): Promise<StopResult> {
-  stopWatcher();
+  await stopWatcher();
   try {
     const result = await feed({ type: 'manual_stop', t: Date.now() });
     if (await isAutoArmed()) await switchIntensity('watching');

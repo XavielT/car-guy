@@ -35,6 +35,7 @@
     { "source": "/documento/:id", "destination": "/documento/[id]" },
     { "source": "/inspeccion/:id", "destination": "/inspeccion/[id]" },
     { "source": "/recordatorio/:id", "destination": "/recordatorio/[id]" },
+    { "source": "/admin/comentarios/:id", "destination": "/admin/comentarios/[id]" },
     { "source": "/vehiculo/:id", "destination": "/vehiculo/[id]" }
   ],
   "headers": [

@@ -233,6 +233,8 @@ select t_ok('14f. …but the retry of an already-sent id still answers',
   carguy.submit_feedback('{"id":"11111111-1111-4111-8111-111111111111","kind":"bug","message":"Se cerró al guardar","device_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"}'::jsonb)
   = '11111111-1111-4111-8111-111111111111'::uuid);
 -- screenshot: only <device>/<id>.jpg of a fresh row without one
+select t_ok('14f2. a flood from fresh device ids hits the anonymous ceiling (30 an hour)',
+  t_raises($q$select carguy.submit_feedback(jsonb_build_object('kind','idea','message','Inundación ' || g,'device_id',gen_random_uuid()::text)) from generate_series(1, 40) g$q$, '%rate_limited%'));
 select t_ok('14g. anon uploads the screenshot of its row, nothing else',
   not t_denied($q$insert into storage.objects (bucket_id, name) values ('carguy-feedback', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/11111111-1111-4111-8111-111111111111.jpg')$q$)
   and t_denied($q$insert into storage.objects (bucket_id, name) values ('carguy-feedback', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/22222222-2222-4222-8222-222222222222.jpg')$q$)
