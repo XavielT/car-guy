@@ -170,7 +170,7 @@ function RootContent({ loaded, mounted }: { loaded: boolean; mounted: boolean })
             options={{ enableChangeListener: true }}
             useSuspense>
             <StoreProvider>
-              <Shell key={resolved} />
+              <ShellInLanguage />
             </StoreProvider>
           </SQLiteProvider>
         </Suspense>
@@ -242,6 +242,18 @@ function useNotifications() {
 /** The boot frame: Inicio's outline, still (ADR-40) — no theme, navigator or database yet. */
 function Booting() {
   return <TabsBootSkeleton />;
+}
+
+/**
+ * The navigator, remounted on a language switch so every screen and header
+ * re-renders in the new language. It subscribes itself on purpose: expo-sqlite's
+ * SQLiteProvider is memoized with a comparator that ignores `children`, so a
+ * key set from RootContent above it never reaches the tree (found on the Redmi:
+ * the tab bar stayed in the old language).
+ */
+function ShellInLanguage() {
+  const { resolved } = useLanguage();
+  return <Shell key={resolved} />;
 }
 
 function Shell() {
