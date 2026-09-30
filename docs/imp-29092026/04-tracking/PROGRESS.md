@@ -710,6 +710,22 @@ unrelated dialogs after background errors (now explicit `recordReportable`, neut
 outbox kept dead blob: screenshots; missing rewrite for /admin/comentarios/:id; Cifras recomputed every
 car's lifetime cost on each change.
 
+### Redmi run (2026-09-30, test build, Android 13 / MIUI)
+- ✅ Cold start: rest splash → sweep → fade into Inicio; no white frame, no double icon, cluster does not
+  sweep again (`docs/qa/imp-29092026-phase-5b-redmi-*.png`).
+- ✅ Permisos: foreground → Android's "Allow all the time" page → back → Automático armed by itself; MIUI
+  card on this phone; foreground service in #E10600.
+- ✅ Background + screen off, GPX replayed through `cmd location` test providers: a trip opened by itself;
+  Iniciar viaje adopted it; the service survived the swipe from Recents (same process, still foreground).
+- Found and fixed: Automático never asked POST_NOTIFICATIONS (service notice invisible); cluster
+  double-counted the pickup batch; cluster added GPS teleports (179 km); launch overlay stuck on a root
+  rebuilt mid-session (now once per process + 4 s safety).
+- ⚠ The saved mock trip reads 18.6 km for 5.65 km replayed: Play Services fused the fake GPS with the
+  phone's real Wi-Fi/cell position and the track alternates between them slowly enough (≈64 m/s) to pass
+  the 70 m/s jump filter (`…-trip-mock.png`). A test artifact; the real drive decides whether the filter
+  needs a second rule (e.g. reject A→B→A returns).
+- Not possible here: the 300 m walk and a real drive (Xaviel).
+
 ### Left for the release (Xaviel present)
 1. Redmi on USB → install `releases/car-guy-test.apk` (5B build) → 5A walk test, 5B background/kill/re-arm,
    Phase 6 cold start (no flash, one sweep), garage scroll.
