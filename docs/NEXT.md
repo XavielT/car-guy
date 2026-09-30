@@ -6,6 +6,14 @@ still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
+## Cycle 4 — IMP 30092026 (Car Guy 2.4 "Tōge") — started 2026-09-30
+
+Seventeen notes from Xaviel's use of 2.2/2.3 → fix pack 2.3.1 (fill-up detail + no duplicates, stations,
+reserve light, "≈ por echada", routes that keep their points), then es/en + skeletons, MapLibre + Modo
+conducir behind a centre button, the car's memory (events, "lo que uso", tires, fuel prices + MICM), profile /
+welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), log:
+[`imp-30092026/04-tracking/PROGRESS.md`](imp-30092026/04-tracking/PROGRESS.md).
+
 ## Cycle 3 — IMP 29092026 (Car Guy 2.2 "Kaidō") — released 2026-09-30
 
 From v2.1.2: nineteen notes from Xaviel's use of 2.1.x → hotfix 2.1.3, schema v6 (liters canonical),

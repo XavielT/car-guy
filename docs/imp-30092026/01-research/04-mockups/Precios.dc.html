@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>2.4 · Precios con historial</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+JP:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Rajdhani',sans-serif;background:#121212;color:#EDEDED}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #121212; color: #EDEDED; display: flex; flex-direction: column; gap: 12px; padding: 22px 20px 24px 20px; overflow: hidden; position: relative">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">COMBUSTIBLE <span style="font-family: 'Noto Sans JP', sans-serif; color: #8C8C8C; letter-spacing: 0; font-size: 10px">燃料</span></div>
+      <div style="font-family: 'Saira Condensed', sans-serif; font-weight: 800; font-size: 34px; line-height: 1">PRECIOS</div>
+    </div>
+    <span style="padding: 8px 12px; border-radius: 10px; background: #FFB300; color: #121212; font-family: 'Saira Condensed', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.1em">+ PRECIO</span>
+  </div>
+
+  <!-- board -->
+  <div style="border-radius: 16px; border: 1px solid #2A2A2A; background: #171717; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">ESTA SEMANA</div>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #121212; background: #FFB300; padding: 3px 7px; border-radius: 4px">MICM · 25 SEP – 2 OCT</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; font-family: 'JetBrains Mono', monospace">
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #2A2A2A; padding: 6px 0"><span style="font-family: 'Rajdhani', sans-serif; color: #B3B3B3">Premium</span><span style="font-weight: 700">290.10</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #2A2A2A; padding: 6px 0"><span style="font-family: 'Rajdhani', sans-serif; color: #B3B3B3">Regular</span><span style="font-weight: 700">272.50</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #2A2A2A; padding: 6px 0"><span style="font-family: 'Rajdhani', sans-serif; color: #B3B3B3">Gasoil Óptimo</span><span style="font-weight: 700">239.10</span></div>
+      <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #2A2A2A; padding: 6px 0"><span style="font-family: 'Rajdhani', sans-serif; color: #B3B3B3">Gasoil Regular</span><span style="font-weight: 700">221.60</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 0"><span style="font-family: 'Rajdhani', sans-serif; color: #B3B3B3">GLP</span><span style="font-weight: 700">132.60</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 0"><span style="font-family: 'Rajdhani', sans-serif; color: #B3B3B3">GNV (m³)</span><span style="font-weight: 700">43.97</span></div>
+    </div>
+    <div style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">RD$ por galón · importado el sáb 26 sep · <span style="color: #FFB300">Importar ahora</span> · <span style="color: #FFB300">Editar</span></div>
+  </div>
+
+  <!-- chart -->
+  <div style="border-radius: 16px; border: 1px solid #2A2A2A; background: #171717; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">PREMIUM · 12 MESES</div>
+      <div style="display: flex; gap: 6px"><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #121212; background: #FFB300; padding: 3px 7px; border-radius: 4px">PREMIUM</span><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 3px 7px; border-radius: 4px">REGULAR</span><span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 3px 7px; border-radius: 4px">GASOIL</span></div>
+    </div>
+    <svg width="330" height="130" viewBox="0 0 330 130">
+      <g stroke="#2A2A2A" stroke-width="1"><line x1="30" y1="20" x2="330" y2="20"/><line x1="30" y1="60" x2="330" y2="60"/><line x1="30" y1="100" x2="330" y2="100"/></g>
+      <g font-family="JetBrains Mono" font-size="9" fill="#8C8C8C"><text x="0" y="24">300</text><text x="0" y="64">280</text><text x="0" y="104">260</text></g>
+      <path d="M 30 90 L 60 90 L 90 78 L 120 78 L 150 70 L 180 70 L 210 60 L 240 52 L 270 52 L 300 40 L 330 36" fill="none" stroke="#FFB300" stroke-width="2.5" stroke-linejoin="round"/>
+      <g fill="#FFB300"><circle cx="330" cy="36" r="3.5"/></g>
+      <g fill="#EDEDED" stroke="#121212" stroke-width="1"><circle cx="150" cy="70" r="3.5"/><circle cx="240" cy="52" r="3.5"/></g>
+      <g font-family="JetBrains Mono" font-size="9" fill="#8C8C8C"><text x="30" y="122">oct</text><text x="150" y="122">feb</text><text x="270" y="122">jul</text><text x="316" y="122">sep</text></g>
+    </svg>
+    <div style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">— MICM (semanal) · <span style="color:#EDEDED">●</span> tus registros (estación / recibo) · +6.3 % en el año</div>
+  </div>
+
+  <!-- history -->
+  <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #8C8C8C">HISTORIAL</div>
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; padding: 10px 12px">
+      <div style="display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-weight: 700; font-size: 14px">Premium · RD$ 292.00</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">jue 25 sep · Petronan · recibo</span></div>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 3px 7px; border-radius: 4px">RECIBO</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; padding: 10px 12px">
+      <div style="display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-weight: 700; font-size: 14px">Todos · semana 19–25 sep</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">importado sáb 20 sep · PDF del aviso</span></div>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #121212; background: #FFB300; padding: 3px 7px; border-radius: 4px">MICM</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-radius: 12px; border: 1px solid #2A2A2A; background: #1B1B1B; padding: 10px 12px">
+      <div style="display: flex; flex-direction: column"><span style="font-family: 'Saira Condensed', sans-serif; font-weight: 700; font-size: 14px">Regular · RD$ 270.00</span><span style="font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #8C8C8C">lun 15 sep · Sunix · estación</span></div>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.12em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 3px 7px; border-radius: 4px">ESTACIÓN</span>
+    </div>
+  </div>
+
+  <!-- new entry sheet (mini) -->
+  <div style="margin-top: auto; border-radius: 16px 16px 0 0; border: 1px solid #2A2A2A; border-bottom: none; background: #171717; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+    <div style="font-family: 'Saira Condensed', sans-serif; font-size: 11px; letter-spacing: 0.18em; color: #FFB300">NUEVO PRECIO</div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #121212; background: #FFB300; padding: 4px 8px; border-radius: 999px">MICM</span>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 4px 8px; border-radius: 999px">ESTACIÓN</span>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 4px 8px; border-radius: 999px">RECIBO</span>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 4px 8px; border-radius: 999px">APP</span>
+      <span style="font-family: 'Saira Condensed', sans-serif; font-size: 10px; letter-spacing: 0.1em; color: #B3B3B3; border: 1px solid #3A3A3A; padding: 4px 8px; border-radius: 999px">OTRO</span>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <div style="flex: 1; border-radius: 10px; border: 1px solid #3A3A3A; background: #1B1B1B; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #EDEDED">📅 25 sep 2026</div>
+      <div style="flex: 1; border-radius: 10px; border: 1px solid #3A3A3A; background: #1B1B1B; padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #8C8C8C">RD$ 0.00</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
