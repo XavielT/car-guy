@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { recordError } from '../diagnostics';
 import { withDevHint } from '../diagnosticsMode';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 import { checkMembership, isKnownMember, rememberMember } from './membership';
 import { getSupabase, isCloudConfigured } from './supabase';
 
@@ -26,8 +26,8 @@ export type AuthResult = { ok: true } | { ok: false; message: string };
 const MIN_PASSWORD = 8;
 
 function notConfigured(): AuthResult {
-  recordError('auth', es.dev.notConfigured);
-  return { ok: false, message: withDevHint(es.account.notConfigured, es.dev.notConfigured) };
+  recordError('auth', t.dev.notConfigured);
+  return { ok: false, message: withDevHint(t.account.notConfigured, t.dev.notConfigured) };
 }
 
 /**
@@ -41,37 +41,37 @@ function notConfigured(): AuthResult {
 export function translateAuthError(raw: string): string {
   const message = raw.toLowerCase();
 
-  if (message.includes('invalid login credentials')) return es.account.errors.invalidCredentials;
+  if (message.includes('invalid login credentials')) return t.account.errors.invalidCredentials;
   // x-core has email confirmation off (it is shared with Music Hub), so this
   // should not happen — but if the setting ever changes, say what to do.
-  if (message.includes('email not confirmed')) return es.account.errors.emailNotConfirmed;
+  if (message.includes('email not confirmed')) return t.account.errors.emailNotConfirmed;
   if (message.includes('already registered') || message.includes('already been registered')) {
-    return es.account.errors.userExists;
+    return t.account.errors.userExists;
   }
   if (message.includes('password should be') || message.includes('weak password')) {
-    return es.account.errors.weakPassword;
+    return t.account.errors.weakPassword;
   }
   if (message.includes('email address') && message.includes('invalid')) {
-    return es.account.errors.invalidEmail;
+    return t.account.errors.invalidEmail;
   }
   if (message.includes('rate limit') || message.includes('too many')) {
-    return es.account.errors.rateLimited;
+    return t.account.errors.rateLimited;
   }
   if (
     message.includes('network') ||
     message.includes('fetch') ||
     message.includes('failed to fetch')
   ) {
-    return es.account.errors.network;
+    return t.account.errors.network;
   }
   // The invite trigger on x-core. A Car Guy signup should never see it — if it
   // does, sql/001 has not been applied: plain to the admin, not to the user.
   if (message.includes('invite-only')) {
-    recordError('auth', es.dev.inviteOnly);
-    return withDevHint(es.account.errors.inviteOnly, es.dev.inviteOnly);
+    recordError('auth', t.dev.inviteOnly);
+    return withDevHint(t.account.errors.inviteOnly, t.dev.inviteOnly);
   }
 
-  return es.account.errors.generic;
+  return t.account.errors.generic;
 }
 
 export async function signUp(
@@ -82,7 +82,7 @@ export async function signUp(
   const supabase = getSupabase();
   if (!supabase) return notConfigured();
   if (password.length < MIN_PASSWORD) {
-    return { ok: false, message: es.account.errors.weakPassword };
+    return { ok: false, message: t.account.errors.weakPassword };
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -117,7 +117,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   const member = await checkMembership(supabase, data.user.id);
   if (member !== true) {
     await supabase.auth.signOut();
-    return { ok: false, message: member === false ? es.account.errors.otherApp : es.account.errors.network };
+    return { ok: false, message: member === false ? t.account.errors.otherApp : t.account.errors.network };
   }
   return { ok: true };
 }

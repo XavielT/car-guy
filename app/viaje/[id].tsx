@@ -5,15 +5,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
 import { MissingRecord } from '@/components/MissingRecord';
+import { DetailTripSkeleton } from '@/components/skeletons/DetailTripSkeleton';
 import { T } from '@/components/T';
 import { shareCardImage, shareSummaryText } from '@/components/track/TrackPieces';
 import { confirmDeleteTrip, DistributionBar, setTripRole, TripShareCard, tripText } from '@/components/trips/TripPieces';
 import { Chip, GhostButton, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { odometer as odometerRepo } from '@/lib/db/repos';
 import { tripPoints, trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { shareTripGeojson } from '@/lib/trips/shareGeojson';
 import { tripsMap } from '@/lib/trips/settings';
 import { useStore } from '@/lib/store';
@@ -66,8 +68,11 @@ export default function TripScreen() {
     void tripPoints.forTrip(id).then((p) => setPoints(p.length > 1 ? p : null));
   }, [id]);
 
+  // undefined: still loading · null: gone (or not a finished trip). Later loads
+  // keep the trip on screen, so the skeleton only covers the first read.
+  const showSkeleton = useDelayedLoading(trip === undefined);
   if (trip === null) return <MissingRecord />;
-  if (!trip) return null;
+  if (!trip) return showSkeleton ? <DetailTripSkeleton /> : null;
 
   const vehicles = data.vehicles.filter((v) => !v.isArchived || v.id === trip.vehicleId);
   const vehicleName = data.vehicles.find((v) => v.id === trip.vehicleId)?.name;
@@ -84,7 +89,7 @@ export default function TripScreen() {
     if (!trip || role === trip.role) return;
     const removed = await setTripRole(trip, role);
     await load();
-    if (removed) flash(es.trips.passengerOdoRemoved);
+    if (removed) flash(t.trips.passengerOdoRemoved);
   }
 
   async function changeVehicle(vehicleId: string) {
@@ -99,18 +104,18 @@ export default function TripScreen() {
   async function saveText() {
     if (!trip) return;
     await tripRepo.upsert({ id: trip.id, startLabel: startLabel.trim(), endLabel: endLabel.trim(), notes: notes.trim() });
-    const t = await load();
-    if (t) {
-      setStartLabel(t.startLabel);
-      setEndLabel(t.endLabel);
-      setNotes(t.notes);
+    const saved = await load();
+    if (saved) {
+      setStartLabel(saved.startLabel);
+      setEndLabel(saved.endLabel);
+      setNotes(saved.notes);
     }
-    flash(es.trips.savedNotice);
+    flash(t.trips.savedNotice);
   }
 
   const tiles: [string, string][] = [
-    [durationLabel(trip.movingS), es.trips.tiles.moving],
-    [`${kmhLabel(trip.avgKmh)} km/h`, es.trips.tiles.avg],
+    [durationLabel(trip.movingS), t.trips.tiles.moving],
+    [`${kmhLabel(trip.avgKmh)} km/h`, t.trips.tiles.avg],
   ];
   const eyebrow = (label: string) => (
     <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
@@ -119,7 +124,7 @@ export default function TripScreen() {
   );
   const suggestions = (set: (v: string) => void, current: string) => (
     <View style={styles.chips}>
-      {es.trips.labelSuggestions.map((s) => (
+      {t.trips.labelSuggestions.map((s) => (
         <Chip key={s} label={s} selected={current === s} onPress={() => set(current === s ? '' : s)} />
       ))}
     </View>
@@ -129,16 +134,16 @@ export default function TripScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-          {es.trips.eyebrow}
+          {t.trips.eyebrow}
         </T>
 
         {/* Diagnostics (note 16): a long press on the card shares the trip's GPS points as GeoJSON. */}
-        <Pressable onLongPress={() => void shareTripGeojson(trip, points ?? [])} delayLongPress={600} accessibilityHint={es.trips.exportHint}>
+        <Pressable onLongPress={() => void shareTripGeojson(trip, points ?? [])} delayLongPress={600} accessibilityHint={t.trips.exportHint}>
           <TripShareCard ref={shotRef} trip={trip} points={points} width={cardW} vehicleName={vehicleName} map={map} />
         </Pressable>
         {!points ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
-            {trip.polyline ? es.trips.routeSimplified : es.trips.noRoute}
+            {trip.polyline ? t.trips.routeSimplified : t.trips.noRoute}
           </T>
         ) : null}
 
@@ -155,19 +160,19 @@ export default function TripScreen() {
           ))}
         </View>
 
-        {eyebrow(es.trips.distribution)}
+        {eyebrow(t.trips.distribution)}
         <DistributionBar buckets={parseBuckets(trip.speedBuckets)} />
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
-          {es.trips.distributionHint}
+          {t.trips.distributionHint}
         </T>
 
         <View style={[styles.pair, { marginTop: space.md }]}>
-          {url ? <GhostButton style={{ flex: 1 }} label={es.trips.openMap} onPress={() => void Linking.openURL(url)} /> : null}
-          <GhostButton style={{ flex: 1 }} label={es.trips.share} onPress={() => void shareCardImage(shotRef, `viaje-${trip.startedAt.slice(0, 10)}`)} />
+          {url ? <GhostButton style={{ flex: 1 }} label={t.trips.openMap} onPress={() => void Linking.openURL(url)} /> : null}
+          <GhostButton style={{ flex: 1 }} label={t.trips.share} onPress={() => void shareCardImage(shotRef, `viaje-${trip.startedAt.slice(0, 10)}`)} />
           <GhostButton
             style={{ flex: 1 }}
-            label={es.trips.shareText}
-            onPress={() => void shareSummaryText(tripText(trip, vehicleName)).then((copied) => copied && flash(es.trips.copied))}
+            label={t.trips.shareText}
+            onPress={() => void shareSummaryText(tripText(trip, vehicleName)).then((copied) => copied && flash(t.trips.copied))}
           />
         </View>
         {notice ? (
@@ -178,7 +183,7 @@ export default function TripScreen() {
 
         {vehicles.length > 1 ? (
           <>
-            {eyebrow(es.trips.vehicle)}
+            {eyebrow(t.trips.vehicle)}
             <View style={styles.chips}>
               {vehicles.map((v) => (
                 <Chip key={v.id} label={v.name} selected={trip.vehicleId === v.id} onPress={() => void changeVehicle(v.id)} />
@@ -187,30 +192,30 @@ export default function TripScreen() {
           </>
         ) : null}
 
-        {eyebrow(es.trips.role)}
+        {eyebrow(t.trips.role)}
         <Segmented<TripRole>
           options={[
-            { key: 'conductor', label: es.trips.roleDriver },
-            { key: 'pasajero', label: es.trips.rolePassenger },
+            { key: 'conductor', label: t.trips.roleDriver },
+            { key: 'pasajero', label: t.trips.rolePassenger },
           ]}
           value={trip.role}
           onChange={(r) => void changeRole(r)}
         />
         {trip.role === 'pasajero' ? (
           <T face="body" style={{ color: theme.text.secondary, fontSize: 12, marginTop: space.xs }}>
-            {es.trips.passengerHint}
+            {t.trips.passengerHint}
           </T>
         ) : null}
 
-        {eyebrow(es.trips.labels)}
-        <Field label={es.trips.startLabel} placeholder={es.trips.labelPlaceholder} value={startLabel} onChangeText={setStartLabel} />
+        {eyebrow(t.trips.labels)}
+        <Field label={t.trips.startLabel} placeholder={t.trips.labelPlaceholder} value={startLabel} onChangeText={setStartLabel} />
         {suggestions(setStartLabel, startLabel)}
-        <Field label={es.trips.endLabel} placeholder={es.trips.labelPlaceholder} value={endLabel} onChangeText={setEndLabel} />
+        <Field label={t.trips.endLabel} placeholder={t.trips.labelPlaceholder} value={endLabel} onChangeText={setEndLabel} />
         {suggestions(setEndLabel, endLabel)}
-        <Field label={es.trips.notes} value={notes} onChangeText={setNotes} multiline />
-        <PrimaryButton label={es.trips.save} disabled={!dirty} onPress={() => void saveText()} />
+        <Field label={t.trips.notes} value={notes} onChangeText={setNotes} multiline />
+        <PrimaryButton label={t.trips.save} disabled={!dirty} onPress={() => void saveText()} />
 
-        <GhostButton danger label={es.trips.delete} onPress={() => confirmDeleteTrip(trip, () => (router.canGoBack() ? router.back() : router.replace('/viajes')))} />
+        <GhostButton danger label={t.trips.delete} onPress={() => confirmDeleteTrip(trip, () => (router.canGoBack() ? router.back() : router.replace('/viajes')))} />
       </ScrollView>
     </SafeAreaView>
   );

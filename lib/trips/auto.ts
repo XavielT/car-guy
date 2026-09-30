@@ -20,7 +20,7 @@ import * as TaskManager from 'expo-task-manager';
 import { AppState, Platform } from 'react-native';
 
 import { recordError } from '../diagnostics';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 import { feed, machineState } from './engine';
 import { setTripsSingleConfig, tripsMode, tripsSingleConfig } from './settings';
 
@@ -35,14 +35,18 @@ const service = (body: string): Location.LocationTaskOptions['foregroundService'
   killServiceOnDestroy: false,
 });
 
-export const TASK_OPTIONS: Record<Intensity, Location.LocationTaskOptions> = {
+/**
+ * A function, not a constant: the foreground-service notification is written in the
+ * language of the moment the service starts (ADR-39).
+ */
+export const taskOptions = (): Record<Intensity, Location.LocationTaskOptions> => ({
   watching: {
     accuracy: Location.Accuracy.Balanced,
     timeInterval: 15_000,
     distanceInterval: 50,
     deferredUpdatesInterval: 60_000,
     mayShowUserSettingsDialog: false,
-    foregroundService: service(es.trips.serviceWatching),
+    foregroundService: service(t.trips.serviceWatching),
   },
   // Grabando matches the manual recorder (BestForNavigation, 1 s) — ADR-42 —
   // except distanceInterval, which stays 0 (a recorded deviation from ADR-42's 3 m):
@@ -62,7 +66,7 @@ export const TASK_OPTIONS: Record<Intensity, Location.LocationTaskOptions> = {
     distanceInterval: 0,
     deferredUpdatesInterval: 5000,
     mayShowUserSettingsDialog: false,
-    foregroundService: service(es.trips.serviceRecording),
+    foregroundService: service(t.trips.serviceRecording),
   },
   single: {
     accuracy: Location.Accuracy.High,
@@ -70,9 +74,9 @@ export const TASK_OPTIONS: Record<Intensity, Location.LocationTaskOptions> = {
     distanceInterval: 10,
     deferredUpdatesInterval: 10_000,
     mayShowUserSettingsDialog: false,
-    foregroundService: service(es.trips.serviceWatching),
+    foregroundService: service(t.trips.serviceWatching),
   },
-};
+});
 
 /** What the running service was last configured with, in this JS context. */
 let current: Intensity | null = null;
@@ -115,7 +119,7 @@ export async function armAuto(): Promise<boolean> {
     const intensity = await wanted(state.phase);
     const started = await isAutoArmed();
     if (!started || current !== intensity) {
-      await Location.startLocationUpdatesAsync(TRIP_TASK, TASK_OPTIONS[intensity]);
+      await Location.startLocationUpdatesAsync(TRIP_TASK, taskOptions()[intensity]);
       current = intensity;
     }
     return true;
@@ -158,7 +162,7 @@ export async function switchIntensity(to: 'watching' | 'recording'): Promise<voi
   if (current === intensity) return;
   try {
     if (!(await isAutoArmed())) return;
-    await Location.startLocationUpdatesAsync(TRIP_TASK, TASK_OPTIONS[intensity]);
+    await Location.startLocationUpdatesAsync(TRIP_TASK, taskOptions()[intensity]);
     current = intensity;
   } catch (error) {
     const background = AppState.currentState !== 'active';

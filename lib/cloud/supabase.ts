@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { recordError } from '../diagnostics';
 import { withDevHint } from '../diagnosticsMode';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 import { Platform } from 'react-native';
 
 /**
@@ -111,8 +111,8 @@ export const SCHEMA_NOT_EXPOSED = 'PGRST106';
  */
 export function describeSchemaError(error: { code?: string } | null): string | null {
   if (error?.code === SCHEMA_NOT_EXPOSED) {
-    recordError('cloud', es.dev.schemaNotExposed);
-    return withDevHint(es.account.errors.schemaNotExposed, es.dev.schemaNotExposed);
+    recordError('cloud', t.dev.schemaNotExposed);
+    return withDevHint(t.account.errors.schemaNotExposed, t.dev.schemaNotExposed);
   }
   return null;
 }

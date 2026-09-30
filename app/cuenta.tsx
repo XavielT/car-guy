@@ -26,7 +26,7 @@ import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { FEATURE_ALBUM, FEATURE_SYNC } from '@/lib/flags';
 import { StorageMeter } from '@/components/album/StorageMeter';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { newerSchemaCount } from '@/lib/sync/engine';
 import { useSync } from '@/lib/sync/useSync';
 import { wipeCloudData } from '@/lib/sync/wipeCloud';
@@ -67,8 +67,8 @@ export default function CuentaScreen() {
 
   async function submit() {
     setError(null);
-    if (!email.trim()) return setError(es.account.errors.emailRequired);
-    if (!password) return setError(es.account.errors.passwordRequired);
+    if (!email.trim()) return setError(t.account.errors.emailRequired);
+    if (!password) return setError(t.account.errors.passwordRequired);
 
     setBusy(true);
     const result =
@@ -78,16 +78,16 @@ export default function CuentaScreen() {
     if (!result.ok) return setError(result.message);
 
     setPassword('');
-    if (mode === 'signUp') Alert.alert(es.account.createdTitle, es.account.createdBody);
+    if (mode === 'signUp') Alert.alert(t.account.createdTitle, t.account.createdBody);
   }
 
   async function handleForgot() {
-    if (!email.trim()) return setError(es.account.resetNeedsEmail);
+    if (!email.trim()) return setError(t.account.resetNeedsEmail);
     setBusy(true);
     const result = await resetPassword(email);
     setBusy(false);
     if (!result.ok) return setError(result.message);
-    Alert.alert(es.account.resetSentTitle, es.account.resetSentBody(email.trim()));
+    Alert.alert(t.account.resetSentTitle, t.account.resetSentBody(email.trim()));
   }
 
   /**
@@ -95,23 +95,23 @@ export default function CuentaScreen() {
    * this one cannot be undone by anything, so it asks twice.
    */
   function confirmWipeCloud() {
-    Alert.alert(es.sync.wipeCloudTitle, es.sync.wipeCloudBody, [
-      { text: es.common.cancel, style: 'cancel' },
+    Alert.alert(t.sync.wipeCloudTitle, t.sync.wipeCloudBody, [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: es.common.delete,
+        text: t.common.delete,
         style: 'destructive',
         onPress: () =>
-          Alert.alert(es.sync.wipeCloudTitle, es.sync.wipeCloudConfirm, [
-            { text: es.common.cancel, style: 'cancel' },
+          Alert.alert(t.sync.wipeCloudTitle, t.sync.wipeCloudConfirm, [
+            { text: t.common.cancel, style: 'cancel' },
             {
-              text: es.common.delete,
+              text: t.common.delete,
               style: 'destructive',
               onPress: () => {
                 void (async () => {
-                  const result = await wipeCloudData(es.account.notConfigured);
+                  const result = await wipeCloudData(t.account.notConfigured);
                   Alert.alert(
-                    es.sync.doneTitle,
-                    result.ok ? es.sync.wipeCloudDone(result.deleted) : es.sync.wipeCloudFailed,
+                    t.sync.doneTitle,
+                    result.ok ? t.sync.wipeCloudDone(result.deleted) : t.sync.wipeCloudFailed,
                   );
                 })();
               },
@@ -132,24 +132,24 @@ export default function CuentaScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.account.title}
+          {t.account.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.account.subtitle}
+          {t.account.subtitle}
         </T>
 
         {!configured ? (
           <Surface style={styles.card}>
-            <StatusPill status="proximo" label={es.account.notConfiguredPill} />
+            <StatusPill status="proximo" label={t.account.notConfiguredPill} />
             <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
-              {es.account.versionLine(appVersion, gitSha)}
+              {t.account.versionLine(appVersion, gitSha)}
             </T>
             <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-              {es.account.notConfiguredCaption}
+              {t.account.notConfiguredCaption}
             </T>
             {diagnostics ? (
               <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
-                {es.dev.notConfigured}
+                {t.dev.notConfigured}
               </T>
             ) : null}
           </Surface>
@@ -163,11 +163,11 @@ export default function CuentaScreen() {
               <View style={styles.identity}>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                    <StatusPill status="ok" label={es.account.signedInAs} />
-                    {role && role !== 'member' ? <Badge label={es.admin.roles[role]} tone={role === 'admin' ? 'red' : 'amber'} /> : null}
+                    <StatusPill status="ok" label={t.account.signedInAs} />
+                    {role && role !== 'member' ? <Badge label={t.admin.roles[role]} tone={role === 'admin' ? 'red' : 'amber'} /> : null}
                   </View>
                   <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
-                    {es.account.versionLine(appVersion, gitSha)}
+                    {t.account.versionLine(appVersion, gitSha)}
                   </T>
                   <T face="monoBold" style={[styles.email, { color: theme.text.primary }]}>
                     {session.user.email}
@@ -179,17 +179,17 @@ export default function CuentaScreen() {
               <View style={[styles.rule, { backgroundColor: theme.line }]} />
 
               <KeyValueRow
-                label={es.account.lastSync}
-                value={lastSyncAt ? dateLabel(lastSyncAt) : es.sync.never}
+                label={t.account.lastSync}
+                value={lastSyncAt ? dateLabel(lastSyncAt) : t.sync.never}
               />
               <KeyValueRow
-                label={es.sync.pendingLabel}
-                value={pending === 0 ? es.sync.upToDate : es.sync.pending(pending)}
+                label={t.sync.pendingLabel}
+                value={pending === 0 ? t.sync.upToDate : t.sync.pending(pending)}
               />
 
               {newer > 0 ? (
                 <T face="body" accessibilityRole="alert" style={[styles.cardBody, { color: theme.statusText.proximo, marginTop: space.sm }]}>
-                  {es.account.newerChanges(newer)}
+                  {t.account.newerChanges(newer)}
                 </T>
               ) : null}
 
@@ -215,7 +215,7 @@ export default function CuentaScreen() {
               {FEATURE_SYNC ? (
                 <View style={{ marginTop: space.md }}>
                   <PrimaryButton
-                    label={running ? es.sync.syncing : es.sync.syncNow}
+                    label={running ? t.sync.syncing : t.sync.syncNow}
                     onPress={() => void syncNow('manual')}
                     disabled={running}
                   />
@@ -226,20 +226,20 @@ export default function CuentaScreen() {
             {/* The photo quota (IMP 28092026 Phase 3): used / 300 MB, warns at 90 %. */}
             {FEATURE_ALBUM ? <StorageMeter style={{ marginBottom: space.md }} /> : null}
 
-            <GhostButton label={es.account.signOut} onPress={handleSignOut} />
+            <GhostButton label={t.account.signOut} onPress={handleSignOut} />
 
-            <SectionHeader title={es.account.dangerZone} />
+            <SectionHeader title={t.account.dangerZone} />
             <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-              {es.account.wipeLocalCaption}
+              {t.account.wipeLocalCaption}
             </T>
             <GhostButton
               danger
-              label={es.account.wipeLocal}
+              label={t.account.wipeLocal}
               onPress={() =>
-                Alert.alert(es.account.wipeLocalTitle, es.account.wipeLocalBody, [
-                  { text: es.common.cancel, style: 'cancel' },
+                Alert.alert(t.account.wipeLocalTitle, t.account.wipeLocalBody, [
+                  { text: t.common.cancel, style: 'cancel' },
                   {
-                    text: es.common.delete,
+                    text: t.common.delete,
                     style: 'destructive',
                     onPress: () => {
                       resetAll();
@@ -253,9 +253,9 @@ export default function CuentaScreen() {
             {FEATURE_SYNC ? (
               <>
                 <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-                  {es.sync.wipeCloudCaption}
+                  {t.sync.wipeCloudCaption}
                 </T>
-                <GhostButton danger label={es.sync.wipeCloud} onPress={confirmWipeCloud} />
+                <GhostButton danger label={t.sync.wipeCloud} onPress={confirmWipeCloud} />
               </>
             ) : null}
           </>
@@ -263,20 +263,20 @@ export default function CuentaScreen() {
           <>
             <Surface style={styles.card}>
               <T face="body" style={[styles.pitch, { color: theme.text.primary }]}>
-                {es.account.pitch}
+                {t.account.pitch}
               </T>
               <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-                {es.account.pitchMore}
+                {t.account.pitchMore}
               </T>
               <T face="mono" style={[styles.version, { color: theme.text.muted }]}>
-                {es.account.versionLine(appVersion, gitSha)}
+                {t.account.versionLine(appVersion, gitSha)}
               </T>
             </Surface>
 
             <Segmented<Mode>
               options={[
-                { key: 'signIn', label: es.account.signIn },
-                { key: 'signUp', label: es.account.signUp },
+                { key: 'signIn', label: t.account.signIn },
+                { key: 'signUp', label: t.account.signUp },
               ]}
               value={mode}
               onChange={(next) => {
@@ -287,8 +287,8 @@ export default function CuentaScreen() {
             />
 
             <Field
-              label={es.account.email}
-              placeholder={es.account.emailPlaceholder}
+              label={t.account.email}
+              placeholder={t.account.emailPlaceholder}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -297,13 +297,13 @@ export default function CuentaScreen() {
             />
 
             <Field
-              label={es.account.password}
+              label={t.account.password}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!reveal}
               autoCapitalize="none"
               autoComplete={mode === 'signUp' ? 'new-password' : 'current-password'}
-              hint={mode === 'signUp' ? es.account.passwordHint : undefined}
+              hint={mode === 'signUp' ? t.account.passwordHint : undefined}
             />
             <Pressable
               onPress={() => setReveal((value) => !value)}
@@ -311,13 +311,13 @@ export default function CuentaScreen() {
               accessibilityState={{ checked: reveal }}
               style={styles.reveal}>
               <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
-                {reveal ? es.account.hidePassword : es.account.showPassword}
+                {reveal ? t.account.hidePassword : t.account.showPassword}
               </T>
             </Pressable>
 
             {mode === 'signUp' ? (
               <Field
-                label={es.account.displayName}
+                label={t.account.displayName}
                 value={displayName}
                 onChangeText={setDisplayName}
               />
@@ -329,18 +329,18 @@ export default function CuentaScreen() {
                 accessibilityRole="alert"
                 style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>
                 {/* A session from another x-core app was signed out: say why. */}
-                {error ?? es.account.errors.otherApp}
+                {error ?? t.account.errors.otherApp}
               </T>
             ) : null}
 
             <PrimaryButton
-              label={busy ? es.account.working : mode === 'signUp' ? es.account.signUp : es.account.signIn}
+              label={busy ? t.account.working : mode === 'signUp' ? t.account.signUp : t.account.signIn}
               onPress={submit}
               disabled={busy}
             />
 
             {mode === 'signIn' ? (
-              <GhostButton label={es.account.forgot} onPress={handleForgot} />
+              <GhostButton label={t.account.forgot} onPress={handleForgot} />
             ) : null}
           </>
         )}

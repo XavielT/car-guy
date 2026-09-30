@@ -4,16 +4,19 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CompleteReminderSheet } from '@/components/CompleteReminderSheet';
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { reminders as reminderRepo } from '@/lib/db/repos';
 import { evaluatedReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import type { Reminder } from '@/lib/db/types';
 import { addDays, todayIso } from '@/lib/domain/dates';
 import { STATUS_LABEL, type ReminderState } from '@/lib/domain/reminders';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { localeTag, t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -48,6 +51,8 @@ export default function RecordatoriosScreen() {
   const { activeVehicle, refresh, data } = useStore();
   const [rows, setRows] = useState<EvaluatedReminder[]>([]);
   const [completing, setCompleting] = useState<Reminder | null>(null);
+  // The empty state waits for the first read instead of flashing (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const vehicleId = activeVehicle?.id;
 
@@ -58,11 +63,16 @@ export default function RecordatoriosScreen() {
       .then((list) => {
         if (!cancelled) setRows(list);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [vehicleId, data]);
+
+  const showSkeleton = useDelayedLoading(!loaded);
 
   if (!activeVehicle) return null;
 
@@ -73,16 +83,18 @@ export default function RecordatoriosScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.reminders.title}
+          {t.reminders.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.reminders.subtitle}
+          {t.reminders.subtitle}
         </T>
 
-        <PrimaryButton label={es.reminders.add} onPress={() => router.push('/recordatorio/nuevo')} />
+        <PrimaryButton label={t.reminders.add} onPress={() => router.push('/recordatorio/nuevo')} />
 
-        {rows.length === 0 ? (
-          <EmptyState icon="alarm-outline" message={es.reminders.empty} />
+        {showSkeleton ? (
+          <ListCardsSkeleton section n={4} pill lines={2} />
+        ) : !loaded ? null : rows.length === 0 ? (
+          <EmptyState icon="alarm-outline" message={t.reminders.empty} />
         ) : (
           GROUPS.map((group) => {
             const members = rows.filter((row) => groupOf(row) === group);
@@ -90,7 +102,7 @@ export default function RecordatoriosScreen() {
             return (
               <View key={group}>
                 <T face="eyebrow" style={[styles.group, { color: theme.text.muted }]}>
-                  {`${es.reminders.groups[group]} · ${members.length}`}
+                  {`${t.reminders.groups[group]} · ${members.length}`}
                 </T>
                 {members.map(({ reminder, status }) => (
                   <Surface
@@ -98,15 +110,15 @@ export default function RecordatoriosScreen() {
                     style={{ marginBottom: space.sm, opacity: reminder.isEnabled ? 1 : 0.6 }}>
                     <View style={styles.headerRow}>
                       <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-                        {reminder.title}
+                        {catalogLabel('reminder', reminder, 'title')}
                       </T>
                       {reminder.isEnabled ? (
                         <StatusPill
                           status={status.status === 'sin_datos' ? 'neutral' : status.status}
-                          label={status.snoozed ? es.reminders.snoozed : STATUS_LABEL[status.status]}
+                          label={status.snoozed ? t.reminders.snoozed : STATUS_LABEL[status.status]}
                         />
                       ) : (
-                        <StatusPill status="neutral" label={es.reminders.disabledLabel} />
+                        <StatusPill status="neutral" label={t.reminders.disabledLabel} />
                       )}
                     </View>
 
@@ -117,16 +129,16 @@ export default function RecordatoriosScreen() {
 
                     {status.status !== 'sin_datos' && status.confidence === 'baja' && status.dueKm != null ? (
                       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
-                        {es.reminders.lowConfidence}
+                        {t.reminders.lowConfidence}
                       </T>
                     ) : null}
 
                     <View style={styles.actions}>
                       {reminder.isEnabled ? (
                         <>
-                          <GhostButton label={es.reminders.done} onPress={() => setCompleting(reminder)} />
+                          <GhostButton label={t.reminders.done} onPress={() => setCompleting(reminder)} />
                           <GhostButton
-                            label={es.reminders.snooze}
+                            label={t.reminders.snooze}
                             onPress={() => {
                               void (async () => {
                                 await reminderRepo.upsert({
@@ -140,7 +152,7 @@ export default function RecordatoriosScreen() {
                         </>
                       ) : (
                         <GhostButton
-                          label={es.reminders.enable}
+                          label={t.reminders.enable}
                           onPress={() => {
                             void (async () => {
                               await reminderRepo.upsert({ id: reminder.id, isEnabled: true });
@@ -150,7 +162,7 @@ export default function RecordatoriosScreen() {
                         />
                       )}
                       <GhostButton
-                        label={es.reminders.edit}
+                        label={t.reminders.edit}
                         onPress={() =>
                           router.push({ pathname: '/recordatorio/[id]', params: { id: reminder.id } })
                         }
@@ -180,7 +192,7 @@ export default function RecordatoriosScreen() {
  */
 function describe(status: EvaluatedReminder['status']): string {
   if (status.status === 'sin_datos' && status.dueDays == null && status.dueKm == null) {
-    return es.reminders.noData;
+    return t.reminders.noData;
   }
 
   const parts: string[] = [];
@@ -188,8 +200,8 @@ function describe(status: EvaluatedReminder['status']): string {
   if (status.dueKm != null) {
     parts.push(
       status.dueKm < 0
-        ? es.reminders.overdueKm(Math.abs(Math.round(status.dueKm)))
-        : es.reminders.dueKm(Math.round(status.dueKm)),
+        ? t.reminders.overdueKm(Math.abs(Math.round(status.dueKm)))
+        : t.reminders.dueKm(Math.round(status.dueKm)),
     );
     // The predicted date is only worth showing when it comes before the
     // calendar limit — otherwise it just repeats a later date.
@@ -198,15 +210,15 @@ function describe(status: EvaluatedReminder['status']): string {
       (status.dueDays == null ||
         status.predictedDueDate < addDays(todayIso(), status.dueDays))
     ) {
-      parts.push(es.reminders.estimated(shortDate(status.predictedDueDate)));
+      parts.push(t.reminders.estimated(shortDate(status.predictedDueDate)));
     }
   }
 
   if (status.dueDays != null) {
     const due = addDays(todayIso(), status.dueDays);
-    if (status.dueDays < 0) parts.push(es.reminders.overdueDays(Math.abs(status.dueDays)));
-    else if (status.dueDays <= 1) parts.push(es.reminders.dueDays(status.dueDays));
-    else parts.push(es.reminders.dueOn(shortDate(due)));
+    if (status.dueDays < 0) parts.push(t.reminders.overdueDays(Math.abs(status.dueDays)));
+    else if (status.dueDays <= 1) parts.push(t.reminders.dueDays(status.dueDays));
+    else parts.push(t.reminders.dueOn(shortDate(due)));
   }
 
   return parts.join(' · ');
@@ -217,7 +229,7 @@ function shortDate(iso: string): string {
   const d = new Date(iso);
   const sameYear = d.getFullYear() === new Date(todayIso()).getFullYear();
   return sameYear
-    ? d.toLocaleDateString('es-DO', { day: 'numeric', month: 'short' }).replace('.', '')
+    ? d.toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' }).replace('.', '')
     : dateLabel(iso);
 }
 

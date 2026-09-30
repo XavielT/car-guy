@@ -8,6 +8,7 @@
  * form's "Igual que siempre" chip from the same rows.
  */
 import type { VehicleSpecsheet } from '../db/types';
+import { localeTag, t, type Dict } from '../i18n';
 import type { OilFields } from './oil';
 import { matchesQuery } from './text';
 
@@ -47,16 +48,10 @@ export type VehicleFactRow = {
 
 export type SectionId = 'aceite' | FactGroup;
 
-export const SECTION_TITLE: Record<SectionId, string> = {
-  aceite: 'Aceite y filtros',
-  motor: 'Motor',
-  gomas: 'Gomas',
-  electrico: 'Eléctrico',
-  carroceria: 'Carrocería',
-  interior: 'Interior',
-  papeles: 'Papeles',
-  otros: 'Otros',
-};
+/** A section's title, in the current language. */
+export function sectionTitle(id: SectionId): string {
+  return t.carMemory.sections[id];
+}
 
 const SECTION_ORDER: SectionId[] = ['aceite', 'motor', 'gomas', 'electrico', 'carroceria', 'interior', 'papeles', 'otros'];
 
@@ -74,67 +69,70 @@ export type MemorySection = { id: SectionId; title: string; rows: MemoryRow[] };
 
 type SheetKey = keyof MemoryBuyFields | keyof VehicleSpecsheet;
 
-type FieldDef = { key: SheetKey; label: string; section: SectionId; unit?: string };
+type FieldDef = { key: keyof Dict['carMemory']['fields']; section: SectionId; unit?: string };
 
 /** Specsheet columns in display order. The "what I buy" fields come first in their section. */
 const FIELDS: FieldDef[] = [
-  { key: 'oilBrand', label: 'Aceite (marca)', section: 'aceite' },
-  { key: 'oilProduct', label: 'Aceite (producto)', section: 'aceite' },
-  { key: 'oilGrade', label: 'Viscosidad', section: 'aceite' },
-  { key: 'oilSpec', label: 'Norma del aceite', section: 'aceite' },
-  { key: 'oilCapacityFilterL', label: 'Capacidad con filtro', section: 'aceite', unit: 'L' },
-  { key: 'oilCapacityL', label: 'Capacidad sin filtro', section: 'aceite', unit: 'L' },
-  { key: 'oilFilterBrand', label: 'Filtro de aceite (marca)', section: 'aceite' },
-  { key: 'oilFilterPn', label: 'Filtro de aceite', section: 'aceite' },
-  { key: 'airFilterPn', label: 'Filtro de aire', section: 'aceite' },
-  { key: 'cabinFilterPn', label: 'Filtro de cabina', section: 'aceite' },
-  { key: 'fuelFilterPn', label: 'Filtro de combustible', section: 'aceite' },
-  { key: 'sparkPlugPn', label: 'Bujías', section: 'motor' },
-  { key: 'plugGapMm', label: 'Calibración de bujías', section: 'motor', unit: 'mm' },
-  { key: 'coolantType', label: 'Refrigerante', section: 'motor' },
-  { key: 'coolantCapacityL', label: 'Capacidad de refrigerante', section: 'motor', unit: 'L' },
-  { key: 'transOilSpec', label: 'Aceite de transmisión', section: 'motor' },
-  { key: 'transOilL', label: 'Capacidad de transmisión', section: 'motor', unit: 'L' },
-  { key: 'diffOilSpec', label: 'Aceite de diferencial', section: 'motor' },
-  { key: 'diffOilL', label: 'Capacidad de diferencial', section: 'motor', unit: 'L' },
-  { key: 'brakeFluid', label: 'Líquido de frenos', section: 'motor' },
-  { key: 'psFluid', label: 'Líquido de dirección', section: 'motor' },
-  { key: 'tireCurrentF', label: 'Gomas delanteras', section: 'gomas' },
-  { key: 'tireCurrentR', label: 'Gomas traseras', section: 'gomas' },
-  { key: 'tireSizeOemF', label: 'Medida de fábrica (del.)', section: 'gomas' },
-  { key: 'tireSizeOemR', label: 'Medida de fábrica (tras.)', section: 'gomas' },
-  { key: 'psiOemF', label: 'Presión delantera', section: 'gomas', unit: 'psi' },
-  { key: 'psiOemR', label: 'Presión trasera', section: 'gomas', unit: 'psi' },
-  { key: 'boltPattern', label: 'Patrón de pernos', section: 'gomas' },
-  { key: 'centerBoreMm', label: 'Centro del aro', section: 'gomas', unit: 'mm' },
-  { key: 'lugThread', label: 'Rosca de tuercas', section: 'gomas' },
-  { key: 'lugTorqueNm', label: 'Torque de tuercas', section: 'gomas', unit: 'N·m' },
-  { key: 'batteryBrand', label: 'Batería (marca)', section: 'electrico' },
-  { key: 'batterySpec', label: 'Batería', section: 'electrico' },
-  { key: 'bulbLow', label: 'Bombillo luz baja', section: 'electrico' },
-  { key: 'bulbHigh', label: 'Bombillo luz alta', section: 'electrico' },
-  { key: 'wiperSizes', label: 'Limpiavidrios', section: 'carroceria' },
-  { key: 'whereBought', label: 'Dónde lo compro', section: 'otros' },
+  { key: 'oilBrand', section: 'aceite' },
+  { key: 'oilProduct', section: 'aceite' },
+  { key: 'oilGrade', section: 'aceite' },
+  { key: 'oilSpec', section: 'aceite' },
+  { key: 'oilCapacityFilterL', section: 'aceite', unit: 'L' },
+  { key: 'oilCapacityL', section: 'aceite', unit: 'L' },
+  { key: 'oilFilterBrand', section: 'aceite' },
+  { key: 'oilFilterPn', section: 'aceite' },
+  { key: 'airFilterPn', section: 'aceite' },
+  { key: 'cabinFilterPn', section: 'aceite' },
+  { key: 'fuelFilterPn', section: 'aceite' },
+  { key: 'sparkPlugPn', section: 'motor' },
+  { key: 'plugGapMm', section: 'motor', unit: 'mm' },
+  { key: 'coolantType', section: 'motor' },
+  { key: 'coolantCapacityL', section: 'motor', unit: 'L' },
+  { key: 'transOilSpec', section: 'motor' },
+  { key: 'transOilL', section: 'motor', unit: 'L' },
+  { key: 'diffOilSpec', section: 'motor' },
+  { key: 'diffOilL', section: 'motor', unit: 'L' },
+  { key: 'brakeFluid', section: 'motor' },
+  { key: 'psFluid', section: 'motor' },
+  { key: 'tireCurrentF', section: 'gomas' },
+  { key: 'tireCurrentR', section: 'gomas' },
+  { key: 'tireSizeOemF', section: 'gomas' },
+  { key: 'tireSizeOemR', section: 'gomas' },
+  { key: 'psiOemF', section: 'gomas', unit: 'psi' },
+  { key: 'psiOemR', section: 'gomas', unit: 'psi' },
+  { key: 'boltPattern', section: 'gomas' },
+  { key: 'centerBoreMm', section: 'gomas', unit: 'mm' },
+  { key: 'lugThread', section: 'gomas' },
+  { key: 'lugTorqueNm', section: 'gomas', unit: 'N·m' },
+  { key: 'batteryBrand', section: 'electrico' },
+  { key: 'batterySpec', section: 'electrico' },
+  { key: 'bulbLow', section: 'electrico' },
+  { key: 'bulbHigh', section: 'electrico' },
+  { key: 'wiperSizes', section: 'carroceria' },
+  { key: 'whereBought', section: 'otros' },
 ];
 
-const FIELD_BY_KEY = new Map(FIELDS.map((f) => [f.key, f]));
+const FIELD_BY_KEY = new Map<SheetKey, FieldDef>(FIELDS.map((f) => [f.key, f]));
 
-const numFmt = new Intl.NumberFormat('es-DO', { maximumFractionDigits: 2 });
+/** The field's label, in the current language. */
+function fieldLabel(def: FieldDef): string {
+  return t.carMemory.fields[def.key];
+}
 
 function fieldValue(sheet: MemorySpecsheet | null | undefined, def: FieldDef): string | null {
   const raw = sheet?.[def.key as keyof MemorySpecsheet];
   if (raw == null) return null;
-  if (typeof raw === 'number') return Number.isFinite(raw) ? `${numFmt.format(raw)}${def.unit ? ` ${def.unit}` : ''}` : null;
+  if (typeof raw === 'number') return Number.isFinite(raw) ? `${new Intl.NumberFormat(localeTag(), { maximumFractionDigits: 2 }).format(raw)}${def.unit ? ` ${def.unit}` : ''}` : null;
   if (typeof raw !== 'string') return null;
-  const t = raw.trim();
-  return t ? t : null;
+  const text = raw.trim();
+  return text ? text : null;
 }
 
 function fieldRow(sheet: MemorySpecsheet | null | undefined, key: SheetKey): MemoryRow | null {
   const def = FIELD_BY_KEY.get(key);
   if (!def) return null;
   const value = fieldValue(sheet, def);
-  return value == null ? null : { key: def.key, label: def.label, value, source: 'ficha' };
+  return value == null ? null : { key: def.key, label: fieldLabel(def), value, source: 'ficha' };
 }
 
 /**
@@ -154,12 +152,12 @@ export function carMemory(
   }
   const live = facts
     .filter((f) => !f.deletedAt && f.label.trim() && f.value.trim())
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, 'es'));
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, localeTag()));
   for (const f of live) {
     const group: FactGroup = FACT_GROUPS.includes(f.groupName) ? f.groupName : 'otros';
     rows.get(group)!.push({ key: `fact:${f.id}`, label: f.label.trim(), value: f.value.trim(), source: 'dato', factId: f.id });
   }
-  return SECTION_ORDER.filter((id) => rows.get(id)!.length > 0).map((id) => ({ id, title: SECTION_TITLE[id], rows: rows.get(id)! }));
+  return SECTION_ORDER.filter((id) => rows.get(id)!.length > 0).map((id) => ({ id, title: sectionTitle(id), rows: rows.get(id)! }));
 }
 
 /**
@@ -191,7 +189,10 @@ export type MemorySuggestion = {
   oil?: Partial<OilFields>;
 };
 
-export const SAME_AS_ALWAYS = 'Igual que siempre';
+/** "Igual que siempre", in the current language. */
+export function sameAsAlways(): string {
+  return t.carMemory.sameAsAlways;
+}
 
 /** Service type id (lib/domain/catalog.ts SERVICE_TYPES) → the columns that say what it takes. */
 const SUGGESTION_FIELDS: Record<string, SheetKey[]> = {
@@ -218,8 +219,8 @@ const BOUGHT = new Set(['aceite_motor', 'filtro_aire', 'filtro_cabina', 'filtro_
 const words = (...xs: (string | null | undefined)[]) => xs.map((x) => x?.trim()).filter(Boolean).join(' ');
 
 function clean(s: string | null | undefined): string | null {
-  const t = s?.trim();
-  return t ? t : null;
+  const v = s?.trim();
+  return v ? v : null;
 }
 
 /**
@@ -258,5 +259,5 @@ export function suggestionsFor(
     summary = [...new Set(rows.filter((r) => r.key !== 'whereBought').map((r) => r.value))].join(' · ');
   }
   if (!summary) summary = rows.map((r) => r.value).join(' · ');
-  return { label: `${SAME_AS_ALWAYS}: ${summary}`, summary, rows, ...(oil ? { oil } : {}) };
+  return { label: t.carMemory.suggestion(summary), summary, rows, ...(oil ? { oil } : {}) };
 }

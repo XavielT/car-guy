@@ -5,7 +5,7 @@ import { Field } from '@/components/Field';
 import { PickerField, SearchSheet, YearWheel, type SearchItem } from '@/components/pickers';
 import { space } from '@/constants/theme';
 import { allMakes, makeById, modelById, modelsFor } from '@/lib/domain/refdata';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 
 export type MakeModelValue = {
   makeId: string | null;
@@ -33,7 +33,7 @@ export function MakeModelYear({ value, onChange }: { value: MakeModelValue; onCh
         key: m.id,
         label: m.name,
         keywords: [m.aliases.join(' '), ...modelsFor(m.id).map((x) => `${x.name} ${x.aliases.join(' ')}`)].join(' '),
-        section: m.top ? es.vehicleForm.topMakes : es.vehicleForm.otherMakes,
+        section: m.top ? t.vehicleForm.topMakes : t.vehicleForm.otherMakes,
       })),
     [],
   );
@@ -51,29 +51,29 @@ export function MakeModelYear({ value, onChange }: { value: MakeModelValue; onCh
     <View>
       <View style={styles.pair}>
         <PickerField
-          label={es.vehicleForm.make}
+          label={t.vehicleForm.make}
           value={value.make}
-          placeholder={es.vehicleForm.makePlaceholder}
+          placeholder={t.vehicleForm.makePlaceholder}
           onPress={() => setOpen('make')}
         />
         <PickerField
-          label={es.vehicleForm.model}
+          label={t.vehicleForm.model}
           value={value.model}
-          placeholder={value.make ? es.vehicleForm.modelPlaceholder : es.vehicleForm.modelFirst}
+          placeholder={value.make ? t.vehicleForm.modelPlaceholder : t.vehicleForm.modelFirst}
           onPress={() => setOpen('model')}
           disabled={!value.make}
         />
       </View>
       <View style={styles.pair}>
         <PickerField
-          label={es.vehicleForm.year}
+          label={t.vehicleForm.year}
           value={value.year}
-          placeholder={es.vehicleForm.yearPlaceholder}
+          placeholder={t.vehicleForm.yearPlaceholder}
           onPress={() => setOpen('year')}
         />
         <View style={styles.half}>
           <Field
-            label={es.vehicleForm.yearTyped}
+            label={t.vehicleForm.yearTyped}
             placeholder="2015"
             keyboardType="number-pad"
             maxLength={4}
@@ -85,7 +85,7 @@ export function MakeModelYear({ value, onChange }: { value: MakeModelValue; onCh
 
       <SearchSheet
         visible={open === 'make'}
-        title={es.vehicleForm.makeSearch}
+        title={t.vehicleForm.makeSearch}
         items={makeItems}
         selectedKey={value.makeId}
         onClose={() => setOpen(null)}
@@ -96,7 +96,7 @@ export function MakeModelYear({ value, onChange }: { value: MakeModelValue; onCh
       />
       <SearchSheet
         visible={open === 'model'}
-        title={es.vehicleForm.modelSearch}
+        title={t.vehicleForm.modelSearch}
         items={modelItems}
         selectedKey={value.modelId}
         onClose={() => setOpen(null)}

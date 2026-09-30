@@ -28,7 +28,8 @@ import { odometerWarning } from '@/lib/domain/odometer';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
 import { FEATURE_BUILD, FEATURE_DIY } from '@/lib/flags';
 import { ContactPicker } from '@/components/diy/ContactPieces';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal, roundMoney } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -226,7 +227,7 @@ export default function NuevoServicioScreen() {
   // record called "Aceite de motor y filtro + Filtro de aire" is better than an
   // empty one, and better than making them type it.
   const autoTitle = selected
-    .map((id) => catalog.find((t) => t.id === id)?.name)
+    .map((id) => catalogLabel('serviceType', catalog.find((t) => t.id === id)))
     .filter(Boolean)
     .join(' + ');
   const effectiveTitle = titleTouched ? title : autoTitle;
@@ -241,21 +242,21 @@ export default function NuevoServicioScreen() {
     parsedOdometer != null ? odometerWarning(parsedOdometer, isoFromDateInput(date), readings) : null;
 
   const visible = search.trim()
-    ? catalog.filter((t) => t.name.toLowerCase().includes(search.trim().toLowerCase()))
+    ? catalog.filter((t) => catalogLabel('serviceType', t).toLowerCase().includes(search.trim().toLowerCase()))
     : catalog;
 
   function save() {
-    if (!effectiveTitle.trim()) return setError(es.service.titleRequired);
+    if (!effectiveTitle.trim()) return setError(t.service.titleRequired);
     const badNumber = (
       [
-        [costParts, es.service.costParts],
-        [costLabor, es.service.costLabor],
-        [totalOverride ?? '', es.service.total],
-        [odometer, es.service.odometer],
-        [warrantyKm, es.service.warrantyKm],
+        [costParts, t.service.costParts],
+        [costLabor, t.service.costLabor],
+        [totalOverride ?? '', t.service.total],
+        [odometer, t.service.odometer],
+        [warrantyKm, t.service.warrantyKm],
       ] as const
     ).find(([text]) => isInvalidNumber(text));
-    if (badNumber) return setError(es.common.invalidNumber(badNumber[1]));
+    if (badNumber) return setError(t.common.invalidNumber(badNumber[1]));
     setError(null);
 
     void (async () => {
@@ -284,9 +285,9 @@ export default function NuevoServicioScreen() {
       await refresh();
 
       Alert.alert(
-        es.service.savedTitle,
+        t.service.savedTitle,
         result.resets.length
-          ? `${es.service.savedWithResets}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`
+          ? `${t.service.savedWithResets}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`
           : effectiveTitle.trim(),
       );
       router.back();
@@ -297,11 +298,11 @@ export default function NuevoServicioScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {editingId ? es.service.editTitle : es.service.newTitle}
+          {editingId ? t.service.editTitle : t.service.newTitle}
         </T>
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {es.service.kind}
+          {t.service.kind}
         </T>
         <View style={styles.row}>
           {KINDS.map((k) => {
@@ -326,16 +327,16 @@ export default function NuevoServicioScreen() {
                 ]}>
                 <View style={[styles.dot, { backgroundColor: KIND_COLOR[k] }]} />
                 <T face="title" style={[styles.chipLabel, { color: on ? theme.text.primary : theme.text.secondary }]}>
-                  {es.service.kinds[k]}
+                  {t.service.kinds[k]}
                 </T>
               </Pressable>
             );
           })}
         </View>
 
-        <DateField label={es.service.date} value={date} onChange={setDate} noFuture />
+        <DateField label={t.service.date} value={date} onChange={setDate} noFuture />
         <Field
-          label={es.service.odometer}
+          label={t.service.odometer}
           keyboardType="number-pad"
           value={odometer}
           onChangeText={setOdometer}
@@ -350,23 +351,23 @@ export default function NuevoServicioScreen() {
         {kind === 'mantenimiento' ? (
           <>
             <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-              {es.service.items}
+              {t.service.items}
             </T>
             <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-              {es.service.itemsHint}
+              {t.service.itemsHint}
             </T>
             {/* Above the list, next to the Aceite chip that opened it (the list is long on a phone). */}
             {oilItems.map((type) => (
               <OilBlock
                 key={type.id}
-                title={oilItems.length > 1 || type.id !== 'aceite_motor' ? es.oil.titleFor(type.name) : es.oil.title}
+                title={oilItems.length > 1 || type.id !== 'aceite_motor' ? t.oil.titleFor(catalogLabel('serviceType', type)) : t.oil.title}
                 value={oil[type.id] ?? EMPTY_OIL}
                 onChange={(next) => setOil((prev) => ({ ...prev, [type.id]: next }))}
                 last={lastOil[type.id]}
                 fuel={oilFuel}
               />
             ))}
-            <Field label={es.service.searchItems} value={search} onChangeText={setSearch} />
+            <Field label={t.service.searchItems} value={search} onChangeText={setSearch} />
             <View style={styles.row}>
               {visible.map((type) => {
                 const on = selected.includes(type.id);
@@ -385,7 +386,7 @@ export default function NuevoServicioScreen() {
                       { borderColor: on ? theme.accentFill : theme.line, backgroundColor: on ? theme.accentFill : theme.bg.raised },
                     ]}>
                     <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
-                      {type.name}
+                      {catalogLabel('serviceType', type)}
                     </T>
                   </Pressable>
                 );
@@ -395,33 +396,33 @@ export default function NuevoServicioScreen() {
         ) : null}
 
         <Field
-          label={es.service.title}
-          placeholder={es.service.titlePlaceholder}
+          label={t.service.title}
+          placeholder={t.service.titlePlaceholder}
           value={effectiveTitle}
           onChangeText={(v) => {
             setTitleTouched(true);
             setTitle(v);
           }}
         />
-        <Field label={es.service.description} value={description} onChangeText={setDescription} multiline />
+        <Field label={t.service.description} value={description} onChangeText={setDescription} multiline />
 
         <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-          {es.service.costs}
+          {t.service.costs}
         </T>
         <View style={styles.pair}>
           <View style={styles.half}>
-            <Field label={es.service.costParts} keyboardType="decimal-pad" value={costParts} onChangeText={setCostParts} />
+            <Field label={t.service.costParts} keyboardType="decimal-pad" value={costParts} onChangeText={setCostParts} />
           </View>
           <View style={styles.half}>
-            <Field label={es.service.costLabor} keyboardType="decimal-pad" value={costLabor} onChangeText={setCostLabor} />
+            <Field label={t.service.costLabor} keyboardType="decimal-pad" value={costLabor} onChangeText={setCostLabor} />
           </View>
         </View>
         <Field
-          label={es.service.total}
+          label={t.service.total}
           keyboardType="decimal-pad"
           value={totalOverride ?? String(computedTotal)}
           onChangeText={setTotalOverride}
-          hint={es.service.totalAuto}
+          hint={t.service.totalAuto}
         />
 
         {FEATURE_DIY ? (
@@ -429,14 +430,14 @@ export default function NuevoServicioScreen() {
           <ContactPicker
             contactId={contactId}
             text={shop}
-            textLabel={es.service.shop}
+            textLabel={t.service.shop}
             onChange={({ contactId: c, text }) => {
               setContactId(c);
               setShop(text);
             }}
           />
         ) : (
-          <Field label={es.service.shop} placeholder={es.service.shopPlaceholder} value={shop} onChangeText={setShop} />
+          <Field label={t.service.shop} placeholder={t.service.shopPlaceholder} value={shop} onChangeText={setShop} />
         )}
         {shops.length && !contactId ? (
           <View style={styles.row}>
@@ -460,13 +461,13 @@ export default function NuevoServicioScreen() {
           accessibilityState={{ expanded: showWarranty }}
           style={styles.toggle}>
           <T face="title" style={[styles.toggleLabel, { color: theme.text.secondary }]}>
-            {showWarranty ? '−' : '+'}  {es.service.warranty}
+            {showWarranty ? '−' : '+'}  {t.service.warranty}
           </T>
         </Pressable>
         {showWarranty ? (
           <>
-            <DateField label={es.service.warrantyDate} value={warrantyDate} onChange={setWarrantyDate} />
-            <Field label={es.service.warrantyKm} keyboardType="number-pad" value={warrantyKm} onChangeText={setWarrantyKm} />
+            <DateField label={t.service.warrantyDate} value={warrantyDate} onChange={setWarrantyDate} />
+            <Field label={t.service.warrantyKm} keyboardType="number-pad" value={warrantyKm} onChangeText={setWarrantyKm} />
           </>
         ) : null}
 
@@ -476,7 +477,7 @@ export default function NuevoServicioScreen() {
           accessibilityState={{ expanded: showParts }}
           style={styles.toggle}>
           <T face="title" style={[styles.toggleLabel, { color: theme.text.secondary }]}>
-            {showParts ? '−' : '+'}  {es.service.parts}
+            {showParts ? '−' : '+'}  {t.service.parts}
           </T>
         </Pressable>
         {showParts ? (
@@ -492,7 +493,7 @@ export default function NuevoServicioScreen() {
                 <Pressable
                   onPress={() => setParts((prev) => prev.filter((_, i) => i !== index))}
                   accessibilityRole="button"
-                  accessibilityLabel={es.common.removeItem(part.name)}
+                  accessibilityLabel={t.common.removeItem(part.name)}
                   hitSlop={12}>
                   <T face="body" style={{ color: theme.text.muted }}>
                     ×
@@ -505,7 +506,7 @@ export default function NuevoServicioScreen() {
         ) : null}
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {es.service.photos}
+          {t.service.photos}
         </T>
         <PhotoPicker
           mediaId={photoMediaId}
@@ -520,7 +521,7 @@ export default function NuevoServicioScreen() {
             {error}
           </T>
         ) : null}
-        <PrimaryButton label={es.service.save} onPress={save} />
+        <PrimaryButton label={t.service.save} onPress={save} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -533,17 +534,17 @@ function PartAdder({ onAdd }: { onAdd: (part: PartDraft) => void }) {
 
   return (
     <View>
-      <Field label={es.service.partName} value={name} onChangeText={setName} />
+      <Field label={t.service.partName} value={name} onChangeText={setName} />
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field label={es.service.partQuantity} keyboardType="decimal-pad" value={quantity} onChangeText={setQuantity} />
+          <Field label={t.service.partQuantity} keyboardType="decimal-pad" value={quantity} onChangeText={setQuantity} />
         </View>
         <View style={styles.half}>
-          <Field label={es.service.partCost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
+          <Field label={t.service.partCost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
         </View>
       </View>
       <GhostButton
-        label={es.service.addPart}
+        label={t.service.addPart}
         onPress={() => {
           if (!name.trim()) return;
           onAdd({

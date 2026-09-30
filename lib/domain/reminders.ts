@@ -11,7 +11,7 @@ import { addDays, addMonths, daysBetween } from './dates';
 import { LEGAL_LEAD_DAYS } from './legal-dr';
 import { FALLBACK_KM_PER_DAY } from './odometer';
 import type { Reminder } from '../db/types';
-import { es } from '../i18n/es';
+import { localeTag, t } from '../i18n';
 
 /* ------------------------------------------------------------------ *
  * Status — how urgent a reminder is right now (spec §3.2)
@@ -274,7 +274,10 @@ export function mergeAttention<R extends { status: ReminderStatus }, T extends {
     .map(({ entry }) => entry);
 }
 
-export const STATUS_LABEL: Record<ReminderState, string> = es.reminders.statusLabels;
+/** Read at the moment of use, so it follows the language (ADR-39). */
+export const STATUS_LABEL: Record<ReminderState, string> = new Proxy({} as Record<ReminderState, string>, {
+  get: (_target, key) => (t.reminders.statusLabels as Record<string, string>)[key as string],
+});
 
 /* ------------------------------------------------------------------ *
  * Completion (Phase 4)
@@ -439,17 +442,17 @@ export function marbeteDueAfterPayment(paidOn: string): string {
 /** "Aceite de motor → 57,000 km · 15 mar 2027" */
 export function describeReset(reminder: Reminder, patch: ReminderPatch): string {
   const parts: string[] = [];
-  if (patch.dueKm != null) parts.push(`${Math.round(patch.dueKm).toLocaleString('es-DO')} km`);
+  if (patch.dueKm != null) parts.push(`${Math.round(patch.dueKm).toLocaleString(localeTag())} km`);
   if (patch.dueDate) {
     parts.push(
-      new Date(patch.dueDate).toLocaleDateString('es-DO', {
+      new Date(patch.dueDate).toLocaleDateString(localeTag(), {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
       }),
     );
   }
-  if (!patch.isEnabled) return `${reminder.title} → listo`;
+  if (!patch.isEnabled) return t.reminders.resetDone(reminder.title);
   return parts.length ? `${reminder.title} → ${parts.join(' · ')}` : reminder.title;
 }
 

@@ -8,6 +8,7 @@
  * overrides — never stored.
  */
 import type { Mod, WishlistItem } from '../db/types';
+import { catalogText } from '../i18n/catalog';
 import { jsonObject } from './album';
 
 export type SpecGroup = 'motor' | 'chasis' | 'ruedas' | 'dimensiones';
@@ -35,6 +36,15 @@ export const SPEC_FIELDS: SpecField[] = [
 ];
 
 export const SPEC_KEYS = new Set(SPEC_FIELDS.map((f) => f.key));
+
+/** The labels in the app's language (English: lib/i18n/catalogTranslations.en.json). */
+export const specFieldLabel = (f: SpecField): string => catalogText('specField', f.key, 'label', f.label);
+export const specHeadline = (f: SpecField): string => (f.headline ? catalogText('specField', f.key, 'headline', f.headline) : '');
+export function specLabelByKey(key: string): string {
+  const f = SPEC_FIELDS.find((x) => x.key === key);
+  return f ? specFieldLabel(f) : key;
+}
+export const specGroupLabel = (g: { key: SpecGroup; label: string }): string => catalogText('specGroup', g.key, 'label', g.label);
 export const HEADLINE_FIELDS = SPEC_FIELDS.filter((f) => f.headline);
 export const SPEC_GROUPS: { key: SpecGroup; label: string }[] = [
   { key: 'motor', label: 'Motor' },

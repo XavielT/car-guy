@@ -1,17 +1,19 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { space } from '@/constants/theme';
 import { mountWheelSet, saveInventoryItem, saveTire, saveWheelSet } from '@/lib/db/buildQueries';
 import { inventory as inventoryRepo, tires as tireRepo, vehicles as vehicleRepo, wheelSets as wheelSetRepo } from '@/lib/db/repos';
 import type { InventoryItem, Tire, WheelSet } from '@/lib/db/types';
 import { parseDecimal } from '@/lib/domain/economy';
 import { dotAge, parseTireSize, parseWheelSpec } from '@/lib/domain/tires';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const numOrNull = (s: string) => (s.trim() ? parseDecimal(s) : null);
@@ -42,7 +44,7 @@ const ITEM_KINDS: InventoryItem['kind'][] = ['pieza', 'fluido', 'herramienta', '
 const CONDITIONS: InventoryItem['condition'][] = ['nuevo', 'usado', 'core'];
 
 /** A part, fluid, tool or consumable on the shelf; "Usar en un mod" turns it into one. */
-export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: string; itemId?: string; onDone: () => void }) {
+export function InventoryItemForm({ vehicleId, itemId, onDone, skeleton }: { vehicleId: string; itemId?: string; onDone: () => void; skeleton?: ReactNode }) {
   const router = useRouter();
   const [kind, setKind] = useState<InventoryItem['kind']>('pieza');
   const [name, setName] = useState('');
@@ -55,10 +57,14 @@ export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: st
   const [cost, setCost] = useState('');
   const [garage, setGarage] = useState(false);
   const [notes, setNotes] = useState('');
+  // Editing: the screen's `skeleton` until the item is read, not a blank form.
+  const [loaded, setLoaded] = useState(!itemId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     if (!itemId) return;
     void inventoryRepo.getById(itemId).then((i) => {
+      setLoaded(true);
       if (!i) return;
       setKind(i.kind);
       setName(i.name);
@@ -92,50 +98,52 @@ export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: st
     });
   }
 
+  // Not the empty fields of a new one while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-      <Title>{itemId ? es.inventory.item.editTitle : es.inventory.item.newTitle}</Title>
-      <Eyebrow>{es.inventory.item.kind}</Eyebrow>
+      <Title>{itemId ? t.inventory.item.editTitle : t.inventory.item.newTitle}</Title>
+      <Eyebrow>{t.inventory.item.kind}</Eyebrow>
       <View style={styles.chips}>
         {ITEM_KINDS.map((k) => (
-          <Chip key={k} label={es.inventory.item.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
+          <Chip key={k} label={t.inventory.item.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
         ))}
       </View>
-      <Field label={es.inventory.item.name} value={name} onChangeText={setName} />
+      <Field label={t.inventory.item.name} value={name} onChangeText={setName} />
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.item.brand} value={brand} onChangeText={setBrand} />
+          <Field label={t.inventory.item.brand} value={brand} onChangeText={setBrand} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.item.partNumber} value={partNumber} onChangeText={setPartNumber} />
+          <Field label={t.inventory.item.partNumber} value={partNumber} onChangeText={setPartNumber} />
         </View>
       </View>
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.item.qty} keyboardType="decimal-pad" value={qty} onChangeText={setQty} />
+          <Field label={t.inventory.item.qty} keyboardType="decimal-pad" value={qty} onChangeText={setQty} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.item.unit} value={unit} onChangeText={setUnit} />
+          <Field label={t.inventory.item.unit} value={unit} onChangeText={setUnit} />
         </View>
       </View>
-      <Eyebrow>{es.inventory.item.condition}</Eyebrow>
+      <Eyebrow>{t.inventory.item.condition}</Eyebrow>
       <View style={styles.chips}>
         {CONDITIONS.map((c) => (
-          <Chip key={c} label={es.inventory.item.conditions[c]} selected={condition === c} onPress={() => setCondition(c)} />
+          <Chip key={c} label={t.inventory.item.conditions[c]} selected={condition === c} onPress={() => setCondition(c)} />
         ))}
       </View>
-      <Field label={es.inventory.item.location} value={location} onChangeText={setLocation} />
-      <Field label={es.inventory.item.cost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
-      <SwitchRow label={es.inventory.item.garage} value={garage} onChange={setGarage} />
-      <Field label={es.inventory.item.notes} value={notes} onChangeText={setNotes} multiline />
-      <PrimaryButton label={es.inventory.item.save} onPress={() => void save().then((i) => i && onDone())} />
+      <Field label={t.inventory.item.location} value={location} onChangeText={setLocation} />
+      <Field label={t.inventory.item.cost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
+      <SwitchRow label={t.inventory.item.garage} value={garage} onChange={setGarage} />
+      <Field label={t.inventory.item.notes} value={notes} onChangeText={setNotes} multiline />
+      <PrimaryButton label={t.inventory.item.save} onPress={() => void save().then((i) => i && onDone())} />
       {itemId ? (
         <GhostButton
-          label={es.inventory.useInMod}
+          label={t.inventory.useInMod}
           onPress={() => void save().then((i) => i && router.replace({ pathname: '/mod/nuevo', params: { vehicleId, fromInventory: i.id } }))}
         />
       ) : null}
-      {itemId ? <GhostButton danger label={es.inventory.item.delete} onPress={() => void inventoryRepo.softDelete(itemId).then(onDone)} /> : null}
+      {itemId ? <GhostButton danger label={t.inventory.item.delete} onPress={() => void inventoryRepo.softDelete(itemId).then(onDone)} /> : null}
     </ScrollView>
   );
 }
@@ -145,7 +153,7 @@ export function InventoryItemForm({ vehicleId, itemId, onDone }: { vehicleId: st
 const SET_STATUSES: WheelSet['status'][] = ['montado', 'guardado', 'vendido'];
 
 /** A set of wheels ("15x8 ET0 · 4x100 · CB 54.1"), its tires, and "Montar en <vehículo>". */
-export function WheelSetForm({ vehicleId, setId, onDone }: { vehicleId: string; setId?: string; onDone: () => void }) {
+export function WheelSetForm({ vehicleId, setId, onDone, skeleton }: { vehicleId: string; setId?: string; onDone: () => void; skeleton?: ReactNode }) {
   const router = useRouter();
   const { theme } = useTheme();
   const [name, setName] = useState('');
@@ -159,12 +167,16 @@ export function WheelSetForm({ vehicleId, setId, onDone }: { vehicleId: string; 
   const [notes, setNotes] = useState('');
   const [tires, setTires] = useState<Tire[]>([]);
   const [vehicleName, setVehicleName] = useState('');
+  // Editing: the screen's `skeleton` until the set is read, not a blank form.
+  const [loaded, setLoaded] = useState(!setId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     void vehicleRepo.getById(vehicleId).then((v) => setVehicleName(v?.name ?? ''));
     if (!setId) return;
     void (async () => {
       const [w, ts] = await Promise.all([wheelSetRepo.getById(setId), tireRepo.listWhere({ wheelSetId: setId })]);
+      setLoaded(true);
       if (!w) return;
       setName(w.name);
       setSpec(w.widthIn && w.diamIn ? `${w.diamIn}x${w.widthIn}${w.offsetMm != null ? ` ET${w.offsetMm}` : ''}` : '');
@@ -200,56 +212,58 @@ export function WheelSetForm({ vehicleId, setId, onDone }: { vehicleId: string; 
     });
   }
 
+  // Not the empty fields of a new one while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-      <Title>{setId ? es.inventory.wheel.editTitle : es.inventory.wheel.newTitle}</Title>
-      <Field label={es.inventory.wheel.name} placeholder={es.inventory.wheel.namePlaceholder} value={name} onChangeText={setName} />
+      <Title>{setId ? t.inventory.wheel.editTitle : t.inventory.wheel.newTitle}</Title>
+      <Field label={t.inventory.wheel.name} placeholder={t.inventory.wheel.namePlaceholder} value={name} onChangeText={setName} />
       <Field
-        label={es.inventory.wheel.spec}
+        label={t.inventory.wheel.spec}
         value={spec}
         onChangeText={setSpec}
         hint={parsed.widthIn || parsed.diamIn ? [parsed.diamIn && `${parsed.diamIn}"`, parsed.widthIn && `${parsed.widthIn}J`, parsed.offsetMm != null && `ET${parsed.offsetMm}`].filter(Boolean).join(' · ') : undefined}
       />
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.wheel.boltPattern} value={bolt} onChangeText={setBolt} />
+          <Field label={t.inventory.wheel.boltPattern} value={bolt} onChangeText={setBolt} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.wheel.centerBore} keyboardType="decimal-pad" value={bore} onChangeText={setBore} />
+          <Field label={t.inventory.wheel.centerBore} keyboardType="decimal-pad" value={bore} onChangeText={setBore} />
         </View>
       </View>
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.wheel.brand} value={brand} onChangeText={setBrand} />
+          <Field label={t.inventory.wheel.brand} value={brand} onChangeText={setBrand} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.wheel.model} value={model} onChangeText={setModel} />
+          <Field label={t.inventory.wheel.model} value={model} onChangeText={setModel} />
         </View>
       </View>
-      <Field label={es.inventory.wheel.qty} keyboardType="number-pad" value={qty} onChangeText={setQty} />
-      <Eyebrow>{es.inventory.wheel.status}</Eyebrow>
+      <Field label={t.inventory.wheel.qty} keyboardType="number-pad" value={qty} onChangeText={setQty} />
+      <Eyebrow>{t.inventory.wheel.status}</Eyebrow>
       <View style={styles.chips}>
         {SET_STATUSES.map((st) => (
-          <Chip key={st} label={es.inventory.setStatus[st]} selected={status === st} onPress={() => setStatus(st)} />
+          <Chip key={st} label={t.inventory.setStatus[st]} selected={status === st} onPress={() => setStatus(st)} />
         ))}
       </View>
-      <Field label={es.inventory.wheel.notes} value={notes} onChangeText={setNotes} multiline />
+      <Field label={t.inventory.wheel.notes} value={notes} onChangeText={setNotes} multiline />
       {tires.length ? (
         <>
-          <Eyebrow>{es.inventory.wheel.tiresOn}</Eyebrow>
-          {tires.map((t) => (
-            <T key={t.id} face="mono" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: 4 }}>
-              {[es.inventory.positions[t.position], t.size, t.dotCode ? `DOT ${t.dotCode}` : null].filter(Boolean).join(' · ')}
+          <Eyebrow>{t.inventory.wheel.tiresOn}</Eyebrow>
+          {tires.map((tire) => (
+            <T key={tire.id} face="mono" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: 4 }}>
+              {[t.inventory.positions[tire.position], tire.size, tire.dotCode ? `DOT ${tire.dotCode}` : null].filter(Boolean).join(' · ')}
             </T>
           ))}
         </>
       ) : null}
-      <PrimaryButton label={es.inventory.wheel.save} onPress={() => void save().then((w) => w && onDone())} />
+      <PrimaryButton label={t.inventory.wheel.save} onPress={() => void save().then((w) => w && onDone())} />
       {setId && status !== 'montado' && status !== 'vendido' ? (
-        <GhostButton label={es.inventory.mountOn(vehicleName)} onPress={() => void save().then((w) => w && mountWheelSet(w.id).then(onDone))} />
+        <GhostButton label={t.inventory.mountOn(vehicleName)} onPress={() => void save().then((w) => w && mountWheelSet(w.id).then(onDone))} />
       ) : null}
-      {setId ? <GhostButton label={es.inventory.addTire} onPress={() => router.push({ pathname: '/goma/[id]', params: { id: 'nuevo', vehicleId, setId } })} /> : null}
-      {setId ? <GhostButton danger label={es.inventory.wheel.delete} onPress={() => void wheelSetRepo.softDelete(setId).then(onDone)} /> : null}
+      {setId ? <GhostButton label={t.inventory.addTire} onPress={() => router.push({ pathname: '/goma/[id]', params: { id: 'nuevo', vehicleId, setId } })} /> : null}
+      {setId ? <GhostButton danger label={t.inventory.wheel.delete} onPress={() => void wheelSetRepo.softDelete(setId).then(onDone)} /> : null}
     </ScrollView>
   );
 }
@@ -260,7 +274,19 @@ const POSITIONS: Tire['position'][] = ['fl', 'fr', 'rl', 'rr', 'spare', 'unmount
 const TIRE_STATUSES: Tire['status'][] = ['nueva', 'en_uso', 'guardada', 'quemada', 'vendida'];
 
 /** One tire: size parsed as you type, the DOT decoded ("sem 23/2023 · 3.3 años"), set and corner. */
-export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleId: string; tireId?: string; initialSetId?: string | null; onDone: () => void }) {
+export function TireForm({
+  vehicleId,
+  tireId,
+  initialSetId,
+  onDone,
+  skeleton,
+}: {
+  vehicleId: string;
+  tireId?: string;
+  initialSetId?: string | null;
+  onDone: () => void;
+  skeleton?: ReactNode;
+}) {
   const { theme } = useTheme();
   const [sets, setSets] = useState<WheelSet[]>([]);
   const [size, setSize] = useState('');
@@ -276,11 +302,15 @@ export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleI
   const [position, setPosition] = useState<Tire['position']>('unmounted');
   const [status, setStatus] = useState<Tire['status']>('nueva');
   const [cost, setCost] = useState('');
+  // Editing: the screen's `skeleton` until the tire is read, not a blank form.
+  const [loaded, setLoaded] = useState(!tireId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     void wheelSetRepo.listWhere({ vehicleId }).then(setSets);
     if (!tireId) return;
     void tireRepo.getById(tireId).then((t) => {
+      setLoaded(true);
       if (!t) return;
       setSize(t.size ?? '');
       setBrand(t.brand ?? '');
@@ -300,7 +330,7 @@ export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleI
 
   const parsed = parseTireSize(size);
   const age = dotAge(dot);
-  const ageText = !age ? null : 'legacy' in age ? es.inventory.dotOld : es.inventory.dot(age.week, age.year, age.ageYears.toFixed(1));
+  const ageText = !age ? null : 'legacy' in age ? t.inventory.dotOld : t.inventory.dot(age.week, age.year, age.ageYears.toFixed(1));
 
   async function save() {
     const d = age && !('legacy' in age) ? age : null;
@@ -331,67 +361,69 @@ export function TireForm({ vehicleId, tireId, initialSetId, onDone }: { vehicleI
     onDone();
   }
 
+  // Not the empty fields of a new one while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-      <Title>{tireId ? es.inventory.tire.editTitle : es.inventory.tire.newTitle}</Title>
+      <Title>{tireId ? t.inventory.tire.editTitle : t.inventory.tire.newTitle}</Title>
       <Field
-        label={es.inventory.tire.size}
+        label={t.inventory.tire.size}
         value={size}
         onChangeText={setSize}
         autoCapitalize="characters"
-        hint={parsed.width && parsed.aspect && parsed.rim ? es.inventory.tire.sizeParsed(String(parsed.width), `${parsed.aspect}${parsed.aspectAssumed ? '*' : ''}`, String(parsed.rim)) : undefined}
+        hint={parsed.width && parsed.aspect && parsed.rim ? t.inventory.tire.sizeParsed(String(parsed.width), `${parsed.aspect}${parsed.aspectAssumed ? '*' : ''}`, String(parsed.rim)) : undefined}
       />
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.tire.brand} value={brand} onChangeText={setBrand} />
+          <Field label={t.inventory.tire.brand} value={brand} onChangeText={setBrand} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.tire.model} value={model} onChangeText={setModel} />
+          <Field label={t.inventory.tire.model} value={model} onChangeText={setModel} />
         </View>
       </View>
-      <Field label={es.inventory.tire.dot} keyboardType="number-pad" value={dot} onChangeText={setDot} hint={ageText ?? undefined} error={age?.flag && ageText ? `${ageText} — más de 6 años` : undefined} />
+      <Field label={t.inventory.tire.dot} keyboardType="number-pad" value={dot} onChangeText={setDot} hint={ageText ?? undefined} error={age?.flag && ageText ? `${ageText} — más de 6 años` : undefined} />
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.tire.compound} value={compound} onChangeText={setCompound} />
+          <Field label={t.inventory.tire.compound} value={compound} onChangeText={setCompound} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.tire.treadwear} keyboardType="number-pad" value={treadwear} onChangeText={setTreadwear} />
+          <Field label={t.inventory.tire.treadwear} keyboardType="number-pad" value={treadwear} onChangeText={setTreadwear} />
         </View>
       </View>
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.tire.treadNew} keyboardType="decimal-pad" value={treadNew} onChangeText={setTreadNew} />
+          <Field label={t.inventory.tire.treadNew} keyboardType="decimal-pad" value={treadNew} onChangeText={setTreadNew} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.inventory.tire.treadNow} keyboardType="decimal-pad" value={treadNow} onChangeText={setTreadNow} />
+          <Field label={t.inventory.tire.treadNow} keyboardType="decimal-pad" value={treadNow} onChangeText={setTreadNow} />
         </View>
       </View>
-      <Field label={es.inventory.tire.heatCycles} keyboardType="number-pad" value={heat} onChangeText={setHeat} />
-      <Eyebrow>{es.inventory.tire.set}</Eyebrow>
+      <Field label={t.inventory.tire.heatCycles} keyboardType="number-pad" value={heat} onChangeText={setHeat} />
+      <Eyebrow>{t.inventory.tire.set}</Eyebrow>
       <View style={styles.chips}>
-        <Chip label={es.inventory.tire.noSet} selected={!setId} onPress={() => setSetId(null)} />
+        <Chip label={t.inventory.tire.noSet} selected={!setId} onPress={() => setSetId(null)} />
         {sets.map((w) => (
           <Chip key={w.id} label={w.name} selected={setId === w.id} onPress={() => setSetId(w.id)} />
         ))}
       </View>
-      <Eyebrow>{es.inventory.tire.position}</Eyebrow>
+      <Eyebrow>{t.inventory.tire.position}</Eyebrow>
       <View style={styles.chips}>
         {POSITIONS.map((p) => (
-          <Chip key={p} label={es.inventory.positions[p]} selected={position === p} onPress={() => setPosition(p)} />
+          <Chip key={p} label={t.inventory.positions[p]} selected={position === p} onPress={() => setPosition(p)} />
         ))}
       </View>
-      <Eyebrow>{es.inventory.tire.status}</Eyebrow>
+      <Eyebrow>{t.inventory.tire.status}</Eyebrow>
       <View style={styles.chips}>
         {TIRE_STATUSES.map((st) => (
-          <Chip key={st} label={es.inventory.tireStatus[st]} selected={status === st} onPress={() => setStatus(st)} />
+          <Chip key={st} label={t.inventory.tireStatus[st]} selected={status === st} onPress={() => setStatus(st)} />
         ))}
       </View>
-      <Field label={es.inventory.tire.cost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
+      <Field label={t.inventory.tire.cost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
-        {parsed.aspectAssumed ? '* sin perfil escrito: 82 % por convención.' : ''}
+        {parsed.aspectAssumed ? t.inventory.tire.aspectAssumed : ''}
       </T>
-      <PrimaryButton label={es.inventory.tire.save} onPress={() => void save()} />
-      {tireId ? <GhostButton danger label={es.inventory.tire.delete} onPress={() => void tireRepo.softDelete(tireId).then(onDone)} /> : null}
+      <PrimaryButton label={t.inventory.tire.save} onPress={() => void save()} />
+      {tireId ? <GhostButton danger label={t.inventory.tire.delete} onPress={() => void tireRepo.softDelete(tireId).then(onDone)} /> : null}
     </ScrollView>
   );
 }

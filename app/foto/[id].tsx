@@ -9,9 +9,11 @@ import { ZoomableImage } from '@/components/album/ZoomableImage';
 import { vehicleGallery } from '@/lib/db/tripOps';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { PhotoViewerSkeleton } from '@/components/skeletons/PhotoViewerSkeleton';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { palette, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import {
   albumPhotos,
@@ -24,7 +26,7 @@ import {
 } from '@/lib/db/albumQueries';
 import { dateAtPrecision, photoDate, type DatePrecision } from '@/lib/domain/album';
 import { dateLabel, monthTitle } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { mediaUri, saveOriginal } from '@/lib/media';
 import { useStore } from '@/lib/store';
 
@@ -44,6 +46,8 @@ export default function PhotoViewer() {
   const { width, height } = useWindowDimensions();
 
   const [photos, setPhotos] = useState<AlbumPhoto[] | null>(null);
+  // null until the first read: the frame's outline after 150 ms (ADR-40).
+  const showSkeleton = useDelayedLoading(photos === null);
   // null until the user swipes: the photo they opened is the start.
   const [swiped, setIndex] = useState<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
@@ -72,7 +76,9 @@ export default function PhotoViewer() {
       return row
         ? [{ id: row.id, albumItemId: null, takenAt: row.takenAt, createdAt: row.createdAt, precision: row.datePrecision, blurhash: row.blurhash, isFavorite: row.isFavorite, caption: row.caption, width: row.width, height: row.height }]
         : [];
-    })().then((list) => !cancelled && setPhotos(list));
+    })()
+      .then((list) => !cancelled && setPhotos(list))
+      .catch(() => !cancelled && setPhotos([]));
     return () => {
       cancelled = true;
     };
@@ -127,10 +133,10 @@ export default function PhotoViewer() {
 
   function remove() {
     if (!current) return;
-    Alert.alert(es.viewer.deleteTitle, es.viewer.deleteBody, [
-      { text: es.common.cancel, style: 'cancel' },
+    Alert.alert(t.viewer.deleteTitle, t.viewer.deleteBody, [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: es.viewer.delete,
+        text: t.viewer.delete,
         style: 'destructive',
         onPress: () => {
           void deletePhoto(current.id).then(() => {
@@ -154,24 +160,24 @@ export default function PhotoViewer() {
         : current.precision === 'month'
           ? monthTitle(new Date(current.takenAt).getFullYear(), new Date(current.takenAt).getMonth())
           : dateLabel(photoDate(current))
-      : es.viewer.noDate
+      : t.viewer.noDate
     : '';
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={styles.top}>
-          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={es.viewer.close} hitSlop={10} style={styles.iconBtn}>
+          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t.viewer.close} hitSlop={10} style={styles.iconBtn}>
             <Ionicons name="close" size={26} color="#FFFFFF" />
           </Pressable>
           <T face="mono" style={{ color: ink.text.secondary, fontSize: 13, flex: 1, textAlign: 'center' }}>
-            {photos?.length ? es.viewer.of(index + 1, photos.length) : ''}
+            {photos?.length ? t.viewer.of(index + 1, photos.length) : ''}
           </T>
           <Pressable
             onPress={() => void toggleFavorite()}
             accessibilityRole="button"
             accessibilityState={{ selected: Boolean(current?.isFavorite) }}
-            accessibilityLabel={current?.isFavorite ? es.viewer.unfavorite : es.viewer.favorite}
+            accessibilityLabel={current?.isFavorite ? t.viewer.unfavorite : t.viewer.favorite}
             hitSlop={10}
             style={styles.iconBtn}>
             <Ionicons name={current?.isFavorite ? 'star' : 'star-outline'} size={24} color={current?.isFavorite ? ink.accentFill : '#FFFFFF'} />
@@ -202,6 +208,8 @@ export default function PhotoViewer() {
               </View>
             )}
           />
+        ) : showSkeleton ? (
+          <PhotoViewerSkeleton />
         ) : (
           <View style={{ flex: 1 }} />
         )}
@@ -217,23 +225,23 @@ export default function PhotoViewer() {
               </T>
             ) : null}
             <View style={styles.actions}>
-              <Action icon="create-outline" label={es.viewer.realDate} onPress={openEdit} />
-              <Action icon={Platform.OS === 'web' ? 'download-outline' : 'share-outline'} label={Platform.OS === 'web' ? es.viewer.download : es.viewer.saveOriginal} onPress={() => void share()} />
-              <Action icon="trash-outline" label={es.viewer.delete} onPress={remove} danger />
+              <Action icon="create-outline" label={t.viewer.realDate} onPress={openEdit} />
+              <Action icon={Platform.OS === 'web' ? 'download-outline' : 'share-outline'} label={Platform.OS === 'web' ? t.viewer.download : t.viewer.saveOriginal} onPress={() => void share()} />
+              <Action icon="trash-outline" label={t.viewer.delete} onPress={remove} danger />
             </View>
           </View>
         ) : null}
 
-        <Sheet visible={editing} onClose={() => setEditing(false)} title={es.viewer.realDate}>
-          <DateField label={es.viewer.realDate} value={date} onChange={setDate} noFuture />
+        <Sheet visible={editing} onClose={() => setEditing(false)} title={t.viewer.realDate}>
+          <DateField label={t.viewer.realDate} value={date} onChange={setDate} noFuture />
           <View style={{ flexDirection: 'row', marginBottom: space.md }}>
             {(['day', 'month', 'year'] as DatePrecision[]).map((p) => (
-              <Chip key={p} label={es.importer.precisions[p]} selected={precision === p} onPress={() => setPrecision(p)} />
+              <Chip key={p} label={t.importer.precisions[p]} selected={precision === p} onPress={() => setPrecision(p)} />
             ))}
           </View>
-          <Field label={es.viewer.caption} placeholder={es.viewer.captionPlaceholder} value={caption} onChangeText={setCaption} multiline />
-          <PrimaryButton label={es.viewer.save} onPress={() => void saveEdit()} />
-          <GhostButton label={es.common.cancel} onPress={() => setEditing(false)} />
+          <Field label={t.viewer.caption} placeholder={t.viewer.captionPlaceholder} value={caption} onChangeText={setCaption} multiline />
+          <PrimaryButton label={t.viewer.save} onPress={() => void saveEdit()} />
+          <GhostButton label={t.common.cancel} onPress={() => setEditing(false)} />
         </Sheet>
       </SafeAreaView>
     </GestureHandlerRootView>

@@ -4,15 +4,18 @@ import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
+import { CheckTemplateSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { ensureVehicleTemplate, saveTemplate, type TemplateDraftItem } from '@/lib/db/inspectionOps';
 import { inspectionItems as itemRepo, inspectionTemplates as templateRepo } from '@/lib/db/repos';
 import type { Cadence, OnFail } from '@/lib/db/types';
 import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -44,6 +47,8 @@ export default function TemplateEditorScreen() {
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // True until the first read settles, found or not (ADR-40).
+  const [loading, setLoading] = useState(true);
 
   const vehicleId = activeVehicle?.id;
 
@@ -81,12 +86,25 @@ export default function TemplateEditorScreen() {
           enabled: item.deletedAt == null,
         })),
       );
-    })().catch(() => {});
+    })()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [id, vehicleId]);
 
+  const showSkeleton = useDelayedLoading(loading && !!id && !!vehicleId);
+
+  if (showSkeleton) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
+        <CheckTemplateSkeleton />
+      </SafeAreaView>
+    );
+  }
   if (!templateId) return null;
 
   const patchRow = (key: string, patch: Partial<Row>) =>
@@ -117,8 +135,8 @@ export default function TemplateEditorScreen() {
 
   function save() {
     const active = rows.filter((r) => r.enabled);
-    if (active.length === 0) return setError(es.check.editor.empty);
-    if (active.some((r) => !r.label.trim())) return setError(es.check.editor.labelRequired);
+    if (active.length === 0) return setError(t.check.editor.empty);
+    if (active.some((r) => !r.label.trim())) return setError(t.check.editor.labelRequired);
     setError(null);
     setSaving(true);
     void (async () => {
@@ -130,12 +148,12 @@ export default function TemplateEditorScreen() {
           target === templateId
             ? rows
             : rows.map((r) => (r.id ? { ...r, id: `${r.id}@${activeVehicle!.id}` } : r));
-        await saveTemplate(target, { name: name.trim() || es.check.title, cadence, isEnabled }, remapped);
+        await saveTemplate(target, { name: name.trim() || t.check.title, cadence, isEnabled }, remapped);
         await refresh();
         router.back();
       } catch (e) {
         setSaving(false);
-        Alert.alert(es.check.editor.title, userMessage('template-save', e, es.check.editor.saveFailed));
+        Alert.alert(t.check.editor.title, userMessage('template-save', e, t.check.editor.saveFailed));
       }
     })();
   }
@@ -144,34 +162,34 @@ export default function TemplateEditorScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.lg, lineHeight: 19 }}>
-          {es.check.editor.copyNote}
+          {t.check.editor.copyNote}
         </T>
 
-        <Field label={es.check.editor.name} value={name} onChangeText={setName} />
+        <Field label={t.check.editor.name} value={name} onChangeText={setName} />
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {es.check.editor.cadence}
+          {t.check.editor.cadence}
         </T>
         <View style={styles.chips}>
           {CADENCES.map((c) => (
-            <Chip key={c} label={es.check.cadences[c]} selected={cadence === c} onPress={() => setCadence(c)} />
+            <Chip key={c} label={t.check.cadences[c]} selected={cadence === c} onPress={() => setCadence(c)} />
           ))}
         </View>
 
         <View style={styles.switchRow}>
           <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }}>
-            {es.check.editor.enabled}
+            {t.check.editor.enabled}
           </T>
           <Switch
             value={isEnabled}
             onValueChange={setIsEnabled}
-            accessibilityLabel={es.check.editor.enabled}
+            accessibilityLabel={t.check.editor.enabled}
             trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
           />
         </View>
 
         <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-          {es.check.editor.items}
+          {t.check.editor.items}
         </T>
 
         {rows.map((row, index) => (
@@ -180,22 +198,22 @@ export default function TemplateEditorScreen() {
               <Switch
                 value={row.enabled}
                 onValueChange={(v) => patchRow(row.key, { enabled: v })}
-                accessibilityLabel={row.label || es.check.editor.newTitle}
+                accessibilityLabel={row.label || t.check.editor.newTitle}
                 trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
               />
               <View style={{ flex: 1 }}>
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-                  {row.label || es.check.editor.newTitle}
+                  {catalogLabel('checkItem', row, 'label') || t.check.editor.newTitle}
                 </T>
                 <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                  {row.enabled ? row.groupName : es.check.editor.removed}
+                  {row.enabled ? catalogLabel('checkItem', row, 'groupName') : t.check.editor.removed}
                 </T>
               </View>
               <Pressable
                 onPress={() => move(index, -1)}
                 disabled={index === 0}
                 accessibilityRole="button"
-                accessibilityLabel={`${es.check.editor.up}: ${row.label}`}
+                accessibilityLabel={`${t.check.editor.up}: ${row.label}`}
                 hitSlop={6}
                 style={[styles.arrow, { borderColor: theme.line, opacity: index === 0 ? 0.3 : 1 }]}>
                 <T face="semibold" style={{ color: theme.text.secondary }}>↑</T>
@@ -204,7 +222,7 @@ export default function TemplateEditorScreen() {
                 onPress={() => move(index, 1)}
                 disabled={index === rows.length - 1}
                 accessibilityRole="button"
-                accessibilityLabel={`${es.check.editor.down}: ${row.label}`}
+                accessibilityLabel={`${t.check.editor.down}: ${row.label}`}
                 hitSlop={6}
                 style={[styles.arrow, { borderColor: theme.line, opacity: index === rows.length - 1 ? 0.3 : 1 }]}>
                 <T face="semibold" style={{ color: theme.text.secondary }}>↓</T>
@@ -215,18 +233,18 @@ export default function TemplateEditorScreen() {
             {row.enabled && !row.id ? (
               <View style={{ marginTop: space.md }}>
                 <Field
-                  label={es.check.editor.label}
+                  label={t.check.editor.label}
                   value={row.label}
                   onChangeText={(v) => patchRow(row.key, { label: v })}
                 />
                 <Field
-                  label={es.check.editor.how}
+                  label={t.check.editor.how}
                   value={row.how}
                   multiline
                   onChangeText={(v) => patchRow(row.key, { how: v })}
                 />
                 <Field
-                  label={es.check.editor.group}
+                  label={t.check.editor.group}
                   value={row.groupName}
                   onChangeText={(v) => patchRow(row.key, { groupName: v })}
                 />
@@ -236,10 +254,10 @@ export default function TemplateEditorScreen() {
             {row.enabled ? (
               <View style={{ marginTop: space.md }}>
                 <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
-                  {es.check.editor.onFail}
+                  {t.check.editor.onFail}
                 </T>
                 <Segmented
-                  options={ON_FAIL.map((k) => ({ key: k, label: es.check.onFailShort[k] }))}
+                  options={ON_FAIL.map((k) => ({ key: k, label: t.check.onFailShort[k] }))}
                   value={row.onFail}
                   onChange={(v) => patchRow(row.key, { onFail: v })}
                 />
@@ -248,7 +266,7 @@ export default function TemplateEditorScreen() {
           </Surface>
         ))}
 
-        <GhostButton label={es.check.editor.add} onPress={addRow} />
+        <GhostButton label={t.check.editor.add} onPress={addRow} />
 
         {error ? (
           <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginTop: space.md }}>
@@ -257,7 +275,7 @@ export default function TemplateEditorScreen() {
         ) : null}
 
         <View style={{ height: space.lg }} />
-        <PrimaryButton label={es.check.editor.save} onPress={save} disabled={saving} />
+        <PrimaryButton label={t.check.editor.save} onPress={save} disabled={saving} />
       </ScrollView>
     </SafeAreaView>
   );

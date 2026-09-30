@@ -6,7 +6,7 @@ import { T } from '@/components/T';
 import { EmptyState, GhostButton, PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { albumPhotos, type AlbumPhoto } from '@/lib/db/albumQueries';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { PhotoThumb } from './PhotoThumb';
@@ -36,8 +36,8 @@ export function AlbumTab({ vehicleId, version }: { vehicleId: string; version: n
   if (photos && !photos.length) {
     return (
       <View>
-        <EmptyState icon="images-outline" message={es.album.empty} actionLabel={es.album.import} onAction={importPhotos} />
-        <GhostButton label={es.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId } })} />
+        <EmptyState icon="images-outline" message={t.album.empty} actionLabel={t.album.import} onAction={importPhotos} />
+        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId } })} />
       </View>
     );
   }
@@ -46,17 +46,17 @@ export function AlbumTab({ vehicleId, version }: { vehicleId: string; version: n
   return (
     <View>
       <T face="mono" style={[styles.count, { color: theme.text.muted }]}>
-        {photos ? es.album.photos(photos.length) : ''}
+        {photos ? t.album.photos(photos.length) : ''}
       </T>
       <View style={styles.grid}>
         {(photos ?? []).slice(0, 6).map((p) => (
           <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={cell} onPress={() => router.push({ pathname: '/foto/[id]', params: { id: p.id, vehicleId } })} />
         ))}
       </View>
-      <PrimaryButton label={es.album.open} onPress={() => router.push({ pathname: '/vehiculo/[id]/album', params: { id: vehicleId } })} />
+      <PrimaryButton label={t.album.open} onPress={() => router.push({ pathname: '/vehiculo/[id]/album', params: { id: vehicleId } })} />
       <View style={styles.row}>
-        <GhostButton label={es.album.import} onPress={importPhotos} style={{ flex: 1 }} />
-        <GhostButton label={es.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId } })} style={{ flex: 1 }} />
+        <GhostButton label={t.album.import} onPress={importPhotos} style={{ flex: 1 }} />
+        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId } })} style={{ flex: 1 }} />
       </View>
       <StorageMeter vehicleId={vehicleId} style={{ marginTop: space.md }} />
     </View>

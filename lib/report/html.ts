@@ -3,7 +3,7 @@ import type { EconomyPoint } from '../types';
 import type { VehicleStats } from '../db/statsQueries';
 import type { HistoryEntry } from '../db/types';
 import { dateLabel, km, money } from '../format';
-import { es } from '../i18n/es';
+import { localeTag, t } from '../i18n';
 import { historyKindLabel, historyTitle } from '../domain/history';
 import { COST_CATEGORIES, type OwnershipCost } from '../domain/costs';
 
@@ -72,11 +72,11 @@ export function reportHtml(input: ReportInput): string {
   const economyUnit = economyLabel(vehicle.defaultFuelType, vehicle.volumeUnit ?? 'gal');
 
   return `<!DOCTYPE html>
-<html lang="es-DO">
+<html lang="${localeTag()}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${escape(es.report.documentTitle(vehicle.name))}</title>
+<title>${escape(t.report.documentTitle(vehicle.name))}</title>
 <style>
   @page { margin: 16mm 14mm; }
   * { box-sizing: border-box; }
@@ -145,25 +145,25 @@ export function reportHtml(input: ReportInput): string {
 <header>
   ${photoDataUri ? `<img src="${photoDataUri}" alt="" />` : ''}
   <div style="flex:1">
-    <div class="eyebrow brand">${escape(es.app.name)}</div>
+    <div class="eyebrow brand">${escape(t.app.name)}</div>
     <h1>${escape(vehicle.name)}</h1>
     <p class="sub">${escape([subtitle, vehicle.plate].filter(Boolean).join(' · ') || '—')}</p>
     ${badges ? `<div class="badges">${badges}</div>` : ''}
   </div>
   <div style="text-align:right">
-    <div class="eyebrow">${escape(es.report.period)}</div>
+    <div class="eyebrow">${escape(t.report.period)}</div>
     <div class="mono" style="font-size:10pt">${escape(periodLabel(period))}</div>
   </div>
 </header>
 
 <div class="kpis">
-  ${kpi(es.stats.spend, money(kpis.spend))}
-  ${kpi(es.stats.distance, kpis.distanceKm > 0 ? km(kpis.distanceKm) : '—')}
-  ${kpi(es.stats.costPerKm, kpis.costPerKm != null ? money(kpis.costPerKm) : '—')}
-  ${kpi(es.stats.economy, average != null ? `${average.toFixed(2)} ${economyUnit}` : '—')}
+  ${kpi(t.stats.spend, money(kpis.spend))}
+  ${kpi(t.stats.distance, kpis.distanceKm > 0 ? km(kpis.distanceKm) : '—')}
+  ${kpi(t.stats.costPerKm, kpis.costPerKm != null ? money(kpis.costPerKm) : '—')}
+  ${kpi(t.stats.economy, average != null ? `${average.toFixed(2)} ${economyUnit}` : '—')}
 </div>
 
-<h2>${escape(es.stats.byCategory)}</h2>
+<h2>${escape(t.stats.byCategory)}</h2>
 ${
   byCategory.length
     ? `<table>
@@ -171,7 +171,7 @@ ${
     ${byCategory
       .map(
         (entry) => `<tr>
-      <td style="width:38%">${escape(es.stats.categories[entry.category])}</td>
+      <td style="width:38%">${escape(t.stats.categories[entry.category])}</td>
       <td class="bartrack"><span><span class="bar" style="width:${Math.max(2, Math.round(entry.share * 100))}%"></span></span></td>
       <td class="num mono">${escape(money(entry.total))}</td>
       <td class="num muted">${Math.round(entry.share * 100)} %</td>
@@ -180,41 +180,41 @@ ${
       .join('\n')}
   </tbody>
 </table>`
-    : `<p class="muted">${escape(es.stats.byCategoryEmpty)}</p>`
+    : `<p class="muted">${escape(t.stats.byCategoryEmpty)}</p>`
 }
 
 ${ownership ? costsBlock(ownership) : ''}
 
 ${
   upcoming.items.length
-    ? `<h2>${escape(es.stats.upcoming)}</h2>
+    ? `<h2>${escape(t.stats.upcoming)}</h2>
 <table>
   <tbody>
     ${upcoming.items
       .map(
         (item) => `<tr>
-      <td>${escape(item.title)}<div class="muted" style="font-size:8.5pt">${escape(es.stats.upcomingBasis[item.basis])}</div></td>
+      <td>${escape(item.title)}<div class="muted" style="font-size:8.5pt">${escape(t.stats.upcomingBasis[item.basis])}</div></td>
       <td class="num mono">${escape(money(item.amountDop))}</td>
     </tr>`,
       )
       .join('\n')}
-    <tr><td><strong>${escape(es.stats.total)}</strong></td><td class="num mono"><strong>${escape(money(upcoming.total))}</strong></td></tr>
+    <tr><td><strong>${escape(t.stats.total)}</strong></td><td class="num mono"><strong>${escape(money(upcoming.total))}</strong></td></tr>
   </tbody>
 </table>`
     : ''
 }
 
-<h2>${escape(es.report.historyTitle)}</h2>
+<h2>${escape(t.report.historyTitle)}</h2>
 ${
   history.length
     ? `<table>
   <thead>
     <tr>
-      <th style="width:14%">${escape(es.report.columns.date)}</th>
-      <th style="width:16%">${escape(es.report.columns.kind)}</th>
-      <th>${escape(es.report.columns.title)}</th>
-      <th class="num" style="width:14%">${escape(es.report.columns.odometer)}</th>
-      <th class="num" style="width:16%">${escape(es.report.columns.amount)}</th>
+      <th style="width:14%">${escape(t.report.columns.date)}</th>
+      <th style="width:16%">${escape(t.report.columns.kind)}</th>
+      <th>${escape(t.report.columns.title)}</th>
+      <th class="num" style="width:14%">${escape(t.report.columns.odometer)}</th>
+      <th class="num" style="width:16%">${escape(t.report.columns.amount)}</th>
     </tr>
   </thead>
   <tbody>
@@ -231,14 +231,14 @@ ${
       .join('\n')}
   </tbody>
 </table>`
-    : `<p class="muted">${escape(es.report.historyEmpty)}</p>`
+    : `<p class="muted">${escape(t.report.historyEmpty)}</p>`
 }
 
 ${
   economy.length
-    ? `<h2>${escape(es.stats.economyTitle)}</h2>
+    ? `<h2>${escape(t.stats.economyTitle)}</h2>
 <p class="mono">${escape(
-        es.report.economySummary(
+        t.report.economySummary(
           economy.length,
           average != null ? average.toFixed(2) : '—',
           Math.min(...economy.map((p) => p.kmPerUnit)).toFixed(2),
@@ -250,7 +250,7 @@ ${
 }
 
 <footer>
-  <span>${escape(es.report.footer)}</span>
+  <span>${escape(t.report.footer)}</span>
   <span class="mono">${escape(dateLabel(generatedAt))}</span>
 </footer>
 
@@ -269,21 +269,21 @@ function costsBlock(cost: OwnershipCost): string {
       : `<tr><td>${escape(label)}</td><td class="num mono">${escape(value)}</td></tr>`;
   const since = cost.since
     ? cost.sinceBasis === 'compra'
-      ? es.costs.since(dateLabel(cost.since))
-      : es.costs.sinceFirst(dateLabel(cost.since))
+      ? t.costs.since(dateLabel(cost.since))
+      : t.costs.sinceFirst(dateLabel(cost.since))
     : null;
-  return `<h2>${escape(es.costs.title)}</h2>
+  return `<h2>${escape(t.costs.title)}</h2>
 <table>
   <tbody>
-    ${cost.purchasePrice != null ? row(es.costs.purchase, money(cost.purchasePrice)) : `<tr><td colspan="2" class="muted">${escape(es.costs.noPurchase)}</td></tr>`}
-    ${cost.soldPrice != null ? row(es.costs.sold, `− ${money(cost.soldPrice)}`) : ''}
-    ${COST_CATEGORIES.map((key) => row(es.costs.categories[key], money(cost.byCategory[key]))).join('\n    ')}
-    ${cost.modsSold > 0 ? `<tr><td colspan="2" class="muted">${escape(es.costs.modsSold(money(cost.modsSold)))}</td></tr>` : ''}
-    ${row(es.costs.total, money(cost.total), true)}
-    ${row(es.costs.perKm, cost.perKm != null ? money(cost.perKm) : '—')}
+    ${cost.purchasePrice != null ? row(t.costs.purchase, money(cost.purchasePrice)) : `<tr><td colspan="2" class="muted">${escape(t.costs.noPurchase)}</td></tr>`}
+    ${cost.soldPrice != null ? row(t.costs.sold, `− ${money(cost.soldPrice)}`) : ''}
+    ${COST_CATEGORIES.map((key) => row(t.costs.categories[key], money(cost.byCategory[key]))).join('\n    ')}
+    ${cost.modsSold > 0 ? `<tr><td colspan="2" class="muted">${escape(t.costs.modsSold(money(cost.modsSold)))}</td></tr>` : ''}
+    ${row(t.costs.total, money(cost.total), true)}
+    ${row(t.costs.perKm, cost.perKm != null ? money(cost.perKm) : '—')}
     ${
       cost.costPerMonth != null
-        ? `<tr><td class="muted">${escape(es.stats.ownershipPerMonth)} · ${escape(es.stats.ownershipMonths(cost.monthsOwned))}</td><td class="num mono muted">${escape(money(cost.costPerMonth))}</td></tr>`
+        ? `<tr><td class="muted">${escape(t.stats.ownershipPerMonth)} · ${escape(t.stats.ownershipMonths(cost.monthsOwned))}</td><td class="num mono muted">${escape(money(cost.costPerMonth))}</td></tr>`
         : ''
     }
     ${since ? `<tr><td colspan="2" class="muted">${escape(since)}</td></tr>` : ''}
@@ -296,7 +296,7 @@ function kpi(label: string, value: string): string {
 }
 
 function periodLabel(period: VehicleStats['period']): string {
-  if (period.from == null) return es.stats.periods.todo;
+  if (period.from == null) return t.stats.periods.todo;
   return `${dateLabel(period.from)} — ${dateLabel(period.to)}`;
 }
 

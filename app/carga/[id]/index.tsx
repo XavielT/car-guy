@@ -15,7 +15,7 @@ import { fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
 import { perFillEconomyOf } from '@/lib/domain/perFillEconomy';
 import { dateLabel, economyNumber, economyValue, km, money, volume as fmtVol } from '@/lib/format';
 import { economyLabel, FUEL_CATALOG, perUnitLabelFor, unitLabelFor } from '@/lib/fuel';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -31,7 +31,7 @@ export default function CargaDetail() {
   const { data, deleteFillUp } = useStore();
   const fill = data.fillups.find((f) => f.id === id);
   const vehicle = data.vehicles.find((v) => v.id === fill?.vehicleId);
-  const [notice, setNotice] = useState(saved === '1' ? es.fuel.savedNotice : null);
+  const [notice, setNotice] = useState(saved === '1' ? t.fuel.savedNotice : null);
 
   useEffect(() => {
     if (!notice) return;
@@ -53,7 +53,7 @@ export default function CargaDetail() {
   if (!fill || !computed) {
     return (
       <>
-        <Stack.Screen options={{ headerShown: true, title: es.fuel.detailTitle }} />
+        <Stack.Screen options={{ headerShown: true, title: t.fuel.detailTitle }} />
         <MissingRecord />
       </>
     );
@@ -64,9 +64,9 @@ export default function CargaDetail() {
   const economyUnit = fill.fuelType === 'gnv' ? null : vehicle?.detail?.economyUnit;
   // Only where there is no measured number (a partial): on a full tank it would repeat it.
   const perFillLine = perFill && review.kmPerUnit == null
-    ? es.perFill.line(economyNumber(economyValue(perFill.kmPerUnit, volumeUnit, economyUnit)), economyLabel(fill.fuelType, volumeUnit, economyUnit))
+    ? t.perFill.line(economyNumber(economyValue(perFill.kmPerUnit, volumeUnit, economyUnit)), economyLabel(fill.fuelType, volumeUnit, economyUnit))
     : null;
-  const title = [es.fuel.detailTitle, dateLabel(fill.occurredAt), fill.station || null].filter(Boolean).join(' · ');
+  const title = [t.fuel.detailTitle, dateLabel(fill.occurredAt), fill.station || null].filter(Boolean).join(' · ');
   const tile = (value: string, label: string) => (
     <View key={label} style={[styles.tile, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
       <T face="monoBold" style={{ color: theme.text.primary, fontSize: 18 }} numberOfLines={1} adjustsFontSizeToFit>
@@ -77,11 +77,11 @@ export default function CargaDetail() {
       </T>
     </View>
   );
-  const gauge = (n: number | null | undefined) => (n == null ? es.gauge.unset : gaugeLabel(n));
+  const gauge = (n: number | null | undefined) => (n == null ? t.gauge.unset : gaugeLabel(n));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
-      <Stack.Screen options={{ headerShown: true, title: es.fuel.detailTitle }} />
+      <Stack.Screen options={{ headerShown: true, title: t.fuel.detailTitle }} />
       <ScrollView contentContainerStyle={styles.pad}>
         {notice ? (
           <View style={[styles.notice, { backgroundColor: theme.bg.raised, borderColor: theme.statusText.ok }]}>
@@ -91,22 +91,22 @@ export default function CargaDetail() {
           </View>
         ) : null}
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-          {[vehicle?.name, FUEL_CATALOG[fill.fuelType]?.label, fill.isFullTank ? es.fuel.fullTankShort : es.fuel.partialShort].filter(Boolean).join(' · ').toUpperCase()}
+          {[vehicle?.name, FUEL_CATALOG[fill.fuelType]?.label, fill.isFullTank ? t.fuel.fullTankShort : t.fuel.partialShort].filter(Boolean).join(' · ').toUpperCase()}
         </T>
         <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 24, textTransform: 'uppercase', marginBottom: space.md }}>
           {title}
         </T>
 
         <View style={styles.tiles}>
-          {tile(fmtVol(fill.volume, fill.fuelType, volumeUnit), es.fuel.volume(unitLabelFor(fill.fuelType, volumeUnit)))}
-          {tile(money(fill.totalDop), es.fuel.total)}
+          {tile(fmtVol(fill.volume, fill.fuelType, volumeUnit), t.fuel.volume(unitLabelFor(fill.fuelType, volumeUnit)))}
+          {tile(money(fill.totalDop), t.fuel.total)}
           {tile(money(fill.pricePerUnit), perUnitLabelFor(fill.fuelType, volumeUnit))}
-          {tile(km(fill.odometerKm), es.fuel.odometer)}
+          {tile(km(fill.odometerKm), t.fuel.odometer)}
         </View>
 
         <Surface padded style={{ marginTop: space.md }}>
           <T face="title" style={{ color: theme.text.primary, fontSize: 17, textTransform: 'uppercase', marginBottom: space.sm }}>
-            {fill.missedPrevious ? es.fuelReview.chainBrokenTitle : es.fuelReview.titles[review.status]}
+            {fill.missedPrevious ? t.fuelReview.chainBrokenTitle : t.fuelReview.titles[review.status]}
           </T>
           <FillUpReviewBody
             review={review}
@@ -122,17 +122,17 @@ export default function CargaDetail() {
         {fill.inReserve || fill.gaugeBefore8 != null || fill.gaugeAfter8 != null ? (
           <Surface padded style={{ marginTop: space.md }}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
-              {es.gauge.title.toUpperCase()}
+              {t.gauge.title.toUpperCase()}
             </T>
-            <KeyValueRow label={es.gauge.before} value={fill.inReserve ? es.gauge.reserveOnly : gauge(fill.gaugeBefore8)} />
-            <KeyValueRow label={es.gauge.after} value={gauge(fill.gaugeAfter8)} />
+            <KeyValueRow label={t.gauge.before} value={fill.inReserve ? t.gauge.reserveOnly : gauge(fill.gaugeBefore8)} />
+            <KeyValueRow label={t.gauge.after} value={gauge(fill.gaugeAfter8)} />
           </Surface>
         ) : null}
 
         {fill.notes ? (
           <Surface padded style={{ marginTop: space.md }}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
-              {es.fuel.notes.toUpperCase()}
+              {t.fuel.notes.toUpperCase()}
             </T>
             <T face="body" style={{ color: theme.text.primary, fontSize: 15, lineHeight: 21 }}>
               {fill.notes}
@@ -141,14 +141,14 @@ export default function CargaDetail() {
         ) : null}
 
         <View style={{ marginTop: space.lg, gap: space.sm }}>
-          <PrimaryButton label={es.fuel.edit} onPress={() => router.push({ pathname: '/carga/[id]/editar', params: { id: fill.id } })} />
+          <PrimaryButton label={t.fuel.edit} onPress={() => router.push({ pathname: '/carga/[id]/editar', params: { id: fill.id } })} />
           <GhostButton
-            label={es.common.delete}
+            label={t.common.delete}
             onPress={() =>
-              Alert.alert(es.fuel.deleteTitle, es.fuel.deleteBody, [
-                { text: es.common.cancel, style: 'cancel' },
+              Alert.alert(t.fuel.deleteTitle, t.fuel.deleteBody, [
+                { text: t.common.cancel, style: 'cancel' },
                 {
-                  text: es.common.delete,
+                  text: t.common.delete,
                   style: 'destructive',
                   onPress: () => {
                     deleteFillUp(fill.id);

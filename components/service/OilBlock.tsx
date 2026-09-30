@@ -18,7 +18,7 @@ import {
   splitSpecs,
   type OilFields,
 } from '@/lib/domain/oil';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -75,17 +75,17 @@ export function OilBlock({
             setOtherGrade(Boolean(last.oilViscosity && !grades.includes(last.oilViscosity)));
           }}
           accessibilityRole="button"
-          accessibilityLabel={`${es.oil.sameAsLastA11y}: ${lastLine}`}
+          accessibilityLabel={`${t.oil.sameAsLastA11y}: ${lastLine}`}
           style={[styles.suggestion, { borderColor: theme.accent, backgroundColor: theme.bg.raised }]}>
           <Ionicons name="refresh" size={16} color={theme.accent} />
           <T face="body" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
-            {es.oil.sameAsLast(lastLine)}
+            {t.oil.sameAsLast(lastLine)}
           </T>
         </Pressable>
       ) : null}
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.oil.viscosity}
+        {t.oil.viscosity}
       </T>
       <View style={styles.wrap}>
         {grades.map((g) => (
@@ -100,7 +100,7 @@ export function OilBlock({
           />
         ))}
         <Chip
-          label={es.oil.viscosityOther}
+          label={t.oil.viscosityOther}
           selected={otherGrade}
           onPress={() => {
             const next = !otherGrade;
@@ -111,7 +111,7 @@ export function OilBlock({
       </View>
       {otherGrade ? (
         <Field
-          label={es.oil.viscosityOtherLabel}
+          label={t.oil.viscosityOtherLabel}
           value={value.oilViscosity ?? ''}
           onChangeText={(t) => set({ oilViscosity: t || null })}
           autoCapitalize="characters"
@@ -119,40 +119,40 @@ export function OilBlock({
       ) : null}
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.oil.type}
+        {t.oil.type}
       </T>
       <View style={styles.wrap}>
-        {OIL_TYPES.map((t) => (
+        {OIL_TYPES.map((ot) => (
           <Chip
-            key={t}
-            label={es.oil.types[t]}
-            selected={value.oilType === t}
-            onPress={() => set({ oilType: value.oilType === t ? null : t })}
+            key={ot}
+            label={t.oil.types[ot]}
+            selected={value.oilType === ot}
+            onPress={() => set({ oilType: value.oilType === ot ? null : ot })}
           />
         ))}
       </View>
 
       <PickerField
-        label={es.oil.brand}
+        label={t.oil.brand}
         value={value.oilBrand}
-        placeholder={es.oil.brandPlaceholder}
+        placeholder={t.oil.brandPlaceholder}
         onPress={() => setBrandOpen(true)}
       />
       <SearchSheet
         visible={brandOpen}
-        title={es.oil.brandSheet}
+        title={t.oil.brandSheet}
         items={brandItems}
         selectedKey={brandKey}
-        otherLabel={es.oil.brandOther}
+        otherLabel={t.oil.brandOther}
         onPick={(pick) => set({ oilBrand: 'other' in pick ? pick.other : pick.label })}
         onClose={() => setBrandOpen(false)}
       />
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.oil.spec}
+        {t.oil.spec}
       </T>
       <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-        {es.oil.specHint}
+        {t.oil.specHint}
       </T>
       <View style={styles.wrap}>
         {[...specChoices, ...extraSpecs].map((s) => (

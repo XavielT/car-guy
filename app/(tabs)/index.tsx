@@ -5,6 +5,7 @@ import { Linking, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDi
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TabsClusterSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import {
@@ -19,6 +20,7 @@ import {
   type Status,
 } from '@/components/ui';
 import { palette, radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
 import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
@@ -46,7 +48,8 @@ import { economyLabel } from '@/lib/fuel';
 import { fuelCfgFor, latestKnown, partialEconomy, weightedAverage } from '@/lib/domain/partialEconomy';
 import { statusBadgeLabel } from '@/lib/domain/vehicleStatus';
 import { km as fmtKm, kmPerUnit, money, volume as fmtVolume } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -94,6 +97,12 @@ export default function HomeScreen() {
   const [modelYear, setModelYear] = useState<number | null>(null);
   const [weekly, setWeekly] = useState<{ lastAt: string | null; lastHadFailures: boolean } | null>(null);
   const [facts, setFacts] = useState<GarageFacts | null>(null);
+  // The cluster is the part of Inicio that waits on queries (odometer,
+  // reminders, the weekly check); everything else is the store's, already in
+  // memory. False until the first read answers — later reloads keep the last
+  // reading on screen instead of flashing the outline (ADR-40).
+  const [clusterLoaded, setClusterLoaded] = useState(false);
+  const showClusterSkeleton = useDelayedLoading(!clusterLoaded);
   const { width } = useWindowDimensions();
   const reduced = useReducedMotion();
 
@@ -119,7 +128,7 @@ export default function HomeScreen() {
     if (!vehicleId) return;
     let cancelled = false;
 
-    (async () => {
+    const odometerRead = (async () => {
       const [odo, readings, vehicle] = await Promise.all([
         odometerNow(vehicleId),
         odometerRepo.list(vehicleId, { orderBy: 'occurred_at', direction: 'DESC' }),
@@ -150,17 +159,22 @@ export default function HomeScreen() {
     // The telltales now come from the real engine rather than the simple date
     // comparison Phase 3 used as a placeholder. Asked for more than four so
     // the merge with tasks below has something to rank.
-    evaluatedReminders(vehicleId)
+    const remindersRead = evaluatedReminders(vehicleId)
       .then((rows) => {
         if (!cancelled) setAllReminders(rows);
       })
       .catch(() => {});
 
-    lastWeeklyCheck(vehicleId)
+    const weeklyRead = lastWeeklyCheck(vehicleId)
       .then((w) => {
         if (!cancelled) setWeekly(w);
       })
       .catch(() => {});
+
+    // The three reads the cluster card is drawn from: once they answered, it is real.
+    void Promise.all([odometerRead, remindersRead, weeklyRead]).then(() => {
+      if (!cancelled) setClusterLoaded(true);
+    });
 
     garageFacts(vehicleId)
       .then((f) => {
@@ -215,7 +229,7 @@ export default function HomeScreen() {
       ? {
           key: entry.item.reminder.id,
           status: entry.item.status.status === 'sin_datos' ? 'proximo' : entry.item.status.status,
-          title: entry.item.reminder.title,
+          title: catalogLabel('reminder', entry.item.reminder, 'title'),
           countdown: countdown(entry.item.status),
           onPress: () => router.push({ pathname: '/recordatorio/[id]', params: { id: entry.item.reminder.id } }),
         }
@@ -223,7 +237,7 @@ export default function HomeScreen() {
           key: entry.item.id,
           status: TASK_STATUS[entry.item.priority],
           title: entry.item.title,
-          countdown: es.home.taskCountdown,
+          countdown: t.home.taskCountdown,
           onPress: () => router.push({ pathname: '/tarea/[id]', params: { id: entry.item.id } }),
         },
   );
@@ -245,22 +259,22 @@ export default function HomeScreen() {
     setTripBusy(false);
     if (result.ok) return;
     if (result.reason === 'permission') {
-      Alert.alert(es.trips.title, es.trips.permissionDenied, [
-        { text: es.common.cancel, style: 'cancel' },
-        { text: es.trips.openSettings, onPress: () => void Linking.openSettings() },
+      Alert.alert(t.trips.title, t.trips.permissionDenied, [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.trips.openSettings, onPress: () => void Linking.openSettings() },
       ]);
-    } else if (result.reason !== 'busy') notify(es.trips.needPermission);
+    } else if (result.reason !== 'busy') notify(t.trips.needPermission);
   };
   const finishTrip = async () => {
     const result = await stopTrip();
     if (result.kind === 'discarded') {
       notify(
         result.reason === 'duration'
-          ? es.trips.discardedBrief(Math.max(1, Math.round(result.durationS / 60)))
-          : es.trips.discardedShort(Math.round(result.distanceM)),
+          ? t.trips.discardedBrief(Math.max(1, Math.round(result.durationS / 60)))
+          : t.trips.discardedShort(Math.round(result.distanceM)),
       );
     }
-    else if (result.kind === 'saved') notify(es.trips.saved((result.distanceM / 1000).toFixed(1)));
+    else if (result.kind === 'saved') notify(t.trips.saved((result.distanceM / 1000).toFixed(1)));
   };
 
   const detail = activeVehicle.detail;
@@ -280,14 +294,14 @@ export default function HomeScreen() {
           <View style={{ flex: 1 }}>
             <View style={styles.brandRow}>
               <T face="eyebrow" style={{ color: theme.accent, fontSize: 12 }}>
-                {es.home.eyebrow}
+                {t.home.eyebrow}
               </T>
               <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
                 車
               </T>
             </View>
             <T face="display" style={[styles.brand, { color: theme.text.primary }]}>
-              {es.home.title}
+              {t.home.title}
             </T>
           </View>
           {/* Signed in only: without an account there is nothing to be in step with. */}
@@ -297,7 +311,7 @@ export default function HomeScreen() {
               accessibilityRole="link"
               style={[styles.installPill, { borderColor: theme.accent }]}>
               <T face="semibold" style={{ color: theme.accent, fontSize: 12 }}>
-                {es.install.pill}
+                {t.install.pill}
               </T>
             </Pressable>
           ) : null}
@@ -305,9 +319,9 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => router.push('/cuenta')}
             accessibilityRole="button"
-            accessibilityLabel={es.routes.account}
+            accessibilityLabel={t.routes.account}
             hitSlop={8}>
-            <Hanko char="改" size={42} accessibilityLabel={es.routes.account} />
+            <Hanko char="改" size={42} accessibilityLabel={t.routes.account} />
           </Pressable>
         </View>
 
@@ -323,7 +337,7 @@ export default function HomeScreen() {
                 onPress={() => setActiveVehicle(v.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                accessibilityLabel={[v.name, v.detail?.nickname, v.detail && statusTag ? es.vehicleStatus[v.detail.status] : null].filter(Boolean).join(', ')}
+                accessibilityLabel={[v.name, v.detail?.nickname, v.detail && statusTag ? t.vehicleStatus[v.detail.status] : null].filter(Boolean).join(', ')}
                 style={[
                   styles.chip,
                   { backgroundColor: on ? theme.accentFill : theme.bg.surface, borderColor: on ? theme.accentFill : theme.lineStrong },
@@ -350,7 +364,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             style={[styles.chip, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
             <T face="title" style={[styles.chipLabel, { color: theme.text.secondary }]}>
-              {es.home.addVehicle}
+              {t.home.addVehicle}
             </T>
           </Pressable>
         </ScrollView>
@@ -372,12 +386,20 @@ export default function HomeScreen() {
               onStop={() => void finishTrip()}
             />
           </Animated.View>
+        ) : !clusterLoaded || showClusterSkeleton ? (
+          // Before the first read: the cluster's outline after 150 ms, and
+          // until then its footprint, so nothing below it moves (ADR-40).
+          showClusterSkeleton ? (
+            <TabsClusterSkeleton />
+          ) : (
+            <View style={{ height: Math.min(340, Math.max(240, width - 72)) * 0.9 + 170, marginBottom: space.lg }} />
+          )
         ) : (
         <Animated.View key="odo" entering={reduced ? undefined : FadeIn.duration(300)}>
         <ClusterHero
           odometerKm={odometerKm}
           reading={clusterReading(allReminders)}
-          caption={odometerEstimated ? es.trips.odometerEstimated : odometerCaption(daysSince)}
+          caption={odometerEstimated ? t.trips.odometerEstimated : odometerCaption(daysSince)}
           size={Math.min(340, Math.max(240, width - 72))}
           onPress={() => router.push('/recordatorios')}
           onPressOdometer={() => router.push('/odometro')}
@@ -406,10 +428,10 @@ export default function HomeScreen() {
             style={[styles.pendingRow, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, borderLeftColor: theme.accent }]}>
             <View style={{ flex: 1 }}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-                {es.trips.start}
+                {t.trips.start}
               </T>
               <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                {tripsModeNow === 'auto' ? es.trips.startHintAuto : es.trips.startHint}
+                {tripsModeNow === 'auto' ? t.trips.startHintAuto : t.trips.startHint}
               </T>
             </View>
           </Pressable>
@@ -440,10 +462,10 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => router.push('/recordatorios')}
             accessibilityRole="button"
-            accessibilityLabel={`${es.documents.kinds.marbete}: ${marbeteNotice.message}`}
+            accessibilityLabel={`${t.documents.kinds.marbete}: ${marbeteNotice.message}`}
             style={[styles.banner, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
             <T face="semibold" style={{ color: theme.statusText.proximo, fontSize: 13 }}>
-              {es.documents.kinds.marbete}
+              {t.documents.kinds.marbete}
             </T>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
               {marbeteNotice.message}
@@ -459,12 +481,12 @@ export default function HomeScreen() {
         {configured && !session && accountCardHidden === false ? (
           <Surface style={styles.accountCard}>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-              {es.account.onboardingTitle}
+              {t.account.onboardingTitle}
             </T>
             <T
               face="body"
               style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-              {es.account.onboardingBody}
+              {t.account.onboardingBody}
             </T>
             <View style={styles.accountActions}>
               <Pressable
@@ -472,7 +494,7 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 style={[styles.accountPrimary, { backgroundColor: theme.accentFill }]}>
                 <T face="semibold" style={{ color: theme.accentFillInk, fontSize: 13 }}>
-                  {es.account.onboardingAction}
+                  {t.account.onboardingAction}
                 </T>
               </Pressable>
               <Pressable
@@ -483,7 +505,7 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 style={styles.accountDismiss}>
                 <T face="semibold" style={{ color: theme.text.secondary, fontSize: 13 }}>
-                  {es.account.onboardingDismiss}
+                  {t.account.onboardingDismiss}
                 </T>
               </Pressable>
             </View>
@@ -492,37 +514,37 @@ export default function HomeScreen() {
 
         <QuickActions
           actions={[
-            { label: es.quickActions.fuel, icon: 'flash-outline', onPress: () => router.push('/carga/nueva') },
-            { label: es.quickActions.check, icon: 'clipboard-outline', onPress: () => router.push('/chequeo') },
+            { label: t.quickActions.fuel, icon: 'flash-outline', onPress: () => router.push('/carga/nueva') },
+            { label: t.quickActions.check, icon: 'clipboard-outline', onPress: () => router.push('/chequeo') },
             // BUILD and PISTA take these slots once their phases ship (ADR-24).
             FEATURE_BUILD
-              ? { label: es.quickActions.build, icon: 'construct-outline', onPress: () => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id, tab: 'build' } }) }
-              : { label: es.quickActions.service, icon: 'construct-outline', onPress: () => router.push('/servicio/nuevo') },
+              ? { label: t.quickActions.build, icon: 'construct-outline', onPress: () => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id, tab: 'build' } }) }
+              : { label: t.quickActions.service, icon: 'construct-outline', onPress: () => router.push('/servicio/nuevo') },
             FEATURE_TRACK
-              ? { label: es.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } }) }
-              : { label: es.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
+              ? { label: t.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } }) }
+              : { label: t.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
           ]}
         />
 
         <View style={[styles.monthStrip, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
           <View style={styles.brandRow}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-              {es.home.monthStrip}
+              {t.home.monthStrip}
             </T>
             <T face="kana" style={{ color: theme.text.muted, fontSize: 9 }}>
               記録
             </T>
           </View>
           <View style={styles.monthRow}>
-            <MonthStat label={es.home.monthSpend} value={money(monthSpend)} wide />
-            <MonthStat label={es.home.monthKm} value={fmtKm(Math.round(monthKm))} />
+            <MonthStat label={t.home.monthSpend} value={money(monthSpend)} wide />
+            <MonthStat label={t.home.monthKm} value={fmtKm(Math.round(monthKm))} />
             <MonthStat
-              label={es.home.monthEconomy}
+              label={t.home.monthEconomy}
               value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit) : '—'}
             />
           </View>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
-            {es.home.monthFillupsLine(monthLogs.length)}
+            {t.home.monthFillupsLine(monthLogs.length)}
           </T>
         </View>
 
@@ -530,17 +552,17 @@ export default function HomeScreen() {
           <Surface style={{ marginBottom: space.md }}>
             <T face="semibold" style={{ color: theme.accent, fontSize: 15 }}>
               {insight.status === 'low'
-                ? es.home.insightLow
+                ? t.home.insightLow
                 : insight.status === 'great'
-                  ? es.home.insightGreat
-                  : es.home.insightNormal}
+                  ? t.home.insightGreat
+                  : t.home.insightNormal}
             </T>
             <T face="body" style={[styles.alertText, { color: theme.text.secondary }]}>
               {insight.status === 'low'
-                ? es.home.insightLowBody(Math.abs(insight.differencePercent).toFixed(0))
+                ? t.home.insightLowBody(Math.abs(insight.differencePercent).toFixed(0))
                 : insight.status === 'great'
-                  ? es.home.insightGreatBody(insight.differencePercent.toFixed(0))
-                  : es.home.insightNormalBody}
+                  ? t.home.insightGreatBody(insight.differencePercent.toFixed(0))
+                  : t.home.insightNormalBody}
             </T>
           </Surface>
         ) : null}
@@ -552,20 +574,20 @@ export default function HomeScreen() {
           accessibilityRole={last ? 'button' : undefined}>
         <Surface>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-            {es.home.lastTank}
+            {t.home.lastTank}
           </T>
           <T face="monoBold" style={[styles.statVal, { color: lastEstimated ? theme.text.muted : theme.text.primary }]}>
             {last ? `${lastEstimated ? '≈ ' : ''}${kmPerUnit(last.kmPerUnit, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit)}` : '—'}
           </T>
           <T face="body" style={[styles.statHint, { color: theme.text.muted }]}>
             {last
-              ? es.home.lastTankHint(
+              ? t.home.lastTankHint(
                   fmtKm(last.distanceKm),
                   fmtVolume(last.volume, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit),
                 )
               : avg == null
-                ? es.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit))
-                : es.home.lastTankEmpty}
+                ? t.home.averageEmpty(economyLabel(activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit))
+                : t.home.lastTankEmpty}
           </T>
         </Surface>
         </Pressable>
@@ -599,7 +621,7 @@ type Pending = { key: string; status: Status; title: string; countdown: string; 
 
 /** The mono countdown on a Pendientes row: "1,250 km", "−320 km", "12 d", "−3 d". */
 function countdown(status: EvaluatedReminder['status']): string {
-  if (status.status === 'sin_datos') return es.home.noDataShort;
+  if (status.status === 'sin_datos') return t.home.noDataShort;
   const byKm = status.dueKm != null && (status.dueDays == null || status.dueKm / 50 < status.dueDays);
   if (byKm) return `${status.dueKm! < 0 ? '−' : ''}${fmtKm(Math.abs(Math.round(status.dueKm!)))}`;
   if (status.dueDays != null) return `${status.dueDays < 0 ? '−' : ''}${Math.abs(status.dueDays)} d`;
@@ -613,10 +635,10 @@ function KeepScreenOn() {
 }
 
 function odometerCaption(daysSince: number | null): string {
-  if (daysSince == null) return es.home.odometerTapHint;
-  if (daysSince <= 0) return es.home.updatedToday;
-  if (daysSince === 1) return es.home.updatedYesterday;
-  return es.home.updatedDaysAgo(daysSince);
+  if (daysSince == null) return t.home.odometerTapHint;
+  if (daysSince <= 0) return t.home.updatedToday;
+  if (daysSince === 1) return t.home.updatedYesterday;
+  return t.home.updatedDaysAgo(daysSince);
 }
 
 /** Priority reads as urgency, same vocabulary as the reminders. */

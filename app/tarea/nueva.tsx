@@ -9,7 +9,7 @@ import { PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { tasks as taskRepo } from '@/lib/db/repos';
 import type { ServiceKind, Task } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -32,8 +32,8 @@ export default function NuevaTareaScreen() {
   if (!activeVehicle) return null;
 
   function save() {
-    if (!title.trim()) return setError(es.tasks.nameRequired);
-    if (isInvalidNumber(cost)) return setError(es.common.invalidNumber(es.tasks.estimatedCost));
+    if (!title.trim()) return setError(t.tasks.nameRequired);
+    if (isInvalidNumber(cost)) return setError(t.common.invalidNumber(t.tasks.estimatedCost));
     setError(null);
     void (async () => {
       await taskRepo.upsert({
@@ -54,33 +54,33 @@ export default function NuevaTareaScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.tasks.new}
+          {t.tasks.new}
         </T>
 
         <Field
-          label={es.tasks.name}
-          placeholder={es.tasks.namePlaceholder}
+          label={t.tasks.name}
+          placeholder={t.tasks.namePlaceholder}
           value={title}
           onChangeText={setTitle}
         />
 
-        <Chips label={es.tasks.kind} options={KINDS.map((k) => [k, es.service.kinds[k]])} value={kind} onChange={(v) => setKind(v as ServiceKind)} />
+        <Chips label={t.tasks.kind} options={KINDS.map((k) => [k, t.service.kinds[k]])} value={kind} onChange={(v) => setKind(v as ServiceKind)} />
         <Chips
-          label={es.tasks.priority}
-          options={PRIORITIES.map((p) => [p, es.tasks.priorities[p]])}
+          label={t.tasks.priority}
+          options={PRIORITIES.map((p) => [p, t.tasks.priorities[p]])}
           value={priority}
           onChange={(v) => setPriority(v as Task['priority'])}
         />
 
-        <Field label={es.tasks.estimatedCost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
-        <Field label={es.tasks.notes} value={notes} onChangeText={setNotes} multiline />
+        <Field label={t.tasks.estimatedCost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
+        <Field label={t.tasks.notes} value={notes} onChangeText={setNotes} multiline />
 
         {error ? (
           <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>
             {error}
           </T>
         ) : null}
-        <PrimaryButton label={es.tasks.save} onPress={save} />
+        <PrimaryButton label={t.tasks.save} onPress={save} />
       </ScrollView>
     </SafeAreaView>
   );

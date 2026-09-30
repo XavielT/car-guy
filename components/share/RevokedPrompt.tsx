@@ -5,7 +5,7 @@ import { T } from '@/components/T';
 import { GhostButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { purgeRevoked, revokedVehicles } from '@/lib/share/members';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -36,14 +36,14 @@ export function RevokedPrompt() {
   return (
     <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.accent }]}>
       <T face="title" style={{ color: theme.text.primary, fontSize: 16, textTransform: 'uppercase' }}>
-        {es.members.revokedTitle}
+        {t.members.revokedTitle}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
-        {es.members.revokedBody(v.name)}
+        {t.members.revokedBody(v.name)}
       </T>
       <View style={styles.pair}>
-        <GhostButton danger style={{ flex: 1 }} label={es.members.revokedPurge} onPress={() => void purgeRevoked(v.id).then(refresh)} />
-        <GhostButton style={{ flex: 1 }} label={es.members.revokedKeep} onPress={() => void purgeRevoked(v.id, true).then(refresh)} />
+        <GhostButton danger style={{ flex: 1 }} label={t.members.revokedPurge} onPress={() => void purgeRevoked(v.id).then(refresh)} />
+        <GhostButton style={{ flex: 1 }} label={t.members.revokedKeep} onPress={() => void purgeRevoked(v.id, true).then(refresh)} />
       </View>
     </View>
   );

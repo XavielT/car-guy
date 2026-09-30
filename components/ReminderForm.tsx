@@ -10,7 +10,8 @@ import { reminders as reminderRepo, serviceTypes as serviceTypeRepo } from '@/li
 import type { Reminder, ReminderMetric, ServiceType, Vehicle } from '@/lib/db/types';
 import { addMonths, todayIso } from '@/lib/domain/dates';
 import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { parseDecimal } from '@/lib/math';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -92,7 +93,7 @@ export function ReminderForm({
     setServiceTypeId(type?.id ?? null);
     if (!type || editing) return;
     // Only fills what the user has not already typed.
-    if (!title.trim()) setTitle(type.name);
+    if (!title.trim()) setTitle(catalogLabel('serviceType', type));
     if (!intervalKm && type.defaultIntervalKm != null) setIntervalKm(String(type.defaultIntervalKm));
     if (!intervalMonths && type.defaultIntervalMonths != null) {
       setIntervalMonths(String(type.defaultIntervalMonths));
@@ -103,7 +104,7 @@ export function ReminderForm({
   }
 
   function save() {
-    if (!title.trim()) return setError(es.reminders.form.titleRequired);
+    if (!title.trim()) return setError(t.reminders.form.titleRequired);
     const km = parseInt0(dueKm);
     // Required for a new reminder only: the seeded Seguro and Licencia start
     // without a date, and editing their notes must not demand one first.
@@ -112,12 +113,12 @@ export function ReminderForm({
       (metric === 'km' && km == null) ||
       (metric === 'both' && !dueDate && km == null);
     if (!editing && enabled && missingDue) {
-      return setError(es.reminders.form.dueRequired);
+      return setError(t.reminders.form.dueRequired);
     }
     // "Se repite" with no interval has nothing to repeat by: "Hecho" would
     // recompute the same due date and the reminder would never clear.
     const hasInterval = [intervalMonths, intervalDays, intervalKm].some((v) => (parseInt0(v) ?? 0) > 0);
-    if (recurring && !hasInterval) return setError(es.reminders.form.intervalRequired);
+    if (recurring && !hasInterval) return setError(t.reminders.form.intervalRequired);
     setError(null);
 
     void (async () => {
@@ -147,43 +148,43 @@ export function ReminderForm({
 
   return (
     <View>
-      <Field label={es.reminders.form.title} value={title} onChangeText={setTitle} />
+      <Field label={t.reminders.form.title} value={title} onChangeText={setTitle} />
 
-      <Label text={es.reminders.form.catalog} />
+      <Label text={t.reminders.form.catalog} />
       <View style={styles.chips}>
-        <Chip label={es.reminders.form.catalogNone} selected={serviceTypeId == null} onPress={() => pickType(null)} />
+        <Chip label={t.reminders.form.catalogNone} selected={serviceTypeId == null} onPress={() => pickType(null)} />
         {catalog.map((type) => (
           <Chip
             key={type.id}
-            label={type.name}
+            label={catalogLabel('serviceType', type)}
             selected={serviceTypeId === type.id}
             onPress={() => pickType(type)}
           />
         ))}
       </View>
 
-      <Label text={es.reminders.form.metric} />
+      <Label text={t.reminders.form.metric} />
       <Segmented
         options={(['date', 'km', 'both'] as const).map((key) => ({
           key,
-          label: es.reminders.form.metrics[key],
+          label: t.reminders.form.metrics[key],
         }))}
         value={metric}
         onChange={setMetric}
         style={{ marginBottom: space.sm }}
       />
-      {metric === 'both' ? <Hint text={es.reminders.form.bothHint} /> : null}
+      {metric === 'both' ? <Hint text={t.reminders.form.bothHint} /> : null}
 
-      {wantsDate ? <DateField label={es.reminders.form.dueDate} value={dueDate} onChange={setDueDate} /> : null}
+      {wantsDate ? <DateField label={t.reminders.form.dueDate} value={dueDate} onChange={setDueDate} /> : null}
       {wantsKm ? (
-        <Field label={es.reminders.form.dueKm} keyboardType="number-pad" value={dueKm} onChangeText={setDueKm} />
+        <Field label={t.reminders.form.dueKm} keyboardType="number-pad" value={dueKm} onChangeText={setDueKm} />
       ) : null}
 
-      <Label text={es.reminders.form.recurring} />
+      <Label text={t.reminders.form.recurring} />
       <Segmented
         options={[
-          { key: 'yes', label: es.reminders.form.yes },
-          { key: 'no', label: es.reminders.form.no },
+          { key: 'yes', label: t.reminders.form.yes },
+          { key: 'no', label: t.reminders.form.no },
         ]}
         value={recurring ? 'yes' : 'no'}
         onChange={(v) => setRecurring(v === 'yes')}
@@ -196,7 +197,7 @@ export function ReminderForm({
             {wantsDate ? (
               <View style={styles.half}>
                 <Field
-                  label={es.reminders.form.intervalMonths}
+                  label={t.reminders.form.intervalMonths}
                   keyboardType="number-pad"
                   value={intervalMonths}
                   onChangeText={setIntervalMonths}
@@ -206,7 +207,7 @@ export function ReminderForm({
             {wantsDate ? (
               <View style={styles.half}>
                 <Field
-                  label={es.reminders.form.intervalDays}
+                  label={t.reminders.form.intervalDays}
                   keyboardType="number-pad"
                   value={intervalDays}
                   onChangeText={setIntervalDays}
@@ -216,24 +217,24 @@ export function ReminderForm({
           </View>
           {wantsKm ? (
             <Field
-              label={es.reminders.form.intervalKm}
+              label={t.reminders.form.intervalKm}
               keyboardType="number-pad"
               value={intervalKm}
               onChangeText={setIntervalKm}
             />
           ) : null}
 
-          <Label text={es.reminders.form.fixed} />
+          <Label text={t.reminders.form.fixed} />
           <Segmented
             options={[
-              { key: 'yes', label: es.reminders.form.yes },
-              { key: 'no', label: es.reminders.form.no },
+              { key: 'yes', label: t.reminders.form.yes },
+              { key: 'no', label: t.reminders.form.no },
             ]}
             value={fixed ? 'yes' : 'no'}
             onChange={(v) => setFixed(v === 'yes')}
             style={{ marginBottom: space.sm }}
           />
-          <Hint text={es.reminders.form.fixedHint} />
+          <Hint text={t.reminders.form.fixedHint} />
         </>
       ) : null}
 
@@ -243,34 +244,34 @@ export function ReminderForm({
         accessibilityState={{ expanded: showAdvanced }}
         style={{ paddingVertical: space.md }}>
         <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
-          {showAdvanced ? es.reminders.form.advancedHide : es.reminders.form.advanced}
+          {showAdvanced ? t.reminders.form.advancedHide : t.reminders.form.advanced}
         </T>
       </Pressable>
       {showAdvanced ? (
         <>
           <Field
-            label={es.reminders.form.thresholdDays}
+            label={t.reminders.form.thresholdDays}
             keyboardType="number-pad"
             value={thresholdDays}
             onChangeText={setThresholdDays}
           />
           <Field
-            label={es.reminders.form.thresholdKm}
+            label={t.reminders.form.thresholdKm}
             keyboardType="number-pad"
             value={thresholdKm}
             onChangeText={setThresholdKm}
-            hint={es.reminders.form.thresholdHint}
+            hint={t.reminders.form.thresholdHint}
           />
         </>
       ) : null}
 
-      <Field label={es.reminders.form.notes} value={notes} onChangeText={setNotes} multiline />
+      <Field label={t.reminders.form.notes} value={notes} onChangeText={setNotes} multiline />
 
-      <Label text={es.reminders.form.enabled} />
+      <Label text={t.reminders.form.enabled} />
       <Segmented
         options={[
-          { key: 'yes', label: es.reminders.enabledLabel },
-          { key: 'no', label: es.reminders.disabledLabel },
+          { key: 'yes', label: t.reminders.enabledLabel },
+          { key: 'no', label: t.reminders.disabledLabel },
         ]}
         value={enabled ? 'yes' : 'no'}
         onChange={(v) => setEnabled(v === 'yes')}
@@ -284,9 +285,9 @@ export function ReminderForm({
       ) : null}
 
       {editing ? (
-        <GhostButton label={es.reminders.form.save} onPress={save} />
+        <GhostButton label={t.reminders.form.save} onPress={save} />
       ) : (
-        <PrimaryButton label={es.reminders.form.save} onPress={save} />
+        <PrimaryButton label={t.reminders.form.save} onPress={save} />
       )}
     </View>
   );

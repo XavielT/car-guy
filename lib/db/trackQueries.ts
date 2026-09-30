@@ -24,6 +24,7 @@ import {
   type SheetValues,
 } from '../domain/track';
 import { id as newId } from '../format';
+import { t } from '../i18n';
 
 /**
  * Pista's reads and writes (IMP 28092026 Phase 6, ADR-21). An event is a day
@@ -314,18 +315,19 @@ export async function syncPadReminder(vehicleId: string, today: string = todayIs
   }
   const upcoming = (await trackEvents.listWhere({ vehicleId }, { orderBy: 'occurred_at', direction: 'ASC' })).find((e) => e.occurredAt > today);
   const dueDate = upcoming ? upcoming.occurredAt : addDays(today, 30);
-  const lows = [status.f?.due ? `delante ${status.f.lastMm} mm` : null, status.r?.due ? `detrás ${status.r.lastMm} mm` : null].filter(Boolean).join(' · ');
+  const say = t.track.consumables.padReminder;
+  const lows = [status.f?.due ? say.front(status.f.lastMm) : null, status.r?.due ? say.rear(status.r.lastMm) : null].filter(Boolean).join(' · ');
   await reminderRepo.upsert({
     id,
     vehicleId,
-    title: 'Pastillas (pista)',
+    title: say.title,
     serviceTypeId: 'pastillas_frenos',
     metric: 'date',
     dueDate,
     isRecurring: false,
     fixedInterval: false,
     isEnabled: true,
-    notes: `Medida en pista: ${lows}. Mínimo para pista ${PAD_MIN_TRACK_MM} mm.`,
+    notes: say.notes(lows, PAD_MIN_TRACK_MM),
     deletedAt: null,
   });
   return 'armed';

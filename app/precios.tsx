@@ -10,7 +10,7 @@ import { GhostButton, PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { parseDecimal } from '@/lib/domain/economy';
 import { DEFAULT_PRICE_WEEK, DEFAULT_REFERENCE_PRICES, FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FuelType, ReferencePrices } from '@/lib/types';
@@ -41,24 +41,24 @@ export default function PreciosScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.prices.title}
+          {t.prices.title}
         </T>
         <T face="body" style={[styles.p, { color: theme.text.secondary }]}>
-          {es.prices.intro}
+          {t.prices.intro}
         </T>
 
         {/* The board used to be the home screen's hero. It belongs here: it is
             reference information about fuel prices, not a fact about your car. */}
         <View style={{ marginBottom: space.lg }}>
           <PriceBoard
-            eyebrow={es.prices.boardEyebrow}
+            eyebrow={t.prices.boardEyebrow}
             amount={data.settings.priceWeekLabel}
-            caption={es.prices.boardCaption}
+            caption={t.prices.boardCaption}
             prices={data.settings.referencePrices}
           />
         </View>
 
-        <Field label={es.prices.week} value={week} onChangeText={setWeek} />
+        <Field label={t.prices.week} value={week} onChangeText={setWeek} />
         {FUEL_ORDER.map((t) => (
           <Field
             key={t}
@@ -68,9 +68,9 @@ export default function PreciosScreen() {
             onChangeText={(v) => setPrices((p) => ({ ...p, [t]: v }))}
           />
         ))}
-        <PrimaryButton label={es.prices.save} onPress={save} />
+        <PrimaryButton label={t.prices.save} onPress={save} />
         <GhostButton
-          label={es.prices.reset}
+          label={t.prices.reset}
           onPress={() => {
             setWeek(DEFAULT_PRICE_WEEK);
             setPrices(

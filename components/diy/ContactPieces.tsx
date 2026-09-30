@@ -1,18 +1,20 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { contactLinks, listContacts, saveContact, type ContactLink } from '@/lib/db/diyQueries';
 import { contacts as contactRepo } from '@/lib/db/repos';
 import type { Contact } from '@/lib/db/types';
 import { CONTACT_KINDS, formatPhone, telLink, whatsappLink } from '@/lib/domain/contacts';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /** Call and WhatsApp buttons, shown only when the number is dialable. */
@@ -22,8 +24,8 @@ export function ContactButtons({ contact }: { contact: Pick<Contact, 'phone' | '
   if (!tel && !wa) return null;
   return (
     <View style={styles.buttons}>
-      {tel ? <IconButton icon="call-outline" label={es.contacts.call} onPress={() => void Linking.openURL(tel)} /> : null}
-      {wa ? <IconButton icon="logo-whatsapp" label={es.contacts.chat} onPress={() => void Linking.openURL(wa)} /> : null}
+      {tel ? <IconButton icon="call-outline" label={t.contacts.call} onPress={() => void Linking.openURL(tel)} /> : null}
+      {wa ? <IconButton icon="logo-whatsapp" label={t.contacts.chat} onPress={() => void Linking.openURL(wa)} /> : null}
     </View>
   );
 }
@@ -40,8 +42,11 @@ function IconButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyp
   );
 }
 
-/** The contact form, with what the contact has done for the garage underneath. */
-export function ContactForm({ contactId, onDone }: { contactId?: string; onDone: () => void }) {
+/**
+ * The contact form, with what the contact has done for the garage underneath.
+ * Editing, its fields stay a `skeleton` (the screen's twin) until the contact is read.
+ */
+export function ContactForm({ contactId, onDone, skeleton }: { contactId?: string; onDone: () => void; skeleton?: ReactNode }) {
   const router = useRouter();
   const { theme } = useTheme();
   const [name, setName] = useState('');
@@ -53,6 +58,8 @@ export function ContactForm({ contactId, onDone }: { contactId?: string; onDone:
   const [notes, setNotes] = useState('');
   const [links, setLinks] = useState<ContactLink[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(!contactId);
+  const showSkeleton = useFormSkeleton(!loaded);
 
   useEffect(() => {
     if (!contactId) return;
@@ -68,35 +75,38 @@ export function ContactForm({ contactId, onDone }: { contactId?: string; onDone:
         setNotes(c.notes);
       }
       setLinks(l);
+      setLoaded(true);
     })();
   }, [contactId]);
 
   async function save() {
-    if (!name.trim()) return setError(es.contacts.nameRequired);
+    if (!name.trim()) return setError(t.contacts.nameRequired);
     await saveContact({ id: contactId, name: name.trim(), kind, phone: phone.trim() || null, whatsapp: whatsapp.trim() || null, address: address.trim() || null, rating, notes: notes.trim() });
     onDone();
   }
 
+  // Not the empty fields of a new contact while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.md }}>
-        {contactId ? es.contacts.editTitle : es.contacts.newTitle}
+        {contactId ? t.contacts.editTitle : t.contacts.newTitle}
       </T>
-      <Field label={es.contacts.name} placeholder={es.contacts.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
+      <Field label={t.contacts.name} placeholder={t.contacts.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {es.contacts.kind}
+        {t.contacts.kind}
       </T>
       <View style={styles.chips}>
         {CONTACT_KINDS.map((k) => (
-          <Chip key={k} label={es.contacts.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
+          <Chip key={k} label={t.contacts.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
         ))}
       </View>
-      <Field label={es.contacts.phone} keyboardType="phone-pad" value={phone} onChangeText={setPhone} hint={formatPhone(phone) ?? undefined} />
-      <Field label={es.contacts.whatsapp} keyboardType="phone-pad" value={whatsapp} onChangeText={setWhatsapp} />
+      <Field label={t.contacts.phone} keyboardType="phone-pad" value={phone} onChangeText={setPhone} hint={formatPhone(phone) ?? undefined} />
+      <Field label={t.contacts.whatsapp} keyboardType="phone-pad" value={whatsapp} onChangeText={setWhatsapp} />
       <ContactButtons contact={{ name, phone, whatsapp }} />
-      <Field label={es.contacts.address} value={address} onChangeText={setAddress} />
+      <Field label={t.contacts.address} value={address} onChangeText={setAddress} />
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {es.contacts.rating}
+        {t.contacts.rating}
       </T>
       <View style={styles.stars}>
         {[1, 2, 3, 4, 5].map((n) => (
@@ -105,23 +115,23 @@ export function ContactForm({ contactId, onDone }: { contactId?: string; onDone:
           </Pressable>
         ))}
       </View>
-      <Field label={es.contacts.notes} value={notes} onChangeText={setNotes} multiline />
+      <Field label={t.contacts.notes} value={notes} onChangeText={setNotes} multiline />
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.sm }}>
           {error}
         </T>
       ) : null}
-      <PrimaryButton label={es.contacts.save} onPress={() => void save()} />
-      {contactId ? <GhostButton danger label={es.contacts.delete} onPress={() => void contactRepo.softDelete(contactId).then(onDone)} /> : null}
+      <PrimaryButton label={t.contacts.save} onPress={() => void save()} />
+      {contactId ? <GhostButton danger label={t.contacts.delete} onPress={() => void contactRepo.softDelete(contactId).then(onDone)} /> : null}
 
       {contactId ? (
         <>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
-            {es.contacts.linked}
+            {t.contacts.linked}
           </T>
           {!links.length ? (
             <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-              {es.contacts.noLinked}
+              {t.contacts.noLinked}
             </T>
           ) : null}
           {links.map((l) => (
@@ -172,17 +182,17 @@ export function ContactPicker({
   return (
     <View>
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {es.contacts.picker}
+        {t.contacts.picker}
       </T>
       <View style={styles.chips}>
-        <Chip label={es.contacts.pickerNone} selected={!contactId && !other} onPress={() => (setOther(false), onChange({ contactId: null, text: '' }))} />
+        <Chip label={t.contacts.pickerNone} selected={!contactId && !other} onPress={() => (setOther(false), onChange({ contactId: null, text: '' }))} />
         {contacts.map((c) => (
           <Chip key={c.id} label={c.name} selected={contactId === c.id} onPress={() => (setOther(false), onChange({ contactId: c.id, text: c.name }))} />
         ))}
-        <Chip label={es.contacts.pickerOther} selected={other && !contactId} onPress={() => (setOther(true), onChange({ contactId: null, text: text ?? '' }))} />
+        <Chip label={t.contacts.pickerOther} selected={other && !contactId} onPress={() => (setOther(true), onChange({ contactId: null, text: text ?? '' }))} />
         <Chip label="+" onPress={() => router.push('/contactos/nuevo')} />
       </View>
-      {other && !contactId ? <Field label={textLabel ?? es.contacts.name} value={text ?? ''} onChangeText={(t) => onChange({ contactId: null, text: t })} /> : null}
+      {other && !contactId ? <Field label={textLabel ?? t.contacts.name} value={text ?? ''} onChangeText={(t) => onChange({ contactId: null, text: t })} /> : null}
     </View>
   );
 }

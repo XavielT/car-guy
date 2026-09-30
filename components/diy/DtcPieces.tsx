@@ -12,7 +12,8 @@ import type { ServiceRecord, VehicleDtcEvent } from '@/lib/db/types';
 import { lookup, normalizeCode, type Dtc } from '@/lib/domain/dtc';
 import { parseDecimal } from '@/lib/domain/economy';
 import { dateLabel, isoFromDateInput, km as fmtKm, todayIsoDate } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { currentLanguage, t } from '@/lib/i18n';
+import { dtcText } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -26,12 +27,12 @@ export function DtcCard({ dtc, code }: { dtc: Dtc | null; code: string }) {
         {code}
       </T>
       <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
-        {dtc?.descEs ?? es.obd.notFound}
+        {dtcText(dtc) ?? t.obd.notFound}
       </T>
-      {dtc?.descEn ? (
+      {dtc?.descEn && currentLanguage() === 'es' ? (
         <>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, marginTop: space.sm }}>
-            {es.obd.english}
+            {t.obd.english}
           </T>
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
             {dtc.descEn}
@@ -39,7 +40,7 @@ export function DtcCard({ dtc, code }: { dtc: Dtc | null; code: string }) {
         </>
       ) : null}
       <T face="body" style={{ color: manufacturer ? theme.statusText.urgente : theme.text.muted, fontSize: 12, marginTop: space.sm }}>
-        {manufacturer ? es.obd.manufacturer : es.obd.generic}
+        {manufacturer ? t.obd.manufacturer : t.obd.generic}
       </T>
     </View>
   );
@@ -63,17 +64,17 @@ export function DtcLogSheet({ visible, code, vehicleId, onClose, onSaved }: { vi
   }
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={`${es.obd.log} · ${code}`}>
+    <Sheet visible={visible} onClose={onClose} title={`${t.obd.log} · ${code}`}>
       <ScrollView style={{ maxHeight: 480 }} keyboardShouldPersistTaps="handled">
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm }}>
           {cars.map((v) => (
             <Chip key={v.id} label={v.name} selected={target === v.id} onPress={() => setTarget(v.id)} />
           ))}
         </View>
-        <DateField label={es.obd.seenAt} value={date} onChange={setDate} noFuture />
-        <Field label={es.obd.km} keyboardType="number-pad" value={km} onChangeText={setKm} />
-        <Field label={es.obd.notes} value={notes} onChangeText={setNotes} multiline />
-        <PrimaryButton label={es.obd.save} onPress={() => void save()} />
+        <DateField label={t.obd.seenAt} value={date} onChange={setDate} noFuture />
+        <Field label={t.obd.km} keyboardType="number-pad" value={km} onChangeText={setKm} />
+        <Field label={t.obd.notes} value={notes} onChangeText={setNotes} multiline />
+        <PrimaryButton label={t.obd.save} onPress={() => void save()} />
       </ScrollView>
     </Sheet>
   );
@@ -116,7 +117,7 @@ export function DtcEventRow({ event, vehicleName, onChanged }: { event: VehicleD
           {[vehicleName, dateLabel(event.seenAt), event.odometerKm != null ? fmtKm(Math.round(event.odometerKm)) : null].filter(Boolean).join(' · ')}
         </T>
         <T face="eyebrow" style={{ color: event.clearedAt ? theme.statusText.ok : theme.statusText.urgente, fontSize: 10 }}>
-          {event.clearedAt ? es.obd.resolved : es.obd.open}
+          {event.clearedAt ? t.obd.resolved : t.obd.open}
         </T>
       </View>
       {event.notes ? (
@@ -127,21 +128,21 @@ export function DtcEventRow({ event, vehicleName, onChanged }: { event: VehicleD
       {linked ? (
         <Pressable onPress={() => router.push({ pathname: '/servicio/[id]', params: { id: linked.id } })} accessibilityRole="link">
           <T face="semibold" style={{ color: theme.accent, fontSize: 13 }}>
-            {es.obd.linked(linked.title)}
+            {t.obd.linked(linked.title)}
           </T>
         </Pressable>
       ) : null}
       <View style={styles.actions}>
-        <GhostButton label={event.clearedAt ? es.obd.reopen : es.obd.markResolved} onPress={() => void setDtcResolved(event.id, !event.clearedAt).then(onChanged)} style={{ flex: 1 }} />
-        <GhostButton label={es.obd.linkRepair} onPress={() => void openLink()} style={{ flex: 1 }} />
+        <GhostButton label={event.clearedAt ? t.obd.reopen : t.obd.markResolved} onPress={() => void setDtcResolved(event.id, !event.clearedAt).then(onChanged)} style={{ flex: 1 }} />
+        <GhostButton label={t.obd.linkRepair} onPress={() => void openLink()} style={{ flex: 1 }} />
       </View>
 
-      <Sheet visible={linking} onClose={() => setLinking(false)} title={es.obd.linkTitle}>
+      <Sheet visible={linking} onClose={() => setLinking(false)} title={t.obd.linkTitle}>
         <ScrollView style={{ maxHeight: 420 }}>
           <GhostButton
-            label={es.obd.linkNew}
+            label={t.obd.linkNew}
             onPress={() =>
-              void createRepairForDtc(event, lookup(event.code)?.descEs ?? '').then((r) => {
+              void createRepairForDtc(event, dtcText(lookup(event.code)) ?? '').then((r) => {
                 setLinking(false);
                 onChanged();
                 router.push({ pathname: '/servicio/[id]', params: { id: r.id } });

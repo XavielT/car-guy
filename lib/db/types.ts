@@ -9,6 +9,7 @@ import type { EconomyUnit, VolumeUnit } from '../domain/units';
  * deleted_at (tombstone) and synced_at (local only, never sent).
  */
 import type { FuelType } from '../types';
+import { t } from '../i18n';
 
 export type Syncable = {
   id: string;
@@ -202,19 +203,12 @@ export const EXPENSE_CATEGORIES = [
 
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 
-export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
-  seguro: 'Seguro',
-  marbete: 'Marbete',
-  impuesto: 'Impuesto',
-  multa: 'Multa',
-  peaje: 'Peaje',
-  parqueo: 'Parqueo',
-  lavado: 'Lavado',
-  financiamiento: 'Financiamiento',
-  accesorio: 'Accesorio',
-  grua: 'Grúa',
-  otro: 'Otro',
-};
+/** Read at the moment of use, so it follows the language (ADR-39). */
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = new Proxy({} as Record<ExpenseCategory, string>, {
+  get: (_target, key) => (t.expenseCategories as Record<string, string>)[key as string],
+  ownKeys: () => Reflect.ownKeys(t.expenseCategories),
+  getOwnPropertyDescriptor: (_target, key) => ({ value: (t.expenseCategories as Record<string, string>)[key as string], enumerable: true, configurable: true }),
+});
 
 export type Expense = Syncable & {
   vehicleId: string;

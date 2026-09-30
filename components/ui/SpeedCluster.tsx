@@ -13,7 +13,7 @@ import Animated, {
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, Stop, Text as SvgText } from 'react-native-svg';
 
 import { fonts, palette, radius, space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { getLiveTrip, gpsNow, subscribeLiveTrip, useLiveTrip } from '@/lib/trips/liveStore';
 import { T } from '../T';
 import { LcdDigits } from './LcdDigits';
@@ -173,24 +173,24 @@ export function SpeedCluster({
           <Pressable
             onPress={() => setMode((m) => MODES[(MODES.indexOf(m) + 1) % MODES.length])}
             accessibilityRole="button"
-            accessibilityLabel={es.trips.lcdA11y(es.trips.lcd[mode], mode === 'km' ? (lcdValue / 10).toFixed(1) : String(lcdValue))}
+            accessibilityLabel={t.trips.lcdA11y(t.trips.lcd[mode], mode === 'km' ? (lcdValue / 10).toFixed(1) : String(lcdValue))}
             style={[styles.lcd, { backgroundColor: ink.bg.well, borderColor: ink.lineStrong }]}>
             <LcdDigits value={lcdValue} height={size * 0.095} color={ink.text.primary} lastColor={ink.needle} />
           </Pressable>
           <T face="eyebrow" style={{ color: ink.text.muted, fontSize: 10, marginTop: 6 }}>
-            {es.trips.lcd[mode]}
+            {t.trips.lcd[mode]}
           </T>
         </View>
       </View>
 
       <View style={styles.lamps}>
-        <View style={styles.lamp} accessibilityLabel={es.trips.gps[gps]}>
+        <View style={styles.lamp} accessibilityLabel={t.trips.gps[gps]}>
           <Ionicons name="navigate" size={16} color={gpsColor} />
           <T face="eyebrow" style={{ color: gpsColor, fontSize: 10 }}>
             GPS
           </T>
         </View>
-        <AnimatedView style={[styles.lamp, recStyle]} accessibilityLabel={es.trips.recording}>
+        <AnimatedView style={[styles.lamp, recStyle]} accessibilityLabel={t.trips.recording}>
           <View style={[styles.recDot, { backgroundColor: ink.redline }]} />
           <T face="eyebrow" style={{ color: ink.redlineText, fontSize: 10 }}>
             REC
@@ -200,18 +200,18 @@ export function SpeedCluster({
           <View style={styles.lamp}>
             <Ionicons name="person" size={14} color={ink.text.secondary} />
             <T face="eyebrow" style={{ color: ink.text.secondary, fontSize: 10 }}>
-              {es.trips.passenger}
+              {t.trips.passenger}
             </T>
           </View>
         ) : null}
       </View>
       <T face="body" style={{ color: ink.text.muted, fontSize: 11, textAlign: 'center', marginTop: space.xs }}>
-        {es.trips.gpsDisclaimer}
+        {t.trips.gpsDisclaimer}
       </T>
       {onStop ? (
         <Pressable onPress={onStop} accessibilityRole="button" style={[styles.stop, { borderColor: ink.redline }]}>
           <T face="title" style={{ color: ink.redlineText, fontSize: 14, letterSpacing: 1 }}>
-            {es.trips.stop}
+            {t.trips.stop}
           </T>
         </Pressable>
       ) : null}

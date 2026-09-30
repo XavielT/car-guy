@@ -2,7 +2,7 @@ import { BarChart } from 'react-native-gifted-charts';
 
 import { fonts } from '@/constants/theme';
 import type { MonthlyDistance } from '@/lib/domain/stats';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { ChartFrame } from './ChartFrame';
 import { axisLabels } from './StackedBars';
@@ -30,9 +30,9 @@ export function DistanceBars({ months }: { months: MonthlyDistance[] }) {
 
   return (
     <ChartFrame
-      title={es.stats.kmPerMonth}
-      caption={es.stats.kmPerMonthCaption}
-      empty={hasData ? undefined : es.stats.kmPerMonthEmpty}>
+      title={t.stats.kmPerMonth}
+      caption={t.stats.kmPerMonthCaption}
+      empty={hasData ? undefined : t.stats.kmPerMonthEmpty}>
       {(width) => (
         <BarChart
           data={data}

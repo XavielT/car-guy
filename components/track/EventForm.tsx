@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import {
@@ -29,7 +31,7 @@ import type { Tire, TrackDiscipline, TrackEvent, Venue } from '@/lib/db/types';
 import { parseDecimal } from '@/lib/domain/economy';
 import { formatLap, isTimed, type PadLife } from '@/lib/domain/track';
 import { dateInputFromIso, id as newId, isoFromDateInput, todayIsoDate } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { importCandidates, pickCandidates } from '@/lib/media';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -48,8 +50,24 @@ const str = (n: number | null | undefined): string => (n == null ? '' : String(n
  * saved, its sessions, the tires and pads it used, the day's summary and its
  * photos (album items owned by the event, so they show on the Álbum timeline
  * under a PISTA/JUNTE card).
+ *
+ * Opening a saved one, it is a `skeleton` until the event is read — at once when
+ * the screen was already showing it (`skeletonContinued`); `skeleton={null}` for
+ * a remount that is only a refresh (nothing, not the twin, for those few ms).
  */
-export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventId?: string; vehicleId?: string; onDone: () => void }) {
+export function EventForm({
+  eventId,
+  vehicleId: givenVehicle,
+  onDone,
+  skeleton,
+  skeletonContinued,
+}: {
+  eventId?: string;
+  vehicleId?: string;
+  onDone: () => void;
+  skeleton?: ReactNode;
+  skeletonContinued?: boolean;
+}) {
   const router = useRouter();
   const { theme } = useTheme();
   const { data, activeVehicle, refresh } = useStore();
@@ -83,6 +101,8 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const shotRef = useRef<View>(null);
+  const [loaded, setLoaded] = useState(!eventId);
+  const showSkeleton = useFormSkeleton(!loaded, skeletonContinued);
 
   const reload = useCallback(async () => {
     const [d, p] = await Promise.all([eventDetail(id), eventPhotos(id)]);
@@ -95,6 +115,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
     void listVenues().then(setVenues);
     if (!eventId) return;
     void Promise.all([eventDetail(eventId), eventPhotos(eventId)]).then(([d, p]) => {
+      setLoaded(true);
       setDetail(d);
       setPhotos(p);
       if (!d) return;
@@ -131,7 +152,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
 
   function draft(): (Partial<TrackEvent> & Pick<TrackEvent, 'vehicleId' | 'occurredAt' | 'discipline'>) | null {
     if (!vehicleId) {
-      setError(es.track.event.needVehicle);
+      setError(t.track.event.needVehicle);
       return null;
     }
     return {
@@ -197,9 +218,9 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
   }
 
   function remove() {
-    Alert.alert(es.track.event.delete, es.track.event.deleteBody, [
-      { text: es.common.cancel, style: 'cancel' },
-      { text: es.common.delete, style: 'destructive', onPress: () => void deleteEvent(id).then(refresh).then(onDone) },
+    Alert.alert(t.track.event.delete, t.track.event.deleteBody, [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.common.delete, style: 'destructive', onPress: () => void deleteEvent(id).then(refresh).then(onDone) },
     ]);
   }
 
@@ -218,18 +239,20 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
   const vehicleName = vehicles.find((v) => v.id === vehicleId)?.name;
   const venue = venues.find((v) => v.id === venueId) ?? null;
 
+  // Not the empty fields of a new event while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton === undefined ? <FormSkeleton /> : skeleton) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.track.eyebrow}
+        {t.track.eyebrow}
       </T>
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.sm }}>
-        {saved ? title || venue?.name || es.track.event.editTitle : es.track.event.newTitle}
+        {saved ? title || venue?.name || t.track.event.editTitle : t.track.event.newTitle}
       </T>
 
       {vehicles.length > 1 ? (
         <>
-          {eyebrow(es.track.event.vehicle)}
+          {eyebrow(t.track.event.vehicle)}
           <View style={styles.chips}>
             {vehicles.map((v) => (
               <Chip key={v.id} label={v.name} selected={vehicleId === v.id} onPress={() => setVehicleId(v.id)} />
@@ -238,77 +261,77 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
         </>
       ) : null}
 
-      {eyebrow(es.track.event.venue)}
+      {eyebrow(t.track.event.venue)}
       <View style={styles.chips}>
         {venues.map((v) => (
           <Chip key={v.id} label={v.name} selected={venueId === v.id} onPress={() => setVenueId(v.id)} />
         ))}
-        <Chip label={es.track.event.addVenue} selected={addingVenue} onPress={() => setAddingVenue((a) => !a)} />
+        <Chip label={t.track.event.addVenue} selected={addingVenue} onPress={() => setAddingVenue((a) => !a)} />
       </View>
       {addingVenue ? (
         <View style={[styles.box, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
-          <Field label={es.track.event.venueName} value={venueName} onChangeText={setVenueName} />
-          <Field label={es.track.event.venueCity} value={venueCity} onChangeText={setVenueCity} />
+          <Field label={t.track.event.venueName} value={venueName} onChangeText={setVenueName} />
+          <Field label={t.track.event.venueCity} value={venueCity} onChangeText={setVenueCity} />
           <View style={styles.chips}>
-            {VENUE_TYPES.map((t) => (
-              <Chip key={t} label={es.track.event.venueTypes[t]} selected={venueType === t} onPress={() => setVenueType(t)} />
+            {VENUE_TYPES.map((x) => (
+              <Chip key={x} label={t.track.event.venueTypes[x]} selected={venueType === x} onPress={() => setVenueType(x)} />
             ))}
           </View>
-          <GhostButton label={es.track.event.venueSave} disabled={!venueName.trim()} onPress={() => void createVenue()} />
+          <GhostButton label={t.track.event.venueSave} disabled={!venueName.trim()} onPress={() => void createVenue()} />
         </View>
       ) : null}
 
-      <Field label={es.track.event.layout} placeholder={es.track.event.layoutPlaceholder} value={layout} onChangeText={setLayout} hint={es.track.event.layoutHint} />
-      <DateField label={es.track.event.date} value={date} onChange={setDate} />
-      <Field label={es.track.event.title} placeholder={es.track.event.titlePlaceholder} value={title} onChangeText={setTitle} />
-      <Field label={es.track.event.organizer} value={organizer} onChangeText={setOrganizer} />
+      <Field label={t.track.event.layout} placeholder={t.track.event.layoutPlaceholder} value={layout} onChangeText={setLayout} hint={t.track.event.layoutHint} />
+      <DateField label={t.track.event.date} value={date} onChange={setDate} />
+      <Field label={t.track.event.title} placeholder={t.track.event.titlePlaceholder} value={title} onChangeText={setTitle} />
+      <Field label={t.track.event.organizer} value={organizer} onChangeText={setOrganizer} />
 
-      {eyebrow(es.track.event.discipline)}
+      {eyebrow(t.track.event.discipline)}
       <View style={styles.chips}>
         {DISCIPLINES.map((d) => (
-          <Chip key={d} label={es.track.disciplines[d]} selected={discipline === d} onPress={() => setDiscipline(d)} />
+          <Chip key={d} label={t.track.disciplines[d]} selected={discipline === d} onPress={() => setDiscipline(d)} />
         ))}
       </View>
 
-      {eyebrow(es.track.event.weather)}
+      {eyebrow(t.track.event.weather)}
       <View style={styles.chips}>
         {WEATHERS.map((w) => (
-          <Chip key={w} label={es.track.event.weathers[w]} selected={weather === w} onPress={() => setWeather(weather === w ? null : w)} />
+          <Chip key={w} label={t.track.event.weathers[w]} selected={weather === w} onPress={() => setWeather(weather === w ? null : w)} />
         ))}
       </View>
       {pair(
-        <Field label={es.track.event.ambient} keyboardType="decimal-pad" value={ambient} onChangeText={setAmbient} />,
-        <Field label={es.track.event.trackTemp} keyboardType="decimal-pad" value={trackTemp} onChangeText={setTrackTemp} />,
+        <Field label={t.track.event.ambient} keyboardType="decimal-pad" value={ambient} onChangeText={setAmbient} />,
+        <Field label={t.track.event.trackTemp} keyboardType="decimal-pad" value={trackTemp} onChangeText={setTrackTemp} />,
       )}
-      {eyebrow(es.track.event.condition)}
+      {eyebrow(t.track.event.condition)}
       <View style={styles.chips}>
         {CONDITIONS.map((c) => (
-          <Chip key={c} label={es.track.event.conditions[c]} selected={condition === c} onPress={() => setCondition(condition === c ? null : c)} />
+          <Chip key={c} label={t.track.event.conditions[c]} selected={condition === c} onPress={() => setCondition(condition === c ? null : c)} />
         ))}
       </View>
 
       {pair(
-        <Field label={es.track.event.odoStart} keyboardType="number-pad" value={odoStart} onChangeText={setOdoStart} />,
-        <Field label={es.track.event.odoEnd} keyboardType="number-pad" value={odoEnd} onChangeText={setOdoEnd} hint={es.track.event.odoHint} />,
+        <Field label={t.track.event.odoStart} keyboardType="number-pad" value={odoStart} onChangeText={setOdoStart} />,
+        <Field label={t.track.event.odoEnd} keyboardType="number-pad" value={odoEnd} onChangeText={setOdoEnd} hint={t.track.event.odoHint} />,
       )}
 
-      {eyebrow(es.track.event.costs)}
+      {eyebrow(t.track.event.costs)}
       {pair(
-        <Field label={es.track.event.entry} keyboardType="decimal-pad" value={entry} onChangeText={setEntry} />,
-        <Field label={es.track.event.fuel} keyboardType="decimal-pad" value={fuel} onChangeText={setFuel} />,
+        <Field label={t.track.event.entry} keyboardType="decimal-pad" value={entry} onChangeText={setEntry} />,
+        <Field label={t.track.event.fuel} keyboardType="decimal-pad" value={fuel} onChangeText={setFuel} />,
       )}
-      <Field label={es.track.event.other} keyboardType="decimal-pad" value={other} onChangeText={setOther} />
-      <Field label={es.track.event.notes} value={notes} onChangeText={setNotes} multiline />
+      <Field label={t.track.event.other} keyboardType="decimal-pad" value={other} onChangeText={setOther} />
+      <Field label={t.track.event.notes} value={notes} onChangeText={setNotes} multiline />
 
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.sm }}>
           {error}
         </T>
       ) : null}
-      <PrimaryButton label={es.track.event.save} onPress={() => void saveAndStay()} />
+      <PrimaryButton label={t.track.event.save} onPress={() => void saveAndStay()} />
 
       {/* Sessions */}
-      {eyebrow(es.track.event.sessions)}
+      {eyebrow(t.track.event.sessions)}
       {(detail?.sessions ?? []).map((s) => (
         <Pressable
           key={s.id}
@@ -320,12 +343,12 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
           </T>
           <View style={{ flex: 1 }}>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-              {es.track.session.kinds[s.kind] ?? s.kind}
+              {t.track.session.kinds[s.kind] ?? s.kind}
             </T>
             <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
               {[
-                isTimed(discipline) ? (s.bestLapMs ? formatLap(s.bestLapMs) : s.laps ? es.track.laps(s.laps) : null) : s.runs ? es.track.runs(s.runs) : null,
-                s.carFeel ? es.track.session.feels[s.carFeel] : null,
+                isTimed(discipline) ? (s.bestLapMs ? formatLap(s.bestLapMs) : s.laps ? t.track.laps(s.laps) : null) : s.runs ? t.track.runs(s.runs) : null,
+                s.carFeel ? t.track.session.feels[s.carFeel] : null,
                 s.incident ? '⚠' : null,
               ]
                 .filter(Boolean)
@@ -334,9 +357,9 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
           </View>
         </Pressable>
       ))}
-      <GhostButton label={es.track.event.newSession} onPress={() => void newSession()} />
+      <GhostButton label={t.track.event.newSession} onPress={() => void newSession()} />
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
-        {es.track.event.newSessionHint}
+        {t.track.event.newSessionHint}
       </T>
 
       {saved && vehicleId ? <Consumables eventId={id} vehicleId={vehicleId} usage={detail?.usage ?? []} onChanged={() => void reload()} /> : null}
@@ -346,11 +369,11 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
           <View style={{ height: space.md }} />
           <DaySummaryCard ref={shotRef} event={detail.event} venue={detail.venue} summary={detail.summary} vehicleName={vehicleName} />
           <View style={[styles.pair, { marginTop: space.sm }]}>
-            <GhostButton style={{ flex: 1 }} label={es.track.summary.shareImage} onPress={() => void shareCardImage(shotRef, `pista-${dateInputFromIso(detail.event.occurredAt)}`)} />
+            <GhostButton style={{ flex: 1 }} label={t.track.summary.shareImage} onPress={() => void shareCardImage(shotRef, `pista-${dateInputFromIso(detail.event.occurredAt)}`)} />
             <GhostButton
               style={{ flex: 1 }}
-              label={es.track.summary.shareText}
-              onPress={() => void shareSummaryText(summaryText(detail.event, detail.venue, detail.summary, vehicleName)).then((copied) => copied && setNotice(es.track.summary.copied))}
+              label={t.track.summary.shareText}
+              onPress={() => void shareSummaryText(summaryText(detail.event, detail.venue, detail.summary, vehicleName)).then((copied) => copied && setNotice(t.track.summary.copied))}
             />
           </View>
           {notice ? (
@@ -361,7 +384,7 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
         </>
       ) : null}
 
-      {eyebrow(es.track.event.photos)}
+      {eyebrow(t.track.event.photos)}
       {photos.length ? (
         <View style={styles.photos}>
           {photos.map((m) => (
@@ -369,12 +392,12 @@ export function EventForm({ eventId, vehicleId: givenVehicle, onDone }: { eventI
           ))}
         </View>
       ) : null}
-      <GhostButton label={es.track.event.addPhotos} onPress={() => void addPhotos()} />
+      <GhostButton label={t.track.event.addPhotos} onPress={() => void addPhotos()} />
       <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-        {es.track.event.videoHint}
+        {t.track.event.videoHint}
       </T>
 
-      {saved ? <GhostButton danger label={es.track.event.delete} onPress={remove} /> : null}
+      {saved ? <GhostButton danger label={t.track.event.delete} onPress={remove} /> : null}
       <View style={{ height: space.xl }} />
     </ScrollView>
   );
@@ -392,9 +415,9 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
   useEffect(() => {
     let cancelled = false;
     const burnedIds = usage.filter((u) => u.kind === 'goma_quemada' && u.tireId).map((u) => u.tireId as string);
-    void Promise.all([usableTires(vehicleId), Promise.all(burnedIds.map((t) => tireRepo.getById(t))), padStatus(vehicleId)]).then(([usable, gone, p]) => {
+    void Promise.all([usableTires(vehicleId), Promise.all(burnedIds.map((x) => tireRepo.getById(x))), padStatus(vehicleId)]).then(([usable, gone, p]) => {
       if (cancelled) return;
-      setTires([...usable, ...gone.filter((t): t is Tire => t != null && !usable.some((u) => u.id === t.id))]);
+      setTires([...usable, ...gone.filter((x): x is Tire => x != null && !usable.some((u) => u.id === x.id))]);
       setPads(p);
     });
     return () => {
@@ -406,15 +429,15 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
   const used = new Set(usage.filter((u) => u.kind === 'ciclo_goma' && u.tireId && !u.sessionId).map((u) => u.tireId as string));
   const burned = new Set(usage.filter((u) => u.kind === 'goma_quemada' && u.tireId).map((u) => u.tireId as string));
   const burnedAt = new Map(usage.filter((u) => u.kind === 'goma_quemada' && u.tireId).map((u) => [u.tireId as string, u.unit]));
-  const tireName = (t: Tire) => {
-    const corner = (burnedAt.get(t.id) ?? t.position) as keyof typeof es.corners;
-    return [corner in es.corners && corner !== 'long' ? es.corners[corner as 'fl'] : null, t.brand, t.size].filter(Boolean).join(' · ') || es.inventory.tire.editTitle;
+  const tireName = (x: Tire) => {
+    const corner = (burnedAt.get(x.id) ?? x.position) as keyof typeof t.corners;
+    return [corner in t.corners && corner !== 'long' ? t.corners[corner as 'fl'] : null, x.brand, x.size].filter(Boolean).join(' · ') || t.inventory.tire.editTitle;
   };
 
-  function burn(t: Tire) {
-    Alert.alert(es.track.consumables.burn, es.track.consumables.burnConfirm(tireName(t)), [
-      { text: es.common.cancel, style: 'cancel' },
-      { text: es.track.consumables.burn, style: 'destructive', onPress: () => void burnTire(eventId, t).then(onChanged) },
+  function burn(x: Tire) {
+    Alert.alert(t.track.consumables.burn, t.track.consumables.burnConfirm(tireName(x)), [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.track.consumables.burn, style: 'destructive', onPress: () => void burnTire(eventId, x).then(onChanged) },
     ]);
   }
 
@@ -428,7 +451,7 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
     if (!p) return null;
     return (
       <T face="mono" style={{ color: p.due ? theme.statusText.urgente : theme.text.secondary, fontSize: 12 }}>
-        {es.track.consumables.padLine(label, String(p.lastMm), p.sessionsLeft != null ? String(p.sessionsLeft) : null)}
+        {t.track.consumables.padLine(label, String(p.lastMm), p.sessionsLeft != null ? String(p.sessionsLeft) : null)}
       </T>
     );
   };
@@ -437,55 +460,55 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
   return (
     <View style={[styles.box, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface, marginTop: space.md }]}>
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {es.track.consumables.title}
+        {t.track.consumables.title}
       </T>
       <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-        {es.track.consumables.used}
+        {t.track.consumables.used}
       </T>
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
-        {es.track.consumables.usedHint}
+        {t.track.consumables.usedHint}
       </T>
       {!tires.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-          {es.track.consumables.noTires}
+          {t.track.consumables.noTires}
         </T>
       ) : null}
-      {tires.map((t) => (
-        <View key={t.id} style={styles.tireRow}>
+      {tires.map((x) => (
+        <View key={x.id} style={styles.tireRow}>
           <View style={{ flex: 1 }}>
-            <T face="semibold" style={{ color: burned.has(t.id) ? theme.text.muted : theme.text.primary, fontSize: 14 }}>
-              {tireName(t)}
+            <T face="semibold" style={{ color: burned.has(x.id) ? theme.text.muted : theme.text.primary, fontSize: 14 }}>
+              {tireName(x)}
             </T>
-            <T face="mono" style={{ color: burned.has(t.id) ? theme.redlineText : theme.text.muted, fontSize: 11 }}>
-              {burned.has(t.id) ? es.track.consumables.burned : es.track.consumables.cycles(t.heatCycles)}
+            <T face="mono" style={{ color: burned.has(x.id) ? theme.redlineText : theme.text.muted, fontSize: 11 }}>
+              {burned.has(x.id) ? t.track.consumables.burned : t.track.consumables.cycles(x.heatCycles)}
             </T>
           </View>
-          {burned.has(t.id) ? null : (
+          {burned.has(x.id) ? null : (
             <>
-              <Chip label={used.has(t.id) ? '✓ USADA' : 'USADA'} selected={used.has(t.id)} onPress={() => void setTireUsed(eventId, t, !used.has(t.id)).then(onChanged)} />
-              <Chip label="🔥" onPress={() => burn(t)} />
+              <Chip label={used.has(x.id) ? t.track.consumables.usedChipOn : t.track.consumables.usedChip} selected={used.has(x.id)} onPress={() => void setTireUsed(eventId, x, !used.has(x.id)).then(onChanged)} />
+              <Chip label="🔥" onPress={() => burn(x)} />
             </>
           )}
         </View>
       ))}
 
       <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, marginTop: space.md }}>
-        {es.track.consumables.pads}
+        {t.track.consumables.pads}
       </T>
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.track.consumables.padsF} keyboardType="decimal-pad" value={padF} onChangeText={setPadF} />
+          <Field label={t.track.consumables.padsF} keyboardType="decimal-pad" value={padF} onChangeText={setPadF} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.track.consumables.padsR} keyboardType="decimal-pad" value={padR} onChangeText={setPadR} />
+          <Field label={t.track.consumables.padsR} keyboardType="decimal-pad" value={padR} onChangeText={setPadR} />
         </View>
       </View>
-      <GhostButton label={es.track.consumables.padsSave} disabled={!padF.trim() && !padR.trim()} onPress={() => void savePads()} />
-      {padLine('f', es.track.consumables.front)}
-      {padLine('r', es.track.consumables.rear)}
+      <GhostButton label={t.track.consumables.padsSave} disabled={!padF.trim() && !padR.trim()} onPress={() => void savePads()} />
+      {padLine('f', t.track.consumables.front)}
+      {padLine('r', t.track.consumables.rear)}
       {pads.f || pads.r ? (
         <T face="body" style={{ color: anyDue ? theme.statusText.urgente : theme.text.muted, fontSize: 12, marginTop: 4 }}>
-          {anyDue ? es.track.consumables.padDue : es.track.consumables.padOk}
+          {anyDue ? t.track.consumables.padDue : t.track.consumables.padOk}
         </T>
       ) : null}
     </View>

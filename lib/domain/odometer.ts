@@ -8,6 +8,7 @@
  * Every rule here is defensive about real data: odometers get mistyped, a
  * vehicle sits unused for a month, two readings land on the same day.
  */
+import { t } from '../i18n';
 import { daysBetween } from './dates';
 
 export type Reading = {
@@ -109,5 +110,5 @@ export function odometerWarning(
   const highest = readings.reduce((best, r) => (r.valueKm > best.valueKm ? r : best), readings[0]);
   if (daysBetween(highest.occurredAt, occurredAt) < 0) return null;
 
-  return `El odómetro más alto registrado es ${Math.round(max).toLocaleString('es-DO')} km. Puedes guardarlo igual.`;
+  return t.odometerSheet.lowerWarning(Math.round(max));
 }

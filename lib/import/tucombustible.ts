@@ -14,6 +14,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { fuelForStorage, tankForStorage } from '../domain/units';
 
 import { enqueue } from '../db/client';
+import { t } from '../i18n';
 import { seedVehicleDefaults } from '../db/seed';
 import {
   expenses as expenseRepo,
@@ -85,7 +86,7 @@ export class LegacyImportError extends Error {}
  */
 export function unwrapLegacy(payload: unknown): LegacyAppData {
   if (!payload || typeof payload !== 'object') {
-    throw new LegacyImportError('El archivo está vacío o no es un JSON válido.');
+    throw new LegacyImportError(t.backup.legacyEmpty);
   }
   const candidate = payload as LegacyBackup & Partial<LegacyAppData>;
 
@@ -98,9 +99,7 @@ export function unwrapLegacy(payload: unknown): LegacyAppData {
     Array.isArray(data.vehicles) || Array.isArray(data.fillups) || (data.settings != null);
 
   if (!looksRight) {
-    throw new LegacyImportError(
-      'El archivo no parece un respaldo de Tu Combustible RD: no trae vehículos ni cargas.',
-    );
+    throw new LegacyImportError(t.backup.legacyNotBackup);
   }
   return {
     vehicles: data.vehicles ?? [],
@@ -274,16 +273,11 @@ export function countsOf(mapped: MappedImport): ImportCounts {
 
 /** "3 vehículos, 148 cargas, 12 gastos, 4 recordatorios" */
 export function describeCounts(counts: ImportCounts): string {
-  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-  const parts = [
-    plural(counts.vehicles, 'vehículo', 'vehículos'),
-    plural(counts.fuelLogs, 'carga', 'cargas'),
-  ];
-  if (counts.serviceRecords) {
-    parts.push(plural(counts.serviceRecords, 'mantenimiento', 'mantenimientos'));
-  }
-  if (counts.expenses) parts.push(plural(counts.expenses, 'gasto', 'gastos'));
-  if (counts.reminders) parts.push(plural(counts.reminders, 'recordatorio', 'recordatorios'));
+  const say = t.backup.legacyCounts;
+  const parts = [say.vehicles(counts.vehicles), say.fuelLogs(counts.fuelLogs)];
+  if (counts.serviceRecords) parts.push(say.serviceRecords(counts.serviceRecords));
+  if (counts.expenses) parts.push(say.expenses(counts.expenses));
+  if (counts.reminders) parts.push(say.reminders(counts.reminders));
   return parts.join(', ');
 }
 

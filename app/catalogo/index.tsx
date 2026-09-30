@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListNavSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { NavRow } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -24,6 +27,7 @@ export default function CatalogoScreen() {
   const { theme } = useTheme();
   const { data } = useStore();
   const [types, setTypes] = useState<ServiceType[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,26 +36,32 @@ export default function CatalogoScreen() {
       .then((rows) => {
         if (!cancelled) setTypes(rows);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [data]);
 
+  const showSkeleton = useDelayedLoading(!loaded);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.catalog.title}
+          {t.catalog.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.catalog.subtitle}
+          {t.catalog.subtitle}
         </T>
-        {types.map((type) => (
+        {showSkeleton ? <ListNavSkeleton n={8} /> : null}
+        {(showSkeleton ? [] : types).map((type) => (
           <NavRow
             key={type.id}
-            label={type.name}
-            caption={es.catalog.every(type.defaultIntervalKm, type.defaultIntervalMonths)}
+            label={catalogLabel('serviceType', type)}
+            caption={t.catalog.every(type.defaultIntervalKm, type.defaultIntervalMonths)}
             onPress={() => router.push({ pathname: '/catalogo/[id]', params: { id: type.id } })}
           />
         ))}

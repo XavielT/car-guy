@@ -6,7 +6,7 @@ import type { FillUpReview } from '@/lib/domain/economy';
 import type { SeriesPoint } from '@/lib/domain/partialEconomy';
 import { economyNumber, economyValue, km, kmPerUnit, money } from '@/lib/format';
 import { economyLabel, unitLabelFor } from '@/lib/fuel';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FuelType } from '@/lib/types';
 import { T } from './T';
@@ -65,20 +65,20 @@ export function FillUpReviewBody({
   const estimated = review.status === 'partial' && estimate?.status === 'estimated' ? estimate : null;
   const unknownReason =
     review.status === 'partial' && estimate?.status === 'unknown' && estimate.reason && estimate.reason !== 'missing_gauge'
-      ? es.estimate.reasons[estimate.reason]
+      ? t.estimate.reasons[estimate.reason]
       : null;
   const fmt = (n: number | null | undefined) => (n == null ? '—' : economyNumber(economyValue(n, volumeUnit, economy)));
   // L/100 km inverts the scale: the estimate's worst case is its high end.
   const inverted = economy === 'l_100km';
   const estimateBody = estimated
     ? [
-        es.estimate.approx(
+        t.estimate.approx(
           fmt(estimated.kmPerUnit),
           fmt(inverted ? estimated.kmPerUnitHigh : estimated.kmPerUnitLow),
           fmt(inverted ? estimated.kmPerUnitLow : estimated.kmPerUnitHigh),
           economyLabelText,
         ),
-        estimated.warnings?.includes('gauge_pump_mismatch') ? es.estimate.mismatch : null,
+        estimated.warnings?.includes('gauge_pump_mismatch') ? t.estimate.mismatch : null,
       ]
         .filter(Boolean)
         .join('\n')
@@ -87,45 +87,45 @@ export function FillUpReviewBody({
   // The flag explains the missing numbers better than "first measurement" does,
   // so it wins when both would apply.
   const body = missedPrevious
-    ? es.fuelReview.chainBroken
+    ? t.fuelReview.chainBroken
     : review.status === 'low' && average
-      ? es.fuelReview.lowBody(average)
+      ? t.fuelReview.lowBody(average)
       : review.status === 'great' && average
-        ? es.fuelReview.greatBody(average)
+        ? t.fuelReview.greatBody(average)
         : review.status === 'first'
-          ? es.fuelReview.firstBody
+          ? t.fuelReview.firstBody
           : review.status === 'partial'
-            ? (estimateBody ?? es.fuelReview.partialBody)
+            ? (estimateBody ?? t.fuelReview.partialBody)
             : null;
 
   return (
     <>
       <StatusPill
         status={TONES[review.status]}
-        label={es.fuelReview.statusLabels[review.status]}
+        label={t.fuelReview.statusLabels[review.status]}
         style={{ marginBottom: space.lg }}
       />
 
       <View style={[styles.rows, { borderColor: theme.line }]}>
-        <KeyValueRow label={es.fuelReview.price(unitLabel)} value={money(review.pricePerUnit)} />
+        <KeyValueRow label={t.fuelReview.price(unitLabel)} value={money(review.pricePerUnit)} />
         <KeyValueRow
-          label={es.fuelReview.distance}
-          value={review.distanceKm != null ? km(review.distanceKm) : es.fuelReview.noPrevious}
+          label={t.fuelReview.distance}
+          value={review.distanceKm != null ? km(review.distanceKm) : t.fuelReview.noPrevious}
         />
         <KeyValueRow
-          label={es.fuelReview.economy}
+          label={t.fuelReview.economy}
           value={
             review.kmPerUnit != null
               ? kmPerUnit(review.kmPerUnit, fuelType, volumeUnit, economy)
               : estimated
-                ? es.estimate.short(fmt(estimated.kmPerUnit), economyLabelText)
-                : es.fuelReview.pending
+                ? t.estimate.short(fmt(estimated.kmPerUnit), economyLabelText)
+                : t.fuelReview.pending
           }
           big={review.kmPerUnit != null || estimated != null}
         />
         <KeyValueRow
-          label={es.fuelReview.costPerKm}
-          value={review.costPerKm != null ? money(review.costPerKm) : es.fuelReview.pending}
+          label={t.fuelReview.costPerKm}
+          value={review.costPerKm != null ? money(review.costPerKm) : t.fuelReview.pending}
         />
       </View>
 
@@ -171,7 +171,7 @@ export function FillUpReviewSheet({
   perFillLine?: string | null;
 }) {
   if (!review) return null;
-  const title = missedPrevious ? es.fuelReview.chainBrokenTitle : es.fuelReview.titles[review.status];
+  const title = missedPrevious ? t.fuelReview.chainBrokenTitle : t.fuelReview.titles[review.status];
   return (
     // Same rule as the body: a broken chain is the real story, not "first".
     <Sheet visible={visible} onClose={onClose} title={title}>
@@ -184,8 +184,8 @@ export function FillUpReviewSheet({
         estimate={estimate}
         perFillLine={perFillLine}
       />
-      <PrimaryButton label={es.fuelReview.seeHistory} onPress={onSeeHistory} />
-      <GhostButton label={es.fuelReview.close} onPress={onClose} />
+      <PrimaryButton label={t.fuelReview.seeHistory} onPress={onSeeHistory} />
+      <GhostButton label={t.fuelReview.close} onPress={onClose} />
     </Sheet>
   );
 }

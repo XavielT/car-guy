@@ -14,7 +14,7 @@ import { lastVisitedRoute, sendFeedback, type SendOutcome } from '@/lib/feedback
 import { collectContext } from '@/lib/feedback/context';
 import { FEEDBACK_KINDS, validateDraft, type FeedbackKind } from '@/lib/feedback/payload';
 import { redactText } from '@/lib/feedback/redact';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { pickCandidates } from '@/lib/media';
 import { compressPhoto } from '@/lib/media/compress';
 import { useStore } from '@/lib/store';
@@ -82,7 +82,7 @@ export default function ComentarioScreen() {
       setShot(compressed.uri);
     } catch (error) {
       recordError('feedback-pick', error);
-      setProblem(es.feedback.screenshotError);
+      setProblem(t.feedback.screenshotError);
     } finally {
       setShotBusy(false);
     }
@@ -91,19 +91,19 @@ export default function ComentarioScreen() {
   async function submit() {
     const invalid = validateDraft({ kind, message, email });
     if (invalid) {
-      setProblem(es.feedback.errors[invalid]);
+      setProblem(t.feedback.errors[invalid]);
       return;
     }
     setProblem(null);
     setBusy(true);
     try {
       const outcome = await sendFeedback({ kind, message, email }, context, shot);
-      if (outcome.status === 'rate_limited') setProblem(es.feedback.rateLimited);
-      else if (outcome.status === 'error') setProblem(es.feedback.error);
+      if (outcome.status === 'rate_limited') setProblem(t.feedback.rateLimited);
+      else if (outcome.status === 'error') setProblem(t.feedback.error);
       else setResult(outcome);
     } catch (error) {
       recordError('feedback-send', error);
-      setProblem(es.feedback.error);
+      setProblem(t.feedback.error);
     } finally {
       setBusy(false);
     }
@@ -116,7 +116,7 @@ export default function ComentarioScreen() {
     setProblem(null);
   }
 
-  const header = <Stack.Screen options={{ headerShown: true, title: es.feedback.title }} />;
+  const header = <Stack.Screen options={{ headerShown: true, title: t.feedback.title }} />;
 
   if (result) {
     const queued = result.status === 'queued';
@@ -126,58 +126,58 @@ export default function ComentarioScreen() {
         <Surface style={styles.done}>
           <Ionicons name={queued ? 'cloud-offline-outline' : 'checkmark-circle-outline'} size={40} color={theme.accent} />
           <T face="title" accessibilityRole="header" style={[styles.doneTitle, { color: theme.text.primary }]}>
-            {queued ? es.feedback.queuedTitle : es.feedback.thanksTitle}
+            {queued ? t.feedback.queuedTitle : t.feedback.thanksTitle}
           </T>
           <T face="body" accessibilityLiveRegion="polite" style={[styles.doneBody, { color: theme.text.secondary }]}>
-            {queued ? (result.screenshotDropped ? es.feedback.queuedNoShot : es.feedback.queued) : es.feedback.thanks}
+            {queued ? (result.screenshotDropped ? t.feedback.queuedNoShot : t.feedback.queued) : t.feedback.thanks}
           </T>
           {result.status === 'sent' && result.screenshot === 'failed' ? (
             <T face="body" style={[styles.doneBody, { color: theme.text.muted, fontSize: 13 }]}>
-              {es.feedback.screenshotFailed}
+              {t.feedback.screenshotFailed}
             </T>
           ) : null}
         </Surface>
-        <PrimaryButton label={es.feedback.back} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/mas'))} />
-        <GhostButton label={es.feedback.another} onPress={reset} />
+        <PrimaryButton label={t.feedback.back} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/mas'))} />
+        <GhostButton label={t.feedback.another} onPress={reset} />
       </ScrollView>
     );
   }
 
-  const f = es.feedback.fields;
+  const f = t.feedback.fields;
   const secrets = context.secrets;
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       {header}
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.feedback.eyebrow}
+        {t.feedback.eyebrow}
       </T>
       <T face="body" style={[styles.intro, { color: theme.text.secondary }]}>
-        {es.feedback.intro}
+        {t.feedback.intro}
       </T>
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.feedback.kindLabel}
+        {t.feedback.kindLabel}
       </T>
       <View style={styles.chips} accessibilityRole="radiogroup">
         {FEEDBACK_KINDS.map((k) => (
-          <Chip key={k} label={es.feedback.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
+          <Chip key={k} label={t.feedback.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
         ))}
       </View>
 
       <Field
-        label={es.feedback.message}
+        label={t.feedback.message}
         value={message}
         onChangeText={setMessage}
-        placeholder={es.feedback.placeholders[kind]}
+        placeholder={t.feedback.placeholders[kind]}
         multiline
         maxLength={4000}
         textAlignVertical="top"
         style={styles.message}
       />
       <Field
-        label={es.feedback.email}
-        hint={es.feedback.emailHint}
+        label={t.feedback.email}
+        hint={t.feedback.emailHint}
         value={email}
         onChangeText={setEmail}
         placeholder={session?.user.email ?? 'tu@email.com'}
@@ -188,7 +188,7 @@ export default function ComentarioScreen() {
       />
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.feedback.screenshot}
+        {t.feedback.screenshot}
       </T>
       {shotBusy ? (
         <View style={[styles.shotEmpty, { borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
@@ -197,7 +197,7 @@ export default function ComentarioScreen() {
       ) : shot ? (
         <View style={styles.shotWrap}>
           <Image source={{ uri: shot }} style={[styles.shot, { backgroundColor: theme.bg.raised }]} resizeMode="contain" accessibilityIgnoresInvertColors />
-          <GhostButton label={es.feedback.screenshotRemove} onPress={() => setShot(null)} />
+          <GhostButton label={t.feedback.screenshotRemove} onPress={() => setShot(null)} />
         </View>
       ) : (
         <Pressable
@@ -206,10 +206,10 @@ export default function ComentarioScreen() {
           style={({ pressed }) => [styles.shotEmpty, { borderColor: theme.line, backgroundColor: theme.bg.raised }, pressed && { opacity: 0.85 }]}>
           <Ionicons name="image-outline" size={22} color={theme.text.secondary} />
           <T face="semibold" style={{ color: theme.text.secondary, fontSize: 14 }}>
-            {es.feedback.screenshotAdd}
+            {t.feedback.screenshotAdd}
           </T>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-            {es.feedback.screenshotHint}
+            {t.feedback.screenshotHint}
           </T>
         </Pressable>
       )}
@@ -222,13 +222,13 @@ export default function ComentarioScreen() {
         style={styles.disclosure}>
         <Ionicons name={open ? 'chevron-down' : 'chevron-forward'} size={16} color={theme.text.secondary} />
         <T face="semibold" style={{ color: theme.text.secondary, fontSize: 14 }}>
-          {es.feedback.whatIsSent}
+          {t.feedback.whatIsSent}
         </T>
       </Pressable>
       {open ? (
         <Surface style={styles.sent}>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm, lineHeight: 17 }}>
-            {es.feedback.whatIsSentHint}
+            {t.feedback.whatIsSentHint}
           </T>
           <KeyValueRow label={f.version} value={context.appVersion ?? '—'} />
           <KeyValueRow label={f.build} value={context.build ?? '—'} />
@@ -237,10 +237,10 @@ export default function ComentarioScreen() {
           <KeyValueRow label={f.os} value={context.osVersion ?? '—'} />
           <KeyValueRow label={f.device} value={context.device ?? '—'} />
           <KeyValueRow label={f.screen} value={context.screen ? redactText(context.screen.split('?')[0], secrets) : '—'} />
-          <KeyValueRow label={f.db} value={es.feedback.dbVersion(context.dbVersion)} />
+          <KeyValueRow label={f.db} value={t.feedback.dbVersion(context.dbVersion)} />
           <KeyValueRow
             label={f.sync}
-            value={context.sync.signedIn ? es.feedback.syncLine(context.sync.state, context.sync.pending) : f.signedOut}
+            value={context.sync.signedIn ? t.feedback.syncLine(context.sync.state, context.sync.pending) : f.signedOut}
           />
           <T face="body" style={[styles.subLabel, { color: theme.text.muted }]}>
             {f.flags}
@@ -273,7 +273,7 @@ export default function ComentarioScreen() {
           {problem}
         </T>
       ) : null}
-      <PrimaryButton label={busy ? es.feedback.sending : es.feedback.send} onPress={submit} disabled={busy || shotBusy} />
+      <PrimaryButton label={busy ? t.feedback.sending : t.feedback.send} onPress={submit} disabled={busy || shotBusy} />
     </ScrollView>
   );
 }

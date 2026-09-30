@@ -1,0 +1,934 @@
+{
+  "serviceType": {
+    "aceite_motor": {
+      "name": "Engine oil and filter",
+      "notes": "Synthetic: 10,000 km / 12 months"
+    },
+    "filtro_aire": {
+      "name": "Air filter",
+      "notes": "Diesel or rural roads: 10,000 km"
+    },
+    "filtro_cabina": {
+      "name": "Cabin filter (A/C)",
+      "notes": "The A/C never goes off in the DR"
+    },
+    "filtro_combustible": {
+      "name": "Fuel filter"
+    },
+    "bujias": {
+      "name": "Spark plugs",
+      "notes": "Iridium: 100,000 km"
+    },
+    "refrigerante": {
+      "name": "Coolant (flush)",
+      "notes": "The level gets checked in the inspection, not here"
+    },
+    "liquido_frenos": {
+      "name": "Brake fluid"
+    },
+    "pastillas_frenos": {
+      "name": "Brake pads (check/replace)"
+    },
+    "discos_frenos": {
+      "name": "Brake rotors"
+    },
+    "aceite_transmision": {
+      "name": "Transmission fluid (ATF/CVT)",
+      "notes": "CVT: 40,000 km"
+    },
+    "aceite_diferencial": {
+      "name": "Differential / transfer case oil"
+    },
+    "liquido_direccion": {
+      "name": "Power steering fluid"
+    },
+    "correa_accesorios": {
+      "name": "Serpentine belt",
+      "notes": "Check it at every oil change"
+    },
+    "correa_tiempo": {
+      "name": "Timing belt",
+      "notes": "Only if the engine runs a belt, not a chain"
+    },
+    "bateria": {
+      "name": "Battery",
+      "notes": "In this heat, 2–3 years is typical"
+    },
+    "rotacion_gomas": {
+      "name": "Tire rotation",
+      "notes": "Along with the oil change"
+    },
+    "alineacion": {
+      "name": "Alignment",
+      "notes": "Or after a hard pothole"
+    },
+    "balanceo": {
+      "name": "Wheel balancing"
+    },
+    "cambio_gomas": {
+      "name": "New tires",
+      "notes": "By age: 6–10 years depending on the DOT date"
+    },
+    "limpiavidrios": {
+      "name": "Wiper blades"
+    },
+    "servicio_ac": {
+      "name": "A/C service"
+    },
+    "amortiguadores": {
+      "name": "Shocks"
+    },
+    "suspension_revision": {
+      "name": "Suspension and steering check"
+    },
+    "mangueras": {
+      "name": "Hoses and belts (check)"
+    },
+    "separador_agua": {
+      "name": "Drain the water separator (diesel)"
+    },
+    "cadena_moto": {
+      "name": "Chain / sprocket kit",
+      "notes": "Lube it; replace around 20,000 km"
+    },
+    "lavado": {
+      "name": "Wash and detail"
+    },
+    "otro": {
+      "name": "Other"
+    }
+  },
+  "legalReminder": {
+    "marbete": {
+      "title": "Marbete",
+      "notes": "The window opens in late October and closes January 31."
+    },
+    "seguro": {
+      "title": "Insurance",
+      "notes": "Enter your policy's expiration date."
+    },
+    "licencia": {
+      "title": "Driver's license",
+      "notes": "Check for unpaid tickets before you renew."
+    },
+    "revision_tecnica": {
+      "title": "Technical inspection",
+      "notes": "Waiting on INTRANT to roll it out."
+    }
+  },
+  "inspectionTemplate": {
+    "carro_diario": {
+      "name": "Daily check"
+    },
+    "carro_semanal": {
+      "name": "Weekly check"
+    },
+    "carro_mensual": {
+      "name": "Monthly check"
+    },
+    "diesel_semanal": {
+      "name": "Weekly check (diesel)"
+    },
+    "motor_prerodaje": {
+      "name": "Before you ride (T-CLOCS)"
+    },
+    "motor_semanal": {
+      "name": "Weekly check (bike)"
+    }
+  },
+  "modCategory": {
+    "motor": {
+      "name": "Engine"
+    },
+    "admision": {
+      "name": "Intake"
+    },
+    "escape": {
+      "name": "Exhaust"
+    },
+    "forzada": {
+      "name": "Forced induction"
+    },
+    "ecu": {
+      "name": "ECU / tune"
+    },
+    "combustible": {
+      "name": "Fuel"
+    },
+    "enfriamiento": {
+      "name": "Cooling"
+    },
+    "transmision": {
+      "name": "Transmission"
+    },
+    "diferencial": {
+      "name": "Differential"
+    },
+    "suspension": {
+      "name": "Suspension"
+    },
+    "frenos": {
+      "name": "Brakes"
+    },
+    "ruedas": {
+      "name": "Wheels"
+    },
+    "gomas": {
+      "name": "Tires"
+    },
+    "exterior": {
+      "name": "Exterior / body kit"
+    },
+    "aero": {
+      "name": "Aero"
+    },
+    "interior": {
+      "name": "Interior"
+    },
+    "seguridad": {
+      "name": "Safety"
+    },
+    "iluminacion": {
+      "name": "Lighting"
+    },
+    "audio_electrico": {
+      "name": "Audio / electrical"
+    },
+    "fabricacion": {
+      "name": "Fabrication"
+    },
+    "otro": {
+      "name": "Other"
+    }
+  },
+  "venue": {
+    "autodromo_americas": {
+      "name": "Autódromo de las Américas (Sunix)",
+      "city": "Santo Domingo Este"
+    }
+  },
+  "fluid": {
+    "aceite": {
+      "label": "Engine oil",
+      "how": "Cold engine on level ground: the dipstick reads between Min and Max. Check the color."
+    },
+    "coolant": {
+      "label": "Coolant",
+      "how": "Cold engine only: the level sits between Min and Max on the plastic tank. Never open the radiator cap hot."
+    },
+    "frenos": {
+      "label": "Brake fluid",
+      "how": "Reservoir between Min and Max; the color should be clear or amber."
+    },
+    "direccion": {
+      "label": "Power steering fluid",
+      "how": "If it is hydraulic, check the dipstick or the reservoir against its Hot/Cold marks."
+    },
+    "atf": {
+      "label": "Transmission fluid (ATF)",
+      "how": "Only if it has a dipstick: engine warm, idling, in P; check level and color. Dark or smelling burnt means trouble."
+    },
+    "washer": {
+      "label": "Washer fluid",
+      "how": "Top up the reservoir."
+    },
+    "bateria": {
+      "label": "Battery",
+      "how": "Terminals tight and free of white or green crust."
+    },
+    "filtro_aire": {
+      "label": "Air filter",
+      "how": "Pull it and hold it up to the light: if no light gets through or it is black, replace it. On dusty roads, check it twice as often."
+    }
+  },
+  "fichaField": {
+    "oil_grade": {
+      "label": "Oil (grade)"
+    },
+    "oil_spec": {
+      "label": "Oil (spec)"
+    },
+    "oil_capacity_l": {
+      "label": "Oil without filter"
+    },
+    "oil_capacity_filter_l": {
+      "label": "Oil with filter"
+    },
+    "oil_filter_pn": {
+      "label": "Oil filter"
+    },
+    "coolant_type": {
+      "label": "Coolant"
+    },
+    "coolant_capacity_l": {
+      "label": "Coolant (capacity)"
+    },
+    "trans_oil_spec": {
+      "label": "Gearbox oil"
+    },
+    "trans_oil_l": {
+      "label": "Gearbox oil (capacity)"
+    },
+    "diff_oil_spec": {
+      "label": "Differential oil"
+    },
+    "diff_oil_l": {
+      "label": "Differential (capacity)"
+    },
+    "brake_fluid": {
+      "label": "Brake fluid"
+    },
+    "ps_fluid": {
+      "label": "Power steering fluid"
+    },
+    "spark_plug_pn": {
+      "label": "Spark plugs"
+    },
+    "plug_gap_mm": {
+      "label": "Plug gap"
+    },
+    "battery_spec": {
+      "label": "Battery"
+    },
+    "tire_size_oem_f": {
+      "label": "Factory tires front"
+    },
+    "tire_size_oem_r": {
+      "label": "Factory tires rear"
+    },
+    "psi_oem_f": {
+      "label": "Pressure front"
+    },
+    "psi_oem_r": {
+      "label": "Pressure rear"
+    },
+    "bolt_pattern": {
+      "label": "Bolt pattern"
+    },
+    "center_bore_mm": {
+      "label": "Center bore"
+    },
+    "lug_thread": {
+      "label": "Lug thread"
+    },
+    "lug_torque_nm": {
+      "label": "Lug torque"
+    },
+    "fuel_tank_l": {
+      "label": "Tank"
+    },
+    "fuel_octane": {
+      "label": "Octane"
+    }
+  },
+  "fichaSection": {
+    "motor": {
+      "label": "Engine"
+    },
+    "fluidos": {
+      "label": "Fluids"
+    },
+    "electrico": {
+      "label": "Ignition and electrical"
+    },
+    "ruedas": {
+      "label": "Tires and wheels"
+    },
+    "combustible": {
+      "label": "Fuel"
+    }
+  },
+  "fichaText": {
+    "chassis": {
+      "label": "Chassis"
+    },
+    "engine": {
+      "label": "Engine"
+    },
+    "chassisNumber": {
+      "label": "Chassis no."
+    },
+    "head": {
+      "label": "SPEC SHEET"
+    },
+    "torques": {
+      "label": "TORQUE SPECS"
+    },
+    "caveat": {
+      "label": "Check your car's manual"
+    }
+  },
+  "specPreset": {
+    "ae85_3au": {
+      "sources": "AE85/AE86 platform data (Toyota)"
+    },
+    "ae86_4age16": {
+      "sources": "AE86 platform data (Toyota)"
+    },
+    "engine_4age20v": {
+      "label": "4A-GE 20V engine (swap)",
+      "sources": "Toyota engine code"
+    },
+    "s13_sr20det": {
+      "sources": "S13 platform data (Nissan)"
+    },
+    "s13_ka24de": {
+      "sources": "S13 platform data (Nissan)"
+    },
+    "s14_sr20det": {
+      "sources": "S14 platform data (Nissan)"
+    },
+    "civic_eg_ek_d16": {
+      "sources": "Civic EG/EK platform data (Honda)"
+    },
+    "civic_eg_ek_b16": {
+      "sources": "Civic EG/EK platform data (Honda)"
+    },
+    "c3_a51_tu5jp4": {
+      "sources": "PSA platform data (first-generation C3)"
+    },
+    "ds3_sa_ep6": {
+      "sources": "PSA platform data (DS3) · PSA oil spec for the EP6"
+    },
+    "ds3_sa_thp": {
+      "sources": "PSA platform data (DS3) · PSA oil spec for the EP6"
+    },
+    "corolla_e120": {
+      "sources": "Corolla E120 platform data (Toyota)"
+    },
+    "corolla_e150": {
+      "sources": "Corolla E150 platform data (Toyota)"
+    },
+    "hilux_n70": {
+      "sources": "Hilux N70 platform data (Toyota)"
+    },
+    "yaris": {
+      "sources": "Yaris platform data (Toyota)"
+    }
+  },
+  "specField": {
+    "engine_code": {
+      "label": "Engine",
+      "headline": "Engine"
+    },
+    "displacement_cc": {
+      "label": "Displacement"
+    },
+    "hp": {
+      "label": "Power",
+      "headline": "HP"
+    },
+    "torque_nm": {
+      "label": "Torque"
+    },
+    "induction": {
+      "label": "Induction"
+    },
+    "ecu": {
+      "label": "ECU",
+      "headline": "ECU"
+    },
+    "exhaust": {
+      "label": "Exhaust"
+    },
+    "transmission": {
+      "label": "Gearbox"
+    },
+    "differential": {
+      "label": "Differential"
+    },
+    "suspension": {
+      "label": "Suspension"
+    },
+    "brakes_f": {
+      "label": "Brakes front"
+    },
+    "brakes_r": {
+      "label": "Brakes rear"
+    },
+    "wheel_f": {
+      "label": "Wheels front",
+      "headline": "Wheels"
+    },
+    "wheel_r": {
+      "label": "Wheels rear"
+    },
+    "tire_f": {
+      "label": "Tires front"
+    },
+    "tire_r": {
+      "label": "Tires rear"
+    },
+    "weight_kg": {
+      "label": "Weight"
+    },
+    "ride_height": {
+      "label": "Ride height"
+    }
+  },
+  "specGroup": {
+    "motor": {
+      "label": "Engine"
+    },
+    "chasis": {
+      "label": "Chassis"
+    },
+    "ruedas": {
+      "label": "Wheels"
+    },
+    "dimensiones": {
+      "label": "Dimensions"
+    }
+  },
+  "sheetField": {
+    "tireSetFId": {
+      "label": "Set front"
+    },
+    "tireSetRId": {
+      "label": "Set rear"
+    },
+    "tireSizeF": {
+      "label": "Tires front"
+    },
+    "tireSizeR": {
+      "label": "Tires rear"
+    },
+    "compoundF": {
+      "label": "Compound front"
+    },
+    "compoundR": {
+      "label": "Compound rear"
+    },
+    "psiColdFl": {
+      "label": "FL cold"
+    },
+    "psiColdFr": {
+      "label": "FR cold"
+    },
+    "psiColdRl": {
+      "label": "RL cold"
+    },
+    "psiColdRr": {
+      "label": "RR cold"
+    },
+    "psiHotFl": {
+      "label": "FL hot"
+    },
+    "psiHotFr": {
+      "label": "FR hot"
+    },
+    "psiHotRl": {
+      "label": "RL hot"
+    },
+    "psiHotRr": {
+      "label": "RR hot"
+    },
+    "camberFl": {
+      "label": "Camber FL"
+    },
+    "camberFr": {
+      "label": "Camber FR"
+    },
+    "camberRl": {
+      "label": "Camber RL"
+    },
+    "camberRr": {
+      "label": "Camber RR"
+    },
+    "toeFMm": {
+      "label": "Toe front (mm)"
+    },
+    "toeRMm": {
+      "label": "Toe rear (mm)"
+    },
+    "casterL": {
+      "label": "Caster left"
+    },
+    "casterR": {
+      "label": "Caster right"
+    },
+    "rhFlMm": {
+      "label": "Height FL"
+    },
+    "rhFrMm": {
+      "label": "Height FR"
+    },
+    "rhRlMm": {
+      "label": "Height RL"
+    },
+    "rhRrMm": {
+      "label": "Height RR"
+    },
+    "springF": {
+      "label": "Spring front"
+    },
+    "springR": {
+      "label": "Spring rear"
+    },
+    "springUnit": {
+      "label": "Spring unit"
+    },
+    "bumpF": {
+      "label": "Bump front"
+    },
+    "reboundF": {
+      "label": "Rebound front"
+    },
+    "bumpR": {
+      "label": "Bump rear"
+    },
+    "reboundR": {
+      "label": "Rebound rear"
+    },
+    "clicksTotal": {
+      "label": "Total clicks"
+    },
+    "swaybarF": {
+      "label": "Sway bar front"
+    },
+    "swaybarR": {
+      "label": "Sway bar rear"
+    },
+    "padF": {
+      "label": "Pads front"
+    },
+    "padR": {
+      "label": "Pads rear"
+    },
+    "brakeBias": {
+      "label": "Brake bias"
+    },
+    "steeringAngleDeg": {
+      "label": "Angle"
+    },
+    "hydro": {
+      "label": "Hydraulic handbrake"
+    },
+    "lsdType": {
+      "label": "LSD"
+    },
+    "lsdPreload": {
+      "label": "LSD preload"
+    },
+    "twoStepRpm": {
+      "label": "Two-step (rpm)"
+    },
+    "revLimitRpm": {
+      "label": "Rev limit (rpm)"
+    }
+  },
+  "sheetWord": {
+    "Fl": {
+      "label": "FL"
+    },
+    "Fr": {
+      "label": "FR"
+    },
+    "Rl": {
+      "label": "RL"
+    },
+    "Rr": {
+      "label": "RR"
+    },
+    "front": {
+      "label": "FL/FR"
+    },
+    "rear": {
+      "label": "RL/RR"
+    },
+    "hot": {
+      "label": " hot"
+    },
+    "camber": {
+      "label": " camber"
+    },
+    "height": {
+      "label": " height"
+    },
+    "yes": {
+      "label": "yes"
+    },
+    "no": {
+      "label": "no"
+    }
+  },
+  "oilType": {
+    "mineral": {
+      "label": "mineral"
+    },
+    "semisintetico": {
+      "label": "semi-synthetic"
+    },
+    "sintetico": {
+      "label": "synthetic"
+    }
+  },
+  "lamp": {
+    "oil": {
+      "label": "Oil"
+    },
+    "coolant": {
+      "label": "Coolant"
+    },
+    "tire": {
+      "label": "Tires"
+    },
+    "battery": {
+      "label": "Battery"
+    },
+    "document": {
+      "label": "Marbete and insurance"
+    },
+    "checklist": {
+      "label": "Weekly check"
+    }
+  },
+  "statusBadge": {
+    "proyecto": {
+      "label": "PROJECT"
+    },
+    "en_taller": {
+      "label": "IN THE SHOP"
+    },
+    "accidentado": {
+      "label": "WRECKED"
+    },
+    "guardado": {
+      "label": "STORED"
+    },
+    "restauracion": {
+      "label": "RESTORATION"
+    },
+    "prestado": {
+      "label": "LENT OUT"
+    }
+  },
+  "dtc": {
+    "manufacturer": {
+      "label": "Manufacturer-specific code"
+    },
+    "notFound": {
+      "label": "Code not in the table"
+    },
+    "spanishOnly": {
+      "label": " (description in Spanish)"
+    }
+  },
+  "refdata": {
+    "coolantColorNote": {
+      "label": "Coolant color is not a standard: go by the technology your manual calls for."
+    }
+  },
+  "checkItem": {
+    "carro_diario__0": {
+      "groupName": "Fluids",
+      "label": "Leaks under the car",
+      "how": "Look at the ground where the car sat overnight.",
+      "warning": "Green, orange or pink puddle = coolant; black or brown = oil; red = transmission or power steering. Clear is almost always A/C water, and that is normal."
+    },
+    "carro_diario__1": {
+      "groupName": "Dash",
+      "label": "Dash warning lights",
+      "how": "Key to ON, then make sure every light goes out once the engine starts.",
+      "warning": "Temperature climbing, coolant gauge, oil can, battery, check engine or brake."
+    },
+    "carro_diario__2": {
+      "groupName": "Tires",
+      "label": "Tires (visual)",
+      "how": "Look for bulges, cuts, nails or a tire that is obviously low; check the wear pattern.",
+      "warning": "A bulge in the sidewall, wear on the edges (alignment) or in the center (too much air)."
+    },
+    "carro_diario__3": {
+      "groupName": "Brakes and steering",
+      "label": "Brakes (feel)",
+      "how": "First stop of the day, at low speed: firm pedal, no pulling, no noise.",
+      "warning": "Spongy pedal, pulls to one side, squeal or grinding, vibration."
+    },
+    "carro_semanal__0": {
+      "groupName": "Fluids",
+      "label": "Coolant",
+      "how": "Cold engine only: the level sits between Min and Max on the plastic tank. Never open the radiator cap hot.",
+      "warning": "Below Min, topping up often (leak), rusty or oily coolant, sweet smell, steam."
+    },
+    "carro_semanal__1": {
+      "groupName": "Fluids",
+      "label": "Engine oil",
+      "how": "Cold engine on level ground: the dipstick reads between Min and Max. Check the color.",
+      "warning": "Below Min; milky (coolant in the oil); black and gritty."
+    },
+    "carro_semanal__2": {
+      "groupName": "Fluids",
+      "label": "Washer fluid",
+      "how": "Top up the reservoir.",
+      "warning": "Empty. Water with washer soap is enough; no antifreeze needed here."
+    },
+    "carro_semanal__3": {
+      "groupName": "Tires",
+      "label": "Tires (visual)",
+      "how": "Look for bulges, cuts, nails or a tire that is obviously low; check the wear pattern.",
+      "warning": "A bulge in the sidewall, wear on the edges (alignment) or in the center (too much air)."
+    },
+    "carro_semanal__4": {
+      "groupName": "Lights",
+      "label": "Lights",
+      "how": "Test headlights, brake, reverse and turn signals against a wall or with a helper.",
+      "warning": "A burned-out bulb; cloudy or yellowed lens."
+    },
+    "carro_semanal__5": {
+      "groupName": "Brakes and steering",
+      "label": "Brakes (feel)",
+      "how": "First stop of the day, at low speed: firm pedal, no pulling, no noise.",
+      "warning": "Spongy pedal, pulls to one side, squeal or grinding, vibration."
+    },
+    "carro_semanal__6": {
+      "groupName": "Exterior",
+      "label": "Air conditioning",
+      "how": "Turn it on: the air should come out clearly colder than the cabin.",
+      "warning": "Blows warm, or smells musty."
+    },
+    "carro_semanal__7": {
+      "groupName": "Exterior",
+      "label": "Horn, mirrors and seat belts",
+      "how": "Quick test that everything works.",
+      "warning": ""
+    },
+    "carro_semanal__8": {
+      "groupName": "Documents",
+      "label": "Papers up to date",
+      "how": "Insurance current, marbete current and your license in the car.",
+      "warning": "Expired means a ticket at the next stop."
+    },
+    "carro_mensual__0": {
+      "groupName": "Tires",
+      "label": "Tire pressure (spare included)",
+      "how": "Cold, with a gauge, all 4 plus the spare, per the door-jamb sticker.",
+      "warning": "One tire 2–3 psi under the rest is a slow leak. Losing ~1 psi a month is normal."
+    },
+    "carro_mensual__1": {
+      "groupName": "Tires",
+      "label": "Tread depth",
+      "how": "Coin test or check the wear bars. The legal minimum is 1.6 mm.",
+      "warning": "Wear bars flush with the tread, uneven wear."
+    },
+    "carro_mensual__2": {
+      "groupName": "Fluids",
+      "label": "Brake fluid",
+      "how": "Reservoir between Min and Max; the color should be clear or amber.",
+      "warning": "Dark brown, or the level dropping (worn pads or a leak)."
+    },
+    "carro_mensual__3": {
+      "groupName": "Fluids",
+      "label": "Power steering fluid",
+      "how": "If it is hydraulic, check the dipstick or the reservoir against its Hot/Cold marks.",
+      "warning": "Whine when turning, low level."
+    },
+    "carro_mensual__4": {
+      "groupName": "Electrical",
+      "label": "Battery and terminals",
+      "how": "Terminals tight and free of white or green crust.",
+      "warning": "Slow crank, dim lights, battery light."
+    },
+    "carro_mensual__5": {
+      "groupName": "Engine",
+      "label": "Belts and hoses",
+      "how": "Cold engine: squeeze the hoses (firm, not soft, not rock hard); the belt has no cracks or glazing.",
+      "warning": "Squeal on startup, cracks, swelling near the clamps, coolant crust."
+    },
+    "carro_mensual__6": {
+      "groupName": "Exterior",
+      "label": "Wipers",
+      "how": "Run them with washer fluid: they should wipe clean without streaking or chattering.",
+      "warning": "Streaks, torn rubber."
+    },
+    "carro_mensual__7": {
+      "groupName": "Exterior",
+      "label": "Spare, jack, lug wrench and triangle",
+      "how": "Make sure they are there and the spare has air.",
+      "warning": "The spare goes flat on its own and nobody remembers it."
+    },
+    "diesel_semanal__0": {
+      "groupName": "Fluids",
+      "label": "Coolant",
+      "how": "Cold engine only: the level sits between Min and Max on the plastic tank. Never open the radiator cap hot.",
+      "warning": "Below Min, topping up often (leak), rusty or oily coolant, sweet smell, steam."
+    },
+    "diesel_semanal__1": {
+      "groupName": "Fluids",
+      "label": "Engine oil",
+      "how": "Cold engine on level ground: the dipstick reads between Min and Max. Check the color.",
+      "warning": "Below Min; milky (coolant in the oil); black and gritty."
+    },
+    "diesel_semanal__2": {
+      "groupName": "Filters",
+      "label": "Fuel water separator",
+      "how": "Drain it when the water-in-fuel light comes on, and at every oil change.",
+      "warning": "Diesel quality varies here, so check it even if the light stays off."
+    },
+    "diesel_semanal__3": {
+      "groupName": "Filters",
+      "label": "Air filter (visual)",
+      "how": "Take a close look if you drive dusty or rural roads.",
+      "warning": "Turbo diesels are very sensitive to dust."
+    },
+    "diesel_semanal__4": {
+      "groupName": "Engine",
+      "label": "Intercooler and radiator face",
+      "how": "Make sure they are not clogged with mud, leaves or bugs.",
+      "warning": "They block airflow and heat the engine when towing or climbing."
+    },
+    "diesel_semanal__5": {
+      "groupName": "Dash",
+      "label": "Glow plug light",
+      "how": "It should go out before you crank.",
+      "warning": "Long crank = glow plugs or fuel delivery."
+    },
+    "diesel_semanal__6": {
+      "groupName": "Tires",
+      "label": "Tires (visual)",
+      "how": "Look for bulges, cuts, nails or a tire that is obviously low; check the wear pattern.",
+      "warning": "A bulge in the sidewall, wear on the edges (alignment) or in the center (too much air)."
+    },
+    "diesel_semanal__7": {
+      "groupName": "Brakes and steering",
+      "label": "Brakes (feel)",
+      "how": "First stop of the day, at low speed: firm pedal, no pulling, no noise.",
+      "warning": "Spongy pedal, pulls to one side, squeal or grinding, vibration."
+    },
+    "motor_prerodaje__0": {
+      "groupName": "Tires and wheels",
+      "label": "Tires and wheels",
+      "how": "Tread and cold pressure; spokes and rims without cracks; pad condition.",
+      "warning": "Low pressure, bent rim, pads at the limit."
+    },
+    "motor_prerodaje__1": {
+      "groupName": "Controls",
+      "label": "Controls",
+      "how": "Bars straight and free; cables well routed and lubed; the throttle moves freely and snaps closed.",
+      "warning": "Revs rising on their own when you turn the bars."
+    },
+    "motor_prerodaje__2": {
+      "groupName": "Lights and electrical",
+      "label": "Lights and electrical",
+      "how": "Battery terminals clean and tight; headlight aimed; tail lights and turn signals; switches and mirrors.",
+      "warning": "A light that will not come on, a bare wire."
+    },
+    "motor_prerodaje__3": {
+      "groupName": "Stands",
+      "label": "Stands",
+      "how": "Side stand and center stand: springs all there and undamaged.",
+      "warning": "A stand that does not flip up on its own when you ride off."
+    },
+    "motor_semanal__0": {
+      "groupName": "Oil and fluids",
+      "label": "Oil and fluids",
+      "how": "Engine oil, gearbox oil, brake or clutch hydraulic fluid, coolant if it is liquid-cooled, and fuel.",
+      "warning": "Leaks at gaskets, seals or hoses."
+    },
+    "motor_semanal__1": {
+      "groupName": "Chassis and chain",
+      "label": "Chassis and chain",
+      "how": "Frame without cracks, steering bearings, suspension, chain tension and lube, fasteners.",
+      "warning": "Lube the chain every ~500 km or after rain."
+    }
+  }
+}

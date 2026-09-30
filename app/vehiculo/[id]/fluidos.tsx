@@ -4,14 +4,17 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
+import { VehicleFluidsSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { GhostButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listFluids, saveFluid } from '@/lib/db/diyQueries';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { FluidGuideItem, Vehicle } from '@/lib/db/types';
 import { FLUID_KINDS } from '@/lib/domain/fluids';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogText } from '@/lib/i18n/catalog';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -25,6 +28,9 @@ export default function FluidsScreen() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [cards, setCards] = useState<Record<string, FluidGuideItem>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // True once the first read answered (ok or not); refocus reloads keep the page up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -37,10 +43,13 @@ export default function FluidsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      load()
+        .catch(() => {})
+        .finally(() => setLoaded(true));
     }, [load]),
   );
 
+  if (showSkeleton) return <VehicleFluidsSkeleton />;
   if (!vehicle) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   async function save(kind: FluidGuideItem['kind'], patch: Partial<FluidGuideItem>) {
@@ -52,20 +61,20 @@ export default function FluidsScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.fluids.eyebrow((vehicle.nickname || vehicle.name).toUpperCase())}
+        {t.fluids.eyebrow((vehicle.nickname || vehicle.name).toUpperCase())}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase' }}>
-        {es.fluids.title}
+        {t.fluids.title}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginBottom: space.lg }}>
-        {es.fluids.hint}
+        {t.fluids.hint}
       </T>
       {FLUID_KINDS.map((f) => {
         const card = cards[f.kind];
         return (
           <View key={f.kind} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: card?.mediaId ? theme.accentFill : theme.lineStrong }]}>
             <T face="title" style={{ color: theme.text.primary, fontSize: 17, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-              {f.label}
+              {catalogText('fluid', f.kind, 'label', f.label)}
             </T>
             <PhotoPicker
               mediaId={card?.mediaId ?? null}
@@ -76,13 +85,13 @@ export default function FluidsScreen() {
               height={160}
             />
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, marginTop: space.sm }}>
-              {es.fluids.how}
+              {t.fluids.how}
             </T>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>
-              {f.how}
+              {catalogText('fluid', f.kind, 'how', f.how)}
             </T>
-            <Field label={es.fluids.notes} placeholder={es.fluids.notesPlaceholder} value={notes[f.kind] ?? ''} onChangeText={(t) => setNotes((n) => ({ ...n, [f.kind]: t }))} multiline />
-            {(notes[f.kind] ?? '') !== (card?.notes ?? '') ? <GhostButton label={es.fluids.save} onPress={() => void save(f.kind, { notes: notes[f.kind] ?? '' })} /> : null}
+            <Field label={t.fluids.notes} placeholder={t.fluids.notesPlaceholder} value={notes[f.kind] ?? ''} onChangeText={(t) => setNotes((n) => ({ ...n, [f.kind]: t }))} multiline />
+            {(notes[f.kind] ?? '') !== (card?.notes ?? '') ? <GhostButton label={t.fluids.save} onPress={() => void save(f.kind, { notes: notes[f.kind] ?? '' })} /> : null}
           </View>
         );
       })}

@@ -2,7 +2,7 @@ import { Alert as RNAlert, Platform } from 'react-native';
 
 import { takeReportable } from './diagnostics';
 import { FEATURE_FEEDBACK } from './flags';
-import { es } from './i18n/es';
+import { t } from './i18n';
 
 /**
  * `react-native-web` ships `Alert.alert` as an empty function, so on web every
@@ -70,7 +70,7 @@ export function subscribeToAlerts(next: Listener): () => void {
 }
 
 /** The implicit "OK" a native alert shows when given no buttons. */
-const OK: AlertButton[] = [{ text: es.common.ok }];
+const OK: AlertButton[] = [{ text: t.common.ok }];
 
 function webAlert(title: string, message?: string, buttons?: AlertButton[]): void {
   const request: AlertRequest = {
@@ -105,7 +105,7 @@ export const Alert = {
     RNAlert.alert(
       title,
       message,
-      isErrorAlert(buttons) ? [{ text: es.feedback.report, onPress: openReport }, ...(buttons?.length ? buttons : OK)] : buttons,
+      isErrorAlert(buttons) ? [{ text: t.feedback.report, onPress: openReport }, ...(buttons?.length ? buttons : OK)] : buttons,
     );
   },
 };

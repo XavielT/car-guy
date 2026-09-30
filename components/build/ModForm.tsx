@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import {
@@ -21,11 +23,12 @@ import {
 import { contacts as contactRepo, modCategories, mods as modRepo, odometer as odometerRepo } from '@/lib/db/repos';
 import type { Contact, Mod, ModCategory, ModMedia, OdometerReading } from '@/lib/db/types';
 import { jsonObject } from '@/lib/domain/album';
-import { cleanSpecs, foreignToDop, modTotalDop, parseTags, SPEC_FIELDS } from '@/lib/domain/build';
+import { cleanSpecs, foreignToDop, modTotalDop, parseTags, SPEC_FIELDS, specFieldLabel } from '@/lib/domain/build';
 import { parseDecimal } from '@/lib/domain/economy';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { dateInputFromIso, id as newId, isoFromDateInput, money, todayIsoDate } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { importCandidates, pickCandidates } from '@/lib/media';
 import { useTheme } from '@/lib/theme/useTheme';
 import { ContactPicker } from '@/components/diy/ContactPieces';
@@ -53,12 +56,17 @@ export function ModForm({
   modId,
   draft,
   onDone,
+  skeleton,
+  skeletonContinued,
 }: {
   vehicleId: string;
   modId?: string;
   draft?: Partial<Mod> & { fromWishlistId?: string };
   /** The saved mod — "Usar en un mod" links the inventory item to it. */
   onDone: (saved?: { id: string }) => void;
+  /** Editing: the screen's twin, shown until the mod is read (at once when the screen already showed it). */
+  skeleton?: ReactNode;
+  skeletonContinued?: boolean;
 }) {
   const { theme } = useTheme();
   // Known before the first save, so photos can be attached right away.
@@ -96,6 +104,8 @@ export function ModForm({
   const [notes, setNotes] = useState(draft?.notes ?? '');
   const [error, setError] = useState<string | null>(null);
   const [soldPrice, setSoldPrice] = useState<number | null>(draft?.soldPriceDop ?? null);
+  const [loaded, setLoaded] = useState(!modId);
+  const showSkeleton = useFormSkeleton(!loaded, skeletonContinued);
 
   useEffect(() => {
     void (async () => {
@@ -113,6 +123,7 @@ export function ModForm({
       if (!rate && r) setRate(String(r));
       if (!modId) return;
       const m = await modRepo.getById(modId);
+      setLoaded(true);
       if (!m) return;
       setCategoryId(m.categoryId);
       setName(m.name);
@@ -149,7 +160,7 @@ export function ModForm({
   const kmWarning = kmValue != null && status === 'instalado' ? odometerWarning(kmValue, isoFromDateInput(installedAt), readings) : null;
   const shownCategories = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q ? categories.filter((c) => c.name.toLowerCase().includes(q)) : categories;
+    return q ? categories.filter((c) => catalogLabel('modCategory', c).toLowerCase().includes(q)) : categories;
   }, [categories, search]);
 
   async function addPhotos() {
@@ -171,7 +182,7 @@ export function ModForm({
   }
 
   async function save() {
-    if (!name.trim()) return setError(es.modForm.nameRequired);
+    if (!name.trim()) return setError(t.modForm.nameRequired);
     const cleaned = cleanSpecs(affects ? effects : {}).specs;
     const at = isoFromDateInput(installedAt);
     const saved = await saveMod({
@@ -208,9 +219,9 @@ export function ModForm({
     // New gomas, pads or coolant: offer to re-arm the matching reminder.
     const reset = saved.status === 'instalado' && !modId ? await reminderResetFor(vehicleId, saved.categoryId) : null;
     if (reset) {
-      Alert.alert(es.modForm.reminderTitle, es.modForm.reminderBody(reset.titles.join('", "')), [
-        { text: es.modForm.reminderNo, style: 'cancel', onPress: () => onDone(saved) },
-        { text: es.modForm.reminderYes, onPress: () => void applyReminderReset(vehicleId, reset.serviceTypeId, { date: at, km: kmValue }).then(() => onDone(saved)) },
+      Alert.alert(t.modForm.reminderTitle, t.modForm.reminderBody(reset.titles.join('", "')), [
+        { text: t.modForm.reminderNo, style: 'cancel', onPress: () => onDone(saved) },
+        { text: t.modForm.reminderYes, onPress: () => void applyReminderReset(vehicleId, reset.serviceTypeId, { date: at, km: kmValue }).then(() => onDone(saved)) },
       ]);
       return;
     }
@@ -219,9 +230,9 @@ export function ModForm({
 
   function remove() {
     if (!modId) return;
-    Alert.alert(es.modForm.delete, es.modForm.deleteBody, [
-      { text: es.common.cancel, style: 'cancel' },
-      { text: es.common.delete, style: 'destructive', onPress: () => void modRepo.softDelete(modId).then(() => onDone()) },
+    Alert.alert(t.modForm.delete, t.modForm.deleteBody, [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.common.delete, style: 'destructive', onPress: () => void modRepo.softDelete(modId).then(() => onDone()) },
     ]);
   }
 
@@ -231,54 +242,56 @@ export function ModForm({
     </T>
   );
 
+  // Not the empty fields of a new mod while the real one is on its way.
+  if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase', marginBottom: space.sm }}>
-        {modId ? es.modForm.editTitle : es.modForm.newTitle}
+        {modId ? t.modForm.editTitle : t.modForm.newTitle}
       </T>
       {draft?.fromWishlistId ? (
         <T face="body" style={{ color: theme.accent, fontSize: 13, marginBottom: space.sm }}>
-          {es.modForm.fromWishlist}
+          {t.modForm.fromWishlist}
         </T>
       ) : null}
 
-      {eyebrow(es.modForm.category)}
-      <Field label={es.modForm.searchCategory} value={search} onChangeText={setSearch} />
+      {eyebrow(t.modForm.category)}
+      <Field label={t.modForm.searchCategory} value={search} onChangeText={setSearch} />
       <View style={styles.chips}>
         {shownCategories.map((c) => (
-          <Chip key={c.id} label={c.name} selected={categoryId === c.id} onPress={() => setCategoryId(c.id)} />
+          <Chip key={c.id} label={catalogLabel('modCategory', c)} selected={categoryId === c.id} onPress={() => setCategoryId(c.id)} />
         ))}
       </View>
 
-      <Field label={es.modForm.name} placeholder={es.modForm.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
+      <Field label={t.modForm.name} placeholder={t.modForm.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.brand} value={brand} onChangeText={setBrand} />
+          <Field label={t.modForm.brand} value={brand} onChangeText={setBrand} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.partNumber} value={partNumber} onChangeText={setPartNumber} />
+          <Field label={t.modForm.partNumber} value={partNumber} onChangeText={setPartNumber} />
         </View>
       </View>
-      <Field label={es.modForm.variant} value={variant} onChangeText={setVariant} />
+      <Field label={t.modForm.variant} value={variant} onChangeText={setVariant} />
 
-      {eyebrow(es.modForm.status)}
+      {eyebrow(t.modForm.status)}
       <View style={styles.chips}>
         {STATUSES.map((s) => (
-          <Chip key={s} label={es.build.statuses[s]} selected={status === s} onPress={() => setStatus(s)} />
+          <Chip key={s} label={t.build.statuses[s]} selected={status === s} onPress={() => setStatus(s)} />
         ))}
       </View>
 
       {status !== 'planeado' && status !== 'pedido' ? (
         <>
-          <DateField label={es.modForm.installedAt} value={installedAt} onChange={setInstalledAt} noFuture />
-          <Field label={es.modForm.installedKm} keyboardType="number-pad" value={installedKm} onChangeText={setInstalledKm} hint={kmWarning ?? es.modForm.installedKmHint} />
+          <DateField label={t.modForm.installedAt} value={installedAt} onChange={setInstalledAt} noFuture />
+          <Field label={t.modForm.installedKm} keyboardType="number-pad" value={installedKm} onChangeText={setInstalledKm} hint={kmWarning ?? t.modForm.installedKmHint} />
         </>
       ) : null}
 
-      {eyebrow(es.modForm.installer)}
+      {eyebrow(t.modForm.installer)}
       <View style={styles.chips}>
         {INSTALLERS.map((i) => (
-          <Chip key={i} label={es.build.installers[i]} selected={installer === i} onPress={() => setInstaller(i)} />
+          <Chip key={i} label={t.build.installers[i]} selected={installer === i} onPress={() => setInstaller(i)} />
         ))}
       </View>
       {installer !== 'yo' ? (
@@ -289,13 +302,13 @@ export function ModForm({
         />
       ) : null}
 
-      {eyebrow(es.modForm.costs)}
+      {eyebrow(t.modForm.costs)}
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.foreign} keyboardType="decimal-pad" value={foreign} onChangeText={setForeign} />
+          <Field label={t.modForm.foreign} keyboardType="decimal-pad" value={foreign} onChangeText={setForeign} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.rate} keyboardType="decimal-pad" value={rate} onChangeText={setRate} />
+          <Field label={t.modForm.rate} keyboardType="decimal-pad" value={rate} onChangeText={setRate} />
         </View>
       </View>
       <View style={styles.chips}>
@@ -306,49 +319,49 @@ export function ModForm({
       {fx != null ? (
         <View style={[styles.fx, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
           <T face="mono" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
-            {es.modForm.fxLine(foreign.trim(), currency, rate.trim(), money(fx))}
+            {t.modForm.fxLine(foreign.trim(), currency, rate.trim(), money(fx))}
           </T>
-          <GhostButton label={es.modForm.useFx} onPress={() => setPart(String(fx))} />
+          <GhostButton label={t.modForm.useFx} onPress={() => setPart(String(fx))} />
         </View>
       ) : null}
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.costPart} keyboardType="decimal-pad" value={part} onChangeText={setPart} />
+          <Field label={t.modForm.costPart} keyboardType="decimal-pad" value={part} onChangeText={setPart} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.costLabor} keyboardType="decimal-pad" value={labor} onChangeText={setLabor} />
+          <Field label={t.modForm.costLabor} keyboardType="decimal-pad" value={labor} onChangeText={setLabor} />
         </View>
       </View>
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.costShipping} keyboardType="decimal-pad" value={shipping} onChangeText={setShipping} />
+          <Field label={t.modForm.costShipping} keyboardType="decimal-pad" value={shipping} onChangeText={setShipping} />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label={es.modForm.costCustoms} keyboardType="decimal-pad" value={customs} onChangeText={setCustoms} />
+          <Field label={t.modForm.costCustoms} keyboardType="decimal-pad" value={customs} onChangeText={setCustoms} />
         </View>
       </View>
       <T face="monoBold" style={{ color: theme.text.primary, fontSize: 16, marginBottom: space.md }}>
-        {`${es.modForm.total}: ${money(total)}`}
+        {`${t.modForm.total}: ${money(total)}`}
       </T>
-      <Field label={es.modForm.vendor} value={vendor} onChangeText={setVendor} />
-      <Field label={es.modForm.vendorUrl} value={vendorUrl} onChangeText={setVendorUrl} autoCapitalize="none" keyboardType="url" />
+      <Field label={t.modForm.vendor} value={vendor} onChangeText={setVendor} />
+      <Field label={t.modForm.vendorUrl} value={vendorUrl} onChangeText={setVendorUrl} autoCapitalize="none" keyboardType="url" />
 
       <View style={styles.switchRow}>
         <View style={{ flex: 1 }}>
           <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-            {es.modForm.affects}
+            {t.modForm.affects}
           </T>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-            {es.modForm.affectsHint}
+            {t.modForm.affectsHint}
           </T>
         </View>
-        <Switch value={affects} onValueChange={setAffects} accessibilityLabel={es.modForm.affects} />
+        <Switch value={affects} onValueChange={setAffects} accessibilityLabel={t.modForm.affects} />
       </View>
       {affects
         ? SPEC_FIELDS.filter((f) => EFFECT_KEYS.includes(f.key)).map((f) => (
             <Field
               key={f.key}
-              label={f.unit ? `${f.label} (${f.unit})` : f.label}
+              label={f.unit ? `${specFieldLabel(f)} (${f.unit})` : specFieldLabel(f)}
               keyboardType={f.kind === 'number' ? 'decimal-pad' : 'default'}
               value={effects[f.key] ?? ''}
               onChangeText={(t) => setEffects((e) => ({ ...e, [f.key]: t }))}
@@ -356,27 +369,27 @@ export function ModForm({
           ))
         : null}
 
-      {eyebrow(es.modForm.photos)}
+      {eyebrow(t.modForm.photos)}
       {photos.length ? (
         <View style={styles.photos}>
           {photos.map((p) => (
-            <PhotoThumb key={p.id} mediaId={p.mediaId} size={96} onPress={() => void cycleRole(p)} onLongPress={() => void removeModPhoto(p.id).then(() => setPhotos((prev) => prev.filter((x) => x.id !== p.id)))} accessibilityLabel={es.modForm.roles[p.role]}>
+            <PhotoThumb key={p.id} mediaId={p.mediaId} size={96} onPress={() => void cycleRole(p)} onLongPress={() => void removeModPhoto(p.id).then(() => setPhotos((prev) => prev.filter((x) => x.id !== p.id)))} accessibilityLabel={t.modForm.roles[p.role]}>
               <View style={[styles.role, { backgroundColor: p.role === 'despues' ? theme.accentFill : 'rgba(18,18,18,0.75)' }]}>
                 <T face="eyebrow" style={{ color: p.role === 'despues' ? theme.accentFillInk : '#EDEDED', fontSize: 9 }}>
-                  {es.modForm.roles[p.role]}
+                  {t.modForm.roles[p.role]}
                 </T>
               </View>
             </PhotoThumb>
           ))}
         </View>
       ) : null}
-      <GhostButton label={es.modForm.addPhotos} onPress={() => void addPhotos()} />
+      <GhostButton label={t.modForm.addPhotos} onPress={() => void addPhotos()} />
 
       {others.length ? (
         <>
-          {eyebrow(es.modForm.replaces)}
+          {eyebrow(t.modForm.replaces)}
           <View style={styles.chips}>
-            <Chip label={es.modForm.replacesNone} selected={!replaces} onPress={() => setReplaces(null)} />
+            <Chip label={t.modForm.replacesNone} selected={!replaces} onPress={() => setReplaces(null)} />
             {others.map((m) => (
               <Chip key={m.id} label={m.name} selected={replaces === m.id} onPress={() => setReplaces(m.id)} />
             ))}
@@ -384,16 +397,16 @@ export function ModForm({
         </>
       ) : null}
 
-      <Field label={es.modForm.tags} placeholder={es.modForm.tagsPlaceholder} value={tags} onChangeText={setTags} autoCapitalize="none" />
-      <Field label={es.modForm.notes} value={notes} onChangeText={setNotes} multiline />
+      <Field label={t.modForm.tags} placeholder={t.modForm.tagsPlaceholder} value={tags} onChangeText={setTags} autoCapitalize="none" />
+      <Field label={t.modForm.notes} value={notes} onChangeText={setNotes} multiline />
 
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.sm }}>
           {error}
         </T>
       ) : null}
-      <PrimaryButton label={es.modForm.save} onPress={() => void save()} />
-      {modId ? <GhostButton danger label={es.modForm.delete} onPress={remove} /> : null}
+      <PrimaryButton label={t.modForm.save} onPress={() => void save()} />
+      {modId ? <GhostButton danger label={t.modForm.delete} onPress={remove} /> : null}
       <View style={{ height: space.xl }} />
     </ScrollView>
   );

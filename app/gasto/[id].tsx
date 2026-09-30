@@ -4,13 +4,15 @@ import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, categoryInkLight, radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { expenses as expenseRepo, media as mediaRepo } from '@/lib/db/repos';
 import { EXPENSE_CATEGORY_LABELS, type Expense } from '@/lib/db/types';
 import { dateLabel, km as fmtKm, money } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useStore } from '@/lib/store';
@@ -52,9 +54,11 @@ export default function GastoDetalleScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(expense === undefined);
   if (expense === null) return <MissingRecord />;
-  if (!expense) return null;
+  if (!expense) return showSkeleton ? <RecordSkeleton pill cards={[64]} /> : null;
 
   const label = EXPENSE_CATEGORY_LABELS[expense.category];
 
@@ -86,7 +90,7 @@ export default function GastoDetalleScreen() {
         <Surface style={{ marginBottom: space.lg }}>
           <View style={styles.kv}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-              {es.expense.amount}
+              {t.expense.amount}
             </T>
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 20 }}>
               {money(expense.amountDop)}
@@ -95,18 +99,18 @@ export default function GastoDetalleScreen() {
         </Surface>
 
         <PrimaryButton
-          label={es.common.edit}
+          label={t.common.edit}
           onPress={() => router.push({ pathname: '/gasto/nuevo', params: { id: expense.id } })}
         />
         <View style={{ height: space.sm }} />
         <GhostButton
           danger
-          label={es.common.delete}
+          label={t.common.delete}
           onPress={() =>
-            Alert.alert(expense.description.trim() || label, es.expense.deleteConfirm, [
-              { text: es.common.cancel, style: 'cancel' },
+            Alert.alert(expense.description.trim() || label, t.expense.deleteConfirm, [
+              { text: t.common.cancel, style: 'cancel' },
               {
-                text: es.common.delete,
+                text: t.common.delete,
                 style: 'destructive',
                 onPress: () => {
                   void (async () => {

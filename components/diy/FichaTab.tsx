@@ -7,8 +7,8 @@ import { GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { listDtcEvents, readFicha, type Ficha } from '@/lib/db/diyQueries';
 import type { VehicleDtcEvent } from '@/lib/db/types';
-import { FICHA_FIELDS, formatFicha } from '@/lib/domain/specPresets';
-import { es } from '@/lib/i18n/es';
+import { FICHA_FIELDS, fichaFieldLabel, formatFicha } from '@/lib/domain/specPresets';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -45,7 +45,7 @@ export function FichaTab({ vehicleId, version }: { vehicleId: string; version: n
         {rows.map((f) => (
           <View key={f.key} style={styles.row}>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-              {f.label}
+              {fichaFieldLabel(f)}
             </T>
             <T face="mono" style={{ color: ficha.values[f.key] != null ? theme.text.primary : theme.text.muted, fontSize: 13 }}>
               {formatFicha(f.key, ficha.values[f.key])}
@@ -54,12 +54,12 @@ export function FichaTab({ vehicleId, version }: { vehicleId: string; version: n
         ))}
       </View>
       <T face="mono" style={{ color: open ? theme.statusText.urgente : theme.text.muted, fontSize: 12 }}>
-        {es.ficha.obdOpen(open)}
+        {t.ficha.obdOpen(open)}
       </T>
-      <PrimaryButton label={es.ficha.open} onPress={() => router.push({ pathname: '/vehiculo/[id]/ficha', params: { id: vehicleId } })} />
+      <PrimaryButton label={t.ficha.open} onPress={() => router.push({ pathname: '/vehiculo/[id]/ficha', params: { id: vehicleId } })} />
       <View style={styles.pair}>
-        <GhostButton label={es.ficha.fluids} onPress={() => router.push({ pathname: '/vehiculo/[id]/fluidos', params: { id: vehicleId } })} style={{ flex: 1 }} />
-        <GhostButton label={es.ficha.obdAll} onPress={() => router.push({ pathname: '/obd', params: { vehicleId } })} style={{ flex: 1 }} />
+        <GhostButton label={t.ficha.fluids} onPress={() => router.push({ pathname: '/vehiculo/[id]/fluidos', params: { id: vehicleId } })} style={{ flex: 1 }} />
+        <GhostButton label={t.ficha.obdAll} onPress={() => router.push({ pathname: '/obd', params: { vehicleId } })} style={{ flex: 1 }} />
       </View>
     </View>
   );

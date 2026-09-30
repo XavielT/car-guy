@@ -13,7 +13,7 @@ import { checkMembership } from '@/lib/cloud/membership';
 import { parseRecoveryUrl } from '@/lib/cloud/recovery';
 import { getSupabase } from '@/lib/cloud/supabase';
 import { recordError } from '@/lib/diagnostics';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 type Stage = 'reading' | 'invalid' | 'otherApp' | 'form' | 'done';
@@ -89,8 +89,8 @@ export default function NuevaContrasenaScreen() {
 
   async function save() {
     setError(null);
-    if (password.length < MIN_PASSWORD) return setError(es.account.errors.weakPassword);
-    if (password !== confirm) return setError(es.account.reset.mismatch);
+    if (password.length < MIN_PASSWORD) return setError(t.account.errors.weakPassword);
+    if (password !== confirm) return setError(t.account.reset.mismatch);
     const supabase = getSupabase();
     if (!supabase) return setStage('invalid');
 
@@ -109,33 +109,33 @@ export default function NuevaContrasenaScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.account.reset.title}
+          {t.account.reset.title}
         </T>
 
         {stage === 'reading' ? (
           <View style={styles.loading}>
             <ActivityIndicator color={theme.accent} />
             <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-              {es.account.reset.reading}
+              {t.account.reset.reading}
             </T>
           </View>
         ) : stage === 'form' ? (
           <>
             <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-              {es.account.reset.body}
+              {t.account.reset.body}
             </T>
             <View style={{ height: space.lg }} />
             <Field
-              label={es.account.reset.newPassword}
+              label={t.account.reset.newPassword}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
               autoComplete="new-password"
-              hint={es.account.passwordHint}
+              hint={t.account.passwordHint}
             />
             <Field
-              label={es.account.reset.confirm}
+              label={t.account.reset.confirm}
               value={confirm}
               onChangeText={setConfirm}
               secureTextEntry
@@ -151,7 +151,7 @@ export default function NuevaContrasenaScreen() {
               </T>
             ) : null}
             <PrimaryButton
-              label={busy ? es.account.working : es.account.reset.save}
+              label={busy ? t.account.working : t.account.reset.save}
               onPress={save}
               disabled={busy}
             />
@@ -162,22 +162,22 @@ export default function NuevaContrasenaScreen() {
               {stage === 'done' ? (
                 <>
                   <T face="title" style={[styles.pitch, { color: theme.text.primary }]}>
-                    {es.account.reset.doneTitle}
+                    {t.account.reset.doneTitle}
                   </T>
                   <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-                    {es.account.reset.doneBody}
+                    {t.account.reset.doneBody}
                   </T>
                 </>
               ) : (
                 <T face="body" style={[styles.pitch, { color: theme.text.primary }]}>
-                  {stage === 'otherApp' ? es.account.errors.otherApp : es.account.reset.invalid}
+                  {stage === 'otherApp' ? t.account.errors.otherApp : t.account.reset.invalid}
                 </T>
               )}
             </Surface>
             {stage === 'done' ? (
-              <PrimaryButton label={es.account.reset.toAccount} onPress={toAccount} />
+              <PrimaryButton label={t.account.reset.toAccount} onPress={toAccount} />
             ) : (
-              <GhostButton label={es.account.reset.toAccount} onPress={toAccount} />
+              <GhostButton label={t.account.reset.toAccount} onPress={toAccount} />
             )}
           </>
         )}

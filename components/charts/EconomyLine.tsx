@@ -6,7 +6,7 @@ import { categoryColors, categoryInkLight, fonts, space } from '@/constants/them
 import type { EconomyStatus } from '@/lib/domain/partialEconomy';
 import type { EconomyPoint, FuelType } from '@/lib/types';
 import { economyLabel } from '@/lib/fuel';
-import { es } from '@/lib/i18n/es';
+import { localeTag, t } from '@/lib/i18n';
 import { economyNumber, economyValue } from '@/lib/format';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
@@ -156,7 +156,7 @@ export function EconomyLine({
     return {
       // An unknown segment has no number: a gap in the line (interpolateMissingValues off).
       value: bridged[i],
-      label: new Date(slot.occurredAt).toLocaleDateString('es-DO', { month: 'short' }),
+      label: new Date(slot.occurredAt).toLocaleDateString(localeTag(), { month: 'short' }),
       ...(!point ? { hideDataPoint: true } : {}),
       ...(point && styled && point.status !== 'unknown' ? { customDataPoint: () => dot(point) } : {}),
     };
@@ -166,14 +166,14 @@ export function EconomyLine({
 
   return (
     <ChartFrame
-      title={es.stats.economyTitle}
-      caption={es.stats.economyCaption(unit)}
-      empty={enough ? undefined : es.stats.economyEmpty}
+      title={t.stats.economyTitle}
+      caption={t.stats.economyCaption(unit)}
+      empty={enough ? undefined : t.stats.economyEmpty}
       trailing={
         enough ? (
           <View style={styles.average}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10 }}>
-              {es.stats.average}
+              {t.stats.average}
             </T>
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
               {economyNumber(average)}
@@ -268,21 +268,21 @@ export function EconomyLegend() {
   );
   return (
     <View style={legend.row}>
-      {item(es.estimate.legend.measured, <View style={[styles.solid, { backgroundColor: line }]} />)}
+      {item(t.estimate.legend.measured, <View style={[styles.solid, { backgroundColor: line }]} />)}
       {item(
-        es.estimate.legend.reconciled,
+        t.estimate.legend.reconciled,
         <View style={[styles.ring, { borderColor: line }]}>
           <View style={[styles.solid, { backgroundColor: line }]} />
         </View>,
       )}
       {item(
-        es.estimate.legend.estimated,
+        t.estimate.legend.estimated,
         <View style={styles.markBox}>
           <View style={[styles.whisker, { top: 1, height: 16, backgroundColor: line + '66' }]} />
           <View style={[styles.hollow, { borderColor: line, backgroundColor: theme.bg.surface }]} />
         </View>,
       )}
-      {item(es.estimate.legend.unknown, <View style={[legend.gap, { backgroundColor: theme.line }]} />)}
+      {item(t.estimate.legend.unknown, <View style={[legend.gap, { backgroundColor: theme.line }]} />)}
     </View>
   );
 }

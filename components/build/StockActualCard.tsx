@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { T } from '@/components/T';
 import { radius, space } from '@/constants/theme';
-import { formatSpec, HEADLINE_FIELDS, type CurrentSpec } from '@/lib/domain/build';
-import { es } from '@/lib/i18n/es';
+import { type CurrentSpec, formatSpec, HEADLINE_FIELDS, specHeadline } from '@/lib/domain/build';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -18,10 +18,10 @@ export function StockActualCard({ current, onPress }: { current: Record<string, 
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={HEADLINE_FIELDS.map((f) => `${f.headline}: ${formatSpec(f.key, current[f.key]?.stock ?? null)} a ${formatSpec(f.key, current[f.key]?.value ?? null)}`).join('. ')}
+      accessibilityLabel={HEADLINE_FIELDS.map((f) => `${specHeadline(f)}: ${formatSpec(f.key, current[f.key]?.stock ?? null)} a ${formatSpec(f.key, current[f.key]?.value ?? null)}`).join('. ')}
       style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, width: '100%' }}>
-        {es.build.stockActual}
+        {t.build.stockActual}
       </T>
       {HEADLINE_FIELDS.map((f) => {
         const c = current[f.key];
@@ -29,7 +29,7 @@ export function StockActualCard({ current, onPress }: { current: Record<string, 
         return (
           <View key={f.key} style={styles.cell}>
             <T face="mono" style={{ color: theme.text.muted, fontSize: 12 }}>
-              {f.headline}
+              {specHeadline(f)}
             </T>
             <T face="mono" numberOfLines={1} style={{ color: theme.text.primary, fontSize: 12, flexShrink: 1, textAlign: 'right' }}>
               {formatSpec(f.key, c?.stock ?? null)}

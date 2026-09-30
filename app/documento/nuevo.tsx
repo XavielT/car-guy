@@ -13,7 +13,7 @@ import { saveDocument } from '@/lib/db/documentOps';
 import type { DocumentKind, Media } from '@/lib/db/types';
 import { isoFromDateInput } from '@/lib/format';
 import { pickPdf } from '@/lib/media/pdf';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -38,7 +38,7 @@ export default function NuevoDocumentoScreen() {
   if (!activeVehicle) return null;
 
   function save() {
-    if (!title.trim()) return setError(es.documents.nameRequired);
+    if (!title.trim()) return setError(t.documents.nameRequired);
     setError(null);
     void (async () => {
       const result = await saveDocument({
@@ -52,7 +52,7 @@ export default function NuevoDocumentoScreen() {
         notes: notes.trim(),
       });
       await refresh();
-      if (result.linked) Alert.alert(es.documents.save, es.documents.linkedReminder);
+      if (result.linked) Alert.alert(t.documents.save, t.documents.linkedReminder);
       router.back();
     })();
   }
@@ -61,11 +61,11 @@ export default function NuevoDocumentoScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.documents.new}
+          {t.documents.new}
         </T>
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {es.documents.kind}
+          {t.documents.kind}
         </T>
         <View style={styles.row}>
           {KINDS.map((k) => {
@@ -75,7 +75,7 @@ export default function NuevoDocumentoScreen() {
                 key={k}
                 onPress={() => {
                   setKind(k);
-                  if (!title.trim()) setTitle(es.documents.kinds[k]);
+                  if (!title.trim()) setTitle(t.documents.kinds[k]);
                 }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
@@ -84,31 +84,31 @@ export default function NuevoDocumentoScreen() {
                   { backgroundColor: on ? theme.accentFill : theme.bg.raised, borderColor: on ? theme.accentFill : theme.line },
                 ]}>
                 <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
-                  {es.documents.kinds[k]}
+                  {t.documents.kinds[k]}
                 </T>
               </Pressable>
             );
           })}
         </View>
 
-        <Field label={es.documents.name} value={title} onChangeText={setTitle} />
-        <DateField label={es.documents.issued} value={issued} onChange={setIssued} noFuture />
+        <Field label={t.documents.name} value={title} onChangeText={setTitle} />
+        <DateField label={t.documents.issued} value={issued} onChange={setIssued} noFuture />
         <DateField
-          label={es.documents.expires}
+          label={t.documents.expires}
           value={expires}
           onChange={setExpires}
-          hint={es.documents.expiresHint}
+          hint={t.documents.expiresHint}
         />
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {es.documents.file}
+          {t.documents.file}
         </T>
         {pdf ? (
           <View style={[styles.pdf, { borderColor: theme.lineStrong, backgroundColor: theme.bg.raised }]}>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }} numberOfLines={1}>
-              {`PDF · ${pdf.caption || es.documents.pdf}`}
+              {`PDF · ${pdf.caption || t.documents.pdf}`}
             </T>
-            <GhostButton label={es.common.removePhoto} onPress={() => (setPdf(null), setMediaId(null))} />
+            <GhostButton label={t.common.removePhoto} onPress={() => (setPdf(null), setMediaId(null))} />
           </View>
         ) : (
           <>
@@ -121,13 +121,13 @@ export default function NuevoDocumentoScreen() {
             />
             {mediaId ? null : (
               <GhostButton
-                label={es.documents.attachPdf}
+                label={t.documents.attachPdf}
                 onPress={() =>
                   void pickPdf({ ownerTable: 'document', ownerId: documentId, vehicleId: activeVehicle.id }).then((r) => {
                     if (r.ok) {
                       setPdf(r.media);
                       setMediaId(r.media.id);
-                    } else if (r.reason !== 'cancelled') setError(r.reason === 'too-big' ? es.documents.pdfTooBig : es.documents.pdfFailed);
+                    } else if (r.reason !== 'cancelled') setError(r.reason === 'too-big' ? t.documents.pdfTooBig : t.documents.pdfFailed);
                   })
                 }
               />
@@ -135,14 +135,14 @@ export default function NuevoDocumentoScreen() {
           </>
         )}
 
-        <Field label={es.documents.notes} value={notes} onChangeText={setNotes} multiline />
+        <Field label={t.documents.notes} value={notes} onChangeText={setNotes} multiline />
 
         {error ? (
           <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>
             {error}
           </T>
         ) : null}
-        <PrimaryButton label={es.documents.save} onPress={save} />
+        <PrimaryButton label={t.documents.save} onPress={save} />
       </ScrollView>
     </SafeAreaView>
   );

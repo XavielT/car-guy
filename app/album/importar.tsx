@@ -11,7 +11,7 @@ import { Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { dateAtPrecision, type DatePrecision } from '@/lib/domain/album';
 import { dateLabel, monthTitle } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { importCandidates, pickCandidates, saveOriginal, type Candidate, type ImportProgress } from '@/lib/media';
 import {
   candidatesFromLibrary,
@@ -175,9 +175,9 @@ export default function ImportScreen() {
     body = (
       <View style={styles.webBox}>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
-          {es.importer.webHint}
+          {t.importer.webHint}
         </T>
-        <PrimaryButton label={es.importer.pick} onPress={() => void pickOnWeb()} />
+        <PrimaryButton label={t.importer.pick} onPress={() => void pickOnWeb()} />
       </View>
     );
   } else if (!access) {
@@ -186,12 +186,12 @@ export default function ImportScreen() {
     body = (
       <View style={styles.webBox}>
         <T face="title" style={{ color: theme.text.primary, fontSize: 18, textTransform: 'uppercase' }}>
-          {es.importer.permissionTitle}
+          {t.importer.permissionTitle}
         </T>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
-          {access.canAskAgain ? es.importer.permissionBody : es.importer.permissionDenied}
+          {access.canAskAgain ? t.importer.permissionBody : t.importer.permissionDenied}
         </T>
-        {access.canAskAgain ? <PrimaryButton label={es.importer.permissionAsk} onPress={() => void ensurePhotoPermission().then(setAccess)} /> : null}
+        {access.canAskAgain ? <PrimaryButton label={t.importer.permissionAsk} onPress={() => void ensurePhotoPermission().then(setAccess)} /> : null}
       </View>
     );
   } else if (stage.kind === 'years') {
@@ -218,7 +218,7 @@ export default function ImportScreen() {
                   {label}
                 </T>
                 <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
-                  {counts ? es.importer.monthCount(n) : '…'}
+                  {counts ? t.importer.monthCount(n) : '…'}
                 </T>
                 {picked ? (
                   <T face="mono" style={{ color: theme.accent, fontSize: 11, marginTop: 2 }}>
@@ -237,7 +237,7 @@ export default function ImportScreen() {
     body = (
       <>
         <View style={styles.monthBar}>
-          <Pressable onPress={() => setStage({ kind: 'years' })} accessibilityRole="button" accessibilityLabel={es.common.back} hitSlop={8}>
+          <Pressable onPress={() => setStage({ kind: 'years' })} accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={8}>
             <Ionicons name="chevron-back" size={22} color={theme.text.primary} />
           </Pressable>
           <T face="display" style={{ color: theme.text.primary, fontSize: 20, flex: 1, textTransform: 'uppercase' }}>
@@ -245,7 +245,7 @@ export default function ImportScreen() {
           </T>
           {list.length ? (
             <GhostButton
-              label={allOn ? es.importer.clearMonth : es.importer.selectMonth}
+              label={allOn ? t.importer.clearMonth : t.importer.selectMonth}
               onPress={() =>
                 setSelected((prev) => {
                   const next = new Map(prev);
@@ -261,11 +261,11 @@ export default function ImportScreen() {
         </View>
         {monthList == null ? (
           <T face="body" style={{ color: theme.text.muted, marginTop: space.lg }}>
-            {es.importer.loading}
+            {t.importer.loading}
           </T>
         ) : !list.length ? (
           <T face="body" style={{ color: theme.text.muted, marginTop: space.lg }}>
-            {es.importer.emptyMonth}
+            {t.importer.emptyMonth}
           </T>
         ) : null}
         <FlatList
@@ -290,7 +290,7 @@ export default function ImportScreen() {
                 }
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: on }}
-                accessibilityLabel={p.creationTime ? dateLabel(new Date(p.creationTime).toISOString()) : es.viewer.noDate}
+                accessibilityLabel={p.creationTime ? dateLabel(new Date(p.creationTime).toISOString()) : t.viewer.noDate}
                 style={{ width: cell, height: cell }}>
                 <Image source={{ uri: p.uri }} recyclingKey={p.id} contentFit="cover" style={[StyleSheet.absoluteFill, { borderRadius: radius.input }]} />
                 <View style={[styles.check, { backgroundColor: on ? theme.accentFill : 'rgba(0,0,0,0.45)', borderColor: on ? theme.accentFill : '#FFFFFF' }]}>
@@ -308,7 +308,7 @@ export default function ImportScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <View style={styles.pad}>
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-          {es.importer.target(target?.name ?? '—')}
+          {t.importer.target(target?.name ?? '—')}
         </T>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginTop: space.sm, marginBottom: space.md }}>
           {targets.map((v) => (
@@ -318,9 +318,9 @@ export default function ImportScreen() {
         {access?.limited ? (
           <View style={[styles.banner, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
             <T face="body" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
-              {es.importer.limited}
+              {t.importer.limited}
             </T>
-            <GhostButton label={es.importer.chooseMore} onPress={() => void chooseMorePhotos().then(() => setReload((n) => n + 1))} />
+            <GhostButton label={t.importer.chooseMore} onPress={() => void chooseMorePhotos().then(() => setReload((n) => n + 1))} />
           </View>
         ) : null}
         <View style={{ flex: 1 }}>{body}</View>
@@ -330,27 +330,27 @@ export default function ImportScreen() {
         // Absolute, so it clears the navigation bar itself (SafeAreaView padding does not apply).
         <View style={[styles.footer, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, paddingBottom: space.md + insets.bottom }]}>
           <T face="mono" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
-            {es.importer.selected(selected.size)}
+            {t.importer.selected(selected.size)}
           </T>
           <View style={{ width: 160 }}>
-            <PrimaryButton label={es.importer.review} onPress={() => void openReview()} />
+            <PrimaryButton label={t.importer.review} onPress={() => void openReview()} />
           </View>
         </View>
       ) : null}
 
-      <Sheet visible={Boolean(candidates)} onClose={() => (running ? null : (setCandidates(null), setProgress(null)))} title={es.importer.confirmTitle(candidates?.length ?? 0)}>
+      <Sheet visible={Boolean(candidates)} onClose={() => (running ? null : (setCandidates(null), setProgress(null)))} title={t.importer.confirmTitle(candidates?.length ?? 0)}>
         {progress && !running ? (
           <View style={{ gap: space.md }}>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
-              {es.importer.result(progress.imported, progress.duplicates)}
+              {t.importer.result(progress.imported, progress.duplicates)}
             </T>
             {progress.failed ? (
               <T face="body" style={{ color: theme.dangerText, fontSize: 13 }}>
-                {es.importer.failed(progress.failed)}
+                {t.importer.failed(progress.failed)}
               </T>
             ) : null}
             <PrimaryButton
-              label={es.importer.done}
+              label={t.importer.done}
               onPress={() => {
                 setCandidates(null);
                 setProgress(null);
@@ -361,53 +361,53 @@ export default function ImportScreen() {
         ) : running && progress ? (
           <View style={{ gap: space.md }}>
             <T face="mono" style={{ color: theme.text.primary, fontSize: 14 }}>
-              {es.importer.progress(progress.done, progress.total)}
+              {t.importer.progress(progress.done, progress.total)}
             </T>
             <View style={[styles.bar, { backgroundColor: theme.lineStrong }]}>
               <View style={{ height: 6, borderRadius: 3, width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%`, backgroundColor: theme.accentFill }} />
             </View>
-            <GhostButton label={es.importer.cancel} onPress={() => (stop.current = true)} />
+            <GhostButton label={t.importer.cancel} onPress={() => (stop.current = true)} />
           </View>
         ) : (
           <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ gap: space.md }}>
             <View>
               <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-                {es.importer.detected}
+                {t.importer.detected}
               </T>
               <T face="mono" style={{ color: theme.text.primary, fontSize: 13, marginTop: 4 }}>
-                {summary.from ? `${dateLabel(summary.from)} → ${dateLabel(summary.to!)}` : es.viewer.noDate}
+                {summary.from ? `${dateLabel(summary.from)} → ${dateLabel(summary.to!)}` : t.viewer.noDate}
               </T>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
                 {[
-                  summary.exif ? `${summary.exif} ${es.importer.fromExif}` : null,
-                  summary.file ? `${summary.file} ${es.importer.fromFile}` : null,
-                  summary.none ? `${summary.none} ${es.importer.noDate}` : null,
+                  summary.exif ? `${summary.exif} ${t.importer.fromExif}` : null,
+                  summary.file ? `${summary.file} ${t.importer.fromFile}` : null,
+                  summary.none ? `${summary.none} ${t.importer.noDate}` : null,
                 ]
                   .filter(Boolean)
                   .join(' · ')}
               </T>
               {summary.file ? (
                 <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>
-                  {es.importer.fileDateWarning}
+                  {t.importer.fileDateWarning}
                 </T>
               ) : null}
             </View>
 
             <View style={styles.switchRow}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }}>
-                {es.importer.overrideAll}
+                {t.importer.overrideAll}
               </T>
-              <Switch value={override} onValueChange={setOverride} accessibilityLabel={es.importer.overrideAll} />
+              <Switch value={override} onValueChange={setOverride} accessibilityLabel={t.importer.overrideAll} />
             </View>
             {showDate ? (
               <>
-                <DateField label={override ? es.importer.overrideLabel : es.importer.undatedLabel(summary.none)} value={overrideDate} onChange={setOverrideDate} noFuture />
+                <DateField label={override ? t.importer.overrideLabel : t.importer.undatedLabel(summary.none)} value={overrideDate} onChange={setOverrideDate} noFuture />
                 <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-                  {es.importer.precision}
+                  {t.importer.precision}
                 </T>
                 <View style={{ flexDirection: 'row' }}>
                   {(['day', 'month', 'year'] as DatePrecision[]).map((p) => (
-                    <Chip key={p} label={es.importer.precisions[p]} selected={precision === p} onPress={() => setPrecision(p)} />
+                    <Chip key={p} label={t.importer.precisions[p]} selected={precision === p} onPress={() => setPrecision(p)} />
                   ))}
                 </View>
               </>
@@ -416,19 +416,19 @@ export default function ImportScreen() {
             <View style={styles.switchRow}>
               <View style={{ flex: 1 }}>
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-                  {Platform.OS === 'web' ? es.importer.downloadOriginals : es.importer.saveOriginals}
+                  {Platform.OS === 'web' ? t.importer.downloadOriginals : t.importer.saveOriginals}
                 </T>
                 {Platform.OS !== 'web' ? (
                   <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-                    {es.importer.saveOriginalsHint}
+                    {t.importer.saveOriginalsHint}
                   </T>
                 ) : null}
               </View>
-              <Switch value={keepOriginals} onValueChange={setKeepOriginals} accessibilityLabel={es.importer.saveOriginals} />
+              <Switch value={keepOriginals} onValueChange={setKeepOriginals} accessibilityLabel={t.importer.saveOriginals} />
             </View>
 
             <PrimaryButton
-              label={es.importer.start(candidates?.length ?? 0)}
+              label={t.importer.start(candidates?.length ?? 0)}
               onPress={() => void start()}
             />
           </ScrollView>

@@ -4,15 +4,17 @@ import { Image, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { documents as documentRepo, media as mediaRepo } from '@/lib/db/repos';
 import type { Media, VehicleDocument } from '@/lib/db/types';
 import { openPdf } from '@/lib/media/pdf';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useStore } from '@/lib/store';
@@ -50,9 +52,11 @@ export default function DocumentoScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(doc === undefined);
   if (doc === null) return <MissingRecord />;
-  if (!doc) return null;
+  if (!doc) return showSkeleton ? <RecordSkeleton cards={[28, 320]} buttons={1} /> : null;
   const days = doc.expiresAt ? daysBetween(todayIso(), doc.expiresAt) : null;
 
   return (
@@ -62,19 +66,19 @@ export default function DocumentoScreen() {
           {doc.title}
         </T>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.md }}>
-          {es.documents.kinds[doc.kind]}
-          {doc.issuedAt ? ` · ${es.documents.issued} ${dateLabel(doc.issuedAt)}` : ''}
+          {t.documents.kinds[doc.kind]}
+          {doc.issuedAt ? ` · ${t.documents.issued} ${dateLabel(doc.issuedAt)}` : ''}
         </T>
 
         {days != null ? (
           <StatusPill
             status={days < 0 ? 'vencido' : days <= 45 ? 'proximo' : 'ok'}
-            label={es.documents.expiresOn(dateLabel(doc.expiresAt!))}
+            label={t.documents.expiresOn(dateLabel(doc.expiresAt!))}
           />
         ) : null}
 
         {file?.kind === 'pdf' ? (
-          <PrimaryButton label={es.documents.openPdf(file.caption || es.documents.pdf)} onPress={() => void openPdf(file)} />
+          <PrimaryButton label={t.documents.openPdf(file.caption || t.documents.pdf)} onPress={() => void openPdf(file)} />
         ) : uri ? (
           <Image source={{ uri }} style={[styles.image, { backgroundColor: theme.bg.raised }]} resizeMode="contain" />
         ) : null}
@@ -89,12 +93,12 @@ export default function DocumentoScreen() {
 
         <GhostButton
           danger
-          label={es.common.delete}
+          label={t.common.delete}
           onPress={() =>
-            Alert.alert(doc.title, es.documents.deleteConfirm, [
-              { text: es.common.cancel, style: 'cancel' },
+            Alert.alert(doc.title, t.documents.deleteConfirm, [
+              { text: t.common.cancel, style: 'cancel' },
               {
-                text: es.common.delete,
+                text: t.common.delete,
                 style: 'destructive',
                 onPress: () => {
                   void (async () => {

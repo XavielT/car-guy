@@ -1,6 +1,7 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
 import { migrate } from './migrations';
+import { withSlowQueries } from '../dev/slowQueries';
 
 export const DATABASE_NAME = 'carguy.db';
 
@@ -19,7 +20,7 @@ export function getDb(): Promise<SQLiteDatabase> {
   if (!dbPromise) {
     dbPromise = openDatabaseAsync(DATABASE_NAME, { enableChangeListener: true }).then(async (db) => {
       await migrate(db);
-      return db;
+      return withSlowQueries(db);
     });
   }
   return dbPromise;

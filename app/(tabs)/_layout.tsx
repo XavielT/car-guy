@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, Tabs } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TabsInicioSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { fonts } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -18,20 +20,12 @@ export default function TabLayout() {
   const { ready, data } = useStore();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  // While the store opens: Inicio's outline (ADR-40), after 150 ms so a fast
+  // open paints straight to the tabs; before that, the bare background.
+  const showSkeleton = useDelayedLoading(!ready);
 
-  if (!ready) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.bg.base,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        <ActivityIndicator color={theme.accent} />
-      </View>
-    );
-  }
+  if (showSkeleton) return <TabsInicioSkeleton />;
+  if (!ready) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   if (data.vehicles.length === 0) {
     return <Redirect href="/onboarding" />;
@@ -57,7 +51,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: es.tabs.inicio,
+          title: t.tabs.inicio,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="speedometer-outline" size={size} color={color} />
           ),
@@ -66,21 +60,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="garaje"
         options={{
-          title: es.tabs.garaje,
+          title: t.tabs.garaje,
           tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="historial"
         options={{
-          title: es.tabs.historial,
+          title: t.tabs.historial,
           tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="cifras"
         options={{
-          title: es.tabs.cifras,
+          title: t.tabs.cifras,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
@@ -89,7 +83,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="mas"
         options={{
-          title: es.tabs.mas,
+          title: t.tabs.mas,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="ellipsis-horizontal" size={size} color={color} />
           ),

@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
 import { openReport, subscribeToAlerts, type AlertButton, type AlertRequest } from '@/lib/alert';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
@@ -109,7 +109,7 @@ export function AlertHost() {
               hitSlop={8}
               style={styles.report}>
               <T face="semibold" style={{ color: theme.accent, fontSize: 14, textDecorationLine: 'underline' }}>
-                {es.feedback.report}
+                {t.feedback.report}
               </T>
             </Pressable>
           ) : null}

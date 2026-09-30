@@ -1,15 +1,17 @@
 import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { AdminUsersSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
 import { Badge, EmptyState, Segmented, Sheet } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchAdminUsers, refreshRole, ROLES, setUserRole, useAdminGate, type AdminUser, type Role } from '@/lib/cloud/admin';
 import { useSession } from '@/lib/cloud/auth';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const ROLE_TONE: Record<Role, 'red' | 'amber' | 'outline'> = { admin: 'red', premium: 'amber', member: 'outline' };
@@ -44,13 +46,17 @@ export default function AdminUsers() {
     }, [gate, load]),
   );
 
-  const header = <Stack.Screen options={{ headerShown: true, title: es.admin.usersTitle }} />;
+  const header = <Stack.Screen options={{ headerShown: true, title: t.admin.usersTitle }} />;
+  // The gate and the first list read; a pull-to-refresh or a role change keeps the old list up.
+  const loading = gate === 'loading' || (gate === 'admin' && users === null);
+  const showSkeleton = useDelayedLoading(loading);
 
-  if (gate === 'loading' || (gate === 'admin' && users === null)) {
+  if (showSkeleton || loading) {
+    // Remote data, so the skeleton is really seen; a fast answer shows nothing but the header.
     return (
-      <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
+      <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
         {header}
-        <ActivityIndicator color={theme.text.muted} />
+        {showSkeleton ? <AdminUsersSkeleton /> : null}
       </View>
     );
   }
@@ -58,7 +64,7 @@ export default function AdminUsers() {
     return (
       <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
         {header}
-        <EmptyState icon="lock-closed-outline" message={gate === 'offline' ? es.admin.offline : es.admin.notAdmin} />
+        <EmptyState icon="lock-closed-outline" message={gate === 'offline' ? t.admin.offline : t.admin.notAdmin} />
       </View>
     );
   }
@@ -71,11 +77,11 @@ export default function AdminUsers() {
     if (role === u.role) return;
     const r = await setUserRole(u.user_id, role);
     if (r.ok) {
-      setNotice(es.admin.roleSaved);
+      setNotice(t.admin.roleSaved);
       setEditing({ ...u, role });
       if (u.user_id === session?.user.id) refreshRole();
       await load();
-    } else setNotice(r.reason === 'self_demote' ? es.admin.selfDemote : es.admin.roleFailed);
+    } else setNotice(r.reason === 'self_demote' ? t.admin.selfDemote : t.admin.roleFailed);
   };
 
   return (
@@ -95,12 +101,12 @@ export default function AdminUsers() {
           />
         }>
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 11, marginBottom: space.sm }}>
-          {es.admin.usersCount(list.length)}
+          {t.admin.usersCount(list.length)}
         </T>
-        <Field label={es.admin.search} value={query} onChangeText={setQuery} autoCapitalize="none" keyboardType="email-address" />
+        <Field label={t.admin.search} value={query} onChangeText={setQuery} autoCapitalize="none" keyboardType="email-address" />
         {users === 'error' ? (
           <T face="body" style={{ color: theme.statusText.vencido, fontSize: 14 }}>
-            {es.admin.loadFailed}
+            {t.admin.loadFailed}
           </T>
         ) : null}
         {shown.map((u) => {
@@ -113,39 +119,39 @@ export default function AdminUsers() {
                 setEditing(u);
               }}
               accessibilityRole="button"
-              accessibilityLabel={`${u.email}, ${es.admin.roles[u.role]}`}
+              accessibilityLabel={`${u.email}, ${t.admin.roles[u.role]}`}
               style={[styles.row, { backgroundColor: theme.bg.surface, borderColor: me ? theme.accent : theme.lineStrong }]}>
               <View style={styles.rowTop}>
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }} numberOfLines={1}>
                   {u.email}
                 </T>
-                {me ? <Badge label={es.admin.you} tone="outline" /> : null}
-                <Badge label={es.admin.roles[u.role]} tone={ROLE_TONE[u.role]} />
+                {me ? <Badge label={t.admin.you} tone="outline" /> : null}
+                <Badge label={t.admin.roles[u.role]} tone={ROLE_TONE[u.role]} />
               </View>
               <T face="mono" style={{ color: theme.text.secondary, fontSize: 12 }}>
-                {es.admin.counts(u.vehicles, u.fuel_logs, u.trips)}
+                {t.admin.counts(u.vehicles, u.fuel_logs, u.trips)}
               </T>
               <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-                {[es.admin.joined(dateLabel(u.created_at)), u.last_sign_in_at ? es.admin.lastSeen(dateLabel(u.last_sign_in_at)) : es.admin.neverSeen].join(' · ')}
+                {[t.admin.joined(dateLabel(u.created_at)), u.last_sign_in_at ? t.admin.lastSeen(dateLabel(u.last_sign_in_at)) : t.admin.neverSeen].join(' · ')}
               </T>
             </Pressable>
           );
         })}
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.md }}>
-          {es.admin.premiumNote}
+          {t.admin.premiumNote}
         </T>
       </ScrollView>
 
-      <Sheet visible={editing != null} onClose={() => setEditing(null)} title={editing ? es.admin.changeRole(editing.email) : ''}>
+      <Sheet visible={editing != null} onClose={() => setEditing(null)} title={editing ? t.admin.changeRole(editing.email) : ''}>
         {editing ? (
           <View style={{ gap: space.md }}>
             <Segmented<Role>
-              options={ROLES.map((key) => ({ key, label: es.admin.roles[key] }))}
+              options={ROLES.map((key) => ({ key, label: t.admin.roles[key] }))}
               value={editing.role}
               onChange={(r) => void change(editing, r)}
             />
             {notice ? (
-              <T face="semibold" style={{ color: notice === es.admin.roleSaved ? theme.statusText.ok : theme.statusText.vencido, fontSize: 13 }}>
+              <T face="semibold" style={{ color: notice === t.admin.roleSaved ? theme.statusText.ok : theme.statusText.vencido, fontSize: 13 }}>
                 {notice}
               </T>
             ) : null}

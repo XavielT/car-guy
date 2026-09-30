@@ -10,6 +10,7 @@
  * — so the nudges escalate through January rather than firing once in October
  * and being forgotten.
  */
+import { t } from '../i18n';
 import { addDays, daysBetween, nextJanuary31 } from './dates';
 
 /** DGII opens marbete sales in the third or fourth week of October. */
@@ -102,18 +103,15 @@ function nudgesFor(deadline: string): MarbeteNudge[] {
   const opens = marbeteWindowOpens(deadline);
   const at = (m: number, d: number) => new Date(year, m, d, 12).toISOString();
 
+  const say = t.legal.nudges;
   const nudges: MarbeteNudge[] = [
-    { date: addDays(opens, -6), message: 'El marbete abre pronto. Ve preparando los papeles.' },
-    { date: opens, message: 'Ya abrió la venta del marbete. Mientras más temprano, menos fila.' },
-    { date: at(0, 5), message: 'Enero empezó: el marbete vence el 31.' },
-    { date: at(0, 12), message: 'Quedan menos de tres semanas para el marbete.' },
-    {
-      date: at(0, ONLINE_CLOSES_DAY),
-      message: 'La venta en línea del marbete cierra hoy. Después, solo en el banco.',
-      later: 'La venta en línea del marbete cerró el 18. Ahora solo en el banco.',
-    },
-    { date: at(0, 25), message: 'Una semana para el marbete. Después son RD$2,000 de recargo.' },
-    { date: at(0, 31), message: 'Hoy vence el marbete. Sin prórroga.' },
+    { date: addDays(opens, -6), message: say.soon },
+    { date: opens, message: say.opened },
+    { date: at(0, 5), message: say.january },
+    { date: at(0, 12), message: say.threeWeeks },
+    { date: at(0, ONLINE_CLOSES_DAY), message: say.onlineToday, later: say.onlineClosed },
+    { date: at(0, 25), message: say.oneWeek },
+    { date: at(0, 31), message: say.today },
   ];
 
   return nudges;
@@ -122,7 +120,7 @@ function nudgesFor(deadline: string): MarbeteNudge[] {
 /** "Estimado: RD$1,500" — the tier as a line the banner can carry. */
 export function marbeteTierLabel(modelYear: number | null, today: string): string | null {
   const tier = marbeteTier(modelYear, today);
-  return tier == null ? null : `Estimado: RD$${tier.toLocaleString('en-US')}`;
+  return tier == null ? null : t.legal.tierEstimate(tier.toLocaleString('en-US'));
 }
 
 /** Ley 63-17 art. 41 — how long a vehicle may legally circulate. */
@@ -175,9 +173,7 @@ export const LEGAL_LEAD_DAYS: Record<string, number[]> = {
   licencia: [60, 30],
 };
 
-export const LEGAL_NOTES: Record<string, string> = {
-  marbete: 'La venta abre a finales de octubre y cierra el 31 de enero. Sin prórroga.',
-  seguro: 'Pon la fecha de vencimiento de tu póliza para que te avise a tiempo.',
-  licencia: 'Revisa multas pendientes antes de renovar: bloquean la renovación.',
-  revision_tecnica: 'Pendiente de implementación por INTRANT.',
-};
+/** A short note per legal kind, in the current language (the dictionary's `legal.notes`). */
+export function legalNote(kind: string): string | undefined {
+  return t.legal.notes[kind];
+}

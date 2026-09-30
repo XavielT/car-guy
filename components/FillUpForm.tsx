@@ -15,7 +15,7 @@ import { brandsForFuel, normaliseStation, recentStations } from '@/lib/domain/st
 import { foldText } from '@/lib/domain/text';
 import { GaugePicker } from '@/components/fuel/GaugePicker';
 import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtVol } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FillUp, FuelType } from '@/lib/types';
@@ -73,8 +73,8 @@ export function FillUpForm({
     const recent = recentStations(data.fillups.filter((f) => f.vehicleId === vehicleId));
     const brands = brandsForFuel(FUEL_CATALOG[fuel].group).filter((b) => !recent.some((r) => foldText(r) === foldText(b.name)));
     return [
-      ...recent.map((name) => ({ key: `recent:${name}`, label: name, section: es.fuel.stationRecent })),
-      ...brands.map((b) => ({ key: b.id, label: b.name, keywords: (b.aliases ?? []).join(' '), section: es.fuel.stationBrands })),
+      ...recent.map((name) => ({ key: `recent:${name}`, label: name, section: t.fuel.stationRecent })),
+      ...brands.map((b) => ({ key: b.id, label: b.name, keywords: (b.aliases ?? []).join(' '), section: t.fuel.stationBrands })),
     ];
   }, [data.fillups, vehicleId, fuel]);
   const amounts = useMemo(
@@ -90,7 +90,7 @@ export function FillUpForm({
   function save() {
     const odometerKm = parseDecimal(odo);
     if (odometerKm == null) {
-      Alert.alert(es.fuel.odometer, es.fuel.odometerRequired);
+      Alert.alert(t.fuel.odometer, t.fuel.odometerRequired);
       return;
     }
     // Against the fill-ups on either side of this date — for a new one and an
@@ -101,15 +101,15 @@ export function FillUpForm({
       initial?.id,
     );
     if (bounds.min != null && odometerKm < bounds.min) {
-      Alert.alert(es.fuel.odometer, es.fuel.odometerTooLow(bounds.min));
+      Alert.alert(t.fuel.odometer, t.fuel.odometerTooLow(bounds.min));
       return;
     }
     if (bounds.max != null && odometerKm > bounds.max) {
-      Alert.alert(es.fuel.odometer, es.fuel.odometerTooHigh(bounds.max));
+      Alert.alert(t.fuel.odometer, t.fuel.odometerTooHigh(bounds.max));
       return;
     }
     if (!amounts) {
-      Alert.alert(es.fuel.loadKind, es.fuel.amountsRequired);
+      Alert.alert(t.fuel.loadKind, t.fuel.amountsRequired);
       return;
     }
     const chosenStation = station.trim();
@@ -141,32 +141,32 @@ export function FillUpForm({
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-        {initial ? es.fuel.editTitle : es.fuel.newTitle}
+        {initial ? t.fuel.editTitle : t.fuel.newTitle}
         <T face="kana" style={[styles.kana, { color: theme.text.muted }]}>
           {' 給油'}
         </T>
       </T>
       <T face="body" style={[styles.p, { color: theme.text.secondary }]}>
-        {es.fuel.intro(es.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
+        {t.fuel.intro(t.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
       </T>
 
-      <DateField label={es.fuel.date} value={date} onChange={setDate} noFuture />
+      <DateField label={t.fuel.date} value={date} onChange={setDate} noFuture />
       <Field
-        label={es.fuel.odometer}
+        label={t.fuel.odometer}
         keyboardType="decimal-pad"
         value={odo}
         onChangeText={setOdo}
         placeholder={lastOdo != null ? String(lastOdo) : '45210'}
-        hint={lastOdo != null ? es.fuel.odometerHint(`${lastOdo.toLocaleString('es-DO')} km`) : undefined}
+        hint={lastOdo != null ? t.fuel.odometerHint(`${lastOdo.toLocaleString('es-DO')} km`) : undefined}
       />
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.fuel.type}
+        {t.fuel.type}
       </T>
       <FuelPicker value={fuel} onChange={setFuel} />
 
       <Field
-        label={es.fuel.volume(meta.unitLabel)}
+        label={t.fuel.volume(meta.unitLabel)}
         keyboardType="decimal-pad"
         value={vol}
         onChangeText={setVol}
@@ -180,7 +180,7 @@ export function FillUpForm({
         placeholder="307.50"
       />
       <Field
-        label={es.fuel.total}
+        label={t.fuel.total}
         keyboardType="decimal-pad"
         value={total}
         onChangeText={setTotal}
@@ -195,41 +195,41 @@ export function FillUpForm({
         </View>
       ) : (
         <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-          {es.fuel.calcPending}
+          {t.fuel.calcPending}
         </T>
       )}
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {es.fuel.loadKind}
+        {t.fuel.loadKind}
       </T>
       <Segmented
         options={[
-          { key: 'full', label: es.fuel.fullTank },
-          { key: 'partial', label: es.fuel.partial },
+          { key: 'full', label: t.fuel.fullTank },
+          { key: 'partial', label: t.fuel.partial },
         ]}
         value={full ? 'full' : 'partial'}
         onChange={(next) => setFull(next === 'full')}
       />
       <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: space.sm }]}>
-        {es.fuel.partialHint(meta.unitLabel)}
+        {t.fuel.partialHint(meta.unitLabel)}
       </T>
 
       {/* Medidor (note 4): with the level before and after, a partial gets a number too. GNV has no gauge like this. */}
       {FUEL_CATALOG[fuel].unit === 'm3' ? null : (
         <View style={styles.gauges}>
           <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-            {es.gauge.title}
+            {t.gauge.title}
           </T>
           <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {es.gauge.hint}
+            {t.gauge.hint}
           </T>
           <GaugePicker
-            label={es.gauge.before}
+            label={t.gauge.before}
             value={gaugeBefore}
             onChange={setGaugeBefore}
             reserve={{ on: inReserve, onToggle: setInReserve }}
           />
-          <GaugePicker label={es.gauge.after} value={gaugeAfter} onChange={setGaugeAfter} />
+          <GaugePicker label={t.gauge.after} value={gaugeAfter} onChange={setGaugeAfter} />
           {/* F without "Tanque lleno": probably it was full — say so, do not decide (research 02 §1.4). */}
           {gaugeAfter === 8 && !full ? (
             <Pressable
@@ -237,10 +237,10 @@ export function FillUpForm({
               accessibilityRole="button"
               style={[styles.prompt, { borderColor: theme.accent, backgroundColor: theme.bg.raised }]}>
               <T face="body" style={{ color: theme.text.primary, fontSize: 14, lineHeight: 20 }}>
-                {es.gauge.fullPrompt}
+                {t.gauge.fullPrompt}
               </T>
               <T face="semibold" style={{ color: theme.accent, fontSize: 14, marginTop: 4 }}>
-                {es.gauge.fullPromptAction}
+                {t.gauge.fullPromptAction}
               </T>
             </Pressable>
           ) : null}
@@ -253,7 +253,7 @@ export function FillUpForm({
         onPress={() => setMissedPrevious((value) => !value)}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: missedPrevious }}
-        accessibilityLabel={es.fuel.missedPrevious}
+        accessibilityLabel={t.fuel.missedPrevious}
         style={styles.toggle}>
         <View
           style={[
@@ -266,27 +266,27 @@ export function FillUpForm({
         />
         <View style={{ flex: 1 }}>
           <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-            {es.fuel.missedPrevious}
+            {t.fuel.missedPrevious}
           </T>
           <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: 2 }]}>
-            {es.fuel.missedPreviousHint(es.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
+            {t.fuel.missedPreviousHint(t.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
           </T>
         </View>
       </Pressable>
 
       {/* Note 7: the car's recent stations, then the brands for this fuel, then Otra (free text). */}
       <PickerField
-        label={es.fuel.station}
+        label={t.fuel.station}
         value={station || null}
-        placeholder={es.fuel.stationPick}
+        placeholder={t.fuel.stationPick}
         onPress={() => setStationOpen(true)}
       />
       <SearchSheet
         visible={stationOpen}
-        title={es.fuel.station}
+        title={t.fuel.station}
         items={stationItems}
         selectedKey={station || null}
-        otherLabel={es.fuel.stationOther}
+        otherLabel={t.fuel.stationOther}
         onPick={(pick) => {
           setStation('other' in pick ? normaliseStation(pick.other) : pick.label);
           setStationOpen(false);
@@ -295,14 +295,14 @@ export function FillUpForm({
       />
 
       <Field
-        label={es.fuel.notes}
+        label={t.fuel.notes}
         value={notes}
         onChangeText={setNotes}
-        placeholder={es.fuel.notesPlaceholder}
+        placeholder={t.fuel.notesPlaceholder}
       />
 
       <PrimaryButton label={submitLabel} onPress={save} disabled={saving} />
-      {onDelete ? <GhostButton danger label={es.fuel.delete} onPress={onDelete} /> : null}
+      {onDelete ? <GhostButton danger label={t.fuel.delete} onPress={onDelete} /> : null}
     </ScrollView>
   );
 }

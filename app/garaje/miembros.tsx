@@ -4,14 +4,16 @@ import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { GarageMembersSkeleton } from '@/components/skeletons/GarageMembersSkeleton';
 import { T } from '@/components/T';
 import { Badge, Chip, GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import { useSession } from '@/lib/cloud/auth';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Vehicle, VehicleMember } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { createInvite, inviteLink, listMembers, removeMember, setMemberRole } from '@/lib/share/members';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -35,6 +37,9 @@ export default function MembersScreen() {
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // True once the first read answered (ok or not); refocus reloads keep the list up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(() => {
     let cancelled = false;
@@ -42,13 +47,18 @@ export default function MembersScreen() {
       if (cancelled) return;
       setVehicle(v);
       setMembers(m);
-    });
+    })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [vehicleId]);
   useFocusEffect(load);
 
+  if (showSkeleton) return <GarageMembersSkeleton />;
   if (!vehicle) return null;
   const myRole = vehicle.garageRole ?? (members.find((m) => m.userId === me)?.role ?? 'owner');
   const owner = myRole === 'owner';
@@ -58,17 +68,17 @@ export default function MembersScreen() {
     setNotice(null);
     const r = await createInvite(vehicleId, role, email.trim() || null);
     setBusy(false);
-    if (!r.ok) return setNotice(r.reason === 'signed-out' ? es.members.needAccount : r.reason === 'not-owner' ? es.members.notOwner : es.members.offline);
+    if (!r.ok) return setNotice(r.reason === 'signed-out' ? t.members.needAccount : r.reason === 'not-owner' ? t.members.notOwner : t.members.offline);
     setCode(r.code);
   }
 
   async function sendInvite() {
     if (!code) return;
-    const message = es.members.inviteMessage(vehicle!.name, inviteLink(code), code);
+    const message = t.members.inviteMessage(vehicle!.name, inviteLink(code), code);
     try {
       if (Platform.OS === 'web') {
         await Clipboard.setStringAsync(message);
-        setNotice(es.members.copied);
+        setNotice(t.members.copied);
       } else await Share.share({ message });
     } catch {
       // Dismissed.
@@ -77,17 +87,17 @@ export default function MembersScreen() {
 
   function remove(m: VehicleMember) {
     const self = m.userId === me;
-    Alert.alert(self ? es.members.leave : es.members.remove, self ? es.members.leaveBody(vehicle!.name) : es.members.removeBody(m.displayName ?? '—'), [
-      { text: es.common.cancel, style: 'cancel' },
+    Alert.alert(self ? t.members.leave : t.members.remove, self ? t.members.leaveBody(vehicle!.name) : t.members.removeBody(m.displayName ?? '—'), [
+      { text: t.common.cancel, style: 'cancel' },
       {
-        text: self ? es.members.leave : es.members.remove,
+        text: self ? t.members.leave : t.members.remove,
         style: 'destructive',
         onPress: () =>
           void (async () => {
             setBusy(true);
             const ok = await removeMember(vehicleId, m.userId);
             setBusy(false);
-            if (!ok) return setNotice(es.members.offline);
+            if (!ok) return setNotice(t.members.offline);
             await refresh();
             if (self) router.back();
             else load();
@@ -100,25 +110,25 @@ export default function MembersScreen() {
     setBusy(true);
     const ok = await setMemberRole(vehicleId, m.userId, next);
     setBusy(false);
-    if (!ok) return setNotice(es.members.offline);
+    if (!ok) return setNotice(t.members.offline);
     load();
   }
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.members.eyebrow(vehicle.name.toUpperCase())}
+        {t.members.eyebrow(vehicle.name.toUpperCase())}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.sm }}>
-        {es.members.title}
+        {t.members.title}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginBottom: space.md }}>
-        {es.members.intro}
+        {t.members.intro}
       </T>
 
       {!members.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-          {me ? es.members.syncFirst : es.members.needAccount}
+          {me ? t.members.syncFirst : t.members.needAccount}
         </T>
       ) : null}
       {members.map((m) => (
@@ -126,34 +136,34 @@ export default function MembersScreen() {
           <View style={styles.top}>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }} numberOfLines={1}>
               {m.displayName ?? '—'}
-              {m.userId === me ? ` ${es.members.you}` : ''}
+              {m.userId === me ? ` ${t.members.you}` : ''}
             </T>
-            <Badge label={es.members.roles[m.role]} tone={m.role === 'owner' ? 'amber' : m.role === 'editor' ? 'green' : 'outline'} />
+            <Badge label={t.members.roles[m.role]} tone={m.role === 'owner' ? 'amber' : m.role === 'editor' ? 'green' : 'outline'} />
           </View>
           {owner && m.role !== 'owner' ? (
             <View style={styles.chips}>
-              <Chip label={es.members.roles.editor} selected={m.role === 'editor'} onPress={() => void changeRole(m, 'editor')} />
-              <Chip label={es.members.roles.viewer} selected={m.role === 'viewer'} onPress={() => void changeRole(m, 'viewer')} />
-              <GhostButton danger label={es.members.remove} disabled={busy} onPress={() => remove(m)} />
+              <Chip label={t.members.roles.editor} selected={m.role === 'editor'} onPress={() => void changeRole(m, 'editor')} />
+              <Chip label={t.members.roles.viewer} selected={m.role === 'viewer'} onPress={() => void changeRole(m, 'viewer')} />
+              <GhostButton danger label={t.members.remove} disabled={busy} onPress={() => remove(m)} />
             </View>
           ) : null}
-          {!owner && m.userId === me ? <GhostButton danger label={es.members.leave} disabled={busy} onPress={() => remove(m)} /> : null}
+          {!owner && m.userId === me ? <GhostButton danger label={t.members.leave} disabled={busy} onPress={() => remove(m)} /> : null}
         </View>
       ))}
 
       {owner ? (
         <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.accent, marginTop: space.md }]}>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-            {es.members.invite}
+            {t.members.invite}
           </T>
           <View style={styles.chips}>
-            <Chip label={es.members.roles.editor} selected={role === 'editor'} onPress={() => setRole('editor')} />
-            <Chip label={es.members.roles.viewer} selected={role === 'viewer'} onPress={() => setRole('viewer')} />
+            <Chip label={t.members.roles.editor} selected={role === 'editor'} onPress={() => setRole('editor')} />
+            <Chip label={t.members.roles.viewer} selected={role === 'viewer'} onPress={() => setRole('viewer')} />
           </View>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
-            {es.members.roleHints[role]}
+            {t.members.roleHints[role]}
           </T>
-          <Field label={es.members.email} placeholder={es.members.emailPlaceholder} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+          <Field label={t.members.email} placeholder={t.members.emailPlaceholder} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
           {code ? (
             <>
               <T face="monoBold" selectable style={{ color: theme.accent, fontSize: 26, letterSpacing: 4, textAlign: 'center', marginVertical: space.sm }}>
@@ -163,12 +173,12 @@ export default function MembersScreen() {
                 {inviteLink(code).replace('https://', '')}
               </T>
               <T face="body" style={{ color: theme.text.muted, fontSize: 12, textAlign: 'center', marginBottom: space.sm }}>
-                {es.members.expires}
+                {t.members.expires}
               </T>
-              <PrimaryButton label={es.members.send} onPress={() => void sendInvite()} />
+              <PrimaryButton label={t.members.send} onPress={() => void sendInvite()} />
             </>
           ) : (
-            <PrimaryButton label={es.members.createInvite} disabled={busy} onPress={() => void invite()} />
+            <PrimaryButton label={t.members.createInvite} disabled={busy} onPress={() => void invite()} />
           )}
         </View>
       ) : null}
@@ -177,7 +187,7 @@ export default function MembersScreen() {
           {notice}
         </T>
       ) : null}
-      <GhostButton label={es.members.haveCode} onPress={() => router.push({ pathname: '/invitacion/[code]', params: { code: '-' } })} />
+      <GhostButton label={t.members.haveCode} onPress={() => router.push({ pathname: '/invitacion/[code]', params: { code: '-' } })} />
     </ScrollView>
   );
 }

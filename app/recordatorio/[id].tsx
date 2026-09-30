@@ -8,9 +8,11 @@ import { oilSummary } from '@/lib/domain/oil';
 import { CompleteReminderSheet } from '@/components/CompleteReminderSheet';
 import { ReminderForm } from '@/components/ReminderForm';
 import { MissingRecord } from '@/components/MissingRecord';
+import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, SectionHeader, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { evaluatedReminders, type EvaluatedReminder } from '@/lib/db/reminderQueries';
 import { reminders as reminderRepo, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Vehicle } from '@/lib/db/types';
@@ -18,7 +20,8 @@ import { addDays, todayIso } from '@/lib/domain/dates';
 import { PGR_MULTAS_URL } from '@/lib/domain/legal-dr';
 import { STATUS_LABEL } from '@/lib/domain/reminders';
 import { dateLabel, km as fmtKm } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -64,9 +67,11 @@ export default function RecordatorioScreen() {
     };
   }, [id, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. A refresh keeps the
+  // row on screen, so the skeleton only ever covers the first read.
+  const showSkeleton = useDelayedLoading(row === undefined);
   if (row === null) return <MissingRecord />;
-  if (!row || !vehicle) return null;
+  if (!row || !vehicle) return showSkeleton ? <RecordSkeleton meta={false} cards={[96]} buttons={3} /> : null;
   const { reminder, status } = row;
 
   const setEnabled = (isEnabled: boolean) =>
@@ -79,40 +84,40 @@ export default function RecordatorioScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {reminder.title}
+          {catalogLabel('reminder', reminder, 'title')}
         </T>
 
         <Surface style={{ marginBottom: space.lg }}>
           <View style={styles.statusRow}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, flex: 1 }}>
-              {es.reminders.status}
+              {t.reminders.status}
             </T>
             {reminder.isEnabled ? (
               <StatusPill
                 status={status.status === 'sin_datos' ? 'neutral' : status.status}
-                label={status.snoozed ? es.reminders.snoozed : STATUS_LABEL[status.status]}
+                label={status.snoozed ? t.reminders.snoozed : STATUS_LABEL[status.status]}
               />
             ) : (
-              <StatusPill status="neutral" label={es.reminders.disabledLabel} />
+              <StatusPill status="neutral" label={t.reminders.disabledLabel} />
             )}
           </View>
           <T face="mono" style={{ color: theme.text.secondary, fontSize: 13, marginTop: space.sm, lineHeight: 20 }}>
             {[
-              reminder.dueDate ? es.reminders.dueOn(dateLabel(reminder.dueDate)) : null,
+              reminder.dueDate ? t.reminders.dueOn(dateLabel(reminder.dueDate)) : null,
               reminder.dueKm != null ? fmtKm(reminder.dueKm) : null,
-              status.predictedDueDate ? es.reminders.estimated(dateLabel(status.predictedDueDate)) : null,
+              status.predictedDueDate ? t.reminders.estimated(dateLabel(status.predictedDueDate)) : null,
             ]
               .filter(Boolean)
-              .join(' · ') || es.reminders.noData}
+              .join(' · ') || t.reminders.noData}
           </T>
           {lastOil ? (
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
-              {es.oil.lastTime(lastOil)}
+              {t.oil.lastTime(lastOil)}
             </T>
           ) : null}
           {reminder.notes ? (
             <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: space.sm, lineHeight: 19 }}>
-              {reminder.notes}
+              {catalogLabel('reminder', reminder, 'notes')}
             </T>
           ) : null}
         </Surface>
@@ -120,14 +125,14 @@ export default function RecordatorioScreen() {
         {reminder.legalKind === 'licencia' ? (
           <Surface style={{ marginBottom: space.lg }}>
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19 }}>
-              {es.reminders.multasNote}
+              {t.reminders.multasNote}
             </T>
             <Pressable
               onPress={() => void Linking.openURL(PGR_MULTAS_URL)}
               accessibilityRole="link"
               style={{ paddingTop: space.sm }}>
               <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
-                {es.reminders.multasLink}
+                {t.reminders.multasLink}
               </T>
             </Pressable>
           </Surface>
@@ -135,9 +140,9 @@ export default function RecordatorioScreen() {
 
         {reminder.isEnabled ? (
           <>
-            <PrimaryButton label={es.reminders.done} onPress={() => setCompleting(true)} />
+            <PrimaryButton label={t.reminders.done} onPress={() => setCompleting(true)} />
             <GhostButton
-              label={es.reminders.snooze}
+              label={t.reminders.snooze}
               onPress={() =>
                 void (async () => {
                   await reminderRepo.upsert({ id: reminder.id, snoozedUntil: addDays(todayIso(), 7) });
@@ -145,32 +150,32 @@ export default function RecordatorioScreen() {
                 })()
               }
             />
-            <GhostButton label={es.reminders.disable} onPress={() => setEnabled(false)} />
+            <GhostButton label={t.reminders.disable} onPress={() => setEnabled(false)} />
           </>
         ) : (
-          <PrimaryButton label={es.reminders.enable} onPress={() => setEnabled(true)} />
+          <PrimaryButton label={t.reminders.enable} onPress={() => setEnabled(true)} />
         )}
 
-        <SectionHeader title={es.reminders.editTitle} style={{ marginTop: space.xl }} />
+        <SectionHeader title={t.reminders.editTitle} style={{ marginTop: space.xl }} />
         <ReminderForm
           // Remounts on save so the fields show what was actually stored.
           key={reminder.updatedAt}
           vehicle={vehicle}
           reminder={reminder}
           onSaved={() => {
-            void refresh().then(() => Alert.alert(es.reminders.form.saved));
+            void refresh().then(() => Alert.alert(t.reminders.form.saved));
           }}
         />
 
         <View style={{ height: space.lg }} />
         <GhostButton
           danger
-          label={es.reminders.remove}
+          label={t.reminders.remove}
           onPress={() =>
-            Alert.alert(es.reminders.remove, es.reminders.removeConfirm, [
-              { text: es.common.cancel, style: 'cancel' },
+            Alert.alert(t.reminders.remove, t.reminders.removeConfirm, [
+              { text: t.common.cancel, style: 'cancel' },
               {
-                text: es.reminders.remove,
+                text: t.reminders.remove,
                 style: 'destructive',
                 onPress: () =>
                   void (async () => {

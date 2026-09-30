@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { MissingRecord } from '@/components/MissingRecord';
+import { VehicleHubSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import {
   Badge,
@@ -20,6 +21,7 @@ import {
   type Tone,
 } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { garageFacts, type GarageFacts } from '@/lib/db/garageQueries';
 import {
   currentOdometer as currentOdometerQuery,
@@ -42,7 +44,7 @@ import { vidaUtil, vidaUtilTone } from '@/lib/domain/legal-dr';
 import { parseDecimal } from '@/lib/domain/economy';
 import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_SHARE, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { dateLabel, isoFromDateInput, km as fmtKm, money, todayIsoDate } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { AlbumTab } from '@/components/album/AlbumTab';
 import { BuildSummary, BuildTab } from '@/components/build/BuildTab';
@@ -164,16 +166,23 @@ export default function VehicleHubScreen() {
         fillups: fuels.length,
         services: services.length,
       });
-    })().catch(() => {});
+    })().catch(() => {
+      // A read that failed before the first answer is a record we cannot show.
+      if (!cancelled) setVehicle((prev) => (prev === undefined ? null : prev));
+    });
 
     return () => {
       cancelled = true;
     };
   }, [id, version, data]);
 
-  // undefined: still loading · null: looked, and it is gone.
+  // undefined: still loading · null: looked, and it is gone. While loading,
+  // the hub's outline after 150 ms (ADR-40); MissingRecord only once the read
+  // answered empty. Reloads keep the loaded vehicle, so only the first load.
+  const showSkeleton = useDelayedLoading(vehicle === undefined);
+  if (showSkeleton) return <VehicleHubSkeleton />;
   if (vehicle === null) return <MissingRecord />;
-  if (!vehicle) return null;
+  if (!vehicle) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   const badges = facts ? vehicleBadges(vehicle, facts) : [];
   const kana = toKatakana(vehicle.nickname);
@@ -183,8 +192,8 @@ export default function VehicleHubScreen() {
   const readOnly = viewer || (isEx(vehicle.status) && !unlocked);
   const ownedLine = ownershipLine(facts?.ownership ?? null);
   // An Ex carries its photo count: "2018 → vendido 2021 · 12 fotos".
-  const owned = ownedLine && isEx(vehicle.status) && FEATURE_ALBUM ? `${ownedLine} · ${es.album.photos(facts?.photos ?? 0)}` : ownedLine;
-  const subtitle = [es.vehicleTypes[vehicle.type], vehicle.year, vehicle.make, vehicle.model]
+  const owned = ownedLine && isEx(vehicle.status) && FEATURE_ALBUM ? `${ownedLine} · ${t.album.photos(facts?.photos ?? 0)}` : ownedLine;
+  const subtitle = [t.vehicleTypes[vehicle.type], vehicle.year, vehicle.make, vehicle.model]
     .filter(Boolean)
     .join(' · ');
 
@@ -206,7 +215,7 @@ export default function VehicleHubScreen() {
                   router.push({ pathname: '/foto/[id]', params: { id: coverId, vehicleId: vehicle.id, ...(galleryCount > 1 ? { gallery: '1' } : {}) } })
                 }
                 accessibilityRole="imagebutton"
-                accessibilityLabel={galleryCount > 1 ? es.vehicleForm.photoN(1, galleryCount, true) : es.vehicleForm.cover}>
+                accessibilityLabel={galleryCount > 1 ? t.vehicleForm.photoN(1, galleryCount, true) : t.vehicleForm.cover}>
                 <Image source={{ uri: coverUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
                 {galleryCount > 1 ? (
                   <View style={[styles.countPill, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
@@ -217,7 +226,7 @@ export default function VehicleHubScreen() {
             ) : (
               <View style={styles.coverEmpty}>
                 <T face="body" style={{ color: theme.text.muted }}>
-                  {es.profile.noPhoto}
+                  {t.profile.noPhoto}
                 </T>
               </View>
             )}
@@ -248,7 +257,7 @@ export default function VehicleHubScreen() {
           </T>
 
           <View style={styles.statusRow}>
-            <StatusPill status={STATUS_TONE[vehicle.status]} label={es.vehicleStatus[vehicle.status]} />
+            <StatusPill status={STATUS_TONE[vehicle.status]} label={t.vehicleStatus[vehicle.status]} />
             {/* v6: "desde 12 ago · esperando piezas" beside the pill. */}
             {vehicle.status !== 'activo' && (vehicle.statusSince || vehicle.statusNote) ? (
               <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, flexShrink: 1 }}>
@@ -269,11 +278,11 @@ export default function VehicleHubScreen() {
             }}
             disabled={isEx(vehicle.status)}
             accessibilityRole="button"
-            accessibilityLabel={`${es.profile.currentOdometer}: ${odometerKm == null ? '—' : fmtKm(Math.round(odometerKm))}. ${es.profile.addReading}`}
+            accessibilityLabel={`${t.profile.currentOdometer}: ${odometerKm == null ? '—' : fmtKm(Math.round(odometerKm))}. ${t.profile.addReading}`}
             style={[styles.odo, { backgroundColor: theme.bg.well, borderColor: theme.lineStrong }]}>
             <LcdDigits value={odometerKm} height={30} />
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 10, marginTop: 6 }}>
-              {es.cluster.caption}
+              {t.cluster.caption}
             </T>
           </Pressable>
         </View>
@@ -281,12 +290,12 @@ export default function VehicleHubScreen() {
         {/* 1 — the page tabs (sticky) */}
         <View style={{ backgroundColor: theme.bg.base, paddingVertical: space.sm }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist">
-            {TABS.filter((t) => t.flag).map((t) => {
-              const on = t.key === tab;
+            {TABS.filter((tb) => tb.flag).map((tb) => {
+              const on = tb.key === tab;
               return (
                 <Pressable
-                  key={t.key}
-                  onPress={() => setTab(t.key)}
+                  key={tb.key}
+                  onPress={() => setTab(tb.key)}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: on }}
                   aria-selected={on}
@@ -295,7 +304,7 @@ export default function VehicleHubScreen() {
                     { borderColor: on ? theme.accentFill : theme.lineStrong, backgroundColor: on ? theme.accentFill : theme.bg.surface },
                   ]}>
                   <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
-                    {es.hub.tabs[t.key]}
+                    {t.hub.tabs[tb.key]}
                   </T>
                 </Pressable>
               );
@@ -308,20 +317,20 @@ export default function VehicleHubScreen() {
           {viewer ? (
             <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.accent }]}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-                {es.members.viewerBanner(null)}
+                {t.members.viewerBanner(null)}
               </T>
             </View>
           ) : readOnly ? (
             <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-                {es.album.readOnly}
+                {t.album.readOnly}
               </T>
-              <GhostButton label={es.album.unlock} onPress={() => setUnlocked(true)} />
+              <GhostButton label={t.album.unlock} onPress={() => setUnlocked(true)} />
             </View>
           ) : shared ? (
             <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-                {es.members.sharedBanner(es.members.roles.editor)}
+                {t.members.sharedBanner(t.members.roles.editor)}
               </T>
             </View>
           ) : null}
@@ -354,37 +363,37 @@ export default function VehicleHubScreen() {
           ) : tab === 'docs' ? (
             <Docs docs={docs} onOpen={(docId) => router.push({ pathname: '/documento/[id]', params: { id: docId } })} onAll={() => router.push('/documentos')} />
           ) : (
-            <EmptyState icon="construct-outline" message={es.hub.soon(es.hub.tabs[tab])} />
+            <EmptyState icon="construct-outline" message={t.hub.soon(t.hub.tabs[tab])} />
           )}
 
           <View style={{ height: space.xl }} />
           {readOnly ? null : (
             <>
               <PrimaryButton
-                label={es.profile.edit}
+                label={t.profile.edit}
                 onPress={() => router.push({ pathname: '/vehiculo/[id]/editar', params: { id: vehicle.id } })}
               />
-              <GhostButton label={es.hub.changeStatus} onPress={() => setStatusOpen(true)} />
+              <GhostButton label={t.hub.changeStatus} onPress={() => setStatusOpen(true)} />
             </>
           )}
           {FEATURE_SHARE ? (
             <>
-              {shared ? null : <GhostButton label={es.hub.share} onPress={() => router.push({ pathname: '/vehiculo/[id]/compartir', params: { id: vehicle.id } })} />}
-              <GhostButton label={es.hub.book} onPress={() => router.push({ pathname: '/vehiculo/[id]/libro', params: { id: vehicle.id } })} />
-              <GhostButton label={es.members.hub} onPress={() => router.push({ pathname: '/garaje/miembros', params: { vehicleId: vehicle.id } })} />
+              {shared ? null : <GhostButton label={t.hub.share} onPress={() => router.push({ pathname: '/vehiculo/[id]/compartir', params: { id: vehicle.id } })} />}
+              <GhostButton label={t.hub.book} onPress={() => router.push({ pathname: '/vehiculo/[id]/libro', params: { id: vehicle.id } })} />
+              <GhostButton label={t.members.hub} onPress={() => router.push({ pathname: '/garaje/miembros', params: { vehicleId: vehicle.id } })} />
             </>
           ) : null}
           {activeVehicle?.id === vehicle.id || vehicle.isArchived ? null : (
-            <GhostButton label={es.profile.makeActive} onPress={() => setActiveVehicle(vehicle.id)} />
+            <GhostButton label={t.profile.makeActive} onPress={() => setActiveVehicle(vehicle.id)} />
           )}
           {readOnly || shared ? null : <GhostButton
             danger
-            label={es.profile.remove}
+            label={t.profile.remove}
             onPress={() =>
-              Alert.alert(es.profile.removeConfirmTitle, es.profile.removeConfirmBody(vehicle.name), [
-                { text: es.common.cancel, style: 'cancel' },
+              Alert.alert(t.profile.removeConfirmTitle, t.profile.removeConfirmBody(vehicle.name), [
+                { text: t.common.cancel, style: 'cancel' },
                 {
-                  text: es.profile.remove,
+                  text: t.profile.remove,
                   style: 'destructive',
                   onPress: () => {
                     // The store's delete cascades to everything the vehicle owns
@@ -482,7 +491,7 @@ function Resumen({
     <View>
       <Surface style={{ marginBottom: space.md }}>
         <T face="eyebrow" style={[styles.eyebrow, { color: theme.text.muted }]}>
-          {es.hub.story}
+          {t.hub.story}
         </T>
         {vehicle.story ? (
           <T face="body" style={{ color: theme.text.primary, fontSize: 15, lineHeight: 21 }}>
@@ -490,40 +499,40 @@ function Resumen({
           </T>
         ) : (
           <T face="body" style={{ color: theme.text.muted, fontSize: 14, lineHeight: 20 }}>
-            {es.hub.storyEmpty}
+            {t.hub.storyEmpty}
           </T>
         )}
-        {readOnly ? null : <GhostButton label={vehicle.story ? es.hub.editStory : es.hub.writeStory} onPress={onWriteStory} />}
+        {readOnly ? null : <GhostButton label={vehicle.story ? t.hub.editStory : t.hub.writeStory} onPress={onWriteStory} />}
       </Surface>
 
       <View style={styles.tiles}>
-        <Tile label={es.profile.totalSpend} value={money(totals.spend)} />
-        <Tile label={es.profile.kmLogged} value={distance != null ? fmtKm(Math.round(distance)) : '—'} />
-        <Tile label={es.profile.fillupCount} value={String(totals.fillups)} />
-        <Tile label={es.profile.serviceCount} value={String(totals.services)} />
+        <Tile label={t.profile.totalSpend} value={money(totals.spend)} />
+        <Tile label={t.profile.kmLogged} value={distance != null ? fmtKm(Math.round(distance)) : '—'} />
+        <Tile label={t.profile.fillupCount} value={String(totals.fillups)} />
+        <Tile label={t.profile.serviceCount} value={String(totals.services)} />
       </View>
 
       <Surface style={{ marginBottom: space.md }}>
         <T face="eyebrow" style={[styles.eyebrow, { color: theme.text.muted }]}>
-          {es.legal.vidaUtilTitle}
+          {t.legal.vidaUtilTitle}
         </T>
-        <StatusPill status={vidaUtilTone(lifespan)} label={es.legal.vidaUtil(lifespan.limitYears, lifespan.remainingYears)} />
+        <StatusPill status={vidaUtilTone(lifespan)} label={t.legal.vidaUtil(lifespan.limitYears, lifespan.remainingYears)} />
         {lifespan.age == null ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
-            {es.legal.vidaUtilNoYear}
+            {t.legal.vidaUtilNoYear}
           </T>
         ) : null}
         <T face="body" style={{ color: theme.text.secondary, fontSize: 12, marginTop: space.sm, lineHeight: 17 }}>
-          {es.legal.revisionTecnica}
+          {t.legal.revisionTecnica}
         </T>
       </Surface>
 
       <T face="eyebrow" style={[styles.section, { color: theme.text.muted }]}>
-        {es.profile.specs}
+        {t.profile.specs}
       </T>
       {specs.length === 0 ? (
         <T face="body" style={[styles.empty, { color: theme.text.muted }]}>
-          {es.profile.specsEmpty}
+          {t.profile.specsEmpty}
         </T>
       ) : (
         specs.map((spec) => (
@@ -537,7 +546,7 @@ function Resumen({
             {readOnly ? null : <Pressable
               onPress={() => void specRepo.softDelete(spec.id).then(onSpecsChanged)}
               accessibilityRole="button"
-              accessibilityLabel={es.common.removeItem(spec.name)}
+              accessibilityLabel={t.common.removeItem(spec.name)}
               style={styles.specRemove}>
               <T face="body" style={{ color: theme.text.muted }}>
                 ×
@@ -550,7 +559,7 @@ function Resumen({
       {readOnly ? null : (
         <>
       <View style={styles.suggestions}>
-        {es.specSuggestions.filter((s) => !specs.some((x) => x.name === s)).map((s) => (
+        {t.specSuggestions.filter((s) => !specs.some((x) => x.name === s)).map((s) => (
           <Pressable
             key={s}
             onPress={() => setSpecName(s)}
@@ -565,13 +574,13 @@ function Resumen({
 
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field label={es.profile.specName} value={specName} onChangeText={setSpecName} />
+          <Field label={t.profile.specName} value={specName} onChangeText={setSpecName} />
         </View>
         <View style={styles.half}>
-          <Field label={es.profile.specValue} value={specValue} onChangeText={setSpecValue} />
+          <Field label={t.profile.specValue} value={specValue} onChangeText={setSpecValue} />
         </View>
       </View>
-      <GhostButton label={es.profile.addSpec} onPress={() => void addSpec()} />
+      <GhostButton label={t.profile.addSpec} onPress={() => void addSpec()} />
         </>
       )}
     </View>
@@ -582,7 +591,7 @@ function Docs({ docs, onOpen, onAll }: { docs: VehicleDocument[]; onOpen: (id: s
   const { theme } = useTheme();
   const today = todayIso();
   if (!docs.length) {
-    return <EmptyState icon="document-text-outline" message={es.hub.docsEmpty} actionLabel={es.hub.docsAll} onAction={onAll} />;
+    return <EmptyState icon="document-text-outline" message={t.hub.docsEmpty} actionLabel={t.hub.docsAll} onAction={onAll} />;
   }
   return (
     <View style={{ gap: space.sm }}>
@@ -596,19 +605,19 @@ function Docs({ docs, onOpen, onAll }: { docs: VehicleDocument[]; onOpen: (id: s
             style={[styles.docRow, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
             <View style={{ flex: 1 }}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-                {d.title || es.documents.kinds[d.kind]}
+                {d.title || t.documents.kinds[d.kind]}
               </T>
               <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                {d.expiresAt ? es.hub.docExpires(dateLabel(d.expiresAt)) : es.documents.kinds[d.kind]}
+                {d.expiresAt ? t.hub.docExpires(dateLabel(d.expiresAt)) : t.documents.kinds[d.kind]}
               </T>
             </View>
             {days != null ? (
-              <StatusPill status={days < 0 ? 'vencido' : days <= 45 ? 'proximo' : 'ok'} label={days < 0 ? es.hub.expired : `${days} d`} />
+              <StatusPill status={days < 0 ? 'vencido' : days <= 45 ? 'proximo' : 'ok'} label={days < 0 ? t.hub.expired : `${days} d`} />
             ) : null}
           </Pressable>
         );
       })}
-      <GhostButton label={es.hub.docsAll} onPress={onAll} />
+      <GhostButton label={t.hub.docsAll} onPress={onAll} />
     </View>
   );
 }
@@ -630,7 +639,7 @@ function StatusSheet({
 }) {
   const { theme } = useTheme();
   return (
-    <Sheet visible={visible} onClose={onClose} title={es.hub.changeStatus}>
+    <Sheet visible={visible} onClose={onClose} title={t.hub.changeStatus}>
       <ScrollView style={{ maxHeight: 460 }}>
         {PICKABLE.filter((s) => s !== current).map((s) => (
           <Pressable
@@ -639,10 +648,10 @@ function StatusSheet({
             accessibilityRole="button"
             style={[styles.option, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 16 }}>
-              {es.vehicleStatus[s]}
+              {t.vehicleStatus[s]}
             </T>
             <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: 2 }}>
-              {es.hub.statusHint[s as keyof typeof es.hub.statusHint]}
+              {t.hub.statusHint[s as keyof typeof t.hub.statusHint]}
             </T>
           </Pressable>
         ))}
@@ -672,30 +681,30 @@ function SaleSheet({
 
   function save() {
     const parsedKm = km.trim() ? parseDecimal(km) : null;
-    if (km.trim() && parsedKm == null) return setError(es.common.invalidNumber(es.hub.saleKm));
-    if (parsedKm != null && odometerKm != null && parsedKm < odometerKm) return setError(es.hub.saleKmBelow(fmtKm(Math.round(odometerKm))));
+    if (km.trim() && parsedKm == null) return setError(t.common.invalidNumber(t.hub.saleKm));
+    if (parsedKm != null && odometerKm != null && parsedKm < odometerKm) return setError(t.hub.saleKmBelow(fmtKm(Math.round(odometerKm))));
     const parsedPrice = price.trim() ? parseDecimal(price) : null;
-    if (price.trim() && parsedPrice == null) return setError(es.common.invalidNumber(es.hub.salePrice));
+    if (price.trim() && parsedPrice == null) return setError(t.common.invalidNumber(t.hub.salePrice));
     setError(null);
     onSave({ soldAt: isoFromDateInput(date), soldKm: parsedKm, soldPrice: parsedPrice, soldTo: to.trim() || null, reason: reason.trim() || null });
   }
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={es.hub.saleTitle}>
+    <Sheet visible={visible} onClose={onClose} title={t.hub.saleTitle}>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.md, lineHeight: 19 }}>
-        {es.hub.saleBody}
+        {t.hub.saleBody}
       </T>
-      <DateField label={es.hub.saleDate} value={date} onChange={setDate} noFuture />
-      <Field label={es.hub.saleKm} keyboardType="number-pad" placeholder={odometerKm != null ? String(Math.round(odometerKm)) : ''} value={km} onChangeText={setKm} />
-      <Field label={es.hub.salePrice} keyboardType="decimal-pad" value={price} onChangeText={setPrice} />
-      <Field label={es.hub.saleTo} value={to} onChangeText={setTo} />
-      <Field label={es.hub.saleReason} value={reason} onChangeText={setReason} />
+      <DateField label={t.hub.saleDate} value={date} onChange={setDate} noFuture />
+      <Field label={t.hub.saleKm} keyboardType="number-pad" placeholder={odometerKm != null ? String(Math.round(odometerKm)) : ''} value={km} onChangeText={setKm} />
+      <Field label={t.hub.salePrice} keyboardType="decimal-pad" value={price} onChangeText={setPrice} />
+      <Field label={t.hub.saleTo} value={to} onChangeText={setTo} />
+      <Field label={t.hub.saleReason} value={reason} onChangeText={setReason} />
       {error ? (
         <T face="body" accessibilityRole="alert" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>
           {error}
         </T>
       ) : null}
-      <PrimaryButton label={es.hub.saleSave} onPress={save} />
+      <PrimaryButton label={t.hub.saleSave} onPress={save} />
     </Sheet>
   );
 }
@@ -719,12 +728,12 @@ function StorySheet({
   const { theme } = useTheme();
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={es.hub.storyTitle}>
+    <Sheet visible={visible} onClose={onClose} title={t.hub.storyTitle}>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.md, lineHeight: 19 }}>
-        {sold ? es.hub.storyPromptSold : es.hub.storyPrompt}
+        {sold ? t.hub.storyPromptSold : t.hub.storyPrompt}
       </T>
-      <Field label={es.vehicle.story} placeholder={es.vehicle.storyPlaceholder} value={story} onChangeText={setStory} multiline />
-      <PrimaryButton label={es.hub.storySave} onPress={() => onSave(story.trim())} />
+      <Field label={t.vehicle.story} placeholder={t.vehicle.storyPlaceholder} value={story} onChangeText={setStory} multiline />
+      <PrimaryButton label={t.hub.storySave} onPress={() => onSave(story.trim())} />
     </Sheet>
   );
 }

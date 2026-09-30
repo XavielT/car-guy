@@ -19,7 +19,7 @@ import {
   syncableSettings,
   toCloudShape,
 } from '../db/syncOps';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
 import { removeDeletedMediaBytes, uploadMediaBytes } from './mediaBytes';
 import { fromCloudUnits, toCloudUnits } from './unitBridge';
 import { membershipChanges, UPDATED_BY_TABLES } from './members';
@@ -167,11 +167,11 @@ export async function sync(reason: SyncReason = 'manual'): Promise<SyncResult> {
 
 async function run(reason: SyncReason, retriedAuth = false): Promise<SyncResult> {
   const supabase = getSupabase();
-  if (!supabase) return { ok: false, pushed: 0, pulled: 0, message: es.account.notConfigured };
+  if (!supabase) return { ok: false, pushed: 0, pulled: 0, message: t.account.notConfigured };
 
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user.id;
-  if (!userId) return { ok: false, pushed: 0, pulled: 0, message: es.sync.signedOut };
+  if (!userId) return { ok: false, pushed: 0, pulled: 0, message: t.sync.signedOut };
 
   emit({ state: 'running', reason });
   await rereadAfterUpgrade();
@@ -536,12 +536,12 @@ function describe(error: unknown): string {
   if (schema) return schema;
 
   const code = (error as { code?: string })?.code;
-  if (code === '42501') return es.sync.errors.forbidden;
-  if (code === 'PGRST301' || code === '401') return es.sync.errors.expired;
+  if (code === '42501') return t.sync.errors.forbidden;
+  if (code === 'PGRST301' || code === '401') return t.sync.errors.expired;
 
   const message = String((error as { message?: string })?.message ?? error).toLowerCase();
-  if (message.includes('network') || message.includes('fetch')) return es.sync.errors.network;
-  if (message.includes('jwt') || message.includes('expired')) return es.sync.errors.expired;
+  if (message.includes('network') || message.includes('fetch')) return t.sync.errors.network;
+  if (message.includes('jwt') || message.includes('expired')) return t.sync.errors.expired;
 
-  return es.sync.errors.generic;
+  return t.sync.errors.generic;
 }

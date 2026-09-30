@@ -17,7 +17,7 @@ import {
   setSettings,
   type NotificationSettings,
 } from '@/lib/notifications';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -64,7 +64,7 @@ export default function NotificacionesScreen() {
       await configure();
       const granted = await requestPermission();
       setPermitted(granted);
-      if (!granted) return Alert.alert(es.notifications.title, es.notifications.denied);
+      if (!granted) return Alert.alert(t.notifications.title, t.notifications.denied);
     }
     await apply({ ...config, enabled: !config.enabled });
   }
@@ -88,16 +88,16 @@ export default function NotificacionesScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {es.notifications.title}
+          {t.notifications.title}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.notifications.subtitle}
+          {t.notifications.subtitle}
         </T>
 
         {Platform.OS === 'web' ? (
           <Surface>
             <T face="body" style={{ color: theme.text.secondary, lineHeight: 20 }}>
-              {es.notifications.webUnsupported}
+              {t.notifications.webUnsupported}
             </T>
           </Surface>
         ) : (
@@ -105,12 +105,12 @@ export default function NotificacionesScreen() {
             <Surface>
               <View style={styles.switchRow}>
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-                  {es.notifications.enable}
+                  {t.notifications.enable}
                 </T>
                 <Switch
                   value={config.enabled}
                   onValueChange={() => void toggle()}
-                  accessibilityLabel={es.notifications.enable}
+                  accessibilityLabel={t.notifications.enable}
                   trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
                 />
               </View>
@@ -119,19 +119,19 @@ export default function NotificacionesScreen() {
             {config.enabled && permitted === false ? (
               <Surface style={{ marginTop: space.md, borderColor: theme.status.urgente }}>
                 <T face="semibold" style={{ color: theme.statusText.urgente, fontSize: 14 }}>
-                  {es.notifications.blockedTitle}
+                  {t.notifications.blockedTitle}
                 </T>
                 <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4, lineHeight: 19 }}>
-                  {es.notifications.blockedBody}
+                  {t.notifications.blockedBody}
                 </T>
-                <GhostButton label={es.notifications.blockedAction} onPress={() => void fixPermission()} />
+                <GhostButton label={t.notifications.blockedAction} onPress={() => void fixPermission()} />
               </Surface>
             ) : null}
 
             {config.enabled ? (
               <>
                 <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-                  {es.notifications.hour}
+                  {t.notifications.hour}
                 </T>
                 <View style={styles.row}>
                   {HOURS.map((h) => {
@@ -155,10 +155,10 @@ export default function NotificacionesScreen() {
                 </View>
 
                 <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-                  {es.notifications.weekday}
+                  {t.notifications.weekday}
                 </T>
                 <View style={styles.row}>
-                  {es.notifications.weekdays.map((name, index) => {
+                  {t.notifications.weekdays.map((name, index) => {
                     const weekday = index + 1;
                     const on = config.weeklyWeekday === weekday;
                     return (
@@ -180,14 +180,14 @@ export default function NotificacionesScreen() {
                 </View>
 
                 <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.lg }}>
-                  {es.notifications.scheduled(count)}
+                  {t.notifications.scheduled(count)}
                 </T>
 
                 <GhostButton
-                  label={es.notifications.test}
+                  label={t.notifications.test}
                   onPress={() => {
                     void sendTest();
-                    Alert.alert(es.notifications.title, es.notifications.testSent);
+                    Alert.alert(t.notifications.title, t.notifications.testSent);
                   }}
                 />
               </>

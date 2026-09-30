@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CheckPhotoStrip } from '@/components/checks/CheckPhotoStrip';
 import { Field } from '@/components/Field';
+import { CheckRunSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
 import { BoostRing, PrimaryButton, Segmented, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
   currentOdometer as currentOdometerQuery,
   inspectionItems as itemRepo,
@@ -22,7 +24,8 @@ import { FEATURE_DIY } from '@/lib/flags';
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { id as newId } from '@/lib/format';
 import { todayIso } from '@/lib/domain/dates';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel, catalogText } from '@/lib/i18n/catalog';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -61,6 +64,8 @@ export default function RunScreen() {
   // Lazy initialiser, not a bare Date.now() in the render body: the clock is
   // impure and the lint rightly refuses to have it read on every render.
   const [startedAt] = useState(() => Date.now());
+  // True until the template and its items are read, found or not (ADR-40).
+  const [loading, setLoading] = useState(true);
 
   // The timer is a gentle one: it shows the check really is two minutes, and
   // feeds duration_sec. It never hurries anyone.
@@ -97,12 +102,25 @@ export default function RunScreen() {
       setTemplate(tpl);
       setItems(rows);
       if (km != null) setOdometer(String(Math.round(km)));
-    })().catch(() => {});
+    })()
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [templateId, vehicleId]);
 
+  const showSkeleton = useDelayedLoading(loading && !!templateId && !!vehicleId);
+
+  if (showSkeleton) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
+        <CheckRunSkeleton />
+      </SafeAreaView>
+    );
+  }
   if (!template || !activeVehicle) return null;
 
   const answered = items.filter((i) => answers[i.id]).length;
@@ -117,7 +135,7 @@ export default function RunScreen() {
   function finish() {
     const failures = items.filter((i) => answers[i.id] === 'falla');
     const missingNote = failures.find((i) => !(notes[i.id] ?? '').trim());
-    if (missingNote) return setError(es.check.failNoteRequired);
+    if (missingNote) return setError(t.check.failNoteRequired);
     setError(null);
 
     const payload: Answer[] = items.map((item) => ({
@@ -156,13 +174,13 @@ export default function RunScreen() {
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-              {es.check.cadences[template.cadence]}
+              {t.check.cadences[template.cadence]}
             </T>
             <T face="display" style={[styles.title, { color: theme.text.primary }]}>
-              {template.name}
+              {catalogLabel('inspectionTemplate', template)}
             </T>
             <T face="mono" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4 }}>
-              {answered}/{items.length} · {es.check.elapsed(Math.floor(elapsed / 60), elapsed % 60)}
+              {answered}/{items.length} · {t.check.elapsed(Math.floor(elapsed / 60), elapsed % 60)}
             </T>
           </View>
           {/* The boost gauge fills as the list does: amber only, completion is not danger. */}
@@ -170,14 +188,14 @@ export default function RunScreen() {
             progress={items.length ? answered / items.length : 0}
             size={104}
             value={`${items.length ? Math.round((answered / items.length) * 100) : 0}%`}
-            label={es.check.title}
+            label={t.check.title}
           />
         </View>
 
         {needsCold ? (
           <View style={[styles.cold, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
             <T face="semibold" style={{ color: theme.statusText.proximo, fontSize: 14, lineHeight: 19 }}>
-              {es.check.coldEngine}
+              {t.check.coldEngine}
             </T>
           </View>
         ) : null}
@@ -185,7 +203,7 @@ export default function RunScreen() {
         {Object.entries(groups).map(([group, groupItems]) => (
           <View key={group}>
             <T face="eyebrow" accessibilityRole="header" style={[styles.group, { color: theme.text.muted }]}>
-              {group}
+              {catalogLabel('checkItem', groupItems[0], 'groupName') || group}
             </T>
             {groupItems.map((item) => {
               const verdict = answers[item.id];
@@ -193,11 +211,11 @@ export default function RunScreen() {
                 <Surface key={item.id} style={{ marginBottom: space.sm }}>
                   <View style={styles.itemHeader}>
                     <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-                      {item.label}
+                      {catalogLabel('checkItem', item, 'label')}
                     </T>
                     {item.requiresColdEngine ? (
                       <T face="eyebrow" style={{ color: theme.statusText.proximo, fontSize: 10 }}>
-                        {es.check.coldBadge}
+                        {t.check.coldBadge}
                       </T>
                     ) : null}
                   </View>
@@ -209,19 +227,19 @@ export default function RunScreen() {
                       accessibilityState={{ expanded: Boolean(expanded[item.id]) }}
                       aria-expanded={Boolean(expanded[item.id])}>
                       <T face="semibold" style={{ color: theme.accent, fontSize: 13, marginTop: 4 }}>
-                        {es.check.how}
+                        {t.check.how}
                       </T>
                     </Pressable>
                   ) : null}
                   {expanded[item.id] ? (
                     <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 6, lineHeight: 19 }}>
-                      {item.how}
-                      {item.warning ? `\n\n${item.warning}` : ''}
+                      {catalogLabel('checkItem', item, 'how')}
+                      {item.warning ? `\n\n${catalogLabel('checkItem', item, 'warning')}` : ''}
                     </T>
                   ) : null}
                   {FEATURE_DIY && isTirePressureItem(item.label) && (psi.f != null || psi.r != null) ? (
                     <T face="mono" style={{ color: theme.accent, fontSize: 12, marginTop: 6 }}>
-                      {es.fluids.oem(psi.f != null ? String(psi.f) : '—', psi.r != null ? String(psi.r) : '—')}
+                      {t.fluids.oem(psi.f != null ? String(psi.f) : '—', psi.r != null ? String(psi.r) : '—')}
                     </T>
                   ) : null}
                   {(() => {
@@ -231,7 +249,7 @@ export default function RunScreen() {
                     return (
                       <View style={[styles.fluid, { borderColor: theme.accentFill, backgroundColor: theme.bg.raised }]}>
                         <T face="eyebrow" style={{ color: theme.accent, fontSize: 10 }}>
-                          {es.fluids.inCheck(fluidInfo(card.kind)?.label ?? item.label, activeVehicle?.name ?? '')}
+                          {t.fluids.inCheck(catalogText('fluid', card.kind, 'label', fluidInfo(card.kind)?.label ?? item.label), activeVehicle?.name ?? '')}
                         </T>
                         {card.mediaId ? <PhotoThumb mediaId={card.mediaId} height={150} /> : null}
                         {card.notes ? (
@@ -283,12 +301,12 @@ export default function RunScreen() {
                             adjustsFontSizeToFit
                             style={[styles.verdictLabel, { color: on ? color : theme.text.secondary }]}>
                             {v === 'ok'
-                              ? es.check.ok
+                              ? t.check.ok
                               : v === 'falla'
-                                ? es.check.fail
+                                ? t.check.fail
                                 : v === 'atencion'
-                                  ? es.check.attention
-                                  : es.check.na}
+                                  ? t.check.attention
+                                  : t.check.na}
                           </T>
                         </Pressable>
                       );
@@ -298,7 +316,7 @@ export default function RunScreen() {
                   {needsDetail(verdict) ? (
                     <View style={{ marginTop: space.md }}>
                       <Field
-                        label={verdict === 'atencion' ? es.check.attentionNote : es.check.failNote}
+                        label={verdict === 'atencion' ? t.check.attentionNote : t.check.failNote}
                         value={notes[item.id] ?? ''}
                         onChangeText={(v) => setNotes((p) => ({ ...p, [item.id]: v }))}
                       />
@@ -306,17 +324,17 @@ export default function RunScreen() {
                         mediaIds={photos[item.id] ?? []}
                         ownerId={resultIdFor(inspectionId, item.id)}
                         vehicleId={activeVehicle.id}
-                        label={item.label}
+                        label={catalogLabel('checkItem', item, 'label')}
                         onChange={(ids) => setPhotos((p) => ({ ...p, [item.id]: ids }))}
                       />
                       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: 6 }}>
-                        {es.check.onFailTitle}
+                        {t.check.onFailTitle}
                       </T>
                       <Segmented
                         options={[
-                          { key: 'task', label: es.check.onFailShort.task },
-                          { key: 'reminder', label: es.check.onFailShort.reminder },
-                          { key: 'none', label: es.check.onFailShort.none },
+                          { key: 'task', label: t.check.onFailShort.task },
+                          { key: 'reminder', label: t.check.onFailShort.reminder },
+                          { key: 'none', label: t.check.onFailShort.none },
                         ]}
                         value={actions[item.id] ?? defaultActionFor(verdict, item.onFail)}
                         onChange={(v) => setActions((p) => ({ ...p, [item.id]: v }))}
@@ -330,7 +348,7 @@ export default function RunScreen() {
         ))}
 
         <Field
-          label={es.check.odometerPrompt}
+          label={t.check.odometerPrompt}
           keyboardType="number-pad"
           value={odometer}
           onChangeText={setOdometer}
@@ -343,7 +361,7 @@ export default function RunScreen() {
         ) : null}
 
         <PrimaryButton
-          label={remaining > 0 ? `${es.check.finish} · ${es.check.remaining(remaining)}` : es.check.finish}
+          label={remaining > 0 ? `${t.check.finish} · ${t.check.remaining(remaining)}` : t.check.finish}
           disabled={remaining > 0 || saving}
           onPress={finish}
         />

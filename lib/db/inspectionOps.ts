@@ -20,7 +20,8 @@ import {
   taskPriorityFor,
   type Verdict,
 } from '../domain/inspections';
-import { es } from '../i18n/es';
+import { t } from '../i18n';
+import { catalogLabel } from '../i18n/catalog';
 
 export { baseTemplateId, scopedTemplateId };
 import { id as newId } from '../format';
@@ -150,7 +151,7 @@ export async function saveInspection(draft: InspectionDraft): Promise<Inspection
     // the user may still ask for a task or a reminder.
     for (const failure of [...failures, ...warnings]) {
       if (failure.action === 'none') continue;
-      const title = `Revisar ${failure.item.label.toLowerCase()}`;
+      const title = t.check.reviewTask(catalogLabel('checkItem', failure.item, 'label').toLowerCase());
       if (failure.action === 'reminder') {
         await reminderRepo.upsert(
           {
@@ -218,7 +219,7 @@ async function reconcileResultPhotos(db: Handle, resultId: string, keep: string[
   const now = new Date().toISOString();
   for (const row of owned) {
     if (!kept.has(row.id)) await mediaRepo.upsert({ id: row.id, deletedAt: now }, db);
-    else if (!row.caption) await mediaRepo.upsert({ id: row.id, caption: es.album.checkCaption(label) }, db);
+    else if (!row.caption) await mediaRepo.upsert({ id: row.id, caption: t.album.checkCaption(label) }, db);
   }
 }
 

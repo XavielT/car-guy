@@ -148,6 +148,8 @@ export const es = {
   trips: {
     title: 'Viajes',
     lcd: { km: 'KM DEL VIAJE', time: 'MINUTOS', avg: 'MEDIA KM/H', max: 'MÁXIMA KM/H' },
+    /** The share sheet's title for a trip's GeoJSON. */
+    geojsonDialog: 'Puntos GPS del viaje',
     lcdA11y: (what: string, value: string) => `${what}: ${value}. Toca para cambiar`,
     gps: { good: 'GPS con buena señal', weak: 'GPS con señal débil', none: 'Sin señal de GPS' },
     recording: 'Grabando viaje',
@@ -416,6 +418,15 @@ export const es = {
     expired: 'Vencido',
   },
   garage: {
+    /** Vehicle hub ownership line: "Desde jun 2019 · 3 años contigo", "2018 → vendido 2021". */
+    ownership: {
+      since: (when: string, tenure: string) => `Desde ${when} · ${tenure}`,
+      soldRange: (from: number, to: number) => `${from} → vendido ${to}`,
+      sold: (year: number) => `Vendido ${year}`,
+      years: (n: number) => `${n} ${n === 1 ? 'año' : 'años'} contigo`,
+      months: (n: number) => `${n} ${n === 1 ? 'mes' : 'meses'} contigo`,
+      justArrived: 'recién llegado',
+    },
     eyebrow: 'Mi garaje',
     title: 'Garaje',
     counts: (active: number, ex: number) =>
@@ -616,6 +627,7 @@ export const es = {
     save: 'Guardar lectura',
     hint: 'Anota lo que marca el tablero. Sirve para estimar cuándo toca cada mantenimiento.',
     lastReading: (km: string) => `Última lectura: ${km}`,
+    lowerWarning: (km: number) => `El odómetro más alto registrado es ${km.toLocaleString('es-DO')} km. Puedes guardarlo igual.`,
   },
 
   specSuggestions: [
@@ -633,6 +645,8 @@ export const es = {
     title: 'Aceite',
     titleFor: (item: string) => `Aceite · ${item}`,
     viscosity: 'Viscosidad',
+    /** The oil reminder's note when the vehicle form says synthetic. */
+    syntheticNote: 'Aceite sintético: 10,000 km o 12 meses.',
     viscosityOther: 'Otra',
     viscosityOtherLabel: 'Viscosidad (escríbela)',
     type: 'Tipo',
@@ -809,6 +823,7 @@ export const es = {
   },
 
   reminders: {
+    resetDone: (title: string) => `${title} → listo`,
     statusLabels: {
       ok: 'Al día',
       proximo: 'Próximo',
@@ -903,6 +918,24 @@ export const es = {
     vidaUtilNoYear: 'Pon el año del vehículo para calcularla.',
     revisionTecnica:
       'Revisión técnica: la ley la exige, pero INTRANT todavía no la ha puesto en marcha. Te avisamos cuando empiece.',
+    /** The marbete season's nudges (lib/domain/legal-dr.ts), banner and notification alike. */
+    nudges: {
+      soon: 'El marbete abre pronto. Ve preparando los papeles.',
+      opened: 'Ya abrió la venta del marbete. Mientras más temprano, menos fila.',
+      january: 'Enero empezó: el marbete vence el 31.',
+      threeWeeks: 'Quedan menos de tres semanas para el marbete.',
+      onlineToday: 'La venta en línea del marbete cierra hoy. Después, solo en el banco.',
+      onlineClosed: 'La venta en línea del marbete cerró el 18. Ahora solo en el banco.',
+      oneWeek: 'Una semana para el marbete. Después son RD$2,000 de recargo.',
+      today: 'Hoy vence el marbete. Sin prórroga.',
+    },
+    notes: {
+      marbete: 'La venta abre a finales de octubre y cierra el 31 de enero. Sin prórroga.',
+      seguro: 'Pon la fecha de vencimiento de tu póliza para que te avise a tiempo.',
+      licencia: 'Revisa multas pendientes antes de renovar: bloquean la renovación.',
+      revision_tecnica: 'Pendiente de implementación por INTRANT.',
+    } as Record<string, string>,
+    tierEstimate: (amount: string) => `Estimado: RD$${amount}`,
   },
 
   catalog: {
@@ -929,6 +962,8 @@ export const es = {
   },
 
   check: {
+    /** Title of the task or reminder a failed item creates (stored, in the language of the moment). */
+    reviewTask: (label: string) => `Revisar ${label}`,
     title: 'Chequeo',
     todayTitle: 'Para hoy',
     start: 'Empezar',
@@ -1029,6 +1064,10 @@ export const es = {
     blockedTitle: 'El teléfono no los está dejando pasar',
     blockedBody: 'Los avisos están activados aquí, pero Android no le ha dado permiso a Car Guy. Pasa a menudo después de reinstalar o restaurar un respaldo.',
     blockedAction: 'Dar permiso',
+    testBody: 'Así te voy a avisar cuando toque un chequeo o un mantenimiento.',
+    dueToday: 'Te toca esto hoy.',
+    approaching: 'Se acerca: ve cuadrándolo.',
+    checkBody: 'Dos minutos y queda hecho.',
   },
 
   placeholder: {
@@ -1279,6 +1318,16 @@ export const es = {
     notBackup: 'El archivo no parece un respaldo de Car Guy ni de Tu Combustible RD.',
     unknownVersion: (version: string) =>
       `Este respaldo es de otra versión de Car Guy (formato ${version}). Actualiza la app e inténtalo de nuevo.`,
+    /** Tu Combustible RD's backup (lib/import/tucombustible.ts). */
+    legacyEmpty: 'El archivo está vacío o no es un JSON válido.',
+    legacyNotBackup: 'El archivo no parece un respaldo de Tu Combustible RD: no trae vehículos ni cargas.',
+    legacyCounts: {
+      vehicles: (n: number) => (n === 1 ? '1 vehículo' : `${n} vehículos`),
+      fuelLogs: (n: number) => (n === 1 ? '1 carga' : `${n} cargas`),
+      serviceRecords: (n: number) => (n === 1 ? '1 mantenimiento' : `${n} mantenimientos`),
+      expenses: (n: number) => (n === 1 ? '1 gasto' : `${n} gastos`),
+      reminders: (n: number) => (n === 1 ? '1 recordatorio' : `${n} recordatorios`),
+    },
   },
 
   onboarding: {
@@ -1721,6 +1770,7 @@ export const es = {
     missingAction: 'Ir al inicio',
     invalidNumber: (field: string) => `Revisa «${field}»: tiene que ser un número mayor o igual a cero.`,
     minutes: (n: number) => `${n} min`,
+    loading: 'Cargando…',
   },
 
   /** IMP 28092026 Phase 2 — the JDM identity pass on the legacy screens. */
@@ -1752,6 +1802,8 @@ export const es = {
     vinOk: (filled: string) => (filled ? `Del VIN: ${filled}. Solo se llenó lo que estaba vacío.` : 'El VIN se leyó, pero ya tenías todo eso.'),
     vinFail: 'No se pudo decodificar este VIN (pasa mucho con carros europeos o japoneses). Completa a mano.',
     vinOffline: 'Sin conexión o el servicio no respondió. Prueba más tarde o completa a mano.',
+    /** What the VIN filled, for vinOk's list. */
+    vinFields: { make: 'marca', model: 'modelo', year: 'año', transmission: 'caja', drivetrain: 'tracción', displacement: 'cilindrada' },
     torques: 'TORQUES',
     torqueAdd: '+ Torque',
     torqueItem: 'Qué pieza',
@@ -1978,6 +2030,37 @@ export const es = {
     failed: 'No se pudo generar el PDF.',
     unavailable: 'Este teléfono no puede compartir el archivo.',
     dialog: 'Libro del carro',
+    /** The PDF itself (lib/book/render.ts). */
+    pdf: {
+      docTitle: (name: string) => `${name} — Libro del carro`,
+      cover: 'LIBRO DEL CARRO',
+      runningHead: (name: string) => `${name} · LIBRO DEL CARRO`,
+      months: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'],
+      ficha: 'Ficha',
+      story: 'Historia',
+      stockVsNow: 'Stock → Actual',
+      stock: 'Stock',
+      now: 'Actual',
+      mods: (count: number, total: string | null) => `Mods · ${count}${total ? ` · ${total}` : ''}`,
+      maintenance: 'Mantenimiento',
+      records: (n: number) => (n === 1 ? '1 registro' : `${n} registros`),
+      last: (title: string, date: string) => `último: ${title} (${date})`,
+      total: (amount: string) => `total ${amount}`,
+      date: 'Fecha',
+      work: 'Trabajo',
+      cost: 'Costo',
+      costs: 'Lo que ha costado',
+      totalRow: 'Total',
+      documents: 'Documentos',
+      document: 'Documento',
+      issued: 'Emitido',
+      expires: 'Vence',
+      track: 'Pista',
+      events: (n: number) => (n === 1 ? '1 evento' : `${n} eventos`),
+      noDate: 'Sin fecha',
+      photos: (year: string) => `Fotos · ${year}`,
+      photosCont: (year: string) => `${year} (cont.)`,
+    },
   },
   /** IMP 28092026 Phase 6 — pista. */
   track: {
@@ -2056,6 +2139,8 @@ export const es = {
       burnHint: 'La saca del inventario (queda como quemada).',
       burnConfirm: (name: string) => `¿Quemaste ${name}? Sale de las gomas en uso.`,
       burned: 'QUEMADA',
+      usedChip: 'USADA',
+      usedChipOn: '✓ USADA',
       noTires: 'Este carro no tiene gomas en el inventario. Agrégalas en Build → Inventario.',
       pads: 'Medir pastillas',
       padsF: 'Delante (mm)',
@@ -2066,6 +2151,13 @@ export const es = {
       padOk: 'Pastillas bien para pista.',
       front: 'Delante',
       rear: 'Detrás',
+      /** The reminder lib/db/trackQueries.ts arms when the pads run low. */
+      padReminder: {
+        title: 'Pastillas (pista)',
+        front: (mm: number) => `delante ${mm} mm`,
+        rear: (mm: number) => `detrás ${mm} mm`,
+        notes: (lows: string, min: number) => `Medida en pista: ${lows}. Mínimo para pista ${min} mm.`,
+      },
     },
     session: {
       title: (discipline: string, n: number) => `${discipline} · SESIÓN ${n}`,
@@ -2300,6 +2392,7 @@ export const es = {
     tires: 'GOMAS',
     items: 'PIEZAS Y MÁS',
     wheelLine: (parts: string[]) => parts.filter(Boolean).join(' · '),
+    wheelTires: (sizes: string, n: number) => `gomas ${sizes} · ${n}`,
     setStatus: { montado: 'MONTADO', guardado: 'GUARDADO', vendido: 'VENDIDO' },
     mountOn: (name: string) => `Montar en ${name}`,
     dot: (w: number, y: number, age: string) => `sem ${w}/${y} · ${age} años`,
@@ -2357,6 +2450,7 @@ export const es = {
       editTitle: 'Goma',
       size: 'Medida (ej. 195/50R15 82V)',
       sizeParsed: (w: string, a: string, r: string) => `${w} mm · ${a} % · R${r}`,
+      aspectAssumed: '* sin perfil escrito: 82 % por convención.',
       brand: 'Marca',
       model: 'Modelo',
       dot: 'DOT (últimos 4: semana y año)',
@@ -2701,6 +2795,7 @@ export const es = {
       replyTo: (email: string) => `Responder a ${email}`,
       diagnostics: 'Diagnóstico',
       count: (n: number) => (n === 1 ? '1 comentario' : `${n} comentarios`),
+      replySubject: 'Car Guy — tu comentario',
     },
   },
 
@@ -2709,6 +2804,8 @@ export const es = {
    * appended in `__DEV__` or with "modo diagnóstico" on (lib/diagnosticsMode.ts).
    */
   versions: {
+    /** Shown only when the notes are not in the app's language (CHANGELOG.md is written in Spanish). */
+    notesLanguage: '',
     title: 'Novedades y versiones',
     more: 'Novedades y versiones',
     moreCaption: 'Qué versión tienes y qué trae cada una',
@@ -2738,5 +2835,142 @@ export const es = {
     diagnosticsOn: 'Diagnóstico activado',
     diagnosticsOff: 'Diagnóstico desactivado',
     tapsLeft: (n: number) => `${n} toques más para el modo diagnóstico`,
+  },
+
+  /** "Lo que uso" (lib/domain/carMemory.ts): section titles and the specsheet fields' labels. */
+  carMemory: {
+    sections: {
+      aceite: 'Aceite y filtros',
+      motor: 'Motor',
+      gomas: 'Gomas',
+      electrico: 'Eléctrico',
+      carroceria: 'Carrocería',
+      interior: 'Interior',
+      papeles: 'Papeles',
+      otros: 'Otros',
+    },
+    fields: {
+      oilBrand: 'Aceite (marca)',
+      oilProduct: 'Aceite (producto)',
+      oilGrade: 'Viscosidad',
+      oilSpec: 'Norma del aceite',
+      oilCapacityFilterL: 'Capacidad con filtro',
+      oilCapacityL: 'Capacidad sin filtro',
+      oilFilterBrand: 'Filtro de aceite (marca)',
+      oilFilterPn: 'Filtro de aceite',
+      airFilterPn: 'Filtro de aire',
+      cabinFilterPn: 'Filtro de cabina',
+      fuelFilterPn: 'Filtro de combustible',
+      sparkPlugPn: 'Bujías',
+      plugGapMm: 'Calibración de bujías',
+      coolantType: 'Refrigerante',
+      coolantCapacityL: 'Capacidad de refrigerante',
+      transOilSpec: 'Aceite de transmisión',
+      transOilL: 'Capacidad de transmisión',
+      diffOilSpec: 'Aceite de diferencial',
+      diffOilL: 'Capacidad de diferencial',
+      brakeFluid: 'Líquido de frenos',
+      psFluid: 'Líquido de dirección',
+      tireCurrentF: 'Gomas delanteras',
+      tireCurrentR: 'Gomas traseras',
+      tireSizeOemF: 'Medida de fábrica (del.)',
+      tireSizeOemR: 'Medida de fábrica (tras.)',
+      psiOemF: 'Presión delantera',
+      psiOemR: 'Presión trasera',
+      boltPattern: 'Patrón de pernos',
+      centerBoreMm: 'Centro del aro',
+      lugThread: 'Rosca de tuercas',
+      lugTorqueNm: 'Torque de tuercas',
+      batteryBrand: 'Batería (marca)',
+      batterySpec: 'Batería',
+      bulbLow: 'Bombillo luz baja',
+      bulbHigh: 'Bombillo luz alta',
+      wiperSizes: 'Limpiavidrios',
+      whereBought: 'Dónde lo compro',
+    },
+    sameAsAlways: 'Igual que siempre',
+    suggestion: (summary: string) => `Igual que siempre: ${summary}`,
+  },
+
+  /** The Gomas header card (lib/domain/tireStats.ts): badges and its short sentences. */
+  tireStats: {
+    badges: {
+      primer_juego: 'Primer juego',
+      quemagomas: 'Quemagomas',
+      fabricante_humo: 'Fabricante de humo',
+      cliente_gomero: 'Cliente frecuente del gomero',
+      leyenda_lao: "Leyenda de lao'",
+    },
+    /** A tire with no brand, model or size. */
+    unnamed: 'Goma',
+    headline: (total: string, year: string, one: boolean) => `${total} ${one ? 'goma' : 'gomas'} · ${year} este año`,
+    spent: (amount: string) => `≈ ${amount} en gomas`,
+    paceNow: 'Al ritmo actual, ya toca otro juego',
+    pace: (when: string) => `Al ritmo actual, próximo juego en ${when}`,
+    days: (n: number) => `~${n} días`,
+    weeks: (n: number) => `~${n} semanas`,
+    months: (n: number) => `~${n} meses`,
+    next: (n: number, name: string) => `${n === 1 ? 'Falta 1' : `Faltan ${n}`} para «${name}»`,
+    heat: (label: string, cycles: number) => `${label} lleva ${cycles} ciclos de calor — revísala`,
+    none: 'Todavía no hay gomas registradas',
+  },
+
+  /** Event types and severities (lib/domain/events.ts). */
+  events: {
+    types: {
+      hito: 'Hito',
+      accidente: 'Accidente',
+      dano_menor: 'Daño menor',
+      averia: 'Avería',
+      sobrecalentamiento: 'Sobrecalentamiento',
+      robo: 'Robo',
+      multa: 'Multa',
+      viaje_largo: 'Viaje largo',
+      junte: 'Junte',
+      otro: 'Otro',
+    },
+    severities: { leve: 'Leve', moderado: 'Moderado', grave: 'Grave' },
+    resolved: 'resuelto',
+    pending: (what: string) => `pendiente: ${what}`,
+  },
+
+  /** Where a fuel price came from (lib/domain/fuelPrices.ts), and the board's week label. */
+  priceSources: {
+    labels: { micm: 'MICM', estacion: 'Estación', recibo: 'Recibo', app: 'App', otro: 'Otro', manual: 'Manual' },
+    months: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  },
+
+  /** Más → Idioma. The language names stay in their own language in both dictionaries. */
+  /** lib/fuel.ts FUEL_CATALOG / GROUP_LABEL read these (the fuel ids never change). */
+  fuelTypes: {
+    premium: { label: 'Gasolina Premium', short: 'Premium', grade: 'Premium' },
+    regular: { label: 'Gasolina Regular', short: 'Regular', grade: 'Regular' },
+    gasoil_regular: { label: 'Gasoil Regular', short: 'Gasoil R.', grade: 'Regular' },
+    gasoil_optimo: { label: 'Gasoil Óptimo', short: 'Óptimo', grade: 'Óptimo' },
+    glp: { label: 'GLP', short: 'GLP', grade: 'GLP' },
+    gnv: { label: 'Gas natural (GNV)', short: 'GNV', grade: 'GNV' },
+  },
+  fuelGroups: { gasolina: 'Gasolina', gasoil: 'Gasoil', glp: 'GLP', gnv: 'Gas natural' },
+  /** lib/db/types.ts EXPENSE_CATEGORY_LABELS reads these. */
+  expenseCategories: {
+    seguro: 'Seguro',
+    marbete: 'Marbete',
+    impuesto: 'Impuesto',
+    multa: 'Multa',
+    peaje: 'Peaje',
+    parqueo: 'Parqueo',
+    lavado: 'Lavado',
+    financiamiento: 'Financiamiento',
+    accesorio: 'Accesorio',
+    grua: 'Grúa',
+    otro: 'Otro',
+  },
+
+  language: {
+    title: 'Idioma',
+    caption: 'La app en español o en inglés. Sistema sigue el idioma del teléfono.',
+    system: 'Sistema',
+    es: 'Español',
+    en: 'English',
   },
 } as const;

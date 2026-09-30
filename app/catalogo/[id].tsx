@@ -5,12 +5,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
+import { FormSkeleton } from '@/components/ui/Skeleton';
 import { PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { saveServiceTypeInterval } from '@/lib/db/catalogOps';
 import { serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { ServiceType } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -31,6 +34,8 @@ export default function CatalogoItemScreen() {
   const [type, setType] = useState<ServiceType | null>(null);
   const [km, setKm] = useState('');
   const [months, setMonths] = useState('');
+  // True until the first read settles, found or not (ADR-40).
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
@@ -43,24 +48,30 @@ export default function CatalogoItemScreen() {
         setKm(row.defaultIntervalKm != null ? String(row.defaultIntervalKm) : '');
         setMonths(row.defaultIntervalMonths != null ? String(row.defaultIntervalMonths) : '');
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [id]);
 
+  const showSkeleton = useDelayedLoading(loading && !!id);
+
+  if (showSkeleton) return <FormSkeleton fields={2} />;
   if (!type) return null;
 
   function save() {
     // A typo must not quietly remove the interval (toInt maps it to null).
-    const bad = ([[km, es.catalog.intervalKm], [months, es.catalog.intervalMonths]] as const).find(
+    const bad = ([[km, t.catalog.intervalKm], [months, t.catalog.intervalMonths]] as const).find(
       ([text]) => isInvalidNumber(text) || (text.trim() !== '' && (parseDecimal(text) ?? 0) <= 0),
     );
-    if (bad) return Alert.alert(es.catalog.title, es.common.invalidNumber(bad[1]));
+    if (bad) return Alert.alert(t.catalog.title, t.common.invalidNumber(bad[1]));
     void (async () => {
       const { updated } = await saveServiceTypeInterval(type!.id, { km: toInt(km), months: toInt(months) });
       await refresh();
-      Alert.alert(es.catalog.saved, es.catalog.updated(updated));
+      Alert.alert(t.catalog.saved, t.catalog.updated(updated));
       router.back();
     })();
   }
@@ -69,19 +80,19 @@ export default function CatalogoItemScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {type.name}
+          {catalogLabel('serviceType', type)}
         </T>
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
-          {es.catalog.hint}
+          {t.catalog.hint}
         </T>
-        <Field label={es.catalog.intervalKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
+        <Field label={t.catalog.intervalKm} keyboardType="number-pad" value={km} onChangeText={setKm} />
         <Field
-          label={es.catalog.intervalMonths}
+          label={t.catalog.intervalMonths}
           keyboardType="number-pad"
           value={months}
           onChangeText={setMonths}
         />
-        <PrimaryButton label={es.catalog.save} onPress={save} />
+        <PrimaryButton label={t.catalog.save} onPress={save} />
       </ScrollView>
     </SafeAreaView>
   );

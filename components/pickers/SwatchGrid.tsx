@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
@@ -75,14 +75,14 @@ export function SwatchGrid({
             onChange({ id: null, label: otherText ?? null });
           }}
           accessibilityRole="radio"
-          accessibilityLabel={es.pickers.other}
+          accessibilityLabel={t.pickers.other}
           accessibilityState={{ checked: typing }}
           style={styles.cell}>
           <View style={[styles.dot, styles.otherDot, { borderColor: typing ? theme.accent : theme.line }]}>
             <Ionicons name="add" size={18} color={theme.text.muted} />
           </View>
           <T face="body" numberOfLines={1} style={[styles.name, { color: theme.text.muted }]}>
-            {es.pickers.otherShort}
+            {t.pickers.otherShort}
           </T>
         </Pressable>
       </View>
@@ -90,9 +90,9 @@ export function SwatchGrid({
         <TextInput
           value={otherText ?? ''}
           onChangeText={(text) => onChange({ id: null, label: text })}
-          placeholder={es.pickers.colorOther}
+          placeholder={t.pickers.colorOther}
           placeholderTextColor={theme.text.muted}
-          accessibilityLabel={es.pickers.colorOther}
+          accessibilityLabel={t.pickers.colorOther}
           style={[styles.input, { backgroundColor: theme.bg.raised, borderColor: theme.line, color: theme.text.primary }]}
         />
       ) : null}

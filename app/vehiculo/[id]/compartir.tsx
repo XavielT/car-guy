@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { Linking, Platform, ScrollView, Share, StyleSheet, Switch, View } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
+import { VehicleSwitchesSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Segmented } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import { albumPhotos, setPhotoFavorite, type AlbumPhoto } from '@/lib/db/albumQueries';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
@@ -14,7 +16,7 @@ import { flagsOf, getShare } from '@/lib/db/shareQueries';
 import type { Vehicle, VehicleShare } from '@/lib/db/types';
 import type { ShareFlags } from '@/lib/share/dossier';
 import { enableShare, revokeShare, saveShareSettings, shareUrl } from '@/lib/share/publish';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -40,6 +42,9 @@ export default function ShareScreen() {
   const [mode, setMode] = useState<'fotos' | 'portada'>('fotos');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // True once the first read answered (ok or not).
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,12 +55,17 @@ export default function ShareScreen() {
       setFlags(flagsOf(s));
       setVisibility(s?.slug && !s.revokedAt ? s.visibility : 'private');
       setPhotos(p);
-    });
+    })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [id]);
 
+  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length} />;
   if (!vehicle || !flags) return null;
   const live = Boolean(share?.slug && !share.revokedAt && share.publishedAt);
   const url = live && share?.slug ? shareUrl(share.slug) : null;
@@ -75,7 +85,7 @@ export default function ShareScreen() {
       if (!p.isFavorite) await togglePhotoFavorite(p, true);
       return;
     }
-    if (!p.isFavorite && chosen >= MAX_PHOTOS) return setNotice(es.share.maxPhotos(MAX_PHOTOS));
+    if (!p.isFavorite && chosen >= MAX_PHOTOS) return setNotice(t.share.maxPhotos(MAX_PHOTOS));
     await togglePhotoFavorite(p, !p.isFavorite);
   }
 
@@ -86,17 +96,17 @@ export default function ShareScreen() {
 
   async function publish(next: 'link' | 'public') {
     setBusy(true);
-    setNotice(es.share.publishing);
+    setNotice(t.share.publishing);
     const r = await enableShare(id, flags!, next);
     setBusy(false);
     if (!r.ok) {
-      setNotice(r.reason === 'signed-out' ? es.share.needAccount : es.share.syncFailed);
+      setNotice(r.reason === 'signed-out' ? t.share.needAccount : t.share.syncFailed);
       if (r.reason === 'signed-out') setVisibility('private');
       return;
     }
     setShare(await getShare(id));
     setVisibility(next);
-    setNotice(r.failed ? es.share.publishedPartial(r.photos, r.failed) : es.share.published(r.photos));
+    setNotice(r.failed ? t.share.publishedPartial(r.photos, r.failed) : t.share.published(r.photos));
     refresh();
   }
 
@@ -104,10 +114,10 @@ export default function ShareScreen() {
     if (next === visibility) return;
     if (next === 'private') {
       if (!live) return setVisibility('private');
-      Alert.alert(es.share.revoke, es.share.revokeBody, [
-        { text: es.common.cancel, style: 'cancel' },
+      Alert.alert(t.share.revoke, t.share.revokeBody, [
+        { text: t.common.cancel, style: 'cancel' },
         {
-          text: es.share.revoke,
+          text: t.share.revoke,
           style: 'destructive',
           onPress: () =>
             void (async () => {
@@ -116,7 +126,7 @@ export default function ShareScreen() {
               setShare(await getShare(id));
               setVisibility('private');
               setBusy(false);
-              setNotice(es.share.revoked);
+              setNotice(t.share.revoked);
             })(),
         },
       ]);
@@ -128,12 +138,12 @@ export default function ShareScreen() {
   async function copyLink() {
     if (!url) return;
     await Clipboard.setStringAsync(url);
-    setNotice(es.share.copied);
+    setNotice(t.share.copied);
   }
 
   async function shareLink() {
     if (!url) return;
-    const message = es.share.message(vehicle!.name, url);
+    const message = t.share.message(vehicle!.name, url);
     try {
       if (Platform.OS === 'web') {
         const nav = navigator as Navigator & { share?: (d: { text: string; url: string }) => Promise<void> };
@@ -154,26 +164,26 @@ export default function ShareScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.share.eyebrow(vehicle.name.toUpperCase())}
+        {t.share.eyebrow(vehicle.name.toUpperCase())}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.sm }}>
-        {es.share.title}
+        {t.share.title}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginBottom: space.md }}>
-        {es.share.intro}
+        {t.share.intro}
       </T>
 
       <Segmented
         options={[
-          { key: 'private', label: es.share.visibility.private },
-          { key: 'link', label: es.share.visibility.link },
-          { key: 'public', label: es.share.visibility.public },
+          { key: 'private', label: t.share.visibility.private },
+          { key: 'link', label: t.share.visibility.link },
+          { key: 'public', label: t.share.visibility.public },
         ]}
         value={visibility}
         onChange={(k) => changeVisibility(k)}
       />
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
-        {es.share.visibilityHint[visibility]}
+        {t.share.visibilityHint[visibility]}
       </T>
 
       {url ? (
@@ -182,10 +192,10 @@ export default function ShareScreen() {
             {url.replace('https://', '')}
           </T>
           <View style={styles.pair}>
-            <GhostButton style={{ flex: 1 }} label={es.share.copy} onPress={() => void copyLink()} />
-            <GhostButton style={{ flex: 1 }} label={es.share.send} onPress={() => void shareLink()} />
+            <GhostButton style={{ flex: 1 }} label={t.share.copy} onPress={() => void copyLink()} />
+            <GhostButton style={{ flex: 1 }} label={t.share.send} onPress={() => void shareLink()} />
           </View>
-          <GhostButton label={es.share.preview} onPress={() => void Linking.openURL(url)} />
+          <GhostButton label={t.share.preview} onPress={() => void Linking.openURL(url)} />
         </View>
       ) : null}
       {notice ? (
@@ -194,54 +204,54 @@ export default function ShareScreen() {
         </T>
       ) : null}
 
-      {eyebrow(es.share.sections)}
+      {eyebrow(t.share.sections)}
       <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
         {FLAG_KEYS.map((k) => (
           <View key={k} style={styles.switchRow}>
             <View style={{ flex: 1 }}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-                {es.share.flags[k]}
+                {t.share.flags[k]}
               </T>
-              {es.share.flagHints[k] ? (
+              {t.share.flagHints[k] ? (
                 <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-                  {es.share.flagHints[k]}
+                  {t.share.flagHints[k]}
                 </T>
               ) : null}
             </View>
-            <Switch value={flags[k]} onValueChange={(on) => void setFlag(k, on)} accessibilityLabel={es.share.flags[k]} disabled={busy} />
+            <Switch value={flags[k]} onValueChange={(on) => void setFlag(k, on)} accessibilityLabel={t.share.flags[k]} disabled={busy} />
           </View>
         ))}
       </View>
       {live ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
-          {es.share.republishHint}
+          {t.share.republishHint}
         </T>
       ) : null}
 
-      {eyebrow(es.share.photos(chosen, MAX_PHOTOS))}
+      {eyebrow(t.share.photos(chosen, MAX_PHOTOS))}
       <Segmented
         options={[
-          { key: 'fotos', label: es.share.pickPhotos },
-          { key: 'portada', label: es.share.pickHero },
+          { key: 'fotos', label: t.share.pickPhotos },
+          { key: 'portada', label: t.share.pickHero },
         ]}
         value={mode}
         onChange={setMode}
       />
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginVertical: space.sm }}>
-        {mode === 'fotos' ? es.share.photosHint : es.share.heroHint}
+        {mode === 'fotos' ? t.share.photosHint : t.share.heroHint}
       </T>
       {!photos.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-          {es.share.noPhotos}
+          {t.share.noPhotos}
         </T>
       ) : null}
       <View style={styles.grid}>
         {photos.map((p) => (
-          <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={104} onPress={() => void togglePhoto(p)} accessibilityLabel={p.isFavorite ? es.share.photoOn : es.share.photoOff}>
+          <PhotoThumb key={p.id} mediaId={p.id} blurhash={p.blurhash} size={104} onPress={() => void togglePhoto(p)} accessibilityLabel={p.isFavorite ? t.share.photoOn : t.share.photoOff}>
             {p.isFavorite ? (
               <View style={[styles.mark, { backgroundColor: theme.accentFill }]}>
                 <T face="eyebrow" style={{ color: theme.accentFillInk, fontSize: 9 }}>
-                  {p.id === hero ? es.share.heroBadge : '★'}
+                  {p.id === hero ? t.share.heroBadge : '★'}
                 </T>
               </View>
             ) : (
@@ -253,12 +263,12 @@ export default function ShareScreen() {
 
       <View style={{ height: space.lg }} />
       {live ? (
-        <PrimaryButton label={es.share.update} disabled={busy} onPress={() => void publish(visibility === 'public' ? 'public' : 'link')} />
+        <PrimaryButton label={t.share.update} disabled={busy} onPress={() => void publish(visibility === 'public' ? 'public' : 'link')} />
       ) : (
-        <PrimaryButton label={es.share.publish} disabled={busy} onPress={() => void publish('link')} />
+        <PrimaryButton label={t.share.publish} disabled={busy} onPress={() => void publish('link')} />
       )}
-      {live ? <GhostButton danger label={es.share.revoke} disabled={busy} onPress={() => changeVisibility('private')} /> : null}
-      <GhostButton label={es.share.book} onPress={() => router.push({ pathname: '/vehiculo/[id]/libro', params: { id } })} />
+      {live ? <GhostButton danger label={t.share.revoke} disabled={busy} onPress={() => changeVisibility('private')} /> : null}
+      <GhostButton label={t.share.book} onPress={() => router.push({ pathname: '/vehiculo/[id]/libro', params: { id } })} />
     </ScrollView>
   );
 }

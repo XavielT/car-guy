@@ -8,11 +8,13 @@ import { GarageCostCard, OwnershipCard } from '@/components/costs/OwnershipCard'
 import { Donut } from '@/components/charts/Donut';
 import { EconomyLegend, EconomyLine, PerFillMark } from '@/components/charts/EconomyLine';
 import { StackedBars } from '@/components/charts/StackedBars';
+import { TabsCifrasSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
 import { TripsCifrasBlock } from '@/components/trips/TripPieces';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { garageOwnershipCost, vehicleStats, type VehicleStats } from '@/lib/db/statsQueries';
 import type { GarageCost } from '@/lib/domain/costs';
 import { latestEconomyInsight } from '@/lib/domain/economy';
@@ -23,7 +25,7 @@ import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Delta, PeriodKey } from '@/lib/domain/stats';
 import { economyNumber, km, kmPerUnit, money } from '@/lib/format';
 import { FEATURE_BUILD, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -43,6 +45,10 @@ export default function CifrasScreen() {
 
   const [period, setPeriod] = useState<PeriodKey>('trimestre');
   const [stats, setStats] = useState<VehicleStats | null>(null);
+  // Until the first stats query answers: the KPI tiles' and chart's outline
+  // (ADR-40). A period switch keeps the last numbers up while the next load.
+  const [statsLoaded, setStatsLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!statsLoaded);
   const [garage, setGarage] = useState<GarageCost | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
@@ -57,7 +63,10 @@ export default function CifrasScreen() {
       .then((result) => {
         if (!cancelled) setStats(result);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setStatsLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -122,71 +131,73 @@ export default function CifrasScreen() {
 
   if (!activeVehicle) return null;
 
-  const empty = stats != null && stats.kpis.spend === 0 && points.length === 0;
+  const empty = !showSkeleton && stats != null && stats.kpis.spend === 0 && points.length === 0;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.pad}>
-        <ScreenTitle title={es.stats.title} size={34} sub={es.stats.subtitle(activeVehicle.name)} />
+        <ScreenTitle title={t.stats.title} size={34} sub={t.stats.subtitle(activeVehicle.name)} />
 
         <Segmented<PeriodKey>
-          options={PERIODS.map((key) => ({ key, label: es.stats.periods[key] }))}
+          options={PERIODS.map((key) => ({ key, label: t.stats.periods[key] }))}
           value={period}
           onChange={setPeriod}
         />
         <T face="body" style={[styles.periodHint, { color: theme.text.muted }]}>
-          {es.stats.periodHint[period]}
+          {t.stats.periodHint[period]}
         </T>
 
         {empty ? (
           <EmptyState
             icon="stats-chart-outline"
-            message={es.stats.empty}
-            actionLabel={es.quickActions.fuel}
+            message={t.stats.empty}
+            actionLabel={t.quickActions.fuel}
             onAction={() => router.push('/carga/nueva')}
           />
         ) : null}
 
-        {stats && !empty ? (
+        {showSkeleton ? <TabsCifrasSkeleton /> : null}
+
+        {stats && !empty && !showSkeleton ? (
           <>
             <View style={styles.kpis}>
               <Kpi
-                label={es.stats.spend}
+                label={t.stats.spend}
                 value={money(stats.kpis.spend)}
                 delta={stats.kpis.spendDelta}
                 onPress={() => scrollTo('byMonth')}
               />
               <Kpi
-                label={es.stats.costPerKm}
+                label={t.stats.costPerKm}
                 value={stats.kpis.costPerKm != null ? money(stats.kpis.costPerKm) : '—'}
-                hint={stats.kpis.costPerKm == null ? es.stats.noDistance : undefined}
+                hint={stats.kpis.costPerKm == null ? t.stats.noDistance : undefined}
                 onPress={() => scrollTo('byCategory')}
               />
               <Kpi
-                label={es.stats.distance}
+                label={t.stats.distance}
                 value={stats.kpis.distanceKm > 0 ? km(stats.kpis.distanceKm) : '—'}
                 delta={stats.kpis.distanceDelta}
                 invertDelta
                 onPress={() => scrollTo('km')}
               />
               <Kpi
-                label={es.stats.economy}
+                label={t.stats.economy}
                 value={partial.average != null ? kmPerUnit(partial.average, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit) : '—'}
                 onPress={() => scrollTo('economy')}
               />
               {FEATURE_BUILD && stats.modsInvested > 0 ? (
                 <Kpi
-                  label={es.stats.modsInvested}
+                  label={t.stats.modsInvested}
                   value={money(stats.modsInvested)}
-                  hint={es.stats.modsInvestedHint}
+                  hint={t.stats.modsInvestedHint}
                   onPress={() => router.push({ pathname: '/vehiculo/[id]/build', params: { id: activeVehicle.id } })}
                 />
               ) : null}
               {FEATURE_TRACK && stats.trackDays > 0 ? (
                 <Kpi
-                  label={es.stats.trackDays}
+                  label={t.stats.trackDays}
                   value={String(stats.trackDays)}
-                  hint={es.stats.trackDaysHint(money(stats.byCategory.find((c) => c.category === 'pista')?.total ?? 0))}
+                  hint={t.stats.trackDaysHint(money(stats.byCategory.find((c) => c.category === 'pista')?.total ?? 0))}
                   onPress={() => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } })}
                 />
               ) : null}
@@ -224,12 +235,12 @@ export default function CifrasScreen() {
                     />
                     <PerFillMark />
                     <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-                      {es.perFill.series}
+                      {t.perFill.series}
                     </T>
                   </Pressable>
                   {showPerFill ? (
                     <T face="body" style={[styles.perFillCaption, { color: theme.text.muted }]}>
-                      {es.perFill.caption}
+                      {t.perFill.caption}
                     </T>
                   ) : null}
                 </>
@@ -249,7 +260,7 @@ export default function CifrasScreen() {
                       ]}
                     />
                     <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-                      {es.estimate.includeEstimates}
+                      {t.estimate.includeEstimates}
                     </T>
                   </Pressable>
                 </>
@@ -257,14 +268,14 @@ export default function CifrasScreen() {
               {capacity ? (
                 <Surface style={styles.card}>
                   <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
-                    {es.estimate.capacity(
+                    {t.estimate.capacity(
                       economyNumber(fromLiters(capacity.extraL, unitOf)),
                       unitOf === 'gal' ? 'gal' : 'L',
                       capacity.samples,
                     )}
                   </T>
                   <GhostButton
-                    label={es.estimate.capacityApply(
+                    label={t.estimate.capacityApply(
                       economyNumber(fromLiters(capacity.suggestedL, unitOf)),
                       unitOf === 'gal' ? 'gal' : 'L',
                     )}
@@ -281,7 +292,7 @@ export default function CifrasScreen() {
             {insight ? (
               <Surface style={styles.card}>
                 <T face="eyebrow" style={[styles.cardLabel, { color: theme.text.muted }]}>
-                  {es.stats.lastTank}
+                  {t.stats.lastTank}
                   <T face="kana" style={styles.kana}>
                     {' 燃費'}
                   </T>
@@ -300,10 +311,10 @@ export default function CifrasScreen() {
                             : theme.text.primary,
                     },
                   ]}>
-                  {es.stats.lastTankValues[insight.status]}
+                  {t.stats.lastTankValues[insight.status]}
                 </T>
                 <T face="body" style={[styles.cardHint, { color: theme.text.secondary }]}>
-                  {es.stats.lastTankHint(kmPerUnit(insight.baseline, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit))}
+                  {t.stats.lastTankHint(kmPerUnit(insight.baseline, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit))}
                 </T>
               </Surface>
             ) : null}
@@ -312,11 +323,11 @@ export default function CifrasScreen() {
             {stats.ownership ? <OwnershipCard cost={stats.ownership} /> : null}
             {garageSize >= 2 && garage ? <GarageCostCard garage={garage} /> : null}
 
-            <SectionHeader title={es.stats.upcoming} caption={es.stats.upcomingCaption} />
+            <SectionHeader title={t.stats.upcoming} caption={t.stats.upcomingCaption} />
             <Surface>
               {stats.upcoming.items.length === 0 ? (
                 <T face="body" style={{ color: theme.text.muted, fontSize: 13, lineHeight: 19 }}>
-                  {es.stats.upcomingEmpty}
+                  {t.stats.upcomingEmpty}
                 </T>
               ) : (
                 <>
@@ -327,7 +338,7 @@ export default function CifrasScreen() {
                           {item.title}
                         </T>
                         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                          {es.stats.upcomingBasis[item.basis]}
+                          {t.stats.upcomingBasis[item.basis]}
                         </T>
                       </View>
                       <T face="mono" style={{ color: theme.text.primary, fontSize: 13 }}>
@@ -336,17 +347,17 @@ export default function CifrasScreen() {
                     </View>
                   ))}
                   <View style={[styles.rule, { backgroundColor: theme.line }]} />
-                  <Row label={es.stats.total} value={money(stats.upcoming.total)} strong />
+                  <Row label={t.stats.total} value={money(stats.upcoming.total)} strong />
                 </>
               )}
             </Surface>
 
             <View style={styles.actions}>
               <PrimaryButton
-                label={es.stats.report}
+                label={t.stats.report}
                 onPress={() => router.push({ pathname: '/reporte', params: { period } })}
               />
-              <GhostButton label={es.stats.csv} onPress={() => router.push('/exportar')} />
+              <GhostButton label={t.stats.csv} onPress={() => router.push('/exportar')} />
             </View>
           </>
         ) : null}
@@ -396,13 +407,13 @@ function Kpi({
     ? null
     : delta.percent == null
       ? delta.direction === 'up'
-        ? es.stats.deltaNew
+        ? t.stats.deltaNew
         : null
       : delta.direction === 'flat'
-        ? es.stats.deltaFlat
+        ? t.stats.deltaFlat
         : delta.direction === 'up'
-          ? es.stats.deltaUp(delta.percent)
-          : es.stats.deltaDown(delta.percent);
+          ? t.stats.deltaUp(delta.percent)
+          : t.stats.deltaDown(delta.percent);
 
   return (
     <Pressable
@@ -429,7 +440,7 @@ function Kpi({
             <T face={delta?.percent != null ? 'mono' : 'body'} style={{ fontSize: 11 }}>
               {deltaText}
             </T>{' '}
-            {es.stats.vsPrevious}
+            {t.stats.vsPrevious}
           </T>
         ) : hint ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 11, marginTop: 4 }}>

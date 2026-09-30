@@ -6,7 +6,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, Stop, Text as S
 import { fonts, palette, radius, space } from '@/constants/theme';
 import type { ClusterReading } from '@/lib/domain/cluster';
 import { km as formatKm } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { localeTag, t } from '@/lib/i18n';
 import { useGaugeSweep } from '@/lib/motion/gaugeSweep';
 import { T } from '../T';
 import { LcdDigits } from './LcdDigits';
@@ -126,7 +126,7 @@ export function ClusterHero({
     );
   });
 
-  const nextLine = reading ? nextText(reading) : es.cluster.nothingDue;
+  const nextLine = reading ? nextText(reading) : t.cluster.nothingDue;
   const needleLen = r - stroke / 2 - 6;
   const hub = size * 0.05;
 
@@ -139,7 +139,7 @@ export function ClusterHero({
           onPress={onPress}
           disabled={!onPress}
           accessibilityRole={onPress ? 'button' : undefined}
-          accessibilityLabel={es.cluster.a11y(odometerKm == null ? '—' : formatKm(odometerKm), nextLine)}
+          accessibilityLabel={t.cluster.a11y(odometerKm == null ? '—' : formatKm(odometerKm), nextLine)}
           style={StyleSheet.absoluteFill}
         />
         <Svg width={size} height={size} pointerEvents="none">
@@ -181,19 +181,19 @@ export function ClusterHero({
             onPress={onPressOdometer}
             disabled={!onPressOdometer}
             accessibilityRole={onPressOdometer ? 'button' : undefined}
-            accessibilityLabel={es.odometerSheet.title}
+            accessibilityLabel={t.odometerSheet.title}
             style={[styles.lcd, { backgroundColor: ink.bg.well, borderColor: ink.lineStrong }]}>
             <LcdDigits value={odometerKm} height={size * 0.095} color={ink.text.primary} lastColor={ink.needle} />
           </Pressable>
           <T face="eyebrow" style={{ color: ink.text.muted, fontSize: 10, marginTop: 6 }}>
-            {es.cluster.caption}
+            {t.cluster.caption}
           </T>
         </View>
       </View>
 
       <View style={styles.nextRow}>
         <T face="eyebrow" style={{ color: ink.text.muted, fontSize: 11 }}>
-          {es.cluster.next}
+          {t.cluster.next}
         </T>
         <T face="mono" numberOfLines={1} style={{ color: ink.text.primary, fontSize: 12, marginTop: 2 }}>
           {nextLine}
@@ -211,17 +211,17 @@ export function ClusterHero({
 
 function nextText(reading: ClusterReading): string {
   const when = reading.predictedDueDate
-    ? new Date(reading.predictedDueDate).toLocaleDateString('es-DO', { day: 'numeric', month: 'short' })
+    ? new Date(reading.predictedDueDate).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' })
     : null;
   const left =
     'km' in reading.remaining
       ? reading.remaining.km >= 0
-        ? es.cluster.kmLeft(formatKm(reading.remaining.km))
-        : es.cluster.kmOver(formatKm(-reading.remaining.km))
+        ? t.cluster.kmLeft(formatKm(reading.remaining.km))
+        : t.cluster.kmOver(formatKm(-reading.remaining.km))
       : reading.remaining.days >= 0
-        ? es.cluster.daysLeft(reading.remaining.days)
-        : es.cluster.daysOver(-reading.remaining.days);
-  return es.cluster.nextLine(reading.title, left, when);
+        ? t.cluster.daysLeft(reading.remaining.days)
+        : t.cluster.daysOver(-reading.remaining.days);
+  return t.cluster.nextLine(reading.title, left, when);
 }
 
 const styles = StyleSheet.create({

@@ -6,9 +6,11 @@ import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
+import { VehicleFichaSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
   applyVin,
   listDtcEvents,
@@ -24,10 +26,11 @@ import { torqueSpecs, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { TorqueSpec, Vehicle, VehicleDtcEvent } from '@/lib/db/types';
 import { lookup } from '@/lib/domain/dtc';
 import { parseDecimal } from '@/lib/domain/economy';
-import { FICHA_FIELDS, FICHA_SECTIONS, fichaText, formatFicha, presetsFor, SPEC_PRESETS, type FichaField } from '@/lib/domain/specPresets';
+import { FICHA_FIELDS, FICHA_SECTIONS, type FichaField, fichaFieldLabel, fichaSectionLabel, fichaText, formatFicha, presetLabel, presetsFor, presetSources, SPEC_PRESETS } from '@/lib/domain/specPresets';
 import { checkVin, decodeVin } from '@/lib/domain/vpic';
 import { dateLabel, id as newId } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { dtcText } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -52,6 +55,9 @@ export default function FichaScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [vinBusy, setVinBusy] = useState(false);
   const [torque, setTorque] = useState<(Partial<TorqueSpec> & { id: string }) | null>(null);
+  // True once the first read answered (ok or not); refocus reloads keep the page up.
+  const [loaded, setLoaded] = useState(false);
+  const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -64,10 +70,13 @@ export default function FichaScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      load()
+        .catch(() => {})
+        .finally(() => setLoaded(true));
     }, [load]),
   );
 
+  if (showSkeleton) return <VehicleFichaSkeleton />;
   if (!vehicle || !ficha) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
 
   async function saveValue(clear = false) {
@@ -82,7 +91,7 @@ export default function FichaScreen() {
   async function pickPreset(presetId: string) {
     const n = await loadPreset(vehicle!.id, presetId);
     setPresetOpen(false);
-    setNotice(es.ficha.presetFilled(n));
+    setNotice(t.ficha.presetFilled(n));
     await load();
     refresh();
   }
@@ -90,19 +99,19 @@ export default function FichaScreen() {
   async function vin() {
     const check = checkVin(vehicle!.vin);
     if (!check.ok) {
-      setNotice(check.reason === 'empty' ? es.ficha.vinNoVin : check.reason === 'frame' ? es.ficha.vinFrame : es.ficha.vinInvalid);
+      setNotice(check.reason === 'empty' ? t.ficha.vinNoVin : check.reason === 'frame' ? t.ficha.vinFrame : t.ficha.vinInvalid);
       return;
     }
     setVinBusy(true);
-    setNotice(es.ficha.vinBusy);
+    setNotice(t.ficha.vinBusy);
     const res = await decodeVin(check.vin);
     setVinBusy(false);
     if (!res.ok) {
-      setNotice(res.reason === 'not_decoded' ? es.ficha.vinFail : es.ficha.vinOffline);
+      setNotice(res.reason === 'not_decoded' ? t.ficha.vinFail : t.ficha.vinOffline);
       return;
     }
     const filled = await applyVin(vehicle!.id, res.decoded);
-    setNotice(es.ficha.vinOk(filled.join(', ')));
+    setNotice(t.ficha.vinOk(filled.join(', ')));
     await load();
     refresh();
   }
@@ -115,7 +124,7 @@ export default function FichaScreen() {
         if (nav.share) await nav.share({ text });
         else {
           await navigator.clipboard.writeText(text);
-          setNotice(es.ficha.copied);
+          setNotice(t.ficha.copied);
         }
       } else {
         await Share.share({ message: text });
@@ -141,18 +150,18 @@ export default function FichaScreen() {
     <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-          {es.ficha.eyebrow((vehicle.nickname || vehicle.name).toUpperCase())}
+          {t.ficha.eyebrow((vehicle.nickname || vehicle.name).toUpperCase())}
         </T>
         <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase' }}>
-          {es.ficha.title}
+          {t.ficha.title}
         </T>
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.md }}>
-          {[es.ficha.caveat, unverified ? es.ficha.unverifiedCount(unverified) : null].filter(Boolean).join(' · ')}
+          {[t.ficha.caveat, unverified ? t.ficha.unverifiedCount(unverified) : null].filter(Boolean).join(' · ')}
         </T>
 
         <View style={styles.row2}>
-          <GhostButton label={es.ficha.loadPreset} onPress={() => setPresetOpen(true)} style={{ flex: 1 }} />
-          <GhostButton label={vinBusy ? es.ficha.vinBusy : es.ficha.vin} disabled={vinBusy} onPress={() => void vin()} style={{ flex: 1 }} />
+          <GhostButton label={t.ficha.loadPreset} onPress={() => setPresetOpen(true)} style={{ flex: 1 }} />
+          <GhostButton label={vinBusy ? t.ficha.vinBusy : t.ficha.vin} disabled={vinBusy} onPress={() => void vin()} style={{ flex: 1 }} />
         </View>
         {notice ? (
           <T face="body" accessibilityLiveRegion="polite" style={[styles.notice, { color: theme.text.secondary, backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
@@ -161,14 +170,14 @@ export default function FichaScreen() {
         ) : null}
         {!hasAny ? (
           <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginBottom: space.md }}>
-            {es.ficha.empty}
+            {t.ficha.empty}
           </T>
         ) : null}
 
         {FICHA_SECTIONS.map((s) => (
           <View key={s.key} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, paddingVertical: 6 }}>
-              {s.label}
+              {fichaSectionLabel(s)}
             </T>
             {FICHA_FIELDS.filter((f) => f.section === s.key).map((f) => {
               const v = ficha.values[f.key];
@@ -182,10 +191,10 @@ export default function FichaScreen() {
                       setValue(v != null ? String(v) : '');
                     }}
                     accessibilityRole="button"
-                    accessibilityLabel={`${f.label}: ${formatFicha(f.key, v)}${source ? `, ${es.ficha.sources[source] ?? source}` : ''}${verified ? `, ${es.ficha.verified}` : ''}`}
+                    accessibilityLabel={`${fichaFieldLabel(f)}: ${formatFicha(f.key, v)}${source ? `, ${t.ficha.sources[source] ?? source}` : ''}${verified ? `, ${t.ficha.verified}` : ''}`}
                     style={styles.fieldMain}>
                     <T face="body" style={{ color: theme.text.secondary, fontSize: 14, flex: 1 }}>
-                      {f.label}
+                      {fichaFieldLabel(f)}
                     </T>
                     <View style={{ alignItems: 'flex-end' }}>
                       <T face="mono" style={{ color: v != null ? theme.text.primary : theme.text.muted, fontSize: 13 }}>
@@ -193,7 +202,7 @@ export default function FichaScreen() {
                       </T>
                       {source ? (
                         <T face="eyebrow" style={{ color: source === 'user' ? theme.statusText.ok : theme.accent, fontSize: 9 }}>
-                          {es.ficha.sources[source] ?? source}
+                          {t.ficha.sources[source] ?? source}
                         </T>
                       ) : null}
                     </View>
@@ -203,7 +212,7 @@ export default function FichaScreen() {
                       onPress={() => void setVerified(vehicle.id, f.key, !verified).then(load)}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: verified }}
-                      accessibilityLabel={`${es.ficha.verified}: ${f.label}`}
+                      accessibilityLabel={`${t.ficha.verified}: ${fichaFieldLabel(f)}`}
                       hitSlop={6}
                       style={[styles.check, { borderColor: verified ? theme.statusText.ok : theme.lineStrong, backgroundColor: verified ? `${theme.statusText.ok}22` : 'transparent' }]}>
                       {verified ? <Ionicons name="checkmark" size={16} color={theme.statusText.ok} /> : null}
@@ -218,7 +227,7 @@ export default function FichaScreen() {
         ))}
 
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.sm }}>
-          {es.ficha.torques}
+          {t.ficha.torques}
         </T>
         {torques.map((t) => (
           <Pressable key={t.id} onPress={() => setTorque({ ...t })} accessibilityRole="button" accessibilityLabel={`${t.item}: ${t.valueNm} Nm`} style={[styles.torque, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
@@ -238,10 +247,10 @@ export default function FichaScreen() {
             </T>
           </Pressable>
         ))}
-        <GhostButton label={es.ficha.torqueAdd} onPress={() => setTorque({ id: newId(), item: '', valueNm: undefined })} />
+        <GhostButton label={t.ficha.torqueAdd} onPress={() => setTorque({ id: newId(), item: '', valueNm: undefined })} />
 
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.sm }}>
-          {es.ficha.obd}
+          {t.ficha.obd}
         </T>
         {events.map((e) => (
           <Pressable key={e.id} onPress={() => router.push({ pathname: '/obd/[code]', params: { code: e.code, vehicleId: vehicle.id } })} accessibilityRole="button" style={[styles.torque, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
@@ -249,40 +258,40 @@ export default function FichaScreen() {
               {e.code}
             </T>
             <T face="body" numberOfLines={1} style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-              {lookup(e.code)?.descEs ?? ''}
+              {dtcText(lookup(e.code)) ?? ''}
             </T>
             <T face="mono" style={{ color: theme.text.muted, fontSize: 11 }}>
-              {`${dateLabel(e.seenAt)} · ${e.clearedAt ? es.obd.resolved : es.obd.open}`}
+              {`${dateLabel(e.seenAt)} · ${e.clearedAt ? t.obd.resolved : t.obd.open}`}
             </T>
           </Pressable>
         ))}
-        <GhostButton label={es.ficha.obdAll} onPress={() => router.push({ pathname: '/obd', params: { vehicleId: vehicle.id } })} />
-        <GhostButton label={es.ficha.fluids} onPress={() => router.push({ pathname: '/vehiculo/[id]/fluidos', params: { id: vehicle.id } })} />
+        <GhostButton label={t.ficha.obdAll} onPress={() => router.push({ pathname: '/obd', params: { vehicleId: vehicle.id } })} />
+        <GhostButton label={t.ficha.fluids} onPress={() => router.push({ pathname: '/vehiculo/[id]/fluidos', params: { id: vehicle.id } })} />
         <View style={{ marginTop: space.md }}>
-          <PrimaryButton label={es.ficha.share} disabled={!hasAny} onPress={() => void share()} />
+          <PrimaryButton label={t.ficha.share} disabled={!hasAny} onPress={() => void share()} />
         </View>
       </ScrollView>
 
-      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? es.ficha.edit(editing.label) : ''}>
+      <Sheet visible={Boolean(editing)} onClose={() => setEditing(null)} title={editing ? t.ficha.edit(fichaFieldLabel(editing)) : ''}>
         <Field
-          label={editing?.unit ? `${editing.label} (${editing.unit})` : editing?.label ?? ''}
+          label={editing?.unit ? `${fichaFieldLabel(editing)} (${editing.unit})` : editing ? fichaFieldLabel(editing) : ''}
           value={value}
           onChangeText={setValue}
           keyboardType={editing?.kind === 'number' ? 'decimal-pad' : 'default'}
           autoFocus
         />
-        <PrimaryButton label={es.ficha.save} onPress={() => void saveValue()} />
-        {editing && ficha.values[editing.key] != null ? <GhostButton danger label={es.ficha.clear} onPress={() => void saveValue(true)} /> : null}
+        <PrimaryButton label={t.ficha.save} onPress={() => void saveValue()} />
+        {editing && ficha.values[editing.key] != null ? <GhostButton danger label={t.ficha.clear} onPress={() => void saveValue(true)} /> : null}
       </Sheet>
 
-      <Sheet visible={presetOpen} onClose={() => setPresetOpen(false)} title={es.ficha.presetTitle}>
+      <Sheet visible={presetOpen} onClose={() => setPresetOpen(false)} title={t.ficha.presetTitle}>
         <ScrollView style={{ maxHeight: 460 }}>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
-            {es.ficha.caveat}
+            {t.ficha.caveat}
           </T>
           {[
-            { title: es.ficha.presetSuggested, list: suggested },
-            { title: es.ficha.presetOthers, list: others },
+            { title: t.ficha.presetSuggested, list: suggested },
+            { title: t.ficha.presetOthers, list: others },
           ].map((g) =>
             g.list.length ? (
               <View key={g.title} style={{ marginBottom: space.md }}>
@@ -292,10 +301,10 @@ export default function FichaScreen() {
                 {g.list.map((p) => (
                   <Pressable key={p.id} onPress={() => void pickPreset(p.id)} accessibilityRole="button" style={[styles.preset, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
                     <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-                      {p.label}
+                      {presetLabel(p)}
                     </T>
                     <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
-                      {p.sources.join(' · ')}
+                      {presetSources(p)}
                     </T>
                   </Pressable>
                 ))}
@@ -305,25 +314,25 @@ export default function FichaScreen() {
         </ScrollView>
       </Sheet>
 
-      <Sheet visible={Boolean(torque)} onClose={() => setTorque(null)} title={es.ficha.torques}>
+      <Sheet visible={Boolean(torque)} onClose={() => setTorque(null)} title={t.ficha.torques}>
         {torque ? (
           <ScrollView style={{ maxHeight: 520 }} keyboardShouldPersistTaps="handled">
-            <Field label={es.ficha.torqueItem} placeholder={es.ficha.torqueItemPlaceholder} value={torque.item ?? ''} onChangeText={(t) => setTorque((x) => x && { ...x, item: t })} />
+            <Field label={t.ficha.torqueItem} placeholder={t.ficha.torqueItemPlaceholder} value={torque.item ?? ''} onChangeText={(t) => setTorque((x) => x && { ...x, item: t })} />
             <Field
-              label={es.ficha.torqueValue}
+              label={t.ficha.torqueValue}
               keyboardType="decimal-pad"
               value={torque.valueNm != null ? String(torque.valueNm) : ''}
               onChangeText={(t) => setTorque((x) => x && { ...x, valueNm: t.trim() ? parseDecimal(t) ?? undefined : undefined })}
             />
-            <Field label={es.ficha.torqueStage} value={torque.stage ?? ''} onChangeText={(t) => setTorque((x) => x && { ...x, stage: t || null })} />
-            <Field label={es.ficha.torqueSource} value={torque.source ?? ''} onChangeText={(t) => setTorque((x) => x && { ...x, source: t || null })} />
+            <Field label={t.ficha.torqueStage} value={torque.stage ?? ''} onChangeText={(t) => setTorque((x) => x && { ...x, stage: t || null })} />
+            <Field label={t.ficha.torqueSource} value={torque.source ?? ''} onChangeText={(t) => setTorque((x) => x && { ...x, source: t || null })} />
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-              {es.ficha.torquePhoto}
+              {t.ficha.torquePhoto}
             </T>
             <PhotoPicker mediaId={torque.mediaId ?? null} ownerTable="torque_spec" ownerId={torque.id} vehicleId={vehicle.id} onChange={(mediaId) => setTorque((x) => x && { ...x, mediaId })} height={140} />
-            <PrimaryButton label={es.ficha.save} onPress={() => void saveTorqueDraft()} />
+            <PrimaryButton label={t.ficha.save} onPress={() => void saveTorqueDraft()} />
             {torques.some((t) => t.id === torque.id) ? (
-              <GhostButton danger label={es.ficha.torqueDelete} onPress={() => void torqueSpecs.softDelete(torque.id).then(() => (setTorque(null), load()))} />
+              <GhostButton danger label={t.ficha.torqueDelete} onPress={() => void torqueSpecs.softDelete(torque.id).then(() => (setTorque(null), load()))} />
             ) : null}
           </ScrollView>
         ) : null}

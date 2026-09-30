@@ -1,13 +1,15 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AdminFeedbackListSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
 import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/feedback/present';
 import { Chip, EmptyState, StatusPill } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useAdminGate } from '@/lib/cloud/admin';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { FEEDBACK_STATUSES, listFeedback, type FeedbackListRow, type FeedbackStatus } from '@/lib/feedback/inbox';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -36,13 +38,17 @@ export default function ComentariosRecibidos() {
     }, [admin, load]),
   );
 
-  const header = <Stack.Screen options={{ headerShown: true, title: es.feedback.admin.title }} />;
+  const header = <Stack.Screen options={{ headerShown: true, title: t.feedback.admin.title }} />;
+  // The gate and the first inbox read; back from a detail reloads behind the old list.
+  const loading = gate === 'loading' || (admin && rows === undefined);
+  const showSkeleton = useDelayedLoading(loading);
 
-  if (gate === 'loading' || (admin && rows === undefined)) {
+  if (showSkeleton || loading) {
+    // Remote data, so the skeleton is really seen; a fast answer shows nothing but the header.
     return (
-      <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
+      <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
         {header}
-        <ActivityIndicator color={theme.text.muted} />
+        {showSkeleton ? <AdminFeedbackListSkeleton /> : null}
       </View>
     );
   }
@@ -51,7 +57,7 @@ export default function ComentariosRecibidos() {
     return (
       <View style={[styles.centre, { backgroundColor: theme.bg.base }]}>
         {header}
-        <EmptyState icon="lock-closed-outline" message={es.feedback.admin.notAdmin} />
+        <EmptyState icon="lock-closed-outline" message={t.feedback.admin.notAdmin} />
       </View>
     );
   }
@@ -75,17 +81,17 @@ export default function ComentariosRecibidos() {
       }>
       {header}
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.feedback.admin.count(rows?.length ?? 0)}
+        {t.feedback.admin.count(rows?.length ?? 0)}
       </T>
       <View style={styles.chips}>
-        <Chip label={es.feedback.admin.all} selected={filter === 'all'} onPress={() => setFilter('all')} />
+        <Chip label={t.feedback.admin.all} selected={filter === 'all'} onPress={() => setFilter('all')} />
         {FEEDBACK_STATUSES.map((s) => (
           <Chip key={s} label={`${statusLabel(s)} ${counts[s]}`} selected={filter === s} onPress={() => setFilter(s)} />
         ))}
       </View>
 
-      {rows === null ? <EmptyState icon="cloud-offline-outline" message={es.feedback.admin.loadFailed} actionLabel={es.common.retry} onAction={load} /> : null}
-      {rows && !shown.length ? <EmptyState icon="mail-open-outline" message={es.feedback.admin.empty} /> : null}
+      {rows === null ? <EmptyState icon="cloud-offline-outline" message={t.feedback.admin.loadFailed} actionLabel={t.common.retry} onAction={load} /> : null}
+      {rows && !shown.length ? <EmptyState icon="mail-open-outline" message={t.feedback.admin.empty} /> : null}
 
       {shown.map((row) => (
         <Pressable
@@ -103,7 +109,7 @@ export default function ComentariosRecibidos() {
             {row.message}
           </T>
           <T face="mono" numberOfLines={1} style={{ color: theme.text.muted, fontSize: 12, marginTop: 6 }}>
-            {[shortDate(row.created_at), row.app_version ? `v${row.app_version}` : null, row.platform, row.device, row.screenshot_path ? es.feedback.admin.screenshot.toLowerCase() : null]
+            {[shortDate(row.created_at), row.app_version ? `v${row.app_version}` : null, row.platform, row.device, row.screenshot_path ? t.feedback.admin.screenshot.toLowerCase() : null]
               .filter(Boolean)
               .join(' · ')}
           </T>

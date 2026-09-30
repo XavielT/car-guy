@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { fonts, radius, space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from './T';
 
@@ -44,12 +44,12 @@ export function DateField({
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value || es.common.pickDate}`}
+        accessibilityLabel={`${label}: ${value || t.common.pickDate}`}
         style={[styles.input, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
         <T
           face="body"
           style={[styles.value, { color: value ? theme.text.primary : theme.text.muted }]}>
-          {value || es.common.pickDate}
+          {value || t.common.pickDate}
         </T>
       </Pressable>
       {hint ? (

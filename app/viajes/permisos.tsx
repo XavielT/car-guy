@@ -7,7 +7,7 @@ import { T } from '@/components/T';
 import { MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/components/trips/TripPieces';
 import { Badge, GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { recordError } from '@/lib/diagnostics';
 import { requestPermission as requestNotificationPermission } from '@/lib/notifications';
@@ -72,12 +72,12 @@ export default function TripPermissionsScreen() {
     <Surface padded style={styles.card}>
       <View style={styles.cardTop}>
         <T face="title" style={{ color: theme.text.primary, fontSize: 18, textTransform: 'uppercase', flex: 1 }}>
-          {es.trips.permCards[key].title}
+          {t.trips.permCards[key].title}
         </T>
         {badge ? <Badge label={badge} tone={key === 'manual' ? 'amber' : 'red'} /> : null}
       </View>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
-        {es.trips.permCards[key].body}
+        {t.trips.permCards[key].body}
       </T>
       {action}
     </Surface>
@@ -86,19 +86,19 @@ export default function TripPermissionsScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.trips.eyebrow}
+        {t.trips.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase' }}>
-        {es.trips.permTitle}
+        {t.trips.permTitle}
       </T>
       <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20, marginVertical: space.md }}>
-        {es.trips.permIntro}
+        {t.trips.permIntro}
       </T>
 
       {card(
         'none',
         <GhostButton
-          label={es.trips.permOff}
+          label={t.trips.permOff}
           onPress={() => {
             void setTripsMode('off');
             back();
@@ -109,12 +109,12 @@ export default function TripPermissionsScreen() {
         'manual',
         perm.state === 'granted' ? (
           <T face="semibold" style={{ color: theme.statusText.ok, fontSize: 14, marginTop: space.sm }}>
-            {es.trips.permGranted}
+            {t.trips.permGranted}
           </T>
         ) : (
           <View style={{ marginTop: space.sm }}>
             <PrimaryButton
-              label={perm.state === 'denied' && !perm.canAsk && Platform.OS !== 'web' ? es.trips.openSettings : es.trips.permRequest}
+              label={perm.state === 'denied' && !perm.canAsk && Platform.OS !== 'web' ? t.trips.openSettings : t.trips.permRequest}
               onPress={() =>
                 void (async () => {
                   await setTripsMode('manual');
@@ -124,7 +124,7 @@ export default function TripPermissionsScreen() {
             />
           </View>
         ),
-        es.trips.permissionState[perm.state].split(' ·')[0].toUpperCase(),
+        t.trips.permissionState[perm.state].split(' ·')[0].toUpperCase(),
       )}
       {Platform.OS !== 'web'
         ? card(
@@ -132,10 +132,10 @@ export default function TripPermissionsScreen() {
             autoOn ? (
               <View style={{ gap: space.sm, marginTop: space.sm }}>
                 <T face="semibold" style={{ color: theme.statusText.ok, fontSize: 14 }}>
-                  {es.trips.permAutoOn}
+                  {t.trips.permAutoOn}
                 </T>
                 <GhostButton
-                  label={es.trips.permAutoOff}
+                  label={t.trips.permAutoOff}
                   onPress={() =>
                     void (async () => {
                       await setTripsMode('manual');
@@ -149,26 +149,26 @@ export default function TripPermissionsScreen() {
               <View style={{ gap: space.sm, marginTop: space.sm }}>
                 {auto.state && auto.state !== 'ready' && auto.state !== 'foreground' ? (
                   <T face="body" style={{ color: theme.statusText.proximo, fontSize: 13, lineHeight: 18 }}>
-                    {es.trips.readiness[auto.state]}
+                    {t.trips.readiness[auto.state]}
                   </T>
                 ) : null}
                 <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17 }}>
-                  {es.trips.permAutoStep}
+                  {t.trips.permAutoStep}
                 </T>
-                <PrimaryButton label={es.trips.permAuto} onPress={() => void enableAuto()} disabled={auto.state === 'unavailable'} />
+                <PrimaryButton label={t.trips.permAuto} onPress={() => void enableAuto()} disabled={auto.state === 'unavailable'} />
               </View>
             ),
-            autoOn ? es.trips.modes.auto.toUpperCase() : undefined,
+            autoOn ? t.trips.modes.auto.toUpperCase() : undefined,
           )
         : card('auto')}
       {Platform.OS !== 'web' ? <MiuiChecklist /> : null}
 
       {Platform.OS === 'web' ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.md }}>
-          {es.trips.permWeb}
+          {t.trips.permWeb}
         </T>
       ) : null}
-      <GhostButton label={es.trips.permLater} onPress={back} />
+      <GhostButton label={t.trips.permLater} onPress={back} />
     </ScrollView>
   );
 }

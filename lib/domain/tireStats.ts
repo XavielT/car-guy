@@ -16,6 +16,9 @@
  */
 import type { ConsumableUsage, Tire, WheelSet } from '../db/types';
 import { money } from '../format';
+import { currentLanguage, localeTag, type Dict, type Lang } from '../i18n';
+import { en } from '../i18n/en';
+import { es } from '../i18n/es';
 import { dotAge } from './tires';
 
 type TireStatus = Tire['status'];
@@ -112,7 +115,7 @@ function tireDate(t: TireInput): string {
 
 function tireLabel(t: TireInput): string {
   const name = [t.brand, t.model].map((x) => x?.trim()).filter(Boolean).join(' ');
-  return [name, t.size?.trim()].filter(Boolean).join(' · ') || 'Goma';
+  return [name, t.size?.trim()].filter(Boolean).join(' · ') || dict().tireStats.unnamed;
 }
 
 function ms(iso: string): number {
@@ -246,13 +249,19 @@ export function garageTireStats(allTires: readonly TireInput[], opts: TireStatsO
 
 export type TireBadgeId = 'primer_juego' | 'quemagomas' | 'fabricante_humo' | 'cliente_gomero' | 'leyenda_lao';
 
-export const TIRE_BADGES: { id: TireBadgeId; threshold: number; es: string; en: string }[] = [
-  { id: 'primer_juego', threshold: 4, es: 'Primer juego', en: 'First set' },
-  { id: 'quemagomas', threshold: 10, es: 'Quemagomas', en: 'Tire burner' },
-  { id: 'fabricante_humo', threshold: 25, es: 'Fabricante de humo', en: 'Smoke machine' },
-  { id: 'cliente_gomero', threshold: 50, es: 'Cliente frecuente del gomero', en: "The tire shop's regular" },
-  { id: 'leyenda_lao', threshold: 100, es: "Leyenda de lao'", en: 'Sideways legend' },
+/** Thresholds; the names are in the dictionary (`tireStats.badges`). */
+export const TIRE_BADGES: { id: TireBadgeId; threshold: number }[] = [
+  { id: 'primer_juego', threshold: 4 },
+  { id: 'quemagomas', threshold: 10 },
+  { id: 'fabricante_humo', threshold: 25 },
+  { id: 'cliente_gomero', threshold: 50 },
+  { id: 'leyenda_lao', threshold: 100 },
 ];
+
+/** A given language's dictionary, or the current one's. */
+function dict(locale: Lang = currentLanguage()): Dict {
+  return locale === 'en' ? en : es;
+}
 
 export type TireBadge = {
   id: TireBadgeId;
@@ -266,13 +275,14 @@ export type TireBadge = {
 };
 
 /** Every badge, earned ones with the date of the tire that earned them. */
-export function badgesFor(stats: Pick<TireStats, 'total' | 'datedAsc'>, locale: 'es' | 'en' = 'es'): TireBadge[] {
+export function badgesFor(stats: Pick<TireStats, 'total' | 'datedAsc'>, locale?: Lang): TireBadge[] {
+  const names = dict(locale).tireStats.badges;
   return TIRE_BADGES.map((b) => {
     const earned = stats.total >= b.threshold;
     return {
       id: b.id,
       threshold: b.threshold,
-      label: b[locale],
+      label: names[b.id],
       earned,
       reachedAt: earned ? (stats.datedAsc[b.threshold - 1] ?? null) : null,
       remaining: Math.max(0, b.threshold - stats.total),
@@ -281,47 +291,17 @@ export function badgesFor(stats: Pick<TireStats, 'total' | 'datedAsc'>, locale: 
 }
 
 /** The next badge to earn, or null when all are. */
-export function nextBadge(stats: Pick<TireStats, 'total' | 'datedAsc'>, locale: 'es' | 'en' = 'es'): TireBadge | null {
+export function nextBadge(stats: Pick<TireStats, 'total' | 'datedAsc'>, locale?: Lang): TireBadge | null {
   return badgesFor(stats, locale).find((b) => !b.earned) ?? null;
 }
 
-const intEs = new Intl.NumberFormat('es-DO', { maximumFractionDigits: 0 });
-const intEn = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
-
-/** "~3 semanas" / "~5 días" / "~2 meses". */
-function soonEs(days: number): string {
-  if (days <= 1) return 'ya';
-  if (days < 14) return `~${days} días`;
-  if (days < 60) return `~${Math.round(days / 7)} semanas`;
-  return `~${Math.round(days / MONTH_DAYS)} meses`;
+/** "~3 semanas" / "~5 días" / "~2 meses"; null when it is due now. */
+function soon(d: Dict, days: number): string | null {
+  if (days <= 1) return null;
+  if (days < 14) return d.tireStats.days(days);
+  if (days < 60) return d.tireStats.weeks(Math.round(days / 7));
+  return d.tireStats.months(Math.round(days / MONTH_DAYS));
 }
-
-function soonEn(days: number): string {
-  if (days <= 1) return 'now';
-  if (days < 14) return `~${days} days`;
-  if (days < 60) return `~${Math.round(days / 7)} weeks`;
-  return `~${Math.round(days / MONTH_DAYS)} months`;
-}
-
-/** Templates (move to es.ts / en.ts with the i18n phase). */
-export const TIRE_MESSAGES = {
-  es: {
-    headline: (total: number, year: number) => `${intEs.format(total)} ${total === 1 ? 'goma' : 'gomas'} · ${intEs.format(year)} este año`,
-    spent: (amount: string) => `≈ ${amount} en gomas`,
-    pace: (when: string) => (when === 'ya' ? 'Al ritmo actual, ya toca otro juego' : `Al ritmo actual, próximo juego en ${when}`),
-    next: (n: number, name: string) => `${n === 1 ? 'Falta 1' : `Faltan ${n}`} para «${name}»`,
-    heat: (label: string, cycles: number) => `${label} lleva ${cycles} ciclos de calor — revísala`,
-    none: 'Todavía no hay gomas registradas',
-  },
-  en: {
-    headline: (total: number, year: number) => `${intEn.format(total)} ${total === 1 ? 'tire' : 'tires'} · ${intEn.format(year)} this year`,
-    spent: (amount: string) => `≈ ${amount} on tires`,
-    pace: (when: string) => (when === 'now' ? 'At this pace, another set is due' : `At this pace, next set in ${when}`),
-    next: (n: number, name: string) => `${n} to go for “${name}”`,
-    heat: (label: string, cycles: number) => `${label} has ${cycles} heat cycles — check it`,
-    none: 'No tires logged yet',
-  },
-};
 
 /** "RD$ 96,000" — whole pesos for an approximate total. */
 function moneyWhole(n: number): string {
@@ -332,14 +312,20 @@ function moneyWhole(n: number): string {
  * Short sentences for the Gomas header card, in this order: headline, money
  * (when any tire has a cost), pace, next badge, heat-cycle warnings.
  */
-export function messagesFor(stats: TireStats, locale: 'es' | 'en' = 'es'): string[] {
-  const t = TIRE_MESSAGES[locale];
-  if (stats.total === 0) return [t.none];
-  const out = [t.headline(stats.total, stats.thisYear)];
-  if (stats.pricedCount > 0 && stats.spentDop > 0) out.push(t.spent(moneyWhole(stats.spentDop)));
-  if (stats.nextSetInDays != null) out.push(t.pace(locale === 'es' ? soonEs(stats.nextSetInDays) : soonEn(stats.nextSetInDays)));
+export function messagesFor(stats: TireStats, locale?: Lang): string[] {
+  const lang = locale ?? currentLanguage();
+  const d = dict(lang);
+  const m = d.tireStats;
+  if (stats.total === 0) return [m.none];
+  const int = new Intl.NumberFormat(localeTag(lang), { maximumFractionDigits: 0 });
+  const out = [m.headline(int.format(stats.total), int.format(stats.thisYear), stats.total === 1)];
+  if (stats.pricedCount > 0 && stats.spentDop > 0) out.push(m.spent(moneyWhole(stats.spentDop)));
+  if (stats.nextSetInDays != null) {
+    const when = soon(d, stats.nextSetInDays);
+    out.push(when ? m.pace(when) : m.paceNow);
+  }
   const next = nextBadge(stats, locale);
-  if (next) out.push(t.next(next.remaining, next.label));
-  for (const w of stats.heatWarnings) out.push(t.heat(w.label, w.heatCycles));
+  if (next) out.push(m.next(next.remaining, next.label));
+  for (const w of stats.heatWarnings) out.push(m.heat(w.label, w.heatCycles));
   return out;
 }

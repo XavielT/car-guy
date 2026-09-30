@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
 import { FIRST_YEAR, yearList } from '@/lib/domain/vehicleForm';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { Chip, Sheet } from '../ui';
 import { T } from '../T';
@@ -52,7 +52,7 @@ export function YearWheel({
   }, [visible]);
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={es.pickers.year}>
+    <Sheet visible={visible} onClose={onClose} title={t.pickers.year}>
       <View style={styles.decades}>
         {decades.map((d) => (
           <Chip key={d} label={`${String(d).slice(2)}s`} onPress={() => jump(d + 9)} />
@@ -60,7 +60,7 @@ export function YearWheel({
       </View>
       {range && (range.from || range.to) ? (
         <T face="body" style={[styles.caption, { color: theme.text.secondary }]}>
-          {es.pickers.modelYears(range.from, range.to)}
+          {t.pickers.modelYears(range.from, range.to)}
         </T>
       ) : null}
       <FlatList

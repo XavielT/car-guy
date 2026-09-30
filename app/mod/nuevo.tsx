@@ -7,7 +7,7 @@ import { lastFxRate } from '@/lib/db/buildQueries';
 import { inventory as inventoryRepo, wishlist as wishlistRepo } from '@/lib/db/repos';
 import type { Mod } from '@/lib/db/types';
 import { wishlistToModDraft } from '@/lib/domain/build';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -50,7 +50,7 @@ export default function NewModScreen() {
               await inventoryRepo.upsert({
                 id: i.id,
                 usedInModId: saved?.id ?? null,
-                notes: [i.notes, es.inventory.usedIn(draft.name)].filter(Boolean).join('\n'),
+                notes: [i.notes, t.inventory.usedIn(draft.name)].filter(Boolean).join('\n'),
               });
           }
           refresh();

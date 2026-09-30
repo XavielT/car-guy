@@ -9,6 +9,7 @@
  */
 import type { Milestone } from '../db/types';
 import { money } from '../format';
+import { t } from '../i18n';
 
 export type EventType =
   | 'hito'
@@ -25,29 +26,51 @@ export type EventType =
 export type Severity = 'leve' | 'moderado' | 'grave';
 
 /** Ionicons glyph names (the app's icon set — components/ui/RecordRow.tsx uses `flag-outline` for hitos). */
-export const EVENT_TYPES: { id: EventType; label: string; icon: string }[] = [
-  { id: 'hito', label: 'Hito', icon: 'flag-outline' },
-  { id: 'accidente', label: 'Accidente', icon: 'car-outline' },
-  { id: 'dano_menor', label: 'Daño menor', icon: 'bandage-outline' },
-  { id: 'averia', label: 'Avería', icon: 'build-outline' },
-  { id: 'sobrecalentamiento', label: 'Sobrecalentamiento', icon: 'thermometer-outline' },
-  { id: 'robo', label: 'Robo', icon: 'lock-open-outline' },
-  { id: 'multa', label: 'Multa', icon: 'receipt-outline' },
-  { id: 'viaje_largo', label: 'Viaje largo', icon: 'map-outline' },
-  { id: 'junte', label: 'Junte', icon: 'people-outline' },
-  { id: 'otro', label: 'Otro', icon: 'ellipsis-horizontal-circle-outline' },
+const EVENT_ICONS: [EventType, string][] = [
+  ['hito', 'flag-outline'],
+  ['accidente', 'car-outline'],
+  ['dano_menor', 'bandage-outline'],
+  ['averia', 'build-outline'],
+  ['sobrecalentamiento', 'thermometer-outline'],
+  ['robo', 'lock-open-outline'],
+  ['multa', 'receipt-outline'],
+  ['viaje_largo', 'map-outline'],
+  ['junte', 'people-outline'],
+  ['otro', 'ellipsis-horizontal-circle-outline'],
 ];
 
-export const EVENT_TYPE_LABEL = Object.fromEntries(EVENT_TYPES.map((t) => [t.id, t.label])) as Record<EventType, string>;
-export const EVENT_TYPE_ICON = Object.fromEntries(EVENT_TYPES.map((t) => [t.id, t.icon])) as Record<EventType, string>;
+/** `label` is a getter: it reads the dictionary when shown, so it follows the language. */
+export const EVENT_TYPES: { readonly id: EventType; readonly label: string; readonly icon: string }[] = EVENT_ICONS.map(([id, icon]) => ({
+  id,
+  icon,
+  get label() {
+    return t.events.types[id];
+  },
+}));
 
-export const SEVERITIES: { id: Severity; label: string }[] = [
-  { id: 'leve', label: 'Leve' },
-  { id: 'moderado', label: 'Moderado' },
-  { id: 'grave', label: 'Grave' },
-];
+/** Live labels by id (getters over the dictionary). */
+function liveLabels<K extends string>(ids: readonly K[], read: (id: K) => string): Record<K, string> {
+  const out = {} as Record<K, string>;
+  for (const id of ids) Object.defineProperty(out, id, { get: () => read(id), enumerable: true });
+  return out;
+}
 
-export const SEVERITY_LABEL: Record<Severity, string> = { leve: 'Leve', moderado: 'Moderado', grave: 'Grave' };
+export const EVENT_TYPE_LABEL: Record<EventType, string> = liveLabels(
+  EVENT_ICONS.map(([id]) => id),
+  (id) => t.events.types[id],
+);
+export const EVENT_TYPE_ICON = Object.fromEntries(EVENT_ICONS) as Record<EventType, string>;
+
+const SEVERITY_IDS: Severity[] = ['leve', 'moderado', 'grave'];
+
+export const SEVERITIES: { readonly id: Severity; readonly label: string }[] = SEVERITY_IDS.map((id) => ({
+  id,
+  get label() {
+    return t.events.severities[id];
+  },
+}));
+
+export const SEVERITY_LABEL: Record<Severity, string> = liveLabels(SEVERITY_IDS, (id) => t.events.severities[id]);
 
 const SEVERITY_RANK: Record<Severity, number> = { leve: 1, moderado: 2, grave: 3 };
 
@@ -159,7 +182,7 @@ export function eventSubtitle(m: EventRow): string {
   if (isEvent(m) && m.severity) out.push(SEVERITY_LABEL[m.severity]);
   if (m.costDop != null && m.costDop > 0) out.push(moneyShort(m.costDop));
   const pending = m.pending?.trim();
-  if (pending) out.push(m.resolvedAt ? 'resuelto' : `pendiente: ${pending}`);
+  if (pending) out.push(m.resolvedAt ? t.events.resolved : t.events.pending(pending));
   return out.join(' · ');
 }
 

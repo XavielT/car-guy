@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { router as appRouter, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,9 +24,9 @@ import { userMessage } from '@/lib/diagnostics';
 import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
-import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_I18N, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { FEEDBACK_ROUTE } from '@/lib/feedback';
-import { es } from '@/lib/i18n/es';
+import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { useStore } from '@/lib/store';
 import { useTheme, type ThemePreference } from '@/lib/theme/useTheme';
@@ -39,6 +39,7 @@ import { useTheme, type ThemePreference } from '@/lib/theme/useTheme';
 export default function MasScreen() {
   const router = useRouter();
   const { theme, preference, setPreference } = useTheme();
+  const language = useLanguage();
   const { data, activeVehicle, resetAll, refresh } = useStore();
   const archived = data.vehicles.filter((v) => v.isArchived);
   const installOffer = useInstallOffer();
@@ -61,23 +62,23 @@ export default function MasScreen() {
   // release build needs it: in development the hints are always on.
   function tapVersion() {
     const now = Date.now();
-    const t = taps.current;
-    t.count = now - t.last < 800 ? t.count + 1 : 1;
-    t.last = now;
-    if (t.count >= 3 && t.count < 7) showToast(es.dev.tapsLeft(7 - t.count));
-    if (t.count >= 7) {
-      t.count = 0;
+    const tap = taps.current;
+    tap.count = now - tap.last < 800 ? tap.count + 1 : 1;
+    tap.last = now;
+    if (tap.count >= 3 && tap.count < 7) showToast(t.dev.tapsLeft(7 - tap.count));
+    if (tap.count >= 7) {
+      tap.count = 0;
       void setDiagnosticsMode(!diagnostics);
-      showToast(diagnostics ? es.dev.diagnosticsOff : es.dev.diagnosticsOn);
+      showToast(diagnostics ? t.dev.diagnosticsOff : t.dev.diagnosticsOn);
     }
   }
 
   async function handleExport() {
     try {
       const shared = await exportBackup();
-      if (!shared) Alert.alert(es.more.backupTitle, es.more.backupUnsupported);
+      if (!shared) Alert.alert(t.more.backupTitle, t.more.backupUnsupported);
     } catch (error) {
-      Alert.alert(es.more.backupTitle, userMessage('backup', error, es.more.backupFailed));
+      Alert.alert(t.more.backupTitle, userMessage('backup', error, t.more.backupFailed));
     }
   }
 
@@ -89,176 +90,196 @@ export default function MasScreen() {
       // A merge, never a wipe: rows are matched by id and the newer
       // updated_at wins, so restoring an old file cannot undo recent work.
       Alert.alert(
-        es.more.restoredTitle,
+        t.more.restoredTitle,
         result.kind === 'legacy'
-          ? es.more.restoredLegacy(describeCounts(result.counts))
-          : es.more.restoredMerge(result.counts.merged, result.counts.tables),
+          ? t.more.restoredLegacy(describeCounts(result.counts))
+          : t.more.restoredMerge(result.counts.merged, result.counts.tables),
       );
     } catch (error) {
-      Alert.alert(es.more.restoreTitle, userMessage('restore', error, es.more.restoreFailed));
+      Alert.alert(t.more.restoreTitle, userMessage('restore', error, t.more.restoreFailed));
     }
   }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <ScreenTitle title={es.more.title} size={34} sub={es.more.subtitle} />
+        <ScreenTitle title={t.more.title} size={34} sub={t.more.subtitle} />
 
-        <MoreSection title={es.more.garage} caption={es.more.garageCaption} style={styles.firstSection} />
+        <MoreSection title={t.more.garage} caption={t.more.garageCaption} style={styles.firstSection} />
         <NavRow
-          label={es.more.garageOpen}
-          caption={es.more.garageOpenCaption(data.vehicles.filter((v) => !v.isArchived).length, archived.length)}
+          label={t.more.garageOpen}
+          caption={t.more.garageOpenCaption(data.vehicles.filter((v) => !v.isArchived).length, archived.length)}
           onPress={() => router.push('/(tabs)/garaje')}
         />
         {activeVehicle ? (
           <NavRow
-            label={es.more.activeVehicle(activeVehicle.name)}
-            caption={es.more.activeVehicleCaption}
+            label={t.more.activeVehicle(activeVehicle.name)}
+            caption={t.more.activeVehicleCaption}
             onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id } })}
           />
         ) : null}
-        <PrimaryButton label={es.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
+        <PrimaryButton label={t.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
 
         {/* Chequeo left the tab bar for the Garaje (IMP 28092026); this is one of its four doors. */}
-        <MoreSection title={es.more.checksSection} />
-        <NavRow label={es.more.checks} caption={es.more.checksCaption} onPress={() => router.push('/chequeo')} />
-        <NavRow label={es.more.checkGuide} caption={es.more.checkGuideCaption} onPress={() => router.push('/chequeo/guia')} />
+        <MoreSection title={t.more.checksSection} />
+        <NavRow label={t.more.checks} caption={t.more.checksCaption} onPress={() => router.push('/chequeo')} />
+        <NavRow label={t.more.checkGuide} caption={t.more.checkGuideCaption} onPress={() => router.push('/chequeo/guia')} />
 
-        <MoreSection title={es.more.maintenance} />
+        <MoreSection title={t.more.maintenance} />
         <NavRow
-          label={es.more.service}
-          caption={es.more.serviceCaption}
+          label={t.more.service}
+          caption={t.more.serviceCaption}
           onPress={() => router.push('/servicio/nuevo')}
         />
         <NavRow
-          label={es.more.history}
-          caption={es.more.historyCaption}
+          label={t.more.history}
+          caption={t.more.historyCaption}
           onPress={() => router.push('/(tabs)/historial')}
         />
         <NavRow
-          label={es.more.reminders}
-          caption={es.more.remindersCaption}
+          label={t.more.reminders}
+          caption={t.more.remindersCaption}
           onPress={() => router.push('/recordatorios')}
         />
         <NavRow
-          label={es.catalog.title}
-          caption={es.catalog.caption}
+          label={t.catalog.title}
+          caption={t.catalog.caption}
           onPress={() => router.push('/catalogo')}
         />
         <NavRow
-          label={es.more.tasks}
-          caption={es.more.tasksCaption}
+          label={t.more.tasks}
+          caption={t.more.tasksCaption}
           onPress={() => router.push('/tareas')}
         />
 
-        <MoreSection title={es.more.fuelSection} />
+        <MoreSection title={t.more.fuelSection} />
         <NavRow
-          label={es.more.newFillUp}
-          caption={es.more.newFillUpCaption}
+          label={t.more.newFillUp}
+          caption={t.more.newFillUpCaption}
           onPress={() => router.push('/carga/nueva')}
         />
         <NavRow
-          label={es.more.prices}
-          caption={es.more.pricesCaption(data.settings.priceWeekLabel)}
+          label={t.more.prices}
+          caption={t.more.pricesCaption(data.settings.priceWeekLabel)}
           onPress={() => router.push('/precios')}
         />
         <NavRow
-          label={es.more.expense}
-          caption={es.more.expenseCaption}
+          label={t.more.expense}
+          caption={t.more.expenseCaption}
           onPress={() => router.push('/gasto/nuevo')}
         />
 
         {FEATURE_DIY ? (
           <>
-            <MoreSection title={es.diyMore.section} />
-            <NavRow label={es.diyMore.contacts} caption={es.diyMore.contactsCaption} onPress={() => router.push('/contactos')} />
-            <NavRow label={es.diyMore.obd} caption={es.diyMore.obdCaption} onPress={() => router.push('/obd')} />
-            {FEATURE_TRACK ? <NavRow label={es.track.more} caption={es.track.moreCaption} onPress={() => router.push('/pista')} /> : null}
-            {FEATURE_TRIPS ? <NavRow label={es.trips.more} caption={es.trips.moreCaption} onPress={() => router.push('/viajes')} /> : null}
+            <MoreSection title={t.diyMore.section} />
+            <NavRow label={t.diyMore.contacts} caption={t.diyMore.contactsCaption} onPress={() => router.push('/contactos')} />
+            <NavRow label={t.diyMore.obd} caption={t.diyMore.obdCaption} onPress={() => router.push('/obd')} />
+            {FEATURE_TRACK ? <NavRow label={t.track.more} caption={t.track.moreCaption} onPress={() => router.push('/pista')} /> : null}
+            {FEATURE_TRIPS ? <NavRow label={t.trips.more} caption={t.trips.moreCaption} onPress={() => router.push('/viajes')} /> : null}
           </>
         ) : null}
 
         {FEATURE_SHARE ? (
           <>
-            <MoreSection title={es.routes.share} />
-            <NavRow label={es.share.more} caption={es.share.moreCaption} onPress={() => router.push('/compartidos')} />
-            <NavRow label={es.members.haveCode} caption={es.members.acceptIntro} onPress={() => router.push({ pathname: '/invitacion/[code]', params: { code: '-' } })} />
+            <MoreSection title={t.routes.share} />
+            <NavRow label={t.share.more} caption={t.share.moreCaption} onPress={() => router.push('/compartidos')} />
+            <NavRow label={t.members.haveCode} caption={t.members.acceptIntro} onPress={() => router.push({ pathname: '/invitacion/[code]', params: { code: '-' } })} />
           </>
         ) : null}
 
-        <MoreSection title={es.more.documents} />
+        <MoreSection title={t.more.documents} />
         <NavRow
-          label={es.more.documents}
-          caption={es.more.documentsCaption}
+          label={t.more.documents}
+          caption={t.more.documentsCaption}
           onPress={() => router.push('/documentos')}
         />
 
-        <MoreSection title={es.more.account} />
+        <MoreSection title={t.more.account} />
         <NavRow
-          label={session ? es.account.signedInAs : es.account.signIn}
-          caption={session?.user.email ?? es.more.accountBody}
+          label={session ? t.account.signedInAs : t.account.signIn}
+          caption={session?.user.email ?? t.more.accountBody}
           onPress={() => router.push('/cuenta')}
           trailing={
             session ? (
               FEATURE_SYNC ? (
                 <SyncPill />
               ) : (
-                <StatusPill status="ok" label={es.more.active} />
+                <StatusPill status="ok" label={t.more.active} />
               )
             ) : undefined
           }
         />
 
         <MoreSection
-          title={es.more.data}
+          title={t.more.data}
           caption={
-            FEATURE_SYNC && session ? es.more.dataCaptionSynced : es.more.dataCaption
+            FEATURE_SYNC && session ? t.more.dataCaptionSynced : t.more.dataCaption
           }
         />
-        <PrimaryButton label={es.more.backup} onPress={handleExport} />
-        <GhostButton label={es.more.restore} onPress={handleImport} />
+        <PrimaryButton label={t.more.backup} onPress={handleExport} />
+        <GhostButton label={t.more.restore} onPress={handleImport} />
         <T face="body" style={[styles.meta, { color: theme.text.muted }]}>
-          {es.more.restoreCaption}
+          {t.more.restoreCaption}
         </T>
         <GhostButton
           danger
-          label={es.more.wipe}
+          label={t.more.wipe}
           onPress={() =>
-            Alert.alert(es.more.wipeTitle, es.more.wipeBody, [
-              { text: es.common.cancel, style: 'cancel' },
-              { text: es.common.delete, style: 'destructive', onPress: resetAll },
+            Alert.alert(t.more.wipeTitle, t.more.wipeBody, [
+              { text: t.common.cancel, style: 'cancel' },
+              { text: t.common.delete, style: 'destructive', onPress: resetAll },
             ])
           }
         />
 
-        <MoreSection title={es.more.appearance} caption={es.more.appearanceCaption} />
+        <MoreSection title={t.more.appearance} caption={t.more.appearanceCaption} />
         <Segmented<ThemePreference>
           options={[
-            { key: 'system', label: es.more.themes.system },
-            { key: 'dark', label: es.more.themes.dark },
-            { key: 'light', label: es.more.themes.light },
+            { key: 'system', label: t.more.themes.system },
+            { key: 'dark', label: t.more.themes.dark },
+            { key: 'light', label: t.more.themes.light },
           ]}
           value={preference}
           onChange={setPreference}
         />
 
-        <MoreSection title={es.more.notifications} />
+        {FEATURE_I18N ? (
+          <>
+            <MoreSection title={t.language.title} caption={t.language.caption} />
+            <Segmented<LanguagePreference>
+              options={[
+                { key: 'system', label: t.language.system },
+                { key: 'es', label: t.language.es },
+                { key: 'en', label: t.language.en },
+              ]}
+              value={language.preference}
+              onChange={(next) => {
+                // The navigator is keyed on the language (app/_layout.tsx), so the switch
+                // remounts it on Inicio; bring the person back to where they were.
+                language.setPreference(next);
+                setTimeout(() => appRouter.navigate('/(tabs)/mas'), 0);
+              }}
+            />
+          </>
+        ) : null}
+
+        <MoreSection title={t.more.notifications} />
         <NavRow
-          label={es.more.notifications}
-          caption={es.more.notificationsCaption}
+          label={t.more.notifications}
+          caption={t.more.notificationsCaption}
           onPress={() => router.push('/notificaciones')}
         />
 
-        <MoreSection title={es.more.about} />
-        {installOffer ? <NavRow label={es.install.more} caption={es.install.moreCaption} onPress={() => router.push('/instalar')} /> : null}
+        <MoreSection title={t.more.about} />
+        {installOffer ? <NavRow label={t.install.more} caption={t.install.moreCaption} onPress={() => router.push('/instalar')} /> : null}
         <NavRow
-          label={es.versions.more}
-          caption={versionUnseen ? es.versions.moreUnseen : es.versions.moreCaption}
+          label={t.versions.more}
+          caption={versionUnseen ? t.versions.moreUnseen : t.versions.moreCaption}
           onPress={() => router.push('/versiones')}
           trailing={
             versionUnseen ? (
               <View
-                accessibilityLabel={es.versions.moreUnseen}
+                accessibilityLabel={t.versions.moreUnseen}
                 style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.redline }}
               />
             ) : undefined
@@ -266,16 +287,16 @@ export default function MasScreen() {
         />
         {FEATURE_FEEDBACK ? (
           <NavRow
-            label={es.feedback.more}
-            caption={es.feedback.moreCaption}
+            label={t.feedback.more}
+            caption={t.feedback.moreCaption}
             onPress={() => router.push({ pathname: FEEDBACK_ROUTE, params: { from: '/mas' } })}
           />
         ) : null}
-        {isAdmin ? <NavRow label={es.admin.more} caption={es.admin.moreCaption} onPress={() => router.push('/admin')} /> : null}
+        {isAdmin ? <NavRow label={t.admin.more} caption={t.admin.moreCaption} onPress={() => router.push('/admin')} /> : null}
         <Surface>
           <Pressable onPress={tapVersion} accessibilityRole="text">
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
-              {es.more.version(version)}
+              {t.more.version(version)}
             </T>
           </Pressable>
           {notice ? (
@@ -285,14 +306,14 @@ export default function MasScreen() {
           ) : null}
           {gitSha ? (
             <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-              {es.more.build(gitSha)}
+              {t.more.build(gitSha)}
             </T>
           ) : null}
           <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
-            {es.more.aboutBody}
+            {t.more.aboutBody}
           </T>
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm, lineHeight: 17 }}>
-            {es.more.aboutCredits}
+            {t.more.aboutCredits}
           </T>
         </Surface>
       </ScrollView>

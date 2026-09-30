@@ -7,6 +7,7 @@
  * date the person's row wins — they saw the pump, the notice is a reference.
  */
 import { DEFAULT_PRICE_WEEK, DEFAULT_REFERENCE_PRICES, FUEL_ORDER } from '../fuel';
+import { t } from '../i18n';
 import type { FuelType, ReferencePrices, Settings } from '../types';
 import { foldText } from './text';
 
@@ -14,15 +15,16 @@ export type FuelPriceSource = 'micm' | 'estacion' | 'recibo' | 'app' | 'otro' | 
 
 export const FUEL_PRICE_SOURCES: FuelPriceSource[] = ['micm', 'estacion', 'recibo', 'app', 'otro', 'manual'];
 
-/** Chip text. `manual` is only the 2.3.x settings strings migrated in v8, never offered as a choice. */
-export const FUEL_PRICE_SOURCE_LABEL: Record<FuelPriceSource, string> = {
-  micm: 'MICM',
-  estacion: 'Estación',
-  recibo: 'Recibo',
-  app: 'App',
-  otro: 'Otro',
-  manual: 'Manual',
-};
+/** Chip text, in the current language. `manual` is only the 2.3.x settings strings migrated in v8, never offered as a choice. */
+export function fuelPriceSourceLabel(source: FuelPriceSource): string {
+  return t.priceSources.labels[source];
+}
+
+/** The same, as a record (getters over the dictionary, so it follows the language). */
+export const FUEL_PRICE_SOURCE_LABEL: Record<FuelPriceSource, string> = Object.defineProperties(
+  {} as Record<FuelPriceSource, string>,
+  Object.fromEntries(FUEL_PRICE_SOURCES.map((s) => [s, { get: () => fuelPriceSourceLabel(s), enumerable: true }])),
+);
 
 export type FuelPriceRow = {
   id: string;
@@ -281,8 +283,6 @@ export function series(
 // Bridge to the 2.3.x settings shape
 // ---------------------------------------------------------------------------
 
-const SHORT_MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-
 function parts(iso: string): { y: number; m: number; d: number } {
   const [y, m, d] = iso.split('-').map(Number);
   return { y, m: m - 1, d };
@@ -290,12 +290,13 @@ function parts(iso: string): { y: number; m: number; d: number } {
 
 /** "15–21 ago 2026", "25 sep – 2 oct 2026", "28 dic 2026 – 3 ene 2027", or one day "15 ago 2026". */
 export function weekRangeLabel(start: string, end?: string | null): string {
+  const months = t.priceSources.months;
   const a = parts(start);
-  if (!end || dayOf(end) === dayOf(start)) return `${a.d} ${SHORT_MONTHS[a.m]} ${a.y}`;
+  if (!end || dayOf(end) === dayOf(start)) return `${a.d} ${months[a.m]} ${a.y}`;
   const b = parts(end);
-  if (a.y !== b.y) return `${a.d} ${SHORT_MONTHS[a.m]} ${a.y} – ${b.d} ${SHORT_MONTHS[b.m]} ${b.y}`;
-  if (a.m !== b.m) return `${a.d} ${SHORT_MONTHS[a.m]} – ${b.d} ${SHORT_MONTHS[b.m]} ${b.y}`;
-  return `${a.d}–${b.d} ${SHORT_MONTHS[a.m]} ${a.y}`;
+  if (a.y !== b.y) return `${a.d} ${months[a.m]} ${a.y} – ${b.d} ${months[b.m]} ${b.y}`;
+  if (a.m !== b.m) return `${a.d} ${months[a.m]} – ${b.d} ${months[b.m]} ${b.y}`;
+  return `${a.d}–${b.d} ${months[a.m]} ${a.y}`;
 }
 
 /**
@@ -319,6 +320,6 @@ export function referencePricesFromBoard(
   }
   let priceWeekLabel = DEFAULT_PRICE_WEEK;
   if (newest?.origin === 'user' && newest.note.trim()) priceWeekLabel = newest.note.trim();
-  else if (newest) priceWeekLabel = `${weekRangeLabel(newest.date, newest.dateEnd)} (${FUEL_PRICE_SOURCE_LABEL[newest.source]})`;
+  else if (newest) priceWeekLabel = `${weekRangeLabel(newest.date, newest.dateEnd)} (${fuelPriceSourceLabel(newest.source)})`;
   return { referencePrices, priceWeekLabel };
 }

@@ -12,7 +12,7 @@ import { buildNumber, gitSha, installedVersion, releaseUrl, UPDATE_URL } from '@
 import { FEATURE_FEEDBACK } from '@/lib/flags';
 import { openFeedback } from '@/lib/feedback';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -36,14 +36,14 @@ export default function VersionesScreen() {
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <Surface>
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 12 }}>
-          {web ? es.versions.web : es.versions.current}
+          {web ? t.versions.web : t.versions.current}
         </T>
         <T face="display" style={[styles.version, { color: theme.text.primary }]}>
-          {es.versions.version(installedVersion ?? '—')}
+          {t.versions.version(installedVersion ?? '—')}
         </T>
         {buildNumber || gitSha ? (
           <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-            {[buildNumber ? es.versions.build(buildNumber) : null, gitSha ? es.versions.commit(gitSha) : null]
+            {[buildNumber ? t.versions.build(buildNumber) : null, gitSha ? t.versions.commit(gitSha) : null]
               .filter(Boolean)
               .join(' · ')}
           </T>
@@ -51,47 +51,52 @@ export default function VersionesScreen() {
         {web ? (
           <>
             <T face="body" style={[styles.caption, { color: theme.text.secondary }]}>
-              {es.versions.checkCaptionWeb}{' '}
+              {t.versions.checkCaptionWeb}{' '}
               <T
                 face="semibold"
                 accessibilityRole="link"
                 onPress={() => void Linking.openURL(UPDATE_URL)}
                 style={{ color: theme.accent, textDecorationLine: 'underline' }}>
-                {es.versions.releasesLink}
+                {t.versions.releasesLink}
               </T>
             </T>
           </>
         ) : (
           <>
             <T face="body" style={[styles.caption, { color: theme.text.secondary }]}>
-              {es.versions.checkCaption}
+              {t.versions.checkCaption}
             </T>
             <View style={{ marginTop: space.md }}>
-              <PrimaryButton label={es.versions.check} onPress={() => void Linking.openURL(UPDATE_URL)} />
+              <PrimaryButton label={t.versions.check} onPress={() => void Linking.openURL(UPDATE_URL)} />
             </View>
           </>
         )}
       </Surface>
-      {FEATURE_FEEDBACK ? <GhostButton label={es.feedback.more} onPress={() => openFeedback('bug')} /> : null}
+      {FEATURE_FEEDBACK ? <GhostButton label={t.feedback.more} onPress={() => openFeedback('bug')} /> : null}
 
       <T face="eyebrow" accessibilityRole="header" style={[styles.heading, { color: theme.accent }]}>
-        {es.versions.history}
+        {t.versions.history}
       </T>
-      {CHANGELOG.length === 0 ? <EmptyState icon="document-text-outline" message={es.versions.empty} /> : null}
+      {t.versions.notesLanguage ? (
+        <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginBottom: space.md }}>
+          {t.versions.notesLanguage}
+        </T>
+      ) : null}
+      {CHANGELOG.length === 0 ? <EmptyState icon="document-text-outline" message={t.versions.empty} /> : null}
       {CHANGELOG.map((entry) => (
         <Surface key={entry.version} style={styles.card}>
           <View style={styles.cardHead}>
             <T face="title" style={{ color: theme.text.primary, fontSize: 20, textTransform: 'uppercase' }}>
               {entry.name ? `${entry.version} — ${entry.name}` : entry.version}
             </T>
-            {entry === current ? <Badge tone="amber" label={es.versions.installed} /> : null}
+            {entry === current ? <Badge tone="amber" label={t.versions.installed} /> : null}
           </View>
           <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.md }}>
-            {entry.date ? dateLabel(`${entry.date}T12:00:00`) : es.versions.unreleased}
+            {entry.date ? dateLabel(`${entry.date}T12:00:00`) : t.versions.unreleased}
           </T>
           <ChangelogEntryView entry={entry} />
           {entry.date ? (
-            <GhostButton label={es.versions.notes} onPress={() => void Linking.openURL(releaseUrl(entry.version))} />
+            <GhostButton label={t.versions.notes} onPress={() => void Linking.openURL(releaseUrl(entry.version))} />
           ) : null}
         </Surface>
       ))}

@@ -5,7 +5,7 @@ import { T } from '@/components/T';
 import { Chip } from '@/components/ui';
 import { space } from '@/constants/theme';
 import type { Drivetrain, Transmission, VehicleOrigin } from '@/lib/db/types';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 export type IdentityValue = {
@@ -31,38 +31,38 @@ export function IdentitySection({ value, onChange }: { value: IdentityValue; onC
 
   return (
     <>
-      <Field label={es.vehicle.nickname} placeholder={es.vehicle.nicknamePlaceholder} value={value.nickname} onChangeText={(t) => set('nickname', t)} />
+      <Field label={t.vehicle.nickname} placeholder={t.vehicle.nicknamePlaceholder} value={value.nickname} onChangeText={(x) => set('nickname', x)} />
       <View style={styles.pair}>
         <View style={styles.half}>
           <Field
-            label={es.vehicle.chassisCode}
+            label={t.vehicle.chassisCode}
             placeholder="AE85"
             autoCapitalize="characters"
             value={value.chassisCode}
-            onChangeText={(t) => set('chassisCode', t)}
+            onChangeText={(x) => set('chassisCode', x)}
           />
         </View>
         <View style={styles.half}>
-          <Field label={es.vehicle.engineCode} placeholder="4A-GE 20V" value={value.engineCode} onChangeText={(t) => set('engineCode', t)} />
+          <Field label={t.vehicle.engineCode} placeholder="4A-GE 20V" value={value.engineCode} onChangeText={(x) => set('engineCode', x)} />
         </View>
       </View>
       <Field
-        label={es.vehicle.chassisNumber}
-        hint={es.vehicle.chassisNumberHint}
+        label={t.vehicle.chassisNumber}
+        hint={t.vehicle.chassisNumberHint}
         autoCapitalize="characters"
         value={value.chassisNumber}
-        onChangeText={(t) => set('chassisNumber', t)}
+        onChangeText={(x) => set('chassisNumber', x)}
       />
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicle.transmission}
+        {t.vehicle.transmission}
       </T>
       <View style={styles.row}>
-        {TRANSMISSIONS.map((t) => (
-          <Chip key={t} label={es.transmissions[t]} selected={value.transmission === t} onPress={() => set('transmission', value.transmission === t ? null : t)} />
+        {TRANSMISSIONS.map((x) => (
+          <Chip key={x} label={t.transmissions[x]} selected={value.transmission === x} onPress={() => set('transmission', value.transmission === x ? null : x)} />
         ))}
       </View>
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicle.drivetrain}
+        {t.vehicle.drivetrain}
       </T>
       <View style={styles.row}>
         {DRIVETRAINS.map((d) => (
@@ -70,21 +70,21 @@ export function IdentitySection({ value, onChange }: { value: IdentityValue; onC
         ))}
       </View>
       <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {es.vehicle.origin}
+        {t.vehicle.origin}
       </T>
       <View style={styles.row}>
         {ORIGINS.map((o) => (
-          <Chip key={o} label={es.origins[o]} selected={value.origin === o} onPress={() => set('origin', value.origin === o ? null : o)} />
+          <Chip key={o} label={t.origins[o]} selected={value.origin === o} onPress={() => set('origin', value.origin === o ? null : o)} />
         ))}
       </View>
       <Field
-        label={es.vehicle.importedYear}
+        label={t.vehicle.importedYear}
         placeholder="2012"
         keyboardType="number-pad"
         value={value.importedYear}
-        onChangeText={(t) => set('importedYear', t)}
+        onChangeText={(x) => set('importedYear', x)}
       />
-      <Field label={es.vehicle.story} placeholder={es.vehicle.storyPlaceholder} value={value.story} onChangeText={(t) => set('story', t)} multiline />
+      <Field label={t.vehicle.story} placeholder={t.vehicle.storyPlaceholder} value={value.story} onChangeText={(x) => set('story', x)} multiline />
     </>
   );
 }

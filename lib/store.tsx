@@ -12,6 +12,7 @@ import {
 } from './db/repos';
 import { referencePricesNow, savePriceBoard } from './db/priceOps';
 import { resetDatabase } from './db/reset';
+import { armSlowQueries } from './dev/slowQueries';
 import { seedCatalog } from './db/seed';
 import { purgeOldTripPoints } from './db/tripOps';
 import { deleteVehicleCascade } from './db/vehicleOps';
@@ -232,6 +233,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
       await load();
       if (!cancelled) setReady(true);
+      if (__DEV__) armSlowQueries();
     })().catch((error: unknown) => {
       // A database that cannot open is not recoverable from here; the app still
       // renders so the user can export or reset rather than facing a blank

@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { T } from '@/components/T';
 import { space } from '@/constants/theme';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
 export default function NotFoundScreen() {
@@ -11,17 +11,17 @@ export default function NotFoundScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: es.notFound.title }} />
+      <Stack.Screen options={{ title: t.notFound.title }} />
       <View style={[styles.container, { backgroundColor: theme.bg.base }]}>
         <T face="display" style={[styles.title, { color: theme.text.primary }]}>
-          {es.notFound.title}
+          {t.notFound.title}
         </T>
         <T face="body" style={[styles.body, { color: theme.text.secondary }]}>
-          {es.notFound.body}
+          {t.notFound.body}
         </T>
         <Link href="/" style={styles.link}>
           <T face="title" style={{ color: theme.accent, fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' }}>
-            {es.notFound.back}
+            {t.notFound.back}
           </T>
         </Link>
       </View>

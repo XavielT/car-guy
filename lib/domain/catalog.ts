@@ -10,7 +10,7 @@
  * Every id is a stable slug. They are foreign keys in user data from the first
  * install, so an id here may never be renamed — add a new one and retire the old.
  */
-import type { AppliesTo, Cadence, ServiceCategory, TemplateVehicleType } from '../db/types';
+import type { AppliesTo, Cadence, LegalKind, ServiceCategory, TemplateVehicleType } from '../db/types';
 
 export { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS } from '../db/types';
 
@@ -61,6 +61,23 @@ export const SERVICE_TYPES: ServiceTypeSeed[] = [
   { id: 'lavado', name: 'Lavado y detallado', category: 'carroceria', km: null, months: null, appliesTo: 'all', seedReminder: false },
   { id: 'otro', name: 'Otro', category: 'otro', km: null, months: null, appliesTo: 'all', seedReminder: false },
 ];
+
+/**
+ * The DR legal reminders every vehicle starts with (seedVehicleDefaults). Only
+ * the texts live here — the dates and intervals are the seeder's.
+ */
+export type LegalReminderSeed = { kind: LegalKind; title: string; notes: string };
+
+export const LEGAL_REMINDERS: LegalReminderSeed[] = [
+  { kind: 'marbete', title: 'Marbete', notes: 'La ventana abre a finales de octubre y cierra el 31 de enero.' },
+  { kind: 'seguro', title: 'Seguro', notes: 'Pon la fecha de vencimiento de tu póliza.' },
+  { kind: 'licencia', title: 'Licencia de conducir', notes: 'Revisa multas pendientes antes de renovar.' },
+  { kind: 'revision_tecnica', title: 'Revisión técnica', notes: 'Pendiente de implementación por INTRANT.' },
+];
+
+export function legalReminder(kind: LegalReminderSeed['kind']): LegalReminderSeed {
+  return LEGAL_REMINDERS.find((r) => r.kind === kind)!;
+}
 
 export type InspectionItemSeed = {
   group: string;

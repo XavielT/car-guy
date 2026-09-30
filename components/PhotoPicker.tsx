@@ -4,7 +4,7 @@ import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, View } from 
 
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { recordError, recordReportable } from '@/lib/diagnostics';
 import { pickCandidates, storePhoto, type Candidate } from '@/lib/media';
 import { useMediaUri } from '@/lib/media/useMediaUri';
@@ -62,9 +62,9 @@ export function PhotoPicker({
       // The raw text (a Kotlin stack, often) is for the diagnostics, never the screen.
       recordReportable('photo', error);
       if (!mounted.current) return;
-      Alert.alert(es.common.photoErrorTitle, es.common.photoErrorRetry, [
-        { text: es.common.cancel, style: 'cancel' },
-        { text: es.common.retry, onPress: () => void store(candidate, camera) },
+      Alert.alert(t.common.photoErrorTitle, t.common.photoErrorRetry, [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.common.retry, onPress: () => void store(candidate, camera) },
       ]);
     } finally {
       if (mounted.current) setBusy(false);
@@ -79,7 +79,7 @@ export function PhotoPicker({
       [candidate] = await pickCandidates({ camera });
     } catch (error) {
       recordReportable('photo-pick', error);
-      Alert.alert(es.common.photoErrorTitle, es.common.photoPickError);
+      Alert.alert(t.common.photoErrorTitle, t.common.photoPickError);
       return;
     }
     if (candidate) await store(candidate, camera);
@@ -104,7 +104,7 @@ export function PhotoPicker({
     return (
       <View style={[styles.empty, { height, borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
         <ActivityIndicator color={theme.text.muted} />
-        <T style={[styles.actionLabel, { color: theme.text.muted }]}>{es.common.photoSaving}</T>
+        <T style={[styles.actionLabel, { color: theme.text.muted }]}>{t.common.photoSaving}</T>
       </View>
     );
   }
@@ -121,11 +121,11 @@ export function PhotoPicker({
         <Pressable
           onPress={() => onChange(null)}
           accessibilityRole="button"
-          accessibilityLabel={es.common.removePhoto}
+          accessibilityLabel={t.common.removePhoto}
           style={styles.removeButton}>
           <Ionicons name="close" size={16} color={theme.text.secondary} />
           <T face="semibold" style={[styles.removeLabel, { color: theme.text.secondary }]}>
-            {es.common.removePhoto}
+            {t.common.removePhoto}
           </T>
         </Pressable>
       </View>
@@ -142,7 +142,7 @@ export function PhotoPicker({
             accessibilityRole="button"
             style={[styles.action, { borderColor: theme.line }]}>
             <T face="semibold" style={[styles.actionLabel, { color: theme.text.primary }]}>
-              {es.common.takePhoto}
+              {t.common.takePhoto}
             </T>
           </Pressable>
         ) : null}
@@ -151,7 +151,7 @@ export function PhotoPicker({
           accessibilityRole="button"
           style={[styles.action, { borderColor: theme.line }]}>
           <T face="semibold" style={[styles.actionLabel, { color: theme.text.primary }]}>
-            {es.common.choosePhoto}
+            {t.common.choosePhoto}
           </T>
         </Pressable>
       </View>

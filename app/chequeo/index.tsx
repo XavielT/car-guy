@@ -3,16 +3,19 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CheckSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
 import { EmptyState, GaugeRing, GhostButton, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { baseTemplateId, setTemplateEnabled, templatesForVehicle } from '@/lib/db/inspectionOps';
 import { inspections as inspectionRepo, vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Inspection, InspectionTemplate } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { isDue, latestRun, weeklyStreak } from '@/lib/domain/inspections';
 import { dateLabel } from '@/lib/format';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
+import { catalogLabel } from '@/lib/i18n/catalog';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -30,6 +33,9 @@ export default function ChequeoScreen() {
 
   const [templates, setTemplates] = useState<InspectionTemplate[]>([]);
   const [runs, setRuns] = useState<Inspection[]>([]);
+  // The first read only: "nothing due" and the empty state wait for it, so they
+  // no longer flash before the templates arrive (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const vehicleId = activeVehicle?.id;
 
@@ -48,13 +54,25 @@ export default function ChequeoScreen() {
       if (cancelled) return;
       setTemplates(mine);
       setRuns(history);
-    })().catch(() => {});
+      setLoaded(true);
+    })().catch(() => {
+      if (!cancelled) setLoaded(true);
+    });
     return () => {
       cancelled = true;
     };
   }, [vehicleId, data]);
 
+  const showSkeleton = useDelayedLoading(!loaded);
+
   if (!activeVehicle) return null;
+  if (showSkeleton || !loaded) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['bottom']}>
+        {showSkeleton ? <CheckSkeleton /> : null}
+      </SafeAreaView>
+    );
+  }
 
   const today = todayIso();
   const mine = templates;
@@ -81,14 +99,14 @@ export default function ChequeoScreen() {
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <T face="eyebrow" style={[styles.eyebrow, { color: theme.accent }]}>
-              {es.check.todayTitle}
+              {t.check.todayTitle}
               <T face="kana" style={[styles.kana, { color: theme.text.muted }]}>
                 {' 点検'}
               </T>
             </T>
             {due.length === 0 ? (
               <T face="body" style={{ color: theme.text.secondary, fontSize: 14 }}>
-                {es.check.nothingDue}
+                {t.check.nothingDue}
               </T>
             ) : null}
           </View>
@@ -97,7 +115,7 @@ export default function ChequeoScreen() {
               progress={Math.min(1, streak / 4)}
               size={84}
               value={String(streak)}
-              label={es.check.streakLabel(streak)}
+              label={t.check.streakLabel(streak)}
               color={theme.status.ok}
             />
           ) : null}
@@ -106,16 +124,16 @@ export default function ChequeoScreen() {
         {due.map((template) => (
           <Surface key={template.id} style={{ marginBottom: space.md }}>
             <T face="display" style={{ color: theme.text.primary, fontSize: 22, textTransform: 'uppercase' }}>
-              {template.name}
+              {catalogLabel('inspectionTemplate', template)}
             </T>
             <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2, marginBottom: space.md }}>
-              {es.check.cadences[template.cadence]} ·{' '}
+              {t.check.cadences[template.cadence]} ·{' '}
               {latestRun(runsFor(template.id))
-                ? es.check.lastRun(dateLabel(latestRun(runsFor(template.id))!.occurredAt))
-                : es.check.never}
+                ? t.check.lastRun(dateLabel(latestRun(runsFor(template.id))!.occurredAt))
+                : t.check.never}
             </T>
             <PrimaryButton
-              label={es.check.start}
+              label={t.check.start}
               onPress={() =>
                 router.push({ pathname: '/chequeo/[templateId]/run', params: { templateId: template.id } })
               }
@@ -124,7 +142,7 @@ export default function ChequeoScreen() {
         ))}
 
         <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-          {es.check.templates}
+          {t.check.templates}
         </T>
         {mine.map((template) => (
           <View key={template.id} style={[styles.templateRow, { borderColor: theme.line }]}>
@@ -138,30 +156,30 @@ export default function ChequeoScreen() {
               accessibilityRole="button"
               style={{ flex: 1, opacity: template.isEnabled ? 1 : 0.5 }}>
               <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
-                {template.name}
+                {catalogLabel('inspectionTemplate', template)}
               </T>
               <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                {es.check.cadences[template.cadence]}
-                {template.isEnabled ? '' : ` · ${es.check.disabled}`}
+                {t.check.cadences[template.cadence]}
+                {template.isEnabled ? '' : ` · ${t.check.disabled}`}
               </T>
             </Pressable>
             <Pressable
               onPress={() => toggle(template)}
               accessibilityRole="switch"
               accessibilityState={{ checked: template.isEnabled }}
-              accessibilityLabel={`${template.name}: ${template.isEnabled ? es.check.turnOff : es.check.turnOn}`}
+              accessibilityLabel={`${catalogLabel('inspectionTemplate', template)}: ${template.isEnabled ? t.check.turnOff : t.check.turnOn}`}
               hitSlop={8}>
               <T face="title" style={[styles.action, { color: theme.text.secondary }]}>
-                {template.isEnabled ? es.check.turnOff : es.check.turnOn}
+                {template.isEnabled ? t.check.turnOff : t.check.turnOn}
               </T>
             </Pressable>
             <Pressable
               onPress={() => router.push({ pathname: '/chequeo/plantillas/[id]', params: { id: template.id } })}
               accessibilityRole="button"
-              accessibilityLabel={`${es.check.edit} ${template.name}`}
+              accessibilityLabel={`${t.check.edit} ${catalogLabel('inspectionTemplate', template)}`}
               hitSlop={8}>
               <T face="title" style={[styles.action, { color: theme.accent }]}>
-                {es.check.edit}
+                {t.check.edit}
               </T>
             </Pressable>
           </View>
@@ -170,7 +188,7 @@ export default function ChequeoScreen() {
         {runs.length ? (
           <>
             <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-              {es.check.recent}
+              {t.check.recent}
             </T>
             {runs.slice(0, 8).map((run) => (
               <Pressable
@@ -180,7 +198,7 @@ export default function ChequeoScreen() {
                 style={[styles.runRow, { borderColor: theme.line }]}>
                 <View style={{ flex: 1 }}>
                   <T face="semibold" style={{ color: theme.text.primary, fontSize: 13 }}>
-                    {nameOf(run.templateId) || es.check.title}
+                    {nameOf(run.templateId) || t.check.title}
                   </T>
                   <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
                     {dateLabel(run.occurredAt)}
@@ -188,7 +206,7 @@ export default function ChequeoScreen() {
                 </View>
                 <StatusPill
                   status={run.status === 'ok' ? 'ok' : run.status === 'con_avisos' ? 'proximo' : 'urgente'}
-                  label={run.status === 'ok' ? es.check.resultAllGood : run.status === 'con_avisos' ? es.check.withWarnings : es.check.withFails}
+                  label={run.status === 'ok' ? t.check.resultAllGood : run.status === 'con_avisos' ? t.check.withWarnings : t.check.withFails}
                 />
               </Pressable>
             ))}
@@ -196,11 +214,11 @@ export default function ChequeoScreen() {
         ) : null}
 
         {mine.length === 0 ? (
-          <EmptyState icon="clipboard-outline" message={es.check.nothingDue} />
+          <EmptyState icon="clipboard-outline" message={t.check.nothingDue} />
         ) : null}
 
         <View style={{ height: space.lg }} />
-        <GhostButton label={es.check.guide} onPress={() => router.push('/chequeo/guia')} />
+        <GhostButton label={t.check.guide} onPress={() => router.push('/chequeo/guia')} />
       </ScrollView>
     </SafeAreaView>
   );

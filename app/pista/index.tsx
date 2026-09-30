@@ -3,12 +3,14 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { BestsStrip, EventCard } from '@/components/track/TrackPieces';
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { Chip, EmptyState, PrimaryButton } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listEvents, vehicleBests, type EventCard as Card, type PersonalBest } from '@/lib/db/trackQueries';
 import { todayIso } from '@/lib/domain/dates';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -25,6 +27,8 @@ export default function TrackIndexScreen() {
   const [filter, setFilter] = useState<string | null>(vehicleId ?? null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [bests, setBests] = useState<PersonalBest[]>([]);
+  // Settled once the first read answers (or fails): the skeleton is for that read only (ADR-40).
+  const [settled, setSettled] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,40 +37,42 @@ export default function TrackIndexScreen() {
         if (cancelled) return;
         setCards(c);
         setBests(b);
-      });
+      }).finally(() => !cancelled && setSettled(true));
       return () => {
         cancelled = true;
       };
     }, [filter]),
   );
 
+  const showSkeleton = useDelayedLoading(!settled);
+
   const today = todayIso().slice(0, 10);
-  const upcoming = (cards ?? []).filter((c) => c.event.occurredAt.slice(0, 10) > today).reverse();
-  const past = (cards ?? []).filter((c) => c.event.occurredAt.slice(0, 10) <= today);
+  const upcoming = (showSkeleton ? [] : (cards ?? [])).filter((c) => c.event.occurredAt.slice(0, 10) > today).reverse();
+  const past = (showSkeleton ? [] : (cards ?? [])).filter((c) => c.event.occurredAt.slice(0, 10) <= today);
   const vehicles = data.vehicles.filter((v) => !v.isArchived);
   const open = (id: string) => router.push({ pathname: '/pista/evento/[id]', params: { id } });
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
-        {es.track.eyebrow}
+        {t.track.eyebrow}
       </T>
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
-        {es.track.title}
+        {t.track.title}
       </T>
       {vehicles.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>
-          <Chip label={es.history.all} selected={!filter} onPress={() => setFilter(null)} />
+          <Chip label={t.history.all} selected={!filter} onPress={() => setFilter(null)} />
           {vehicles.map((v) => (
             <Chip key={v.id} label={v.name} selected={filter === v.id} onPress={() => setFilter(v.id)} />
           ))}
         </ScrollView>
       ) : null}
-      <BestsStrip bests={bests} />
-      {cards && !cards.length ? <EmptyState icon="speedometer-outline" message={es.track.empty} /> : null}
+      {showSkeleton ? <ListCardsSkeleton section n={4} pad={space.md} r={radius.button} eyebrow lines={1} titleWidth="65%" /> : <BestsStrip bests={bests} />}
+      {cards && !cards.length && !showSkeleton ? <EmptyState icon="speedometer-outline" message={t.track.empty} /> : null}
       {upcoming.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-          {es.track.upcoming}
+          {t.track.upcoming}
         </T>
       ) : null}
       {upcoming.map((c) => (
@@ -74,13 +80,13 @@ export default function TrackIndexScreen() {
       ))}
       {past.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm, marginTop: upcoming.length ? space.md : 0 }}>
-          {es.track.past}
+          {t.track.past}
         </T>
       ) : null}
       {past.map((c) => (
         <EventCard key={c.event.id} card={c} onPress={() => open(c.event.id)} />
       ))}
-      <PrimaryButton label={es.track.newEvent} onPress={() => router.push({ pathname: '/pista/evento/nuevo', params: filter ? { vehicleId: filter } : {} })} />
+      <PrimaryButton label={t.track.newEvent} onPress={() => router.push({ pathname: '/pista/evento/nuevo', params: filter ? { vehicleId: filter } : {} })} />
     </ScrollView>
   );
 }

@@ -3,13 +3,15 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { DtcCard, DtcEventRow, DtcLogSheet } from '@/components/diy/DtcPieces';
+import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { PrimaryButton } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listDtcEvents } from '@/lib/db/diyQueries';
 import type { VehicleDtcEvent } from '@/lib/db/types';
 import { lookup, normalizeCode } from '@/lib/domain/dtc';
-import { es } from '@/lib/i18n/es';
+import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -21,9 +23,15 @@ export default function ObdCodeScreen() {
   const code = normalizeCode(raw ?? '') ?? (raw ?? '').toUpperCase();
   const [events, setEvents] = useState<VehicleDtcEvent[]>([]);
   const [logging, setLogging] = useState(false);
+  // The "no codes logged" line waits for the first read instead of flashing (ADR-40).
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
-    setEvents(await listDtcEvents({ code, ...(vehicleId ? { vehicleId } : {}) }));
+    try {
+      setEvents(await listDtcEvents({ code, ...(vehicleId ? { vehicleId } : {}) }));
+    } finally {
+      setLoaded(true);
+    }
   }, [code, vehicleId]);
 
   useFocusEffect(
@@ -32,20 +40,23 @@ export default function ObdCodeScreen() {
     }, [load]),
   );
 
+  const showSkeleton = useDelayedLoading(!loaded);
+
   const names = Object.fromEntries(data.vehicles.map((v) => [v.id, v.name]));
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <DtcCard dtc={lookup(code)} code={code} />
-      <PrimaryButton label={es.obd.log} onPress={() => setLogging(true)} />
+      <PrimaryButton label={t.obd.log} onPress={() => setLogging(true)} />
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
-        {es.obd.events}
+        {t.obd.events}
       </T>
-      {!events.length ? (
+      {showSkeleton ? <ListCardsSkeleton n={3} pad={space.md} r={radius.input} titleWidth="30%" lines={2} /> : null}
+      {loaded && !showSkeleton && !events.length ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 13 }}>
-          {es.obd.noEvents}
+          {t.obd.noEvents}
         </T>
       ) : null}
-      {events.map((e) => (
+      {(showSkeleton ? [] : events).map((e) => (
         <DtcEventRow key={e.id} event={e} vehicleName={names[e.vehicleId]} onChanged={() => void load()} />
       ))}
       <DtcLogSheet
