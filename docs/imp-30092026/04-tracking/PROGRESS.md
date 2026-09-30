@@ -146,6 +146,11 @@ Phase 0 wrote the tool: on the trip screen, **long-press the route card** → sh
 point count, largest gap between fixes, median interval and accuracy, raw vs saved distance). It ships in the
 2.3.1 build (Phase 1); Xaviel exports his straight-line trip and the answer lands here.
 
+**2026-09-30, after installing 2.3.1:** the Redmi has **no trips** (Viajes empty; the pre-install backup has
+`trip: 0`), so the straight-line trip is gone and cannot be exported. Carried: after his next short drive,
+long-press its route card and send the `.geojson`; until then 5(b) ships on the audit's reading (drawing, not
+recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
+
 ## Decisions made along the way
 
 - Phase 0: the seed's three events (C3 accident, DS3 overheat, mirror) are written in Phase 2 with the v8
@@ -154,6 +159,9 @@ point count, largest gap between fixes, median interval and accuracy, raw vs sav
   `reserve_volume_l`, default 10 %); the chip only renames it, puts the needle at E and adds the caption.
 - Phase 1: "≈ por echada" shows only when the fill-up has no measured km/gal (a partial, or a full tank whose
   previous fill was partial); a measured full-to-full value is never shown twice.
+- Phase 1: "≈ por echada" hides a figure outside 0.6–1.6× the car's own economy (full-to-full median, else
+  the per-fill median of ≥ 3). On the DS3's real logs the plain formula read ≈ 131 km/gal (RD$ 1,000 after
+  422 km) and ≈ 60.8; both are now hidden, ≈ 33.8 stays. The spec's formula is kept; only the display filters.
 - Phase 1: the dedupe compares against rows *created* in the last 60 s (not by the fill-up's date), so
   entering an old receipt twice in a row is caught too; "Ver" opens the saved one.
 - Phase 1: editing keeps the original `createdAt` (was overwritten — the Phase 0 finding).
@@ -240,8 +248,12 @@ point count, largest gap between fixes, median interval and accuracy, raw vs sav
 - [x] tsc, lint, jest (80 suites, 1208 tests).
 - [x] Web: save → detail with the notice; one row per save; a second tap while saving is ignored; the same
   fill-up again < 60 s → "Esta echada ya se guardó"; Petronan saved; partial review + Historial show ≈.
-- [ ] Redmi over 2.3.0 with the real data (backup first).
-- [ ] Trip export finding.
+- [x] Redmi over 2.3.0 with the real data — backup `~/car-guy-backups/car-guy-2026-09-30-pre-2.3.1.json` (13
+  vehicles, 13 fill-ups) first; Novedades 2.3.1; Historial ≈ tags; detail of the 23 Sep partial (≈ 33.8,
+  aproximado); editor shows "Solo la luz de reserva" and the station sheet (Tus estaciones: TotalEnergies,
+  then the brands incl. Petronan); nothing saved in his garage — the save/dedupe path was checked on web.
+  The ≈ 131 km/gal found here → the plausibility band (rebuilt).
+- [ ] Trip export finding — no trip on the phone; carried to his next drive.
 - [ ] GitHub release v2.3.1, merge, tag, push; smoke-apk 3/3.
 
 ### Notes closed
