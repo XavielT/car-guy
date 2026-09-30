@@ -536,8 +536,9 @@ Built by me plus two helper agents working on separate files (oil; check photos)
 - [x] Web: start/stop/list/detail render (`docs/qa/imp-29092026-phase-5a-web-speed-cluster.png`,
   `…-web-trip-detail.png`).
 - [x] GPX playback — on the Redmi through `cmd location` test providers instead (2026-09-30); an AVD did not fit the disk.
-- [ ] Redmi: manual trip + 300 m walk → "Viaje muy corto" toast. The test build with the location plugin was
-  installed (2026-09-29 19:35) but location was never granted — the laptop crashed there.
+- [x] Redmi: manual trip + 300 m walk (fake GPS, 1.7 m/s for 3 min, run as an on-phone script so a Wi-Fi drop
+  cannot leave the fake provider on) → not saved as a trip, as designed (< 500 m). 2026-09-30,
+  `docs/qa/imp-29092026-phase-5a-redmi-walk-discard.png`.
 
 ### Flags flipped
 - FEATURE_TRIPS: dev + test variant only (the release build keeps it off until 5B's drive).
