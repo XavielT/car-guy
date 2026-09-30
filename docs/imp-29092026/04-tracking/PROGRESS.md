@@ -112,18 +112,18 @@ untracked `README-1.md`. Nothing deployed from here; Phase 7 points the button a
 |---|---|---|---|
 | 1 | A Car Guy account can still sign in to **Music Hub** (it checks invites at signup only) | medium | Music Hub repo change: refuse accounts that have a `carguy.profiles` row and no invite. Not done — other repo |
 | 1 | The recovery email is Supabase's generic English template ("Reset your password"), project-level on x-core | low | Changing it changes Music Hub's email too; a neutral Spanish/English one could serve both |
-| 1 | No hook-testing library, so useSession's event-order guard is verified on the phone only | low | add `@testing-library/react-native` when a phase needs hook tests |
-| 2 | Native (Android) run of migration v6 not done: no AVD on this laptop, disk 91 % full; the Redmi holds the real garage | medium | before 2.2 ships: create an AVD (~1.5 GB) or install a preview build on a second phone; Phase 7's release check covers it at the latest |
-| 2 | Economy unit L/100 km is stored and has its maths (units.ts) but screens show km per the vehicle's *volume* unit (km/gal or km/L) | low | Phase 3's unit picker decides; `economyFromKmPerLiter` + `higherIsBetter` are ready |
+| 1 | No hook-testing library, so useSession's event-order guard is verified on the phone only | low | add `@testing-library/react-native` when a phase needs hook tests **✗ tried @testing-library/react-native 14 on 2026-09-30: fails to load under RN 0.86 (`loadUnpackers`) — kept out** |
+| 2 | Native (Android) run of migration v6 not done: no AVD on this laptop, disk 91 % full; the Redmi holds the real garage | medium | before 2.2 ships: create an AVD (~1.5 GB) or install a preview build on a second phone; Phase 7's release check covers it at the latest **✅ done by the 2.2.0 upgrade (2026-09-30)** |
+| 2 | Economy unit L/100 km is stored and has its maths (units.ts) but screens show km per the vehicle's *volume* unit (km/gal or km/L) | low | Phase 3's unit picker decides; `economyFromKmPerLiter` + `higherIsBetter` are ready **✅ selectable per vehicle since 2.2.3** |
 | 2 | A 2.1.x device editing a v6 fuel row rewrites the gallons only; the bridge detects the stale liters and trusts the gallons — but `schema_hint` stays 'v6' on that row, so *other* 2.1.x devices keep skipping it | low | acceptable while Xaviel is the only multi-device user; 2.2 re-stamps it on its next push |
-| 2 | New settings keys (garage_layout, trips_*) are local: not in SYNCED_SETTING_KEYS yet | low | Phases 5/6 decide which travel |
-| 3 | Public dossier does not show the status: vehicle_share has no "estado" option | low | needs a share column + public_dossier() change (cloud) — with Phase 6 or 7 |
+| 2 | New settings keys (garage_layout, trips_*) are local: not in SYNCED_SETTING_KEYS yet | low | Phases 5/6 decide which travel **✅ garage_layout synced (Phase 6); trips_* stay per phone by design** |
+| 3 | Public dossier does not show the status: vehicle_share has no "estado" option | low | needs a share column + public_dossier() change (cloud) — with Phase 6 or 7 **✅ sql/022, 2.2.1** |
 | 3 | Gallery reorder is "Mover ←/→" in the photo's sheet, not drag | low | same on native and web and reachable with a screen reader; drag can come with Phase 6's garage |
-| 3 | Garaje card badge sits on the cover photo and can be hard to read (outline on a busy photo) | low | Phase 6 restyles the cards |
-| 4 | Estimate bands on the chart are a light halo around the hollow dot, not a true whisker (gifted-charts gives the custom marker no y-scale) | low | the numbers are in the review sheet; a whisker needs a custom SVG layer |
+| 3 | Garaje card badge sits on the cover photo and can be hard to read (outline on a busy photo) | low | Phase 6 restyles the cards **✅ Garaje v2 restyled the cards (Phase 6)** |
+| 4 | Estimate bands on the chart are a light halo around the hollow dot, not a true whisker (gifted-charts gives the custom marker no y-scale) | low | the numbers are in the review sheet; a whisker needs a custom SVG layer **✅ real whiskers since Phase 4's fix commit** |
 | 4 | Headline economy averages are distance-weighted now (Σkm/Σvol, research §1.5): a garage's average moves slightly from 2.1.x's mean of ratios | low | intended by the spec; say so in the 2.2 changelog |
-| 4 | Capacity calibration (§1.4 "tu tanque parece aceptar ≈ X L más") not built | low | needs a few full tanks with a before-reading to be meaningful |
-| 4 | No render/snapshot test for GaugePicker (no react testing library in the repo) | low | verified by the web flow and screenshot |
+| 4 | Capacity calibration (§1.4 "tu tanque parece aceptar ≈ X L más") not built | low | needs a few full tanks with a before-reading to be meaningful **✅ capacityHint in Cifras (Phase 4 fix)** |
+| 4 | No render/snapshot test for GaugePicker (no react testing library in the repo) | low | verified by the web flow and screenshot **✗ same RNTL problem; covered by the web flow and the Redmi** |
 
 ## Blockers
 
@@ -336,7 +336,7 @@ newest auth event`
 - [x] Web, same seeded garage in 2.1.3 (main worktree) and Phase 2: Inicio, Cifras, Historial text
   byte-identical for AE85 and DS3 (partials included); the same new fill-up gives an identical review sheet
   and Historial. `docs/qa/imp-29092026-phase-2-units-before-after.png`.
-- [ ] Android native run of v6 — no emulator image, and the Redmi is the real garage (see Observed).
+- [x] Android native run of v6 — done 2026-09-30 by the 2.2.0 upgrade over 2.1.3 on the Redmi with Xaviel's real garage (backup first).
 - [x] tsc, lint, 917 tests.
 
 ### Decisions made (defaults applied)
@@ -416,7 +416,7 @@ Built by me plus two helper agents working on separate files (oil; check photos)
 - [x] Service "Aceite de motor" 5W-30 sintético Castrol → Historial "5W-30 sintético · Castrol" (agent's web run).
 - [x] Check with a falla + 2 photos → result thumbs, Historial "Chequeo · con fallas · 📷 2", album CHEQUEO
   card (`docs/qa/imp-29092026-phase-3-check-photos.png`).
-- [ ] Android — same situation as Phase 2 (no AVD; the Redmi holds the real garage).
+- [x] Android — the Redmi runs these forms since 2.2.0 (2026-09-30).
 - [x] tsc, lint, 975 tests.
 
 ### Decisions made (defaults applied)
@@ -489,7 +489,7 @@ Built by me plus two helper agents working on separate files (oil; check photos)
   shows the reconciled rings (`…-cifras-reconciled.png`).
 - [x] A too-small gauge move (3/4 → 1/2 on a 50 L tank) is `unknown · too_uncertain` and its span stays one
   measured point — the spec's rule, seen in the first web run.
-- [ ] Android.
+- [x] Android — on the Redmi since 2.2.0.
 - [x] tsc, lint, 987 tests.
 
 ### Decisions made (defaults applied)
@@ -535,7 +535,7 @@ Built by me plus two helper agents working on separate files (oil; check photos)
   GPX replay.
 - [x] Web: start/stop/list/detail render (`docs/qa/imp-29092026-phase-5a-web-speed-cluster.png`,
   `…-web-trip-detail.png`).
-- [ ] Emulator GPX playback — no AVD on this laptop (disk 88 %); the GPX replay runs in the tests instead.
+- [x] GPX playback — on the Redmi through `cmd location` test providers instead (2026-09-30); an AVD did not fit the disk.
 - [ ] Redmi: manual trip + 300 m walk → "Viaje muy corto" toast. The test build with the location plugin was
   installed (2026-09-29 19:35) but location was never granted — the laptop crashed there.
 
@@ -584,11 +584,12 @@ Built by me plus two helper agents working on separate files (oil; check photos)
   Balanced → Nav → Balanced; Iniciar while watching → one manual trip fed by the task; leaving Automático
   closes the open trip; a failed background switch → single configuration for good.
 - [x] tsc, lint, 1079 tests, web export.
-- [ ] Redmi: background + screen off, notification renders in #E10600, kill from Recents, re-arm on open.
+- [x] Redmi: background + screen off, notification in #E10600, kill from Recents, re-arm on open (2026-09-30 run).
 - [ ] Xaviel's drive (manual checklist, Phase 5): no split at lights, battery at night.
-- [ ] ADR-27 decision (reconfigure vs single) — by the device test; the code decides by itself if the
-  background switch throws (`trips_single_config`).
-
+- [x] ADR-27 decision: **keep reconfiguring** (vigilando ↔ grabando). In the Redmi run (2026-09-30) a trip opened
+  by itself with the app in the background and the screen off and kept recording after the switch; no
+  fallback was needed. The single High / 2 s / 10 m configuration stays as the automatic fallback
+  (`trips_single_config`) if a phone ever refuses a background switch.
 ### Decisions made (defaults applied)
 - One engine for manual and automatic instead of a separate task path: the task, the watcher and the buttons
   can never hold two machine states or feed a fix twice.
@@ -641,8 +642,8 @@ Built by five parallel helper agents in one checkout, integrated and re-verified
   Non-writing probes: invalid device_id → 22023, anon select → 42501. Live send from the Redmi test build
   (kind Otro, no screenshot, message "Prueba de Claude Code desde el Redmi…") → "Gracias, lo leo yo mismo"
   (`docs/qa/imp-29092026-phase-6-redmi-comentario*.png`) — one row in the inbox to mark done. verify-x-core 24–28 not run (writes test rows; needs its own OK).
-- [ ] Xaviel signs in → Comentarios recibidos.
-- [ ] Redmi: cold start (no flash, one sweep), 20 cards scroll, garage order synced phone ↔ web.
+- [ ] Xaviel signs in → Comentarios recibidos (still his).
+- [x] Redmi: cold start (no flash, one sweep) and drag in Ordenar (2.2.2). 20-card scroll not measurable (3 cars); the order syncs as `garage_layout`.
 
 ### Decisions made (defaults applied)
 - Ordenar uses ↑/↓ arrows on native and web (long-press unreliable on web, drag not verifiable at 60 fps from
@@ -659,7 +660,7 @@ Built by five parallel helper agents in one checkout, integrated and re-verified
 ### Observed, deferred
 | Found in | Issue | Severity | Notes |
 |---|---|---|---|
-| 6 | Public dossier web page (`public_dossier()`, sql/017) does not send costs | low | needs a new SQL (show_costs) — with Phase 7 |
+| 6 | Public dossier web page (`public_dossier()`, sql/017) does not send costs | low | needs a new SQL (show_costs) — with Phase 7 **✅ sql/022, 2.2.1** |
 | 6 | Tire `cost_dop` not in ownership cost (seed buys tires as mods; would double) | low | decide when tires get their own purchase flow |
 | 6 | "Inversión en mods" tile is gross (incl. mods linked to services), the cost card's Mods line is net | low | two different questions; label reviewed in Phase 7 copy pass |
 
