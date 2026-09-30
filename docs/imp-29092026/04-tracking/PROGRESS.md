@@ -780,3 +780,19 @@ for Xaviel's real drive to be called done. Hand-off: `docs/NEXT.md` → "Carried
 - Left, needing Xaviel only: the real drive; the admin inbox sign-in; decisions on a map provider, a MIUI
   native module and native drag (docs/NEXT.md).
 
+## Release 2.2.2 — 2026-09-30
+
+- OpenStreetMap under each trip (lib/trips/tiles.ts: Web Mercator fit, whole zooms, covering tiles; User-Agent
+  naming Car Guy on native; dark tint; "© OpenStreetMap" → copyright page; Ajustes switch) and the "por dónde
+  manejas" heatmap on Viajes. Tile seams removed (whole pixels, 1 px overlap). Dev seed has a trip.
+- Garaje → Ordenar: hold-and-drag on the phone (gesture-handler + Reanimated), arrows kept.
+- MIUI autostart state (modules/miui-autostart, Kotlin): MIUI 14 on the Redmi has no
+  AppOpsUtils.getApplicationAutoStart (NoSuchMethodException); app-op 10008 via AppOpsManager works —
+  verified both ways (✗ → switched on in MIUI → ✓).
+- Redmi (test build, Wi-Fi adb): map and heatmap tiles load, credit shown; drag moved a car and saved it;
+  autostart state read. Real app: 2.2.2 (versionCode 7) over 2.2.1 — Novedades once, 19.9 / 30.2 km/gal,
+  3 cars, signed in, "Todo subido".
+- GitHub v2.2.2 published (sha256 c5a71e4d…97957a3), main pushed, smoke-apk 3/3, smoke-public-page 6/6,
+  sql/999 cleanup (0 leftover profiles). 1178 tests.
+- Open, Xaviel only: the real drive with Automático; the admin inbox sign-in.
+
