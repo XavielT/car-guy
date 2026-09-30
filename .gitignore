@@ -77,3 +77,6 @@ docs/imp-28092026/fixtures/*.real.json
 
 # Gradle output of the local native modules (was committed by accident in 2.2.2)
 modules/*/android/build/
+
+# copied from node_modules on postinstall (tools/copy-maplibre-worker.mjs)
+public/maplibre/
