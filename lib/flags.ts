@@ -44,8 +44,8 @@ export const FEATURE_SHARE = true;
  */
 const TEST_VARIANT = (Constants.expoConfig?.extra as { variant?: string | null } | undefined)?.variant === 'test';
 
-/** Viajes: manual and automatic trips — PROMPT-05. On in the test variant and in dev until Part A's verify passes. */
-export const FEATURE_TRIPS = TEST_VARIANT || __DEV__;
+/** Viajes: manual and automatic trips — PROMPT-05. On since 2.2.0 (default Solo manual; Automático is opt-in). */
+export const FEATURE_TRIPS = true;
 /**
  * Comentarios / reportar un problema — PROMPT-06. On: the form works signed out
  * and offline (outbox); until sql/021 is applied a send is kept and retried.

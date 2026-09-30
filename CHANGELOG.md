@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.2.0 — Kaidō (sin publicar)
+## 2.2.0 — Kaidō (2026-09-30)
 
 ### Viajes
 - **Viajes**: grábalos con "Iniciar viaje" y mira la velocidad en vivo en el tablero de Inicio

@@ -6,8 +6,8 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     "version": "2.2.0",
     "name": "Kaidō",
-    "date": null,
-    "unreleased": true,
+    "date": "2026-09-30",
+    "unreleased": false,
     "intro": [],
     "sections": [
       {
