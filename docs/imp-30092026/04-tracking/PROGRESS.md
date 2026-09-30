@@ -10,7 +10,7 @@ phase" carry context between sessions.
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
 | 0 | Kickoff + Wheelz first-hand | ✅ | `imp-30092026/phase-0-kickoff` | package in repo, baseline green, audit + screen audit, GeoJSON export action, Wheelz walked |
-| 1 | Fix pack 2.3.1 | 🟡 | `fix/2.3.1-fixpack` | detail + dedupe, stations, reserve light, ≈ por echada, denser routes; phone check + release pending |
+| 1 | Fix pack 2.3.1 | ✅ | `fix/2.3.1-fixpack` | v2.3.1 released; detail + dedupe, stations, reserve light, ≈ por echada (with a plausibility band), denser routes; trip export carried |
 | 2 | Schema v8 | ⬜ | | |
 | 3A | Language es/en | ⬜ | | |
 | 3B | Skeletons | ⬜ | | |
@@ -221,7 +221,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 
 ## Phase 1 — Fix pack 2.3.1   (branch `fix/2.3.1-fixpack`)
 
-**Status:** in progress (code done; phone check + release pending)
+**Status:** complete — v2.3.1 released 2026-09-30 (trip export carried to his next drive)
 **Commits:** `fix(2.3.1): fill-up detail + dedupe, stations picker, reserve light, ≈ por echada, denser routes`
 
 ### Changed
@@ -254,8 +254,15 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
   then the brands incl. Petronan); nothing saved in his garage — the save/dedupe path was checked on web.
   The ≈ 131 km/gal found here → the plausibility band (rebuilt).
 - [ ] Trip export finding — no trip on the phone; carried to his next drive.
-- [ ] GitHub release v2.3.1, merge, tag, push; smoke-apk 3/3.
+- [x] GitHub release v2.3.1 (`car-guy.apk` + `car-guy-v2.3.1.apk`, versionCode 11, sha256 `eabfc504…`),
+  merged to main, tag v2.3.1, pushed; Vercel green; smoke-apk 3/3; `/carga/<id>` and `/carga/<id>/editar`
+  200 on production. smoke-public-page not run (writes a test account to x-core — needs Xaviel's OK).
 
 ### Notes closed
 - 7, 8, 9, 12; 16 partially (the real map is Phase 4).
+
+### Notes for the next phase
+- Phase 2 (schema v8): `economy_per_fill` lives in `Settings.perFill` (local settings) until v8 adds the
+  column; the dedupe and stations need nothing from the schema. The trip export is still owed — ask after his
+  next drive; if the raw points are sparse, 5(c)'s pre-roll goes into Phase 4.
 
