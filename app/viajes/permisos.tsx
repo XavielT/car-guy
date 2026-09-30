@@ -10,6 +10,7 @@ import { space } from '@/constants/theme';
 import { es } from '@/lib/i18n/es';
 import { useTheme } from '@/lib/theme/useTheme';
 import { recordError } from '@/lib/diagnostics';
+import { requestPermission as requestNotificationPermission } from '@/lib/notifications';
 import { armAuto } from '@/lib/trips/auto';
 import { setTripsMode, tripsMode, type TripsMode } from '@/lib/trips/settings';
 
@@ -50,7 +51,13 @@ export default function TripPermissionsScreen() {
         await perm.ask();
         fg = await Location.getForegroundPermissionsAsync();
       }
-      if (fg.granted && fg.android?.accuracy !== 'coarse') await Location.requestBackgroundPermissionsAsync();
+      if (fg.granted && fg.android?.accuracy !== 'coarse') {
+        // Android 13+: without this the service still runs, but its fixed
+        // notification ("Detección automática de viajes activa") is never shown —
+        // and the user should always see that the app is watching.
+        await requestNotificationPermission().catch(() => false);
+        await Location.requestBackgroundPermissionsAsync();
+      }
     } catch (error) {
       recordError('trip-permission', error);
     }

@@ -139,7 +139,13 @@ async function syncLive(state: TripMachineState, applied: Applied[], fixes: Fix[
       lastFixAt: null,
       gps: 'none',
     };
-    prevFix = null;
+    // The machine's distance already counts this batch: start after it, not before
+    // (the last fix still lights the GPS lamp).
+    const last = fixes.at(-1) ?? null;
+    if (last) live = { ...live, lastFixAt: last.t, gps: last.acc != null && last.acc <= 20 ? 'good' : 'weak' };
+    prevFix = last;
+    setLiveTrip(live);
+    return;
   }
   for (const fix of fixes) live = advanceLive(live, fix);
   setLiveTrip(live);

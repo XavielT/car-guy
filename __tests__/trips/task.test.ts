@@ -179,6 +179,17 @@ it('"Iniciar viaje" on an open automatic trip adopts it with the car and role th
   await disarmAuto();
 });
 
+it('the cluster distance of a background trip matches the machine (no double counting)', async () => {
+  await settingsRepo.set('trips_enabled', 'auto');
+  await armAuto();
+  await deliver(loadDrive(8).slice(0, 210));
+  const state = JSON.parse((db.prepare(`SELECT json FROM trip_state`).get() as { json: string }).json);
+  expect(state.phase).toBe('recording');
+  const live = getLiveTrip()!;
+  expect(Math.abs(live.distanceM - state.trip.distanceM)).toBeLessThan(150);
+  await disarmAuto();
+});
+
 it('leaving Automático closes an open automatic trip instead of leaving it hanging', async () => {
   await settingsRepo.set('trips_enabled', 'auto');
   await armAuto();
