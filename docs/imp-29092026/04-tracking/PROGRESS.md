@@ -643,7 +643,7 @@ Built by five parallel helper agents in one checkout, integrated and re-verified
   Non-writing probes: invalid device_id → 22023, anon select → 42501. Live send from the Redmi test build
   (kind Otro, no screenshot, message "Prueba de Claude Code desde el Redmi…") → "Gracias, lo leo yo mismo"
   (`docs/qa/imp-29092026-phase-6-redmi-comentario*.png`) — one row in the inbox to mark done. verify-x-core 24–28 not run (writes test rows; needs its own OK).
-- [ ] Xaviel signs in → Comentarios recibidos (still his).
+- [x] Comentarios recibidos on Xaviel's own account (admin role since 2.3.0; the spec's admin email was never his Car Guy account) — the Redmi test comment is there.
 - [x] Redmi: cold start (no flash, one sweep) and drag in Ordenar (2.2.2). 20-card scroll not measurable (3 cars); the order syncs as `garage_layout`.
 
 ### Decisions made (defaults applied)
@@ -809,4 +809,17 @@ for Xaviel's real drive to be called done. Hand-off: `docs/NEXT.md` → "Carried
   19.9 / 30.2 km/gal, 3 cars, signed in, "Todo subido". GitHub v2.2.3, main pushed, smoke-apk 3/3,
   smoke-public-page 6/6, sql/999 cleanup.
 - Open, Xaviel only: the real drive with Automático; the admin inbox sign-in.
+
+## Release 2.3.0 — 2026-09-30 (roles and the admin panel)
+
+- Why: the spec's admin email (tecnologia@constructorasd.com) was the Claude account's, not Xaviel's Car Guy
+  account, so the inbox could never open for him. Xaviel asked for roles and an admin panel instead.
+- sql/024 + 024 storage applied (Xaviel's OK): profiles.role (admin · member · premium placeholder),
+  protect_role trigger, carguy.is_admin(), feedback + screenshot policies on the role, admin_stats /
+  admin_users / admin_set_role. Read-only check: 1 account, role admin. local-rls 15a–15e.
+- App: Panel de administración (users / activity / community), Usuarios (roles, counts only), role in Cuenta.
+- `car-guy-v2.3.0.apk` (versionCode 9, sha256 b241cc6e…d81b300) on the Redmi: the panel with live numbers,
+  Usuarios "Tú · Admin", Comentarios recibidos shows the Redmi test comment. GitHub v2.3.0, main pushed,
+  smoke-apk 3/3, smoke-public-page 6/6, sql/999 cleanup.
+- Open, Xaviel only: the real drive with Automático.
 
