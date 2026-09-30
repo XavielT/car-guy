@@ -798,3 +798,15 @@ for Xaviel's real drive to be called done. Hand-off: `docs/NEXT.md` → "Carried
   sql/999 cleanup (0 leftover profiles). 1178 tests.
 - Open, Xaviel only: the real drive with Automático; the admin inbox sign-in.
 
+## Release 2.2.3 — 2026-09-30
+
+- L/100 km per vehicle (form "Consumo en"; Inicio, Historial, review sheet, Cifras KPIs and chart; GNV stays km/m³).
+- brace-expansion 5.0.9 → 5.0.12 (GHSA-q2hr-2g5m-vwhr, high; via @expo/fingerprint → minimatch 10); audit back to
+  the 3 known moderate.
+- Tried and removed: @testing-library/react-native 14 (does not load under RN 0.86).
+- Redmi: 300 m fake-GPS walk discarded as designed; ADR-27 decided (keep reconfiguring).
+- `car-guy-v2.2.3.apk` (versionCode 8, sha256 a5ed7a30…0b267c3d) over 2.2.2 on the real app: Novedades once,
+  19.9 / 30.2 km/gal, 3 cars, signed in, "Todo subido". GitHub v2.2.3, main pushed, smoke-apk 3/3,
+  smoke-public-page 6/6, sql/999 cleanup.
+- Open, Xaviel only: the real drive with Automático; the admin inbox sign-in.
+
