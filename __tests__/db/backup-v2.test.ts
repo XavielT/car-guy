@@ -45,7 +45,7 @@ describe('v6: liters in the file, gallons in old files (IMP 29092026 Phase 2)', 
 
   it('a 2.2 backup says its schema version and round-trips liters untouched', async () => {
     const backup = JSON.parse(JSON.stringify(await buildBackup()));
-    expect(backup.schemaVersion).toBe(9);
+    expect(backup.schemaVersion).toBe(10);
     const f = backup.tables.fuel_log[0];
     await resetDatabase();
     await restoreV2(backup);

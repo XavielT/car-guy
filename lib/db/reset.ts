@@ -24,6 +24,9 @@ export async function resetDatabase(): Promise<void> {
     await db.runAsync('DELETE FROM trip_state');
     // v8's MICM cache: refilled from the cloud on the next launch.
     await db.runAsync('DELETE FROM fuel_price_ref');
+    // v10's caches of cloud-only rows (follows, juntes): another account must not see them.
+    await db.runAsync('DELETE FROM social_cache');
+    await db.runAsync('DELETE FROM junte_cache');
     for (const table of [...ALL_TABLES].reverse()) {
       await db.runAsync(`DELETE FROM ${table}`);
     }

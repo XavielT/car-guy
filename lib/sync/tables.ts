@@ -102,6 +102,9 @@ export const SYNC_TABLES: SyncTable[] = [
   { name: 'vehicle_fact', localOnly: ['syncedAt'] },
   { name: 'fuel_price', localOnly: ['syncedAt'] },
   { name: 'legal_acceptance', localOnly: ['syncedAt'] },
+  // v10 (IMP 01102026 ADR-56): the owner's shared trips and privacy zones. Pushed and pulled like any owned row.
+  { name: 'trip_share', localOnly: ['syncedAt'] },
+  { name: 'privacy_zone', localOnly: ['syncedAt'] },
 
   // Direct children of vehicle.
   { name: 'vehicle_spec', localOnly: ['syncedAt'] },

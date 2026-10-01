@@ -91,6 +91,10 @@ const VEHICLES: SeedVehicle[] = [
     transmission: 'automatica',
     drivetrain: 'fwd',
     origin: 'eudm',
+    // IMP 01102026 Phase 2: his DS3's gauge is nine squares; the reserve light comes on with one left.
+    gaugeType: 'segments',
+    gaugeSegments: 9,
+    gaugeReserveAt: 1,
   },
   {
     id: GARAGE_IDS.c3,
@@ -150,6 +154,14 @@ const C3_TASKS: Pick<Task, 'title' | 'kind' | 'priority'>[] = [
  * rather than doubling every fill-up. Returns the log lines the screen shows.
  */
 /** DS3 1.6 VTi and C3: PSA presets; AE85: the Toyota 4A preset (lib/domain/specPresets.ts). */
+/** Research 03 §3.4's readings on the DS3 (squares of 9), by the fill-up's index in the loop below. */
+const DS3_GAUGE_READS: Record<number, { before: number; after: number; liters: number }> = {
+  5: { before: 3, after: 9, liters: 28 },
+  3: { before: 5, after: 9, liters: 19 },
+  2: { before: 2, after: 6, liters: 18 },
+  0: { before: 1, after: 9, liters: 36 },
+};
+
 const SEED_TANK_L: Record<string, number> = { [GARAGE_IDS.ds3]: 50, [GARAGE_IDS.ae85]: 50, [GARAGE_IDS.c3]: 47 };
 
 export async function seedRealGarage(today = new Date()): Promise<string[]> {
@@ -239,16 +251,26 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
     // partials carry no gauge reading yet — Phase 4 adds those columns.
     const partial = i === 6 || i === 4 || i === 2 || i === 1;
     const missed = i === 3;
+    // IMP 01102026 Phase 2: four of them carry the squares as he read them — research 03 §3.4's example
+    // (three fulls and one partial), so Phase 3 can show "aprendido". Liters as in the example.
+    const read = DS3_GAUGE_READS[i];
+    const price = 305 + (i % 4) * 3.5;
+    const fuel = read
+      ? fuelForStorage({ volume: read.liters, pricePerUnit: price / 3.785411784, fuelType: 'regular' }, 'l')
+      : fuelForStorage({ volume: partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4, pricePerUnit: price, fuelType: 'regular' }, 'gal');
     await fuelRepo.upsert({
       id: newId(),
       vehicleId: GARAGE_IDS.ds3,
       occurredAt: at(i * 30 + 4),
       odometerKm: odometer,
-      ...fuelForStorage(
-        { volume: partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4, pricePerUnit: 305 + (i % 4) * 3.5, fuelType: 'regular' },
-        'gal',
-      ),
-      totalDop: (partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4) * (305 + (i % 4) * 3.5),
+      ...fuel,
+      ...(read && {
+        gaugeBeforeFrac: read.before / 9,
+        gaugeBeforeRaw: `${read.before}/9`,
+        gaugeAfterFrac: read.after / 9,
+        gaugeAfterRaw: `${read.after}/9`,
+      }),
+      totalDop: (read ? read.liters / 3.785411784 : partial ? [4.2, 5.5, 3.8, 6.1][i % 4] : 10.4) * price,
       fuelType: 'regular',
       isFullTank: !partial,
       missedPrevious: missed,

@@ -1,0 +1,18 @@
+/**
+ * Feature flags of IMP 01102026 (Car Guy 2.5), apart from lib/flags.ts for the same reason as
+ * lib/flagsV8.ts: the data layer may read them without expo-constants. All off after Phase 2 (schema
+ * only); each flips with the screen it guards.
+ */
+
+/** Gauge by squares/percent + learned liters (ADR-51) — PROMPT-03. */
+export const FEATURE_GAUGE_SEGMENTS = false;
+/** EAS Update OTA + in-app APK updater (ADR-52) — PROMPT-04. */
+export const FEATURE_OTA = false;
+/** "Apoyar Car Guy" + admin Uso y costos (ADR-53) — PROMPT-04. */
+export const FEATURE_SUPPORT = false;
+/** @handle, public profiles, follows, privacy, shared trips (ADR-54…56) — PROMPT-05. */
+export const FEATURE_SOCIAL = false;
+/** Juntes with the live map (ADR-57) — PROMPT-06. */
+export const FEATURE_JUNTES = false;
+/** Junte chat: built in PROMPT-06 but stays off until push notifications exist. */
+export const FEATURE_JUNTE_CHAT = false;
