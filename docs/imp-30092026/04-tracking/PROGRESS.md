@@ -15,7 +15,7 @@ phase" carry context between sessions.
 | 3A | Language es/en | ✅ | `imp-30092026/phase-3-i18n-skeletons` | en.ts complete (typed), live `t`, Más → Idioma, catalogue, dates; web sweep clean |
 | 3B | Skeletons | ✅ | `imp-30092026/phase-3-i18n-skeletons` | 50/50 data screens with their twin; no flash on the fast path (Redmi 56 fps capture) |
 | 4 | Map · Modo conducir · centre button | ✅ | `imp-30092026/phase-4-map-drive` | MapLibre native + web, drive mode, CONDUCIR disc; Redmi + web verified; street check = Xaviel's real drive |
-| 5 | Eventos · memoria · gomas · precios | ⬜ | | |
+| 5 | Eventos · memoria · gomas · precios | 🟡 | `imp-30092026/phase-5-memory` | all four built + web-verified; sql/027 + 029 written (local-rls green) — **x-core apply + importer key wait for Xaviel** |
 | 6 | Perfil · bienvenida · legal · release 2.4.0 | ⬜ | | |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
@@ -206,6 +206,15 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 - Phase 4: the GL map cannot be captured as an image, so Compartir mounts an off-screen copy of the old OSM
   card for the share image.
 
+- Phase 5: a PDF proof on an event is a `media` row (kind pdf) owned by the milestone, not an album item —
+  every album / book / public query reads photos only, so PDFs stay out of them by construction.
+- Phase 5: event costs in Cifras skip hitos (a "compra" milestone's cost would double the purchase price) and
+  events linked to a service (the service already counts).
+- Phase 5: the public page gets "Lo que uso" only after a later SQL (`vehicle_share.show_memory` + a
+  public_dossier block); the book has it now behind a local switch. Tires on the page: `show_tires` (sql/025).
+- Phase 5: MICM weeks run Saturday → Friday (the notice is signed the day before: "25 sep" ⇒ week of 26 sep).
+  GNV is not in the notice — its price stays the person's own.
+
 ## Deviations from the package
 
 - Phase 1 (5b): auto mode's recording options match manual's interval (1 s, BestForNavigation) but keep
@@ -239,6 +248,8 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 3A | OBD search matches `descEs` only | low | English search of codes by description — later |
 | 4 | The live trail in Modo conducir is one colour (red); the trip detail colours by speed bucket | low | colour the tail by the latest bucket if Xaviel wants it |
 | 4 | No Expo Go guard card for the map (a dev build is assumed; Expo Go is not used in this project) | low | — |
+| 5 | **Privacy:** the cloud public page (public_dossier, 022 → 025) lists every milestone under show_story — an accident with its cost and pendiente would be public | **high** | ✅ written: `sql/029_dossier_hito_only.sql` (only event_type = 'hito'); local-rls 29a–c green; **apply needs Xaviel's OK** |
+| 5 | `tools/apply-sql.mjs`'s shared-change guard does not catch `create role` / `grant … to authenticator` | low | pass `--shared` deliberately for 027's role file; teaching the guard is Xaviel's call |
 
 ## Blockers
 
@@ -246,6 +257,8 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 |---|---|---|---|
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel | open |
 | 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers green |
+| 5 | Apply `sql/029` (privacy) and `sql/027` (+ `027_fuel_price_ref_role.shared.sql` for the JWT path) | Xaviel's OK | open |
+| 5 | Importer key in Vercel: `CARGUY_IMPORTER_JWT` (JWT `{"role":"carguy_importer"}` signed with the project's JWT secret) **or** `SUPABASE_SERVICE_ROLE_KEY` | Xaviel (dashboard + Vercel env) | open — without it /api/precios answers 503 `no-writer-key` with the parsed rows |
 
 ---
 
@@ -546,3 +559,47 @@ negatives in parentheses). The EGP-C/EGP-T gasoil rows (power plants), Avtur, Ke
 skipped; **GNV is not in the notice** (its price stays the person's own). Two sentence wordings: "del sábado
 (19) al día viernes (25) de septiembre" and "del sábado (26) de septiembre al día viernes (02) de octubre";
 the file name carries the same dates (used as fallback).
+
+## Phase 5 — Eventos · memoria · gomas · precios   (branch `imp-30092026/phase-5-memory`)
+
+**Status:** built and verified on web; Redmi check below; x-core SQL + importer key wait for Xaviel
+**Commits:** `354015c` Phase 5
+
+### Changed
+- **Eventos (note 5):** `app/evento/nuevo|[id]` (EventForm: type chips, severity, date/km, story, cost,
+  pendiente + resuelto, proofs photos + PDF, links to service/mod/check, location); `app/hito/*` redirect; hub
+  "Eventos" tab (timeline, severity markers) + pending banner; Historial 'evento' rows + chip; album; book
+  chapter "Eventos"; Cifras `EventCostsBlock`; FEATURE_EVENTS on.
+- **Lo que uso (note 6):** Ficha tab (what I buy + facts CRUD by group, search, Copiar); "Igual que siempre" in
+  the service oil block and the check runner's fluid card; book chapter behind a local switch; the dossier code
+  renders a `memory` block when the cloud sends one (it does not yet — see deviations).
+- **Gomas quemadas (note 3):** Build → Gomas card (badges, "faltan n", messages, share card via view-shot, no
+  plate), heat-cycle limit setting (default 8) + "N CICLOS · REVISAR" on mounted tires; Cifras `TiresBlock`;
+  `tires` share flag (compartir + libro), dossier tires line + top badge.
+- **Precios (note 1):** `app/precios/index|nuevo` (board with source + date chips, stale banner, history by
+  week, new entry with date / source / station), Cifras `PricesBlock` (user vs MICM, 12 months), fill-up
+  prefill from the board; MICM importer `lib/micm/{parse,pdfText,importer}.ts` (PDFs are text — fixtures
+  under docs/imp-30092026/fixtures/micm/), `api/precios.ts` (±20 % validation, s-maxage 3600), cron Saturday
+  12:00 UTC, "Importar MICM ahora", launch ping when the newest week is > 8 days old.
+- **SQL (written, not applied):** `sql/027_fuel_price_ref.sql` + `027_fuel_price_ref_role.shared.sql`
+  (local-rls 27a–l), `sql/029_dossier_hito_only.sql` (local-rls 29a–c); verify-x-core 33–34 (anon reads
+  fuel_price_ref, cannot insert / call the RPC).
+
+### Acceptance criteria
+- [x] tsc, lint, jest (1,879), i18n parity + frozen 0, **Screens with skeleton: 53/53**, local-rls all passed.
+- [x] Web: the seeded events render (C3 choque with its pendiente banner, DS3 sobrecalentamiento, retrovisor);
+  "espejo" created with a photo + pendiente → hub banner, Historial, album; resolve clears it; a fact added and
+  found by search; the Trueno's card "14 gomas · 6 este año" + Primer juego / Quemagomas; a manual price with
+  the date picker → board "Estación · 30 sep"; a fill-up pre-fills it. Screens `docs/qa/imp-30092026-phase-5-*`.
+- [x] MICM: the four current notices parse (26 sep – 2 oct: premium 353.10 · regular 317.50 · gasoil 270.80 ·
+  óptimo 306.10 · GLP 135.20); the real chain ran once against micm.gob.do with a fake store.
+- [x] Redmi (test build over the seed fixture): the C3 hub has the Events tab; the new-event form (type chips,
+  severity, pendiente, proofs); Ficha → "What I use" (search, a fact with Copiar); Precios (board with source
+  chips, + Add price, Import MICM now, history by week). No JS errors.
+- **Not merged to main on purpose:** with events live, an event synced to the cloud would appear on a public
+  page with the story switch on until sql/029 is applied. Merge after 029.
+- [ ] sql/029 + 027 on x-core, verify-x-core 33–34, importer key in Vercel, a real import — **Xaviel**.
+
+### Notes closed
+- 1 (manual history + import built; live import after the key), 3, 5, 6.
+
