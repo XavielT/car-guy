@@ -14,6 +14,7 @@ import { ATTRIBUTION_URL } from '@/lib/map/config';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { armAuto } from '@/lib/trips/auto';
+import { shareTripDiagnostics } from '@/lib/trips/diagnostics';
 import { DEFAULT_TRIP_CFG } from '@/lib/trips/machine';
 import { useLiveTrip } from '@/lib/trips/liveStore';
 import {
@@ -286,6 +287,10 @@ function AdvancedThresholds({ eyebrow }: { eyebrow: (label: string) => React.Rea
               void setTripsThresholds({});
             }}
           />
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: space.md, marginBottom: space.xs }}>
+            {t.trips.diagnosticsHint}
+          </T>
+          <GhostButton label={t.trips.diagnosticsExport} onPress={() => void shareTripDiagnostics(t.trips.diagnosticsDialog).catch(() => {})} />
         </View>
       ) : null}
     </>

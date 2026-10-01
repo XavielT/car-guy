@@ -1,0 +1,63 @@
+{
+  "_about": "IMP 01102026 Phase 0 — a second seed for Phase 5's local tests (local-rls + jest); never written to the cloud. Fictional people, cars and places: the privacy zone sits in a public park (Parque Mirador Sur), not anyone's home. Shapes follow 02-specs/01-data-model-v10.md (profiles handle/bio/switches, follow, block, privacy_zone, trip_share).",
+  "profiles": [
+    {
+      "user_id": "00000000-0000-0000-0000-0000000000a5",
+      "email": "trueno_ae85@example.com",
+      "handle": "trueno_ae85",
+      "display_name": "Trueno AE85",
+      "bio": "Sprinter Trueno 1985, 4A-GE. Montaña los domingos.",
+      "avatar_id": "helmet-red",
+      "is_public": true,
+      "photo_public": false,
+      "show_cars": true,
+      "show_stats": true,
+      "show_fichas": false,
+      "instagram": "trueno_ae85",
+      "cars": [
+        { "id": "soc_veh_ae85", "name": "Trueno", "make": "Toyota", "model": "Sprinter Trueno", "year": 1985, "status": "activo", "plate": "A000001", "vin": null },
+        { "id": "soc_veh_civic", "name": "Civic", "make": "Honda", "model": "Civic", "year": 1999, "status": "proyecto", "plate": null, "vin": null }
+      ],
+      "_expect": "public account: a follow is accepted at once; /u/trueno_ae85 shows photo? no (photo_public off → drawn avatar), @handle, bio, cars (name/model/cover), stats; never the plate, never fichas"
+    },
+    {
+      "user_id": "00000000-0000-0000-0000-0000000000f1",
+      "email": "amigo_prueba@example.com",
+      "handle": "amigo_prueba",
+      "display_name": "Amigo de prueba",
+      "bio": null,
+      "avatar_id": "turbo",
+      "is_public": false,
+      "photo_public": false,
+      "show_cars": true,
+      "show_stats": false,
+      "show_fichas": false,
+      "instagram": null,
+      "cars": [{ "id": "soc_veh_jetta", "name": "Jetta", "make": "Volkswagen", "model": "Jetta", "year": 2003, "status": "activo", "plate": "G000002", "vin": null }],
+      "_expect": "private account: a follow starts as 'requested' until accepted; before that only @handle + drawn avatar"
+    }
+  ],
+  "follows": [
+    { "follower": "trueno_ae85", "followee": "amigo_prueba", "status": "requested", "then": "accepted" },
+    { "follower": "amigo_prueba", "followee": "trueno_ae85", "status": "accepted" }
+  ],
+  "_friends": "after the request is accepted both follows are accepted → friends (mutual)",
+  "blocks": [],
+  "privacy_zones": [
+    { "user": "trueno_ae85", "label": "Casa (prueba)", "lat": 18.4425, "lng": -69.9585, "radius_m": 300 }
+  ],
+  "trips": [
+    {
+      "user": "trueno_ae85",
+      "id": "soc_trip_1",
+      "vehicle": "soc_veh_ae85",
+      "_route": "fictional: starts inside the test zone, runs ~4 km along Av. Anacaona / Av. Luperón, ends at a public spot",
+      "points": [
+        [18.4425, -69.9585], [18.4431, -69.9560], [18.4437, -69.9535], [18.4444, -69.9508], [18.4450, -69.9481],
+        [18.4457, -69.9454], [18.4463, -69.9427], [18.4470, -69.9400], [18.4492, -69.9395], [18.4515, -69.9390],
+        [18.4538, -69.9385], [18.4561, -69.9380], [18.4584, -69.9375], [18.4607, -69.9370]
+      ],
+      "share": { "visibility": "friends", "_expect": "trimmed: no point within 300 m of the zone centre, and 300 m + seeded 0–200 m cut at both ends" }
+    }
+  ]
+}

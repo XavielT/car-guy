@@ -159,6 +159,10 @@ export const enPart1: Pick<
     title: 'Trips',
     lcd: { km: 'TRIP KM', time: 'MINUTES', avg: 'AVG KM/H', max: 'MAX KM/H' },
     geojsonDialog: 'Trip GPS points',
+    /** Trips → Settings → advanced (IMP 01102026 Phase 0): what decides Automatic, without positions. */
+    diagnosticsExport: 'Export trip diagnostics',
+    diagnosticsHint: 'A file with permissions, the service and the time of the last GPS points (no locations), to check why a trip was not recorded.',
+    diagnosticsDialog: 'Trip diagnostics',
     lcdA11y: (what: string, value: string) => `${what}: ${value}. Tap to switch`,
     gps: { good: 'GPS signal good', weak: 'GPS signal weak', none: 'No GPS signal' },
     recording: 'Recording trip',
