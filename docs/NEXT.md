@@ -32,7 +32,8 @@ welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), l
 - **Service-role key**: it appeared in a session's terminal output on 2026-09-30; rotate it in Supabase and
   update Vercel (`SUPABASE_SERVICE_ROLE_KEY`) and `.env.supabase`.
 - Public page "Lo que uso" needs `vehicle_share.show_memory` + a public_dossier block (one SQL file).
-- Others' avatars in member / admin lists need an avatar_id that members may read (one SQL file).
+- ✅ Others' avatars in member / admin lists — sql/031 applied 2026-10-01 (member_avatars + admin_users columns), merged
+  `3fd316f`, web live; phones get it with the next APK (no release just for this). verify-x-core 37/37.
 
 ## Cycle 3 — IMP 29092026 (Car Guy 2.2 "Kaidō") — released 2026-09-30
 
