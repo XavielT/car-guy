@@ -101,11 +101,12 @@ export function SegmentsRow({ n, lit, dim, width }: { n: number; lit: number | n
     <View style={{ flexDirection: 'row', gap: GAP, opacity: dim ? 0.4 : 1 }} pointerEvents="none">
       {Array.from({ length: n }, (_, i) => {
         const on = lit != null && i < lit;
-        const color = i === 0 ? theme.danger : theme.accent;
+        // Filled: the dash's amber (accentFill — `accent` is the darker text-safe tone in light theme).
+        const color = i === 0 ? theme.danger : theme.accentFill;
         return (
           <View
             key={i}
-            style={{ width: size, height: Math.max(18, size * 1.25), borderRadius: 4, borderWidth: 2, borderColor: color, backgroundColor: on ? color : 'transparent' }}
+            style={{ width: size, height: Math.max(18, size * 1.25), borderRadius: 4, borderWidth: 2, borderColor: i === 0 ? theme.danger : theme.accent, backgroundColor: on ? color : 'transparent' }}
           />
         );
       })}
