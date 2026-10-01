@@ -16,7 +16,7 @@ phase" carry context between sessions.
 | 3B | Skeletons | ✅ | `imp-30092026/phase-3-i18n-skeletons` | 50/50 data screens with their twin; no flash on the fast path (Redmi 56 fps capture) |
 | 4 | Map · Modo conducir · centre button | ✅ | `imp-30092026/phase-4-map-drive` | MapLibre native + web, drive mode, CONDUCIR disc; Redmi + web verified; street check = Xaviel's real drive |
 | 5 | Eventos · memoria · gomas · precios | ✅ | `imp-30092026/phase-5-memory` | merged; sql/029 + 027 on x-core (verify-x-core 34/34); live MICM import waits for the importer key |
-| 6 | Perfil · bienvenida · legal · release 2.4.0 | ⬜ | | |
+| 6 | Perfil · bienvenida · legal · release 2.4.0 | 🟡 | `imp-30092026/phase-6-people-release` | built + web + Redmi checked; **release waits for Xaviel** (contact e-mail, legal read, sql/028, service key) |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -259,6 +259,10 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel | open |
 | 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers green |
 | 5 | Apply `sql/029` (privacy) and `sql/027` | Xaviel's OK | ✅ applied 2026-09-30; the role file (`027_…role.shared.sql`) only for the JWT path — not applied |
+| 6 | Contact e-mail for the legal texts (now `CONTACTO@EJEMPLO`; `LEGAL_CONTACT` in lib/legal/index.ts + six .md, then `node tools/build-legal.mjs`) | Xaviel | open — **blocks the 2.4.0 release and the merge** (the pages are public) |
+| 6 | Read the legal drafts (content/legal/*.md; not legal advice — docs/imp-30092026/06-legal-texts.md) | Xaviel | open |
+| 6 | Apply `sql/028_delete_account.sql` (not --shared) | Xaviel's OK | open |
+| 6 | `SUPABASE_SERVICE_ROLE_KEY` in Vercel for api/eliminar-cuenta.ts (and, if he picks it, the MICM importer) — rotate the key first | Xaviel | open — without it deletion removes all data and the admin removes the login by hand |
 | 5 | Importer key in Vercel: `CARGUY_IMPORTER_JWT` (JWT `{"role":"carguy_importer"}` signed with the project's JWT secret) **or** `SUPABASE_SERVICE_ROLE_KEY` | Xaviel (dashboard + Vercel env) | open — without it /api/precios answers 503 `no-writer-key` with the parsed rows |
 
 ---
@@ -628,3 +632,40 @@ in-house as react-native-svg components. They are Car Guy's own work, so no lice
   No colour combination copies a brand's trade dress.
 - [ ] A new avatar goes through this list before its id ships. Ids never change once shipped, because they
   are stored in `carguy.profiles.avatar_id`.
+
+## Phase 6 — Perfil · bienvenida · legal · release 2.4.0   (branch `imp-30092026/phase-6-people-release`)
+
+**Status:** built and checked; the release is waiting for Xaviel (see Blockers)
+**Commits:** `467df66` Phase 6 build · `872eef7` background-location disclosure
+
+### Changed
+- **Avatars + profile (note 10):** 16 in-house drawings (`components/avatars/`, react-native-svg; trademark
+  checklist above), `<Avatar>` photo → drawing → initials, `app/perfil.tsx` (name, square crop 512 px, grid);
+  signed in → `carguy-media/<uid>/avatar.jpg` + profiles row (owner path allowed by sql/013); others' avatars are
+  not readable under the current policies → initials in member/admin lists (a later SQL could expose avatar_id).
+- **Bienvenida (note 11):** `app/bienvenida` 6 slides (idioma, nombre y avatar, primer carro, qué puedes hacer,
+  permisos = prominent disclosure, cuenta), skip everywhere; gate in the tabs layout (Redirect, as /onboarding);
+  existing garages are marked onboarded silently; TipCard on Viajes, Build, Pista, Álbum, Eventos, Conducir;
+  Más → Ayuda. FEATURE_ONBOARDING_V2 on.
+- **Legal (note 15):** terms / privacy / delete-account in es + en (2026-10, effective 2026-10-01; Supabase AWS
+  us-west-2 stated), static pages /terminos /privacidad /eliminar-cuenta, Más → Legal, acceptance sheet once +
+  18+ consent at signup (legal_acceptance rows), `tools/smoke-legal.mjs`. Viajes → Automático shows the
+  disclosure text with Continuar / Cancelar right before the system background prompt (Play policy).
+- **Eliminar cuenta:** `sql/028` (delete_my_account, admin_pending_deletions; local-rls 28a–p), 
+  `api/eliminar-cuenta.ts` (RPC as the caller → storage objects + auth user with the service key; 503
+  no-service-key without it), Cuenta → Eliminar cuenta (type ELIMINAR; order: sync → RPC → function → sign out →
+  wipe, so a failed server call leaves the phone intact), admin "Cuentas por eliminar".
+
+### Acceptance criteria
+- [x] tsc, lint, jest (1,946), parity + frozen 0, Screens with skeleton 54/54, local-rls all passed, 4 api
+  functions load in Node.
+- [x] Web: welcome on a fresh profile (skip remembered), none on a seeded one; tips; avatars grid + Más header;
+  legal pages in both languages; acceptance sheet; delete screen; signup refused without consent.
+- [x] Redmi (test build over its data = the upgrade path): no welcome; the legal sheet once (Accept → gone after a
+  relaunch); in-app privacy policy renders; Perfil with the 16 avatars; delete screen signed out → Go to account.
+- [ ] Fresh-install welcome on the device (MIUI blocks new adb installs while he is away), signed-in deletion on a
+  throwaway account against x-core (needs sql/028), the 2.3.1 → 2.4.0 upgrade with his real data, release.
+
+### Notes closed
+- 10, 11, 15 (built; final with the release).
+
