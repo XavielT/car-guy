@@ -26,7 +26,8 @@ export type WebProfile = {
 /** og:image: the public photo (served as bytes by /u/<handle>?photo=1) or the drawn avatar PNG. */
 export function profileImage(p: WebProfile, site: string): string | null {
   if (p.photo) return `${site}/u/${p.handle}?photo=1`;
-  return p.avatar_id ? `${site}/avatars/${encodeURIComponent(p.avatar_id)}.png` : null;
+  // No photo, no drawing chosen: the app icon, so a shared link still has a picture.
+  return p.avatar_id ? `${site}/avatars/${encodeURIComponent(p.avatar_id)}.png` : `${site}/icons/icon-512.png`;
 }
 
 export function renderProfileHtml(p: WebProfile, opts: { url: string; site: string }): string {

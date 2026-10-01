@@ -27,6 +27,10 @@ it('a public profile: escaped bio, cars linked to their page, indexable, the dra
   expect(html).toContain('og:image" content="https://car-guy.vercel.app/avatars/car_coupe.png"');
 });
 
+it('no photo and no drawing: the app icon, so a shared link still has a picture', () => {
+  expect(renderProfileHtml({ ...base, avatar_id: null }, opts)).toContain('og:image" content="https://car-guy.vercel.app/icons/icon-512.png"');
+});
+
 it('a private profile for a stranger: a card, no bio, noindex', () => {
   const html = renderProfileHtml({ ...base, is_public: false, can_see: false, bio: undefined, cars: undefined, stats: undefined }, opts);
   expect(html).toContain('noindex');
