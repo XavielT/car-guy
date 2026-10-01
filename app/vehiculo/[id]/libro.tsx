@@ -16,7 +16,7 @@ import { saveShareSettings } from '@/lib/share/publish';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
-const FLAG_KEYS: (keyof ShareFlags)[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'costs', 'plate', 'vin'];
+const FLAG_KEYS: Exclude<keyof ShareFlags, 'tires'>[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'costs', 'plate', 'vin'];
 type Period = 'todo' | 'ano' | 'este';
 
 function range(p: Period, now = new Date()): { from: string | null; to: string | null; label: string | null } {
@@ -37,6 +37,8 @@ export default function BookScreen() {
   const [flags, setFlags] = useState<ShareFlags | null>(null);
   const [photos, setPhotos] = useState(true);
   const [docs, setDocs] = useState(false);
+  // IMP 30092026 note 6: "Lo que uso" in the book (local, like fotos and documentos).
+  const [memory, setMemory] = useState(false);
   const [period, setPeriod] = useState<Period>('todo');
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export default function BookScreen() {
   }, [id]);
 
   // The period chips, then the flags plus "documentos" and "fotos".
-  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length + 2} />;
+  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length + 4} />;
   if (!vehicle || !flags) return null;
 
   async function setFlag(k: keyof ShareFlags, on: boolean) {
@@ -75,7 +77,7 @@ export default function BookScreen() {
     setProgress({ done: 0, total: 1 });
     try {
       const r = range(period);
-      const book = await generateBook(id, { flags: flags!, photos, docs, from: r.from, to: r.to, periodLabel: r.label }, (done, total) => setProgress({ done, total }));
+      const book = await generateBook(id, { flags: flags!, photos, docs, memory, from: r.from, to: r.to, periodLabel: r.label }, (done, total) => setProgress({ done, total }));
       if (!book) return setNotice(t.book.failed);
       const how = await deliverBook(book.bytes, book.filename, t.book.dialog);
       setNotice(how === 'unavailable' ? t.book.unavailable : t.book.done(book.filename, Math.round(book.bytes.byteLength / 1024)));
@@ -129,6 +131,8 @@ export default function BookScreen() {
       </T>
       <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
         {FLAG_KEYS.map((k) => row(t.share.flags[k], flags[k], (on) => void setFlag(k, on), t.share.flagHints[k] || undefined))}
+        {row(t.tiresUi.shareFlag, flags.tires, (on) => void setFlag('tires', on), t.tiresUi.shareHint)}
+        {row(t.memory.bookSwitch, memory, setMemory, t.memory.bookHint)}
         {row(t.book.docs, docs, setDocs, t.book.docsHint)}
         {row(t.book.photos, photos, setPhotos, t.book.photosHint)}
       </View>

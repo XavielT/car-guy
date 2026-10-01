@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The cloud SQL (sql/002…026) on a throwaway local PostgreSQL 16 with a Supabase
+# The cloud SQL (sql/002…027) on a throwaway local PostgreSQL 16 with a Supabase
 # shim (auth.uid() from request.jwt.claims, anon/authenticated roles, storage
 # tables), then the public-page + shared-garage scenario as two/three accounts.
 # Touches nothing but a temp cluster. Found the 013 is_member NULL hole (sql/014).
@@ -37,7 +37,17 @@ $P -f sql/026_rls_v4.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 # 025 and 026 are re-runnable: a second pass must change nothing and raise nothing.
 $P -f sql/025_schema_v4.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/026_rls_v4.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+# 027: the table + RPC, then the --shared role file, then 027 again (re-runnable; grants to the role now exist).
+$P -f sql/027_fuel_price_ref.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+$P -f sql/027_fuel_price_ref_role.shared.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+$P -f sql/027_fuel_price_ref.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+# 029: public_dossier without events (ADR-44); re-runnable.
+$P -f sql/029_dossier_hito_only.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+$P -f sql/029_dossier_hito_only.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 OUT=$($P -f tools/local-rls/scenario.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
+OUT="$OUT
+$($P -f tools/local-rls/scenario_027.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
+$($P -f tools/local-rls/scenario_029.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')"
 echo "$OUT"
 echo "$OUT" | grep -q -E '^(FAIL|ERROR)' && exit 1
 echo "all passed"

@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ModRow } from '@/components/build/ModRow';
 import { SpecsTab } from '@/components/build/SpecsTab';
 import { StockActualCard } from '@/components/build/StockActualCard';
+import { TireStatsCard } from '@/components/build/TireStatsCard';
 import { Field } from '@/components/Field';
 import { VehicleBuildSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
@@ -14,6 +15,8 @@ import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { buildData, lastFxRate, modAction, mountWheelSet, type BuildData } from '@/lib/db/buildQueries';
 import { contacts as contactRepo, vehicles as vehicleRepo } from '@/lib/db/repos';
+import { heatCycleLimit } from '@/lib/db/tireQueries';
+import { DEFAULT_HEAT_CYCLE_LIMIT } from '@/lib/domain/tireStats';
 import type { Contact, InventoryItem, Mod, Tire, Vehicle, WheelSet, WishlistItem } from '@/lib/db/types';
 import { jsonObject } from '@/lib/domain/album';
 import { cleanSpecs, currentSpecs, investedTotal, modTotalDop, wishlistTotalDop } from '@/lib/domain/build';
@@ -53,13 +56,16 @@ export default function BuildScreen() {
   const [sellPrice, setSellPrice] = useState('');
   const [sellTo, setSellTo] = useState('');
   const [invKind, setInvKind] = useState('todo');
+  // ADR-45: the heat-cycle warning on a mounted tire (setting, default 8).
+  const [heatLimit, setHeatLimit] = useState(DEFAULT_HEAT_CYCLE_LIMIT);
   // True once the first read answered (ok or not); refocus reloads keep the page up.
   const [loaded, setLoaded] = useState(false);
   const showSkeleton = useDelayedLoading(!loaded);
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [v, d, cs, r] = await Promise.all([vehicleRepo.getById(id), buildData(id), contactRepo.listWhere({}), lastFxRate()]);
+    const [v, d, cs, r, limit] = await Promise.all([vehicleRepo.getById(id), buildData(id), contactRepo.listWhere({}), lastFxRate(), heatCycleLimit()]);
+    setHeatLimit(limit);
     setVehicle(v);
     setData(d);
     setContacts(Object.fromEntries(cs.map((c) => [c.id, c])));
@@ -191,6 +197,7 @@ export default function BuildScreen() {
           <Chip key={k} label={t.inventory.kinds[k]} selected={invKind === k} onPress={() => setInvKind(k)} />
         ))}
       </ScrollView>
+      {showTires && data.tires.length ? <TireStatsCard vehicleId={vehicle.id} vehicleName={vehicle.nickname || vehicle.name} version={data} onLimit={setHeatLimit} /> : null}
       {!data.wheelSets.length && !data.tires.length && !data.inventory.length ? <EmptyState icon="cube-outline" message={t.inventory.empty} /> : null}
       {showSets && data.wheelSets.length ? (
         <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.sm }}>
@@ -216,7 +223,7 @@ export default function BuildScreen() {
       ) : null}
       {showTires
         ? data.tires.map((t) => (
-            <TireRow key={t.id} tire={t} setName={data.wheelSets.find((s) => s.id === t.wheelSetId)?.name ?? null} onPress={() => router.push({ pathname: '/goma/[id]', params: { id: t.id, vehicleId: vehicle.id } })} />
+            <TireRow key={t.id} tire={t} heatLimit={heatLimit} setName={data.wheelSets.find((s) => s.id === t.wheelSetId)?.name ?? null} onPress={() => router.push({ pathname: '/goma/[id]', params: { id: t.id, vehicleId: vehicle.id } })} />
           ))
         : null}
       {items.length ? (
@@ -409,7 +416,7 @@ function WheelSetCard({ set, tires, vehicleName, onOpen, onMount }: { set: Wheel
   );
 }
 
-function TireRow({ tire, setName, onPress }: { tire: Tire; setName: string | null; onPress: () => void }) {
+function TireRow({ tire, heatLimit, setName, onPress }: { tire: Tire; heatLimit: number; setName: string | null; onPress: () => void }) {
   const { theme } = useTheme();
   const age = dotAge(tire.dotCode ?? (tire.dotWeek && tire.dotYear ? `${String(tire.dotWeek).padStart(2, '0')}${String(tire.dotYear).slice(-2)}` : null));
   const dotText = !age ? null : 'legacy' in age ? t.inventory.dotOld : t.inventory.dot(age.week, age.year, age.ageYears.toFixed(1));
@@ -426,6 +433,13 @@ function TireRow({ tire, setName, onPress }: { tire: Tire; setName: string | nul
         </T>
       </View>
       <View style={styles.tireLine}>
+        {tire.status === 'en_uso' && tire.heatCycles > heatLimit ? (
+          <View style={[styles.pill, { borderColor: theme.redline }]}>
+            <T face="mono" style={{ color: theme.dangerText, fontSize: 11 }}>
+              {t.tiresUi.heatBadge(tire.heatCycles)}
+            </T>
+          </View>
+        ) : null}
         {dotText ? (
           <View style={[styles.pill, { borderColor: age?.flag ? theme.redline : theme.lineStrong }]}>
             <T face="mono" style={{ color: age?.flag ? theme.dangerText : theme.text.secondary, fontSize: 11 }}>

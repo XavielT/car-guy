@@ -18,6 +18,7 @@ import {
   splitSpecs,
   type OilFields,
 } from '@/lib/domain/oil';
+import type { MemorySuggestion } from '@/lib/domain/carMemory';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -35,12 +36,15 @@ export function OilBlock({
   value,
   onChange,
   last,
+  memory,
   fuel,
 }: {
   title: string;
   value: OilFields;
   onChange: (next: OilFields) => void;
   last?: OilFields | null;
+  /** "Igual que siempre" from the car's memory (lib/domain/carMemory.ts suggestionsFor). */
+  memory?: MemorySuggestion | null;
   fuel: 'gasolina' | 'diesel' | null;
 }) {
   const { theme } = useTheme();
@@ -55,6 +59,8 @@ export function OilBlock({
 
   const set = (patch: Partial<OilFields>) => onChange({ ...value, ...patch });
   const lastLine = last ? oilSummary(last) : null;
+  const memoryOil = memory?.oil && Object.keys(memory.oil).length ? memory.oil : null;
+  const memoryApplied = memoryOil ? sameOil({ ...value, ...memoryOil }, value) : false;
   const brandKey = brandItems.find((b) => b.label === value.oilBrand)?.key ?? null;
 
   function toggleSpec(label: string) {
@@ -82,6 +88,29 @@ export function OilBlock({
             {t.oil.sameAsLast(lastLine)}
           </T>
         </Pressable>
+      ) : null}
+
+      {memory && !memoryApplied ? (
+        memoryOil ? (
+          <Pressable
+            onPress={() => {
+              onChange({ ...value, ...memoryOil });
+              setOtherGrade(Boolean(memoryOil.oilViscosity && !grades.includes(memoryOil.oilViscosity)));
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={memory.label}
+            testID="oil-same-as-always"
+            style={[styles.suggestion, { borderColor: theme.accent, backgroundColor: theme.bg.raised }]}>
+            <Ionicons name="bookmark-outline" size={16} color={theme.accent} />
+            <T face="body" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
+              {memory.label}
+            </T>
+          </Pressable>
+        ) : (
+          <T face="body" style={[styles.hint, { color: theme.text.secondary }]}>
+            {memory.label}
+          </T>
+        )
       ) : null}
 
       <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>

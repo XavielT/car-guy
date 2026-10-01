@@ -37,7 +37,7 @@ export function AlbumTab({ vehicleId, version }: { vehicleId: string; version: n
     return (
       <View>
         <EmptyState icon="images-outline" message={t.album.empty} actionLabel={t.album.import} onAction={importPhotos} />
-        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId } })} />
+        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/evento/nuevo', params: { vehicleId, type: 'hito' } })} />
       </View>
     );
   }
@@ -56,7 +56,7 @@ export function AlbumTab({ vehicleId, version }: { vehicleId: string; version: n
       <PrimaryButton label={t.album.open} onPress={() => router.push({ pathname: '/vehiculo/[id]/album', params: { id: vehicleId } })} />
       <View style={styles.row}>
         <GhostButton label={t.album.import} onPress={importPhotos} style={{ flex: 1 }} />
-        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId } })} style={{ flex: 1 }} />
+        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/evento/nuevo', params: { vehicleId, type: 'hito' } })} style={{ flex: 1 }} />
       </View>
       <StorageMeter vehicleId={vehicleId} style={{ marginTop: space.md }} />
     </View>

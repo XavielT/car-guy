@@ -23,6 +23,7 @@ import {
   type TimelineItem,
   type TimelineSection,
 } from '@/lib/domain/album';
+import { EVENT_TYPE_LABEL, type EventType } from '@/lib/domain/events';
 import { dateLabel, km as fmtKm, monthTitle } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -175,7 +176,7 @@ export default function AlbumScreen() {
       ) : null}
 
       <View style={styles.actions}>
-        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/hito/nuevo', params: { vehicleId: id } })} style={{ flex: 1 }} />
+        <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/evento/nuevo', params: { vehicleId: id, type: 'hito' } })} style={{ flex: 1 }} />
         <GhostButton label={t.album.state} onPress={() => router.push({ pathname: '/vehiculo/[id]/album/estado', params: { id } })} style={{ flex: 1 }} />
       </View>
     </View>
@@ -250,10 +251,10 @@ export default function AlbumScreen() {
           <TimelineCard
             item={r.item}
             width={inner - 26}
-            dot={dotColor(r.item, colorOf, theme.text.muted)}
+            dot={dotColor(r.item, colorOf, theme.text.muted, theme.danger, theme.status.proximo)}
             onPhoto={openPhoto}
             onOpen={() => {
-              if (r.item.kind === 'hito') router.push({ pathname: '/hito/[id]', params: { id: r.item.id } });
+              if (r.item.kind === 'hito') router.push({ pathname: '/evento/[id]', params: { id: r.item.id } });
               else if (r.item.kind === 'mantenimiento') router.push({ pathname: '/servicio/[id]', params: { id: r.item.id } });
               else if (r.item.kind === 'pista') router.push({ pathname: '/pista/evento/[id]', params: { id: r.item.id } });
               else if (r.item.kind === 'chequeo') router.push({ pathname: '/inspeccion/[id]', params: { id: r.item.id } });
@@ -265,9 +266,11 @@ export default function AlbumScreen() {
   );
 }
 
-function dotColor(item: TimelineItem, colorOf: (k: CategoryKey) => string, muted: string): string {
+function dotColor(item: TimelineItem, colorOf: (k: CategoryKey) => string, muted: string, danger: string, amber: string): string {
   switch (item.kind) {
     case 'hito':
+      // ADR-44: an event is red when severity ≥ moderado, amber otherwise; a hito keeps the album red.
+      if (item.eventType && item.eventType !== 'hito') return item.serious ? danger : amber;
       return colorOf('album');
     case 'mod':
       return colorOf('mejora');
@@ -319,7 +322,10 @@ function TimelineCard({
       ? t.album.kinds.modRemoved
       : item.kind === 'pista'
         ? t.album.disciplines[item.discipline] ?? t.album.kinds.pista
-        : t.album.kinds[item.kind];
+        : item.kind === 'hito' && item.eventType && item.eventType !== 'hito'
+          ? (EVENT_TYPE_LABEL[item.eventType as EventType] ?? t.album.kinds.hito).toUpperCase()
+          : t.album.kinds[item.kind];
+  const tone: BadgeTone = item.kind === 'hito' && item.eventType && item.eventType !== 'hito' ? (item.serious ? 'red' : 'amber') : BADGE[item.kind];
   const title = item.kind === 'fotos' ? t.album.photos(item.photos.length) : item.title;
   const note = item.kind === 'hito' ? [item.subtitle, item.story ? `“${item.story}”` : null].filter(Boolean).join(' · ') : item.kind !== 'fotos' ? item.subtitle : null;
   const pair = item.kind === 'mod' && (item.before || item.after) ? { before: item.before ?? null, after: item.after ?? null } : null;
@@ -338,7 +344,7 @@ function TimelineCard({
       </View>
       <View style={{ flex: 1, gap: 8 }}>
         <Pressable onPress={tappable ? onOpen : undefined} disabled={!tappable} accessibilityRole={tappable ? 'button' : undefined} style={styles.cardTitle}>
-          <Badge label={label} tone={BADGE[item.kind]} />
+          <Badge label={label} tone={tone} />
           <T face="semibold" numberOfLines={2} style={{ color: theme.text.primary, fontSize: 16, flex: 1 }}>
             {title}
           </T>

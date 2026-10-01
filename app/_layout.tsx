@@ -29,7 +29,7 @@ import { migrate } from '@/lib/db/migrations';
 import { FEATURE_LAUNCH_ANIM } from '@/lib/flags';
 import { markGaugeSweptThisSession } from '@/lib/motion/gaugeSweep';
 import { configure as configureNotifications, requestResync, routeOf } from '@/lib/notifications';
-import { refreshFuelPriceRef } from '@/lib/cloud/fuelPriceRef';
+import { refreshFuelPriceRefOnLaunch } from '@/lib/cloud/fuelPriceRef';
 import { initLanguage, localeTag, refreshSystemLanguage, t, useLanguage } from '@/lib/i18n';
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
@@ -223,8 +223,9 @@ function useNotifications() {
   }, [data]);
 
   // v8: the MICM weekly prices into the local cache, once per launch; silent until sql/027 exists.
+  // Phase 5: when the newest week is > 8 days old, it also pings /api/precios (once a day).
   useEffect(() => {
-    void refreshFuelPriceRef().then((n) => {
+    void refreshFuelPriceRefOnLaunch().then((n) => {
       if (n) void refresh();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per launch
@@ -312,8 +313,11 @@ function Shell() {
         <Stack.Screen name="album/importar" options={{ headerShown: true, title: t.routes.importPhotos }} />
         {/* Always dark and edge to edge: a photo reads best on black. */}
         <Stack.Screen name="foto/[id]" options={{ presentation: 'fullScreenModal', headerShown: false, title: t.routes.photo, contentStyle: { backgroundColor: '#000000' } }} />
-        <Stack.Screen name="hito/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newMilestone }} />
-        <Stack.Screen name="hito/[id]" options={{ headerShown: true, title: t.routes.milestone }} />
+        {/* 2.3's hito routes redirect to the event editor (ADR-44). */}
+        <Stack.Screen name="hito/nuevo" options={{ headerShown: false, title: t.routes.newMilestone }} />
+        <Stack.Screen name="hito/[id]" options={{ headerShown: false, title: t.routes.milestone }} />
+        <Stack.Screen name="evento/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.events.routeNew }} />
+        <Stack.Screen name="evento/[id]" options={{ headerShown: true, title: t.events.route }} />
         <Stack.Screen name="vehiculo/[id]/build" options={{ headerShown: true, title: t.routes.build }} />
         <Stack.Screen name="mod/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.routes.newMod }} />
         <Stack.Screen name="mod/[id]" options={{ headerShown: true, title: t.routes.mod }} />
@@ -384,7 +388,8 @@ function Shell() {
         />
         <Stack.Screen name="documento/[id]" options={{ headerShown: true, title: t.routes.document }} />
         <Stack.Screen name="notificaciones" options={{ headerShown: true, title: t.routes.notifications }} />
-        <Stack.Screen name="precios" options={{ headerShown: true, title: t.routes.prices }} />
+        <Stack.Screen name="precios/index" options={{ headerShown: true, title: t.routes.prices }} />
+        <Stack.Screen name="precios/nuevo" options={{ presentation: 'modal', headerShown: true, title: t.fuelPricesUi.newTitle }} />
         <Stack.Screen name="carga/[id]" options={{ headerShown: true, title: t.routes.editFillUp }} />
         <Stack.Screen name="reporte" options={{ headerShown: true, title: t.routes.report }} />
         <Stack.Screen name="exportar" options={{ headerShown: true, title: t.routes.export }} />

@@ -8,6 +8,7 @@ import {
   type TimelineEvent,
   type TimelinePhoto,
 } from '../domain/album';
+import { eventSubtitle, eventTypeOf, isSerious, type EventRow } from '../domain/events';
 import { id as newId } from '../format';
 
 /**
@@ -120,8 +121,14 @@ const MOD_REMOVED = new Set(['quitado', 'vendido', 'danado']);
 export async function timelineEvents(vehicleId: string): Promise<TimelineEvent[]> {
   const db = await getDb();
   const [hitos, mods, events, services, checks] = await Promise.all([
-    db.getAllAsync<{ id: string; kind: string; occurred_at: string; title: string; story: string; odometer_km: number | null }>(
-      'SELECT id, kind, occurred_at, title, story, odometer_km FROM milestone WHERE vehicle_id = ? AND deleted_at IS NULL',
+    db.getAllAsync<
+      { id: string; kind: string; occurred_at: string; title: string; story: string; odometer_km: number | null } & Record<
+        'event_type' | 'severity' | 'pending' | 'resolved_at',
+        string | null
+      > & { cost_dop: number | null }
+    >(
+      `SELECT id, kind, occurred_at, title, story, odometer_km, event_type, severity, cost_dop, pending, resolved_at
+         FROM milestone WHERE vehicle_id = ? AND deleted_at IS NULL`,
       [vehicleId],
     ),
     db.getAllAsync<{ id: string; name: string; status: string; installed_at: string | null; removed_at: string | null; vendor: string | null; brand: string | null }>(
@@ -151,7 +158,23 @@ export async function timelineEvents(vehicleId: string): Promise<TimelineEvent[]
 
   const out: TimelineEvent[] = [];
   for (const h of hitos) {
-    out.push({ kind: 'hito', id: h.id, date: h.occurred_at, title: h.title, story: h.story, milestoneKind: h.kind, subtitle: h.odometer_km != null ? `${Math.round(h.odometer_km).toLocaleString('en-US')} km` : null });
+    const km = h.odometer_km != null ? `${Math.round(h.odometer_km).toLocaleString('en-US')} km` : null;
+    const ev: EventRow = {
+      id: h.id,
+      vehicleId,
+      kind: h.kind as Milestone['kind'],
+      occurredAt: h.occurred_at,
+      title: h.title,
+      eventType: (h.event_type ?? undefined) as EventRow['eventType'],
+      severity: (h.severity || null) as EventRow['severity'],
+      costDop: h.cost_dop,
+      pending: h.pending ?? '',
+      resolvedAt: h.resolved_at,
+    };
+    const eventType = eventTypeOf(ev);
+    // An event's line is its severity · cost · pending (ADR-44); a hito keeps its km.
+    const subtitle = eventType === 'hito' ? km : [eventSubtitle(ev), km].filter(Boolean).join(' · ') || null;
+    out.push({ kind: 'hito', id: h.id, date: h.occurred_at, title: h.title, story: h.story, milestoneKind: h.kind, subtitle, eventType, serious: isSerious(ev) });
   }
   for (const m of mods) {
     if (m.installed_at) out.push({ kind: 'mod', id: m.id, date: m.installed_at, title: m.name, subtitle: m.brand ?? m.vendor });
@@ -251,6 +274,27 @@ export async function milestonePhotoIds(milestoneId: string): Promise<string[]> 
   return rows.map((r) => r.media_id);
 }
 
+/**
+ * New photos added from the event editor are its proofs (ADR-44: album_item
+ * role 'evento' with the milestone id). They stay in the album like any photo.
+ */
+export async function markEventProofs(mediaIds: string[], milestoneId: string): Promise<void> {
+  const db = await getDb();
+  for (const mediaId of mediaIds) {
+    const item = await db.getFirstAsync<{ id: string }>('SELECT id FROM album_item WHERE media_id = ? AND deleted_at IS NULL', [mediaId]);
+    if (item) await albumItems.upsert({ id: item.id, milestoneId, role: 'evento' });
+  }
+}
+
+/**
+ * An event's PDF proofs: media rows of kind 'pdf' owned by the milestone
+ * (lib/media/pdf.ts pickPdf). They have no album item — the album, the book and
+ * the public page only ever read photos.
+ */
+export async function milestonePdfs(milestoneId: string): Promise<Media[]> {
+  return (await mediaRepo.listWhere({ ownerTable: 'milestone', ownerId: milestoneId })).filter((m) => m.kind === 'pdf' && !m.deletedAt);
+}
+
 export async function saveMilestone(input: Partial<Milestone> & Pick<Milestone, 'vehicleId' | 'kind' | 'occurredAt' | 'title'>): Promise<Milestone> {
   return milestoneRepo.upsert({ id: input.id ?? newId(), story: '', odometerKm: null, coverMediaId: null, deletedAt: null, ...input });
 }
@@ -289,4 +333,16 @@ export async function backedUpCount(vehicleId: string): Promise<number> {
     [vehicleId],
   );
   return row?.n ?? 0;
+}
+
+/**
+ * The book's "Eventos" chapter (ADR-44): the car's events — not its hitos,
+ * which are the story — oldest first, within the book's period. Never on the
+ * public page.
+ */
+export async function eventsForBook(vehicleId: string, from: string | null, to: string | null): Promise<Milestone[]> {
+  const rows = await milestoneRepo.listWhere({ vehicleId });
+  return rows
+    .filter((m) => !m.deletedAt && (m.eventType ?? 'hito') !== 'hito' && (!from || m.occurredAt >= from) && (!to || m.occurredAt <= to))
+    .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
 }

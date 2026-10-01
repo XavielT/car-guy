@@ -35,6 +35,8 @@ export type ShareFlags = {
   story: boolean;
   /** The car's status (en el taller, accidentado…) with its note and since — off unless chosen (sql/022). */
   status: boolean;
+  /** v8 / sql/025 `show_tires`: the tires block, counts only (ADR-45). Off unless chosen. */
+  tires: boolean;
 };
 
 /** `public_dossier()`'s JSON (snake_case, as it comes over the wire). */
@@ -42,7 +44,8 @@ export type RawDossier = {
   slug: string | null;
   visibility: 'private' | 'link' | 'public';
   published_at?: string | null;
-  show: ShareFlags;
+  /** sql/025's `show` has no `tires` key (the block's presence says it); the phone's preview sends it. */
+  show: Omit<ShareFlags, 'tires'> & { tires?: boolean };
   vehicle: {
     name: string;
     type?: string | null;
@@ -102,6 +105,15 @@ export type RawDossier = {
     per_km_dop: number | null;
     since: string | null;
   } | null;
+  /** sql/025, only with show_tires: how many tire rows and how many per status (never brands, DOT or costs). */
+  tires?: { count: number; badges: { status: string; count: number }[] } | null;
+  /**
+   * "Lo que uso" (IMP 30092026 note 6), worded by the phone: the book builds it
+   * from the local tables when its switch is on. The cloud does not send it yet
+   * (needs a `show_memory` column and a public_dossier block); the page renders
+   * it whenever it is present.
+   */
+  memory?: { section: string; title: string; label: string; value: string }[] | null;
   photos: string[];
 };
 
@@ -124,6 +136,10 @@ export type Dossier = {
   track: { events: number; bests: { venue: string; lap: string }[]; recent: { title: string; date: string; line: string }[] } | null;
   /** Only with "costos" on; the rows of the Cifras card, already worded. */
   costs: { rows: { label: string; value: string }[]; total: string; perKm: string | null; since: string | null } | null;
+  /** Only with show_tires: "14 gomas · 6 quemadas · 4 montadas" and the highest badge earned. */
+  tires: { count: number; line: string; badge: string | null } | null;
+  /** "Lo que uso", grouped, only when present in the raw dossier. */
+  memory: { title: string; rows: { label: string; value: string }[] }[] | null;
   heroUrl: string | null;
   photos: { id: string; full: string; thumb: string }[];
 };
@@ -153,6 +169,28 @@ const COST_LABELS: [keyof NonNullable<RawDossier['costs']>['by_category'], strin
   ['combustible', 'Combustible'],
   ['pista', 'Pista'],
   ['otros', 'Otros'],
+];
+
+/** The page's tire words; the order the line reads (ADR-45). */
+const TIRE_STATUS_WORDS: [string, string, string][] = [
+  ['quemada', 'quemada', 'quemadas'],
+  ['vendida', 'vendida', 'vendidas'],
+  ['en_uso', 'montada', 'montadas'],
+  ['guardada', 'guardada', 'guardadas'],
+  ['nueva', 'nueva', 'nuevas'],
+];
+
+/**
+ * lib/domain/tireStats.ts TIRE_BADGES with es.ts's names, copied because this
+ * file bundles into the Vercel function without the i18n layer; a test keeps
+ * the two in step.
+ */
+export const TIRE_BADGE_NAMES: { threshold: number; name: string }[] = [
+  { threshold: 4, name: 'Primer juego' },
+  { threshold: 10, name: 'Quemagomas' },
+  { threshold: 25, name: 'Fabricante de humo' },
+  { threshold: 50, name: 'Cliente frecuente del gomero' },
+  { threshold: 100, name: "Leyenda de lao'" },
 ];
 
 const km = (n: number) => `${Math.round(n).toLocaleString('en-US')} km`;
@@ -307,6 +345,28 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
     };
   }
 
+  let tires: Dossier['tires'] = null;
+  if (raw.tires && raw.tires.count > 0) {
+    const by = new Map(raw.tires.badges.map((b) => [b.status, b.count]));
+    const parts = [`${raw.tires.count} ${raw.tires.count === 1 ? 'goma' : 'gomas'}`];
+    for (const [status, one, many] of TIRE_STATUS_WORDS) {
+      const n = by.get(status) ?? 0;
+      if (n) parts.push(`${n} ${n === 1 ? one : many}`);
+    }
+    const earned = TIRE_BADGE_NAMES.filter((b) => raw.tires!.count >= b.threshold).pop();
+    tires = { count: raw.tires.count, line: parts.join(' · '), badge: earned?.name ?? null };
+  }
+
+  let memory: Dossier['memory'] = null;
+  if (raw.memory?.length) {
+    const groups = new Map<string, { title: string; rows: { label: string; value: string }[] }>();
+    for (const r of raw.memory) {
+      if (!groups.has(r.section)) groups.set(r.section, { title: r.title, rows: [] });
+      groups.get(r.section)!.rows.push({ label: r.label, value: r.value });
+    }
+    memory = [...groups.values()];
+  }
+
   const s = raw.slug;
   const photos = s ? raw.photos.map((id) => ({ id, full: publicPhotoUrl(opts.storageBase, s, id), thumb: publicPhotoUrl(opts.storageBase, s, id, true) })) : [];
   const heroId = v.hero_media_id ?? raw.photos[0] ?? null;
@@ -338,6 +398,8 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
     maintenance,
     track,
     costs,
+    tires,
+    memory,
     heroUrl: s && heroId ? publicPhotoUrl(opts.storageBase, s, heroId) : null,
     photos,
   };

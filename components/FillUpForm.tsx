@@ -14,6 +14,8 @@ import { PickerField, SearchSheet, type SearchItem } from '@/components/pickers'
 import { brandsForFuel, normaliseStation, recentStations } from '@/lib/domain/stations';
 import { foldText } from '@/lib/domain/text';
 import { GaugePicker } from '@/components/fuel/GaugePicker';
+import { usePriceData } from '@/hooks/usePriceData';
+import { boardSourceLabel, prefillPrice } from '@/lib/domain/fuelPrices';
 import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtVol } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
@@ -53,7 +55,11 @@ export function FillUpForm({
   const [odo, setOdo] = useState(initial ? String(initial.odometerKm) : '');
   const [fuel, setFuel] = useState<FuelType>(initial?.fuelType ?? defaultFuel);
   const [vol, setVol] = useState(initial ? String(initial.volume) : '');
-  const [price, setPrice] = useState(initial ? String(initial.pricePerUnit) : '');
+  const [typedPrice, setPrice] = useState(initial ? String(initial.pricePerUnit) : '');
+  // Note 1 (Phase 5): a new fill-up starts with the board's price for its fuel, in the
+  // vehicle's unit; it follows the fuel chips until the person types a price of their own.
+  const [priceTyped, setPriceTyped] = useState(Boolean(initial));
+  const { board } = usePriceData();
   const [total, setTotal] = useState(initial ? String(initial.totalDop) : '');
   const [full, setFull] = useState(initial?.isFullTank ?? true);
   const [missedPrevious, setMissedPrevious] = useState(initial?.missedPrevious ?? false);
@@ -69,6 +75,10 @@ export function FillUpForm({
   // v6: labels follow the vehicle's volume unit (GNV stays m³).
   const volumeUnit = data.vehicles.find((v) => v.id === vehicleId)?.detail?.volumeUnit ?? 'gal';
   const meta = { unitLabel: unitLabelFor(fuel, volumeUnit), perUnitLabel: perUnitLabelFor(fuel, volumeUnit) };
+  const prefill = initial ? null : prefillPrice(board, fuel, volumeUnit);
+  // Until typed, the field shows the board's price (derived, so it follows the fuel and the board).
+  const prefilled = prefill != null && !priceTyped;
+  const price = prefilled ? String(prefill.price) : typedPrice;
   const stationItems = useMemo<SearchItem[]>(() => {
     const recent = recentStations(data.fillups.filter((f) => f.vehicleId === vehicleId));
     const brands = brandsForFuel(FUEL_CATALOG[fuel].group).filter((b) => !recent.some((r) => foldText(r) === foldText(b.name)));
@@ -176,8 +186,12 @@ export function FillUpForm({
         label={meta.perUnitLabel}
         keyboardType="decimal-pad"
         value={price}
-        onChangeText={setPrice}
+        onChangeText={(v) => {
+          setPriceTyped(true);
+          setPrice(v);
+        }}
         placeholder="307.50"
+        hint={prefilled && prefill ? t.fuelPricesUi.prefillHint(boardSourceLabel(prefill.entry)) : undefined}
       />
       <Field
         label={t.fuel.total}

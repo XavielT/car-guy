@@ -4,6 +4,10 @@ import {
   EVENT_TYPES,
   SEVERITIES,
   eventCostDop,
+  eventCostRows,
+  eventFieldsFromDraft,
+  eventFromFeed,
+  type EventDraft,
   eventSubtitle,
   eventTimeline,
   eventTypeOf,
@@ -111,5 +115,94 @@ describe('eventSubtitle', () => {
 describe('eventCostDop', () => {
   it('sums costs, skipping events linked to a service (the service carries the bill)', () => {
     expect(eventCostDop(ROWS, 'trueno')).toBeCloseTo(45000 + 1250.5);
+  });
+});
+
+describe('eventCostDop — the merge rule', () => {
+  it('a hito with a cost adds nothing (its money is the purchase, mod or service)', () => {
+    const rows = [ev('pintura', '2026-01-01', { costDop: 30000 }), ev('multa2', '2026-02-01', { eventType: 'multa', costDop: 2000 })];
+    expect(eventCostDop(rows, 'trueno')).toBe(2000);
+  });
+
+  it('eventCostRows lists exactly what the total sums, newest first', () => {
+    expect(eventCostRows(ROWS, 'trueno').map((m) => m.id)).toEqual(['multa', 'choque']);
+    const sum = eventCostRows(ROWS, 'trueno').reduce((a, m) => a + (m.costDop ?? 0), 0);
+    expect(sum).toBeCloseTo(eventCostDop(ROWS, 'trueno'));
+  });
+
+  it('tombstones, other cars and zero costs stay out', () => {
+    const rows = [
+      ev('gone', '2026-01-01', { eventType: 'averia', costDop: 900, deletedAt: '2026-01-02' }),
+      ev('zero', '2026-01-01', { eventType: 'averia', costDop: 0 }),
+      ev('other', '2026-01-01', { vehicleId: 'ds3', eventType: 'averia', costDop: 700 }),
+    ];
+    expect(eventCostDop(rows, 'trueno')).toBe(0);
+  });
+});
+
+describe('pendingEvents — the hub banner list', () => {
+  it('resolving one takes it off; re-opening puts it back', () => {
+    const open = ev('p1', '2026-03-01', { eventType: 'dano_menor', pending: 'cambiar el retrovisor' });
+    expect(pendingEvents([open], 'trueno')).toHaveLength(1);
+    expect(pendingEvents([{ ...open, resolvedAt: '2026-03-05' }], 'trueno')).toHaveLength(0);
+    expect(pendingEvents([{ ...open, resolvedAt: null }], 'trueno')).toHaveLength(1);
+  });
+});
+
+describe('eventFromFeed', () => {
+  it('unpacks history_feed v6’s subtitle', () => {
+    expect(eventFromFeed('accidente|accidente|moderado|pintar el guardafango|')).toEqual({
+      kind: 'accidente',
+      eventType: 'accidente',
+      severity: 'moderado',
+      pending: 'pintar el guardafango',
+      resolvedAt: null,
+    });
+    expect(eventFromFeed('otro|multa|leve|pagar|2026-09-15T00:00:00.000Z').resolvedAt).toBe('2026-09-15T00:00:00.000Z');
+  });
+
+  it('unknown or missing parts fall back', () => {
+    expect(eventFromFeed(null)).toEqual({ kind: '', eventType: 'otro', severity: null, pending: '', resolvedAt: null });
+    expect(eventFromFeed('otro|cohete|feo')).toMatchObject({ eventType: 'otro', severity: null });
+  });
+});
+
+describe('eventFieldsFromDraft', () => {
+  const TODAY = '2026-09-30T12:00:00.000Z';
+  const draft = (over: Partial<EventDraft> = {}): EventDraft => ({
+    eventType: 'dano_menor',
+    severity: 'leve',
+    cost: '',
+    pending: '',
+    resolved: false,
+    resolvedAt: null,
+    linkedServiceId: null,
+    linkedModId: null,
+    linkedInspectionId: null,
+    locationLabel: '',
+    ...over,
+  });
+
+  it('a hito carries no severity; an event without one is leve', () => {
+    expect(eventFieldsFromDraft(draft({ eventType: 'hito', severity: 'grave' }), TODAY).severity).toBeNull();
+    expect(eventFieldsFromDraft(draft({ severity: null }), TODAY).severity).toBe('leve');
+  });
+
+  it('cost parses what people type; empty or zero is null', () => {
+    expect(eventFieldsFromDraft(draft({ cost: 'RD$ 45,000' }), TODAY).costDop).toBe(45000);
+    expect(eventFieldsFromDraft(draft({ cost: '1250.50' }), TODAY).costDop).toBe(1250.5);
+    expect(eventFieldsFromDraft(draft({ cost: '' }), TODAY).costDop).toBeNull();
+    expect(eventFieldsFromDraft(draft({ cost: '0' }), TODAY).costDop).toBeNull();
+  });
+
+  it('Resuelto stamps today, keeps an earlier date, and needs something pending', () => {
+    expect(eventFieldsFromDraft(draft({ pending: ' pintar ', resolved: true }), TODAY)).toMatchObject({ pending: 'pintar', resolvedAt: TODAY });
+    expect(eventFieldsFromDraft(draft({ pending: 'pintar', resolved: true, resolvedAt: '2026-08-01' }), TODAY).resolvedAt).toBe('2026-08-01');
+    expect(eventFieldsFromDraft(draft({ pending: 'pintar', resolved: false, resolvedAt: '2026-08-01' }), TODAY).resolvedAt).toBeNull();
+    expect(eventFieldsFromDraft(draft({ pending: '   ', resolved: true }), TODAY)).toMatchObject({ pending: '', resolvedAt: null });
+  });
+
+  it('links and the place pass through (place trimmed)', () => {
+    expect(eventFieldsFromDraft(draft({ linkedServiceId: 's1', locationLabel: '  Av. Kennedy ' }), TODAY)).toMatchObject({ linkedServiceId: 's1', locationLabel: 'Av. Kennedy' });
   });
 });

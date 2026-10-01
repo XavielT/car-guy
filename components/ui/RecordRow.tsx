@@ -65,6 +65,7 @@ export function RecordRow({
   meta,
   amount,
   tag,
+  icon,
   onPress,
 }: {
   kind: RecordKind;
@@ -73,6 +74,8 @@ export function RecordRow({
   amount: string | null;
   /** A small extra fact, e.g. "37.4 km/gal" on a fill-up. */
   tag?: string | null;
+  /** An Ionicons glyph instead of the kind's (an event row shows its event type's). */
+  icon?: string | null;
   onPress?: () => void;
 }) {
   const { theme, scheme } = useTheme();
@@ -91,7 +94,7 @@ export function RecordRow({
         { backgroundColor: theme.bg.surface, borderColor: theme.line, opacity: pressed ? 0.85 : 1 },
       ]}>
       <View style={[styles.badge, { backgroundColor: `${hue}24`, borderColor: `${hue}55` }]}>
-        <Ionicons name={ICON[kind]} size={17} color={ink} />
+        <Ionicons name={(icon as keyof typeof Ionicons.glyphMap | null | undefined) ?? ICON[kind]} size={17} color={ink} />
       </View>
 
       <View style={styles.body}>

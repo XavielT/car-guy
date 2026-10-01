@@ -104,7 +104,11 @@ export type TimelinePhoto = {
 };
 
 export type TimelineEvent =
-  | { kind: 'hito'; id: string; date: string; title: string; subtitle?: string | null; story?: string; milestoneKind: string }
+  /**
+   * A milestone. v8 (ADR-44): `eventType` other than 'hito' makes it an event —
+   * its badge says the type, and `serious` (severity ≥ moderado) paints it red.
+   */
+  | { kind: 'hito'; id: string; date: string; title: string; subtitle?: string | null; story?: string; milestoneKind: string; eventType?: string; serious?: boolean }
   | { kind: 'mod'; id: string; date: string; title: string; subtitle?: string | null; removed?: boolean }
   | { kind: 'pista'; id: string; date: string; title: string; subtitle?: string | null; discipline: string }
   | { kind: 'mantenimiento'; id: string; date: string; title: string; subtitle?: string | null }

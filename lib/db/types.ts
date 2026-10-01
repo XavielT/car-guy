@@ -388,7 +388,8 @@ export type AlbumItem = Syncable & {
   role: AlbumRole;
 };
 
-export type AlbumRole = 'album' | 'vehicle';
+/** v8: 'evento' = a proof added from an event's editor (ADR-44); still on the album timeline. */
+export type AlbumRole = 'album' | 'vehicle' | 'evento';
 
 export type MilestoneKind =
   | 'compra'

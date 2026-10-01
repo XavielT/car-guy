@@ -514,3 +514,35 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 - Phase 5 (events · memoria · gomas · precios): the domain modules from Phase 2 are ready (events, carMemory,
   tireStats, fuelPrices); sql/027 (fuel_price_ref + importer) needs Xaviel's OK and a JWT or service-role decision.
 
+
+## MICM PDFs (Phase 5)
+
+Fetched 2026-09-30 from the notices page (`…/avisos-semanales-de-precios-de-combustibles/`, HTTP 200, four
+"Descargar .PDF" links). All four are **text PDFs** (`pdftotext -layout` → ~8 KB of text each; pdf.js/unpdf in
+Node reads the same rows). Texts saved in `docs/imp-30092026/fixtures/micm/`.
+
+| PDF | week (from the sentence) | Premium | Regular | Gasoil reg. | Gasoil ópt. | GLP |
+|---|---|---|---|---|---|---|
+| AVISO-PRE.-SEM.CORTE-26-SEP-02-OCT-DE-2026-ESC.-2-ESC.-3.pdf | 2026-09-26 → 10-02 | 353.10 | 317.50 | 270.80 | 306.10 | 135.20 |
+| AVISO-PRE.-SEM.CORTE-19-25-SEP-DE-2026.pdf | 2026-09-19 → 09-25 | 350.10 | 315.50 | 267.80 | 302.10 | 135.20 |
+| AVISO-PRE.-SEM.CORTE-12-18-SEP-DE-2026.pdf | 2026-09-12 → 09-18 | 341.10 | 310.50 | 262.80 | 293.10 | 135.20 |
+| AVISO-PRE.-SEM.CORTE-05-11-SEP-DE-2026.pdf | 2026-09-05 → 09-11 | 341.10 | 310.50 | 262.80 | 293.10 | 135.20 |
+
+Relevant lines (newest notice):
+
+```
+… regirán a partir de la 00:00 hora del sábado
+veintiséis (26) de septiembre al día viernes dos (02) de octubre de dos mil veintiséis (2026).
+Gasolina Premium            203.63  71.85  32.58  16.59  27.07  6.68  358.40  (5.30)  353.10   3.00
+Gasolina Regular            179.95  63.83  28.78  16.59  27.07  6.68  322.90  (5.40)  317.50   2.00
+Gasoil Regular              174.00  28.06  27.83  14.28  23.75  6.68  274.60  (3.80)  270.80   3.00
+Gasoil Optimo               198.22  34.53  31.72  14.52  24.03  6.68  309.70  (3.60)  306.10   4.00
+Gas Licuado de Petróleo (GLP) **  84.58  0.00  13.53  11.71  17.90  6.68  134.40  0.00  0.80  135.20  0.00
+```
+
+Findings: weeks run **Saturday → Friday** (the research's "25 sep" was the notice's date, 25 sep; the week
+starts 26 sep). The price to the public is the second number from the end (the last is the week's change,
+negatives in parentheses). The EGP-C/EGP-T gasoil rows (power plants), Avtur, Kerosene and Fuel Oil are
+skipped; **GNV is not in the notice** (its price stays the person's own). Two sentence wordings: "del sábado
+(19) al día viernes (25) de septiembre" and "del sábado (26) de septiembre al día viernes (02) de octubre";
+the file name carries the same dates (used as fallback).

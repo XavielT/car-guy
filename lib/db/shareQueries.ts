@@ -4,6 +4,7 @@ import type { VehicleShare } from './types';
 import type { RawDossier, ShareFlags } from '../share/dossier';
 import { isEmptyCost } from '../domain/costs';
 import { vehicleOwnershipCost } from './statsQueries';
+import { loadMemory } from './memoryQueries';
 
 /**
  * The share's local reads (IMP 28092026 Phase 7). `localRawDossier` builds the
@@ -14,7 +15,7 @@ import { vehicleOwnershipCost } from './statsQueries';
 
 export const shareId = (vehicleId: string) => `share_${vehicleId}`;
 
-export const DEFAULT_FLAGS: ShareFlags = { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true, status: false };
+export const DEFAULT_FLAGS: ShareFlags = { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true, status: false, tires: false };
 
 export function flagsOf(s: VehicleShare | null): ShareFlags {
   if (!s) return { ...DEFAULT_FLAGS };
@@ -28,6 +29,7 @@ export function flagsOf(s: VehicleShare | null): ShareFlags {
     track: s.showTrack,
     story: s.showStory,
     status: s.showStatus,
+    tires: Boolean(s.showTires),
   };
 }
 
@@ -42,6 +44,7 @@ export function flagsPatch(f: ShareFlags): Partial<VehicleShare> {
     showTrack: f.track,
     showStory: f.story,
     showStatus: f.status,
+    showTires: f.tires,
   };
 }
 
@@ -95,7 +98,7 @@ const mask = (s: string | null | undefined) => (s ? `${s.slice(0, 3)}•••�
 export async function localRawDossier(
   vehicleId: string,
   flags: ShareFlags,
-  opts: { slug?: string | null; visibility?: RawDossier['visibility']; from?: string | null; to?: string | null } = {},
+  opts: { slug?: string | null; visibility?: RawDossier['visibility']; from?: string | null; to?: string | null; memory?: boolean } = {},
 ): Promise<RawDossier | null> {
   const v = await vehicleRepo.getById(vehicleId);
   if (!v || v.deletedAt) return null;
@@ -196,12 +199,28 @@ export async function localRawDossier(
     );
   }
 
+  // sql/025's tires block, the same counts (ADR-45): rows per status, nothing else.
+  if (flags.tires) {
+    const rows = await db.getAllAsync<{ status: string; n: number }>(
+      'SELECT status, COUNT(*) AS n FROM tire WHERE vehicle_id = ? AND deleted_at IS NULL GROUP BY status ORDER BY n DESC, status',
+      [vehicleId],
+    );
+    raw.tires = { count: rows.reduce((t, r) => t + r.n, 0), badges: rows.map((r) => ({ status: r.status, count: r.n })) };
+  }
+
+  // "Lo que uso" (note 6): the book's switch; the cloud does not send it yet.
+  if (opts.memory) {
+    const { sections } = await loadMemory(vehicleId);
+    raw.memory = sections.flatMap((sec) => sec.rows.map((r) => ({ section: sec.id, title: sec.title, label: r.label, value: r.value })));
+  }
+
   // Note 8: "lo que me ha costado", the same ownershipCost figure as Cifras — only with "costos" on.
   if (flags.costs) raw.costs = await costsSummaryFor(vehicleId);
 
   if (flags.story) {
     raw.milestones = await db.getAllAsync<NonNullable<RawDossier['milestones']>[number]>(
-      `SELECT kind, occurred_at, title, story FROM milestone WHERE vehicle_id = ? AND deleted_at IS NULL ORDER BY occurred_at`,
+      // Hitos only: events (ADR-44) are private — the book gives them their own chapter.
+      `SELECT kind, occurred_at, title, story FROM milestone WHERE vehicle_id = ? AND deleted_at IS NULL AND event_type = 'hito' ORDER BY occurred_at`,
       [vehicleId],
     );
   }

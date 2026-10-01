@@ -21,6 +21,8 @@ export type BookInput = {
   documents: { title: string; kind: string; issuedAt: string | null; expiresAt: string | null }[] | null;
   generatedAt: string;
   periodLabel: string | null;
+  /** The "Eventos" chapter (ADR-44), already in words: "Accidente · Choque", "Moderado · RD$ 45,000 · …". */
+  events?: { date: string; title: string; line: string }[] | null;
 };
 
 export type BookDeps = {
@@ -307,10 +309,27 @@ export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint
     const foot = [c.perKm, c.since].filter(Boolean).join(' · ');
     if (foot) w.para(foot, { size: 10, color: INK2 });
   }
+  if (d.memory?.length) {
+    // IMP 30092026 note 6, only with the book's "Lo que uso" switch.
+    w.heading(t.memory.pdfTitle);
+    for (const g of d.memory) {
+      w.eyebrow(g.title);
+      for (const r of g.rows) w.row([r.label, r.value], [0.45, 0.55]);
+    }
+  }
+  if (d.tires) {
+    // ADR-45, only with "gomas" on: counts, never brands or costs.
+    w.heading(t.tiresUi.pdfTitle);
+    w.para([d.tires.line, d.tires.badge].filter(Boolean).join(' · '), { size: 11, font: f.bold });
+  }
   if (input.documents?.length) {
     w.heading(L.documents);
     w.row([L.document, L.issued, L.expires], [0.5, 0.25, 0.25], { header: true });
     for (const doc2 of input.documents) w.row([doc2.title || doc2.kind, shortDate(doc2.issuedAt), shortDate(doc2.expiresAt)], [0.5, 0.25, 0.25]);
+  }
+  if (input.events?.length) {
+    w.heading(t.events.bookChapter);
+    for (const e of input.events) w.row([e.date, e.title, e.line], [0.16, 0.38, 0.46]);
   }
   if (d.track?.events) {
     const track = d.track;

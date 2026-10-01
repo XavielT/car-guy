@@ -73,3 +73,53 @@ export async function savePriceBoard(prices: ReferencePrices, label: string, pre
   });
   return written;
 }
+
+/** Everything the Precios screens read: the person's rows, the MICM cache, and the board over both. */
+export async function priceData(): Promise<{ own: FuelPriceRow[]; refs: FuelPriceRefRow[]; board: BoardEntry[] }> {
+  const [own, refs] = await Promise.all([fuelPrices.list(), listFuelPriceRefs()]);
+  const ownRows = own as unknown as FuelPriceRow[];
+  const refRows = refs as unknown as FuelPriceRefRow[];
+  return { own: ownRows, refs: refRows, board: currentBoard(ownRows, refRows) };
+}
+
+export type FuelPriceDraft = Pick<FuelPrice, 'fuelType' | 'price' | 'validFrom' | 'source' | 'station' | 'note'>;
+
+/** Precios → Nuevo / Editar. `id` given = edit that row; a station only sticks for estación/recibo. */
+export async function saveFuelPrice(draft: FuelPriceDraft, rowId?: string): Promise<string> {
+  const keepStation = draft.source === 'estacion' || draft.source === 'recibo';
+  const existing = rowId ? ((await fuelPrices.getById(rowId)) as FuelPrice | null) : null;
+  const saved = await fuelPrices.upsert({
+    id: existing?.id ?? newId(),
+    fuelType: draft.fuelType,
+    price: draft.price,
+    validFrom: draft.validFrom.slice(0, 10),
+    source: draft.source,
+    station: keepStation ? draft.station.trim() : '',
+    note: draft.note.trim(),
+    createdAt: existing?.createdAt ?? now(),
+  });
+  return saved.id;
+}
+
+export async function getFuelPrice(rowId: string): Promise<FuelPrice | null> {
+  return (await fuelPrices.getById(rowId)) as FuelPrice | null;
+}
+
+export async function deleteFuelPrice(rowId: string): Promise<void> {
+  await fuelPrices.softDelete(rowId);
+}
+
+/** Writes MICM rows into the local cache (the dev seed; the launch pull has its own copy of this upsert). */
+export async function upsertFuelPriceRefs(rows: readonly FuelPriceRef[]): Promise<void> {
+  await enqueue(async (db) => {
+    for (const r of rows) {
+      await db.runAsync(
+        `INSERT INTO fuel_price_ref (id, fuel_type, price, week_start, week_end, pdf_url, imported_at, stale)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET price = excluded.price, week_end = excluded.week_end, pdf_url = excluded.pdf_url,
+           imported_at = excluded.imported_at, stale = excluded.stale`,
+        [r.id, r.fuelType, r.price, r.weekStart, r.weekEnd, r.pdfUrl, r.importedAt, r.stale ? 1 : 0] as never,
+      );
+    }
+  });
+}

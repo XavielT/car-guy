@@ -16,7 +16,8 @@ import {
   inspectionTemplates as templateRepo,
 } from '@/lib/db/repos';
 import { resultIdFor, saveInspection, type Answer } from '@/lib/db/inspectionOps';
-import type { FluidGuideItem, InspectionItem, InspectionTemplate, OnFail } from '@/lib/db/types';
+import type { FluidGuideItem, InspectionItem, InspectionTemplate, OnFail, VehicleSpecsheet } from '@/lib/db/types';
+import { suggestionForFluid } from '@/lib/domain/carMemory';
 import { listFluids, readFicha } from '@/lib/db/diyQueries';
 import { fluidForItem, fluidInfo, isTirePressureItem } from '@/lib/domain/fluids';
 import { defaultActionFor, needsDetail, VERDICTS, type Verdict } from '@/lib/domain/inspections';
@@ -61,6 +62,8 @@ export default function RunScreen() {
   // The DIY block (IMP 28092026 Phase 5): the owner's fluid photos and the OEM pressures.
   const [fluidCards, setFluidCards] = useState<Record<string, FluidGuideItem>>({});
   const [psi, setPsi] = useState<{ f: number | null; r: number | null }>({ f: null, r: null });
+  // "Igual que siempre" (IMP 30092026 note 6): the car's memory, for the fluid items.
+  const [sheet, setSheet] = useState<VehicleSpecsheet | null>(null);
   // Lazy initialiser, not a bare Date.now() in the render body: the clock is
   // impure and the lint rightly refuses to have it read on every render.
   const [startedAt] = useState(() => Date.now());
@@ -83,6 +86,7 @@ export default function RunScreen() {
       if (cancelled) return;
       setFluidCards(Object.fromEntries(cards.filter((c) => c.mediaId || c.notes).map((c) => [c.kind, c])));
       setPsi({ f: (ficha.values.psi_oem_f as number | null) ?? null, r: (ficha.values.psi_oem_r as number | null) ?? null });
+      setSheet(ficha.sheet);
     });
     return () => {
       cancelled = true;
@@ -245,17 +249,41 @@ export default function RunScreen() {
                   {(() => {
                     const kind = FEATURE_DIY ? fluidForItem(item.label) : null;
                     const card = kind ? fluidCards[kind] : null;
-                    if (!card) return null;
+                    const memory = suggestionForFluid(kind, sheet);
+                    if (!card && !memory) return null;
+                    const filled = memory ? (notes[item.id] ?? '').includes(memory.summary) : false;
                     return (
                       <View style={[styles.fluid, { borderColor: theme.accentFill, backgroundColor: theme.bg.raised }]}>
-                        <T face="eyebrow" style={{ color: theme.accent, fontSize: 10 }}>
-                          {t.fluids.inCheck(catalogText('fluid', card.kind, 'label', fluidInfo(card.kind)?.label ?? item.label), activeVehicle?.name ?? '')}
-                        </T>
-                        {card.mediaId ? <PhotoThumb mediaId={card.mediaId} height={150} /> : null}
-                        {card.notes ? (
+                        {card ? (
+                          <T face="eyebrow" style={{ color: theme.accent, fontSize: 10 }}>
+                            {t.fluids.inCheck(catalogText('fluid', card.kind, 'label', fluidInfo(card.kind)?.label ?? item.label), activeVehicle?.name ?? '')}
+                          </T>
+                        ) : null}
+                        {card?.mediaId ? <PhotoThumb mediaId={card.mediaId} height={150} /> : null}
+                        {card?.notes ? (
                           <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
                             {card.notes}
                           </T>
+                        ) : null}
+                        {memory ? (
+                          <Pressable
+                            onPress={() =>
+                              setNotes((p) => {
+                                const cur = (p[item.id] ?? '').trim();
+                                return { ...p, [item.id]: cur.includes(memory.summary) ? cur : [cur, memory.label].filter(Boolean).join(' · ') };
+                              })
+                            }
+                            accessibilityRole="button"
+                            accessibilityLabel={`${memory.label}. ${t.memory.fillNote}`}
+                            accessibilityState={{ selected: filled }}
+                            style={[styles.memory, { borderColor: filled ? theme.statusText.ok : theme.accent }]}>
+                            <T face="body" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
+                              {memory.label}
+                            </T>
+                            <T face="eyebrow" style={{ color: filled ? theme.statusText.ok : theme.accent, fontSize: 10 }}>
+                              {filled ? t.memory.inNote : t.memory.fillNote}
+                            </T>
+                          </Pressable>
                         ) : null}
                       </View>
                     );
@@ -371,6 +399,7 @@ export default function RunScreen() {
 }
 
 const styles = StyleSheet.create({
+  memory: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderWidth: 1, borderRadius: radius.input, paddingHorizontal: space.sm, paddingVertical: 6, minHeight: 44 },
   fluid: { borderWidth: 1, borderRadius: radius.input, padding: space.sm, gap: 6, marginTop: space.sm },
   pad: { padding: space.gutter, paddingBottom: 40 },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.lg },

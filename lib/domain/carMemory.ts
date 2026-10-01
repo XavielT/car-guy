@@ -261,3 +261,22 @@ export function suggestionsFor(
   if (!summary) summary = rows.map((r) => r.value).join(' · ');
   return { label: t.carMemory.suggestion(summary), summary, rows, ...(oil ? { oil } : {}) };
 }
+
+/** The check runner's fluid kinds (lib/domain/fluids.ts) → the service type whose memory answers "what do I put in". */
+const FLUID_SERVICE: Record<string, string> = {
+  aceite: 'aceite_motor',
+  coolant: 'refrigerante',
+  frenos: 'liquido_frenos',
+  direccion: 'liquido_direccion',
+  atf: 'aceite_transmision',
+  bateria: 'bateria',
+  filtro_aire: 'filtro_aire',
+};
+
+/** "Igual que siempre" on a check item's fluid card (the washer has nothing to remember). */
+export function suggestionForFluid(
+  fluidKind: string | null | undefined,
+  specsheet: MemorySpecsheet | null | undefined,
+): MemorySuggestion | null {
+  return fluidKind ? suggestionsFor(FLUID_SERVICE[fluidKind], specsheet) : null;
+}

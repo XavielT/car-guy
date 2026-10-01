@@ -44,9 +44,11 @@ import { vidaUtil, vidaUtilTone } from '@/lib/domain/legal-dr';
 import { parseDecimal } from '@/lib/domain/economy';
 import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_SHARE, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { dateLabel, isoFromDateInput, km as fmtKm, money, todayIsoDate } from '@/lib/format';
+import { FEATURE_EVENTS } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { AlbumTab } from '@/components/album/AlbumTab';
+import { EventsTab, PendingEventsBanner } from '@/components/album/EventsTab';
 import { BuildSummary, BuildTab } from '@/components/build/BuildTab';
 import { FichaTab } from '@/components/diy/FichaTab';
 import { TrackSummaryLine, TrackTab } from '@/components/track/TrackPieces';
@@ -66,11 +68,12 @@ import { useTheme } from '@/lib/theme/useTheme';
  * for the car's story, because an Ex is exactly the car you will want to
  * remember (the Jetta lesson).
  */
-type Tab = 'resumen' | 'album' | 'build' | 'ficha' | 'pista' | 'viajes' | 'docs';
+type Tab = 'resumen' | 'album' | 'eventos' | 'build' | 'ficha' | 'pista' | 'viajes' | 'docs';
 
 const TABS: { key: Tab; flag: boolean }[] = [
   { key: 'resumen', flag: true },
   { key: 'album', flag: FEATURE_ALBUM },
+  { key: 'eventos', flag: FEATURE_EVENTS },
   { key: 'build', flag: FEATURE_BUILD },
   { key: 'ficha', flag: FEATURE_DIY },
   { key: 'pista', flag: FEATURE_TRACK },
@@ -314,6 +317,8 @@ export default function VehicleHubScreen() {
 
         {/* 2 — the tab's content */}
         <View>
+          {/* Pending events: a small amber row each, over every tab (ADR-44, 03-screens.md Phase 5). */}
+          {FEATURE_EVENTS ? <PendingEventsBanner vehicleId={vehicle.id} version={version} /> : null}
           {viewer ? (
             <View style={[styles.readOnly, { backgroundColor: theme.bg.surface, borderColor: theme.accent }]}>
               <T face="body" style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
@@ -352,6 +357,8 @@ export default function VehicleHubScreen() {
             />
           ) : tab === 'album' && FEATURE_ALBUM ? (
             <AlbumTab vehicleId={vehicle.id} version={version} />
+          ) : tab === 'eventos' && FEATURE_EVENTS ? (
+            <EventsTab vehicleId={vehicle.id} version={version} readOnly={viewer} />
           ) : tab === 'build' && FEATURE_BUILD ? (
             <BuildTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'ficha' && FEATURE_DIY ? (
