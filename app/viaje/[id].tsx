@@ -1,36 +1,43 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
+import { TripMap } from '@/components/map';
 import { MissingRecord } from '@/components/MissingRecord';
 import { DetailTripSkeleton } from '@/components/skeletons/DetailTripSkeleton';
 import { T } from '@/components/T';
 import { shareCardImage, shareSummaryText } from '@/components/track/TrackPieces';
 import { confirmDeleteTrip, DistributionBar, setTripRole, TripShareCard, tripText } from '@/components/trips/TripPieces';
 import { Chip, GhostButton, PrimaryButton, Segmented, Surface } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { odometer as odometerRepo } from '@/lib/db/repos';
 import { tripPoints, trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
+import { FEATURE_MAP_V2 } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
+import { ATTRIBUTION_URL, mapAttribution } from '@/lib/map/config';
 import { shareTripGeojson } from '@/lib/trips/shareGeojson';
 import { tripsMap } from '@/lib/trips/settings';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { Fix } from '@/lib/trips/geo';
-import { durationLabel, kmhLabel, mapsUrl, parseBuckets } from '@/lib/trips/present';
+import { routePointsFromDrawn } from '@/lib/trips/geojson';
+import { durationLabel, kmhLabel, mapsUrl, parseBuckets, routePointsForDrawing } from '@/lib/trips/present';
 
 /**
- * One trip (03-screens.md "Phase 5"): the route on the dark card (by speed
+ * One trip (03-screens.md "Phase 4/5"): the route on the dark card (by speed
  * while the raw points are still on the phone), the numbers, the speed
- * distribution, vehicle and role, Ver en mapa, Compartir, labels, notes.
+ * distribution, vehicle and role, Compartir, labels, notes.
  *
- * No replay scrubber in Part A: it needs an animated dot over the raw points
- * with play/pause, and it is the one piece of the screen that is not
- * information. Left for later.
+ * Phase 4 (ADR-41): with the map on (Ajustes → Viajes → Mapa: en línea) the
+ * card's route is the MapLibre TripMap — pan/zoom, start/end dots, the replay
+ * dot, long-press → the GPS export. When the style cannot load, the OSM
+ * mosaic comes back with a "Sin mapa en línea" line. "Compartir" still
+ * captures the static card (mosaic or plain): a GL map does not snapshot, so
+ * an off-screen copy is mounted for the capture and shot once its tiles load.
  */
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -50,6 +57,42 @@ export default function TripScreen() {
   const [notes, setNotes] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const shotRef = useRef<View>(null);
+  // The MapLibre map could not load its style (offline, provider down).
+  const [mapDown, setMapDown] = useState(false);
+  const onMapDown = useCallback(() => setMapDown(true), []);
+  // Replay: the index of the dot along the drawn route; null when stopped.
+  const [replayAt, setReplayAt] = useState<number | null>(null);
+  // Share while the live map is up: the off-screen static card, until captured.
+  const [shooting, setShooting] = useState(false);
+
+  const routePts = useMemo(() => (trip ? routePointsFromDrawn(routePointsForDrawing(points, trip)) : []), [trip, points]);
+  const replay = useMemo(() => (replayAt != null && routePts[replayAt] ? { lat: routePts[replayAt].lat, lng: routePts[replayAt].lng } : null), [replayAt, routePts]);
+  const replaying = replayAt != null;
+  useEffect(() => {
+    if (!replaying) return;
+    // ~10 s for the whole route, whatever its length: ≤ 200 frames, ≥ 50 ms apart.
+    const step = Math.max(1, Math.ceil(routePts.length / 200));
+    const frames = Math.max(1, Math.ceil(routePts.length / step));
+    const id = setInterval(() => {
+      setReplayAt((i) => (i == null ? null : i + step >= routePts.length ? null : i + step));
+    }, Math.max(50, Math.round(10_000 / frames)));
+    return () => clearInterval(id);
+  }, [replaying, routePts.length]);
+  // Captures the off-screen card once (its tiles settled, or after 6 s regardless).
+  const shot = useRef(false);
+  const shoot = useCallback(() => {
+    if (shot.current || !trip) return;
+    shot.current = true;
+    void shareCardImage(shotRef, `viaje-${trip.startedAt.slice(0, 10)}`).finally(() => setShooting(false));
+  }, [trip]);
+  useEffect(() => {
+    if (!shooting) return;
+    const id = setTimeout(shoot, 6000);
+    return () => clearTimeout(id);
+  }, [shooting, shoot]);
+  const exportPoints = useCallback(() => {
+    if (trip) void shareTripGeojson(trip, points ?? []);
+  }, [trip, points]);
 
   const load = useCallback(async () => {
     const t = await tripRepo.getById(id);
@@ -77,7 +120,17 @@ export default function TripScreen() {
   const vehicles = data.vehicles.filter((v) => !v.isArchived || v.id === trip.vehicleId);
   const vehicleName = data.vehicles.find((v) => v.id === trip.vehicleId)?.name;
   const cardW = Math.min(winW, 560) - 2 * space.gutter;
-  const url = mapsUrl(trip);
+  // The map is the map now (Phase 4): no "Ver en mapa" link out.
+  const url = FEATURE_MAP_V2 ? null : mapsUrl(trip);
+  const liveMap = FEATURE_MAP_V2 && map && !mapDown;
+  const shotName = `viaje-${trip.startedAt.slice(0, 10)}`;
+  const share = () => {
+    if (!liveMap) void shareCardImage(shotRef, shotName);
+    else {
+      shot.current = false;
+      setShooting(true);
+    }
+  };
   const dirty = startLabel !== trip.startLabel || endLabel !== trip.endLabel || notes !== trip.notes;
 
   const flash = (text: string) => {
@@ -137,10 +190,36 @@ export default function TripScreen() {
           {t.trips.eyebrow}
         </T>
 
-        {/* Diagnostics (note 16): a long press on the card shares the trip's GPS points as GeoJSON. */}
-        <Pressable onLongPress={() => void shareTripGeojson(trip, points ?? [])} delayLongPress={600} accessibilityHint={t.trips.exportHint}>
-          <TripShareCard ref={shotRef} trip={trip} points={points} width={cardW} vehicleName={vehicleName} map={map} />
-        </Pressable>
+        {FEATURE_MAP_V2 && map && mapDown ? (
+          <T face="semibold" style={{ color: theme.statusText.proximo, fontSize: 12, marginTop: space.xs }}>
+            {t.trips.mapOffline}
+          </T>
+        ) : null}
+        {liveMap ? (
+          <View accessibilityHint={t.trips.exportHint}>
+            <TripShareCard
+              trip={trip}
+              points={points}
+              width={cardW}
+              vehicleName={vehicleName}
+              renderRoute={(w, h) => (
+                <View style={{ width: w, height: h, borderRadius: radius.card, overflow: 'hidden' }}>
+                  <TripMap points={routePts} replay={replay} height={h} onLongPress={exportPoints} onUnavailable={onMapDown} />
+                </View>
+              )}
+            />
+            <Pressable onPress={() => void Linking.openURL(ATTRIBUTION_URL)} accessibilityRole="link" style={{ marginTop: space.xs }}>
+              <T face="body" style={{ color: theme.text.muted, fontSize: 11 }}>
+                {mapAttribution()}
+              </T>
+            </Pressable>
+          </View>
+        ) : (
+          // Diagnostics (note 16): a long press on the card shares the trip's GPS points as GeoJSON.
+          <Pressable onLongPress={exportPoints} delayLongPress={600} accessibilityHint={t.trips.exportHint}>
+            <TripShareCard ref={shotRef} trip={trip} points={points} width={cardW} vehicleName={vehicleName} map={map} />
+          </Pressable>
+        )}
         {!points ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
             {trip.polyline ? t.trips.routeSimplified : t.trips.noRoute}
@@ -168,7 +247,10 @@ export default function TripScreen() {
 
         <View style={[styles.pair, { marginTop: space.md }]}>
           {url ? <GhostButton style={{ flex: 1 }} label={t.trips.openMap} onPress={() => void Linking.openURL(url)} /> : null}
-          <GhostButton style={{ flex: 1 }} label={t.trips.share} onPress={() => void shareCardImage(shotRef, `viaje-${trip.startedAt.slice(0, 10)}`)} />
+          {liveMap && routePts.length > 1 ? (
+            <GhostButton style={{ flex: 1 }} label={replaying ? t.trips.replayStop : t.trips.replay} onPress={() => setReplayAt(replaying ? null : 0)} />
+          ) : null}
+          <GhostButton style={{ flex: 1 }} label={t.trips.share} disabled={shooting} onPress={share} />
           <GhostButton
             style={{ flex: 1 }}
             label={t.trips.shareText}
@@ -217,6 +299,20 @@ export default function TripScreen() {
 
         <GhostButton danger label={t.trips.delete} onPress={() => confirmDeleteTrip(trip, () => (router.canGoBack() ? router.back() : router.replace('/viajes')))} />
       </ScrollView>
+      {shooting ? (
+        // The static card for "Compartir" while the live map is up: off screen, shot once its tiles are in.
+        <View pointerEvents="none" style={styles.offscreen}>
+          <TripShareCard
+            ref={shotRef}
+            trip={trip}
+            points={points}
+            width={cardW}
+            vehicleName={vehicleName}
+            map={map}
+            onRouteReady={() => setTimeout(shoot, 150)}
+          />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -227,4 +323,5 @@ const styles = StyleSheet.create({
   tile: { flex: 1, padding: space.md },
   pair: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginBottom: space.md },
+  offscreen: { position: 'absolute', left: -10000, top: 0 },
 });

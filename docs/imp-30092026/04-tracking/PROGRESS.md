@@ -14,7 +14,7 @@ phase" carry context between sessions.
 | 2 | Schema v8 | ✅ | `imp-30092026/phase-2-schema-v8` | v8 + sql/025–026 on x-core; verifiers 32/32 + 24/24; merged (no release — no screens) |
 | 3A | Language es/en | ✅ | `imp-30092026/phase-3-i18n-skeletons` | en.ts complete (typed), live `t`, Más → Idioma, catalogue, dates; web sweep clean |
 | 3B | Skeletons | ✅ | `imp-30092026/phase-3-i18n-skeletons` | 50/50 data screens with their twin; no flash on the fast path (Redmi 56 fps capture) |
-| 4 | Map · Modo conducir · centre button | ⬜ | | |
+| 4 | Map · Modo conducir · centre button | ✅ | `imp-30092026/phase-4-map-drive` | MapLibre native + web, drive mode, CONDUCIR disc; Redmi + web verified; street check = Xaviel's real drive |
 | 5 | Eventos · memoria · gomas · precios | ⬜ | | |
 | 6 | Perfil · bienvenida · legal · release 2.4.0 | ⬜ | | |
 
@@ -194,6 +194,18 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 - Phase 3A: release notes (CHANGELOG.md → Novedades / Versiones) stay Spanish; English readers get "Release
   notes are written in Spanish."
 
+- Phase 4: web uses **maplibre-gl 6.11.2**, not the research's 5.24.0 — 5.x (≤ 6.4.0) carries a critical XSS
+  advisory (GHSA-jrc7-96c5-q579). v6 is ESM with its worker served from public/maplibre (copied on postinstall);
+  the CSS import is static (a dynamic CSS import breaks Metro). The JS is a lazy chunk (1.13 MB, ~297 KB gz).
+- Phase 4: no mock-GPS drive on the Redmi — Wheelz on his phone is in Automatic mode and a mock location is
+  phone-wide, so a synthetic 12 km drive would land in his Wheelz account (and his real Car Guy if Automático).
+  The moving-trail check ran on web (Playwright geolocation stepped along the synthetic GPX); the phone checks
+  ran standing still.
+- Phase 4: the tab bar draws a 22 px band above itself so the raised disc sits inside the bar's bounds —
+  Android does not deliver taps to children drawn outside their parent. Screen content ends 22 px higher.
+- Phase 4: the GL map cannot be captured as an image, so Compartir mounts an off-screen copy of the old OSM
+  card for the share image.
+
 ## Deviations from the package
 
 - Phase 1 (5b): auto mode's recording options match manual's interval (1 s, BestForNavigation) but keep
@@ -225,6 +237,8 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 3A | The public page `/c/<slug>` (lib/share/html.ts, dossier.ts) renders Spanish always | low | needs `vehicle_share.locale` (the owner's language at publish) — a later cycle |
 | 3A | `npm audit`: 3 moderate (decode-uri-component ≤ 0.4.2 via expo-router → query-string 7) | low | pre-existing; the only fix (0.5.0) is ESM-only and query-string 7 `require`s it — wait for expo-router |
 | 3A | OBD search matches `descEs` only | low | English search of codes by description — later |
+| 4 | The live trail in Modo conducir is one colour (red); the trip detail colours by speed bucket | low | colour the tail by the latest bucket if Xaviel wants it |
+| 4 | No Expo Go guard card for the map (a dev build is assumed; Expo Go is not used in this project) | low | — |
 
 ## Blockers
 
@@ -453,4 +467,50 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 - Phase 4 (map · Modo conducir): the trip detail's twin (`DetailTripSkeleton`) has a map box at the card's ratio —
   keep it when MapLibre replaces the mosaic. New screens need a twin or a NO_SKELETON reason, and every string in
   es + en (parity test), read at render time (i18n-frozen).
+
+## Phase 4 — Map · Modo conducir · centre button   (branch `imp-30092026/phase-4-map-drive`)
+
+**Status:** complete — the street check is Xaviel's real drive (manual checklist)
+**Commits:** `5145530` install · `c7f3212` plugin · `62cd370` Phase 4
+
+### Changed
+- `@maplibre/maplibre-react-native` 11.4.0 (pinned, config plugin), `maplibre-gl` 6.11.2 (web, lazy), expo-keep-awake,
+  expo-screen-orientation; `tools/copy-maplibre-worker.mjs` on postinstall.
+- `components/map/` TripMap · HeatMap · LiveMap (native + `.web.tsx`), `types.ts` contract, `useMapStyle`,
+  `Recenter`; `lib/map/config.ts` (OpenFreeMap dark, MapTiler fallback only with a key, style health check
+  cached 1 h / 1 min on failure); `lib/trips/geojson.ts` (segments by the app's speed buckets, merged; bbox; fit;
+  heatmap sampling every 35 m) + tests.
+- Trip detail: the map replaces the mosaic (fallback + "Sin mapa en línea" when the style fails; mosaic kept for
+  the share image), replay, long-press export, attribution footer, "Ver en mapa" removed. Viajes heatmap on
+  MapLibre. Ajustes: Mapa en línea/apagado, Estilo oscuro, créditos.
+- Tab bar (`components/tabbar/`): Inicio · Garaje · [CONDUCIR, 64 px redline disc, raised] · Historial · Más;
+  amber pulsing ring + REC while recording (static under reduced motion). Cifras → `app/cifras.tsx` stack screen,
+  first row of Más, Inicio quick-action tile (no `/(tabs)/cifras` push remained; static web still serves /cifras).
+- `app/conducir.tsx`: LiveMap full-bleed (course-up follow, re-centre after a pan, sheet-aware insets), compact
+  speed, sheet (vehicle, mode, INICIAR/TERMINAR via the same startManualTrip/stopTrip as Inicio, pasajero),
+  keep-awake and orientation unlock on this screen only; web manual. Wheelz notes applied: the map is the
+  screen with every control in one bottom sheet; big speed number, not a dial; TERMINAR full-width in the sheet.
+- FEATURE_MAP_V2, FEATURE_DRIVE_MODE → true.
+
+### Acceptance criteria
+- [x] tsc, lint, jest (1,796), i18n parity + frozen 0, skeleton audit.
+- [x] Web: trip detail map (`docs/qa/imp-30092026-phase-4-detail.png`), heatmap (`…-heatmap.png`), tab bar
+  (`…-bar.png`), drive mode (`…-drive.png`); drive mode with the synthetic GPX stepped through Playwright
+  geolocation — trail follows, 1.4 km / 81 km/h max, TERMINAR saves the trip (`…-drive-moving.png`); offline
+  fallback by blocking openfreemap.
+- [x] Redmi (test variant): MapLibre renders; the seed trip's detail on the dark map with start/end; drive mode
+  opens from the disc with the location puck and keep-awake (window wake lock held); rotating to landscape works
+  in drive mode only and the app returns to portrait on close (his rotation settings restored: auto-rotate on);
+  a stationary manual trip shows REC on the sheet and the amber ring + REC on the disc, TERMINAR ends it.
+- [ ] **Xaviel's real drive** with Modo conducir open ~10 min → the detail's line must follow the streets; if not,
+  long-press → export the GeoJSON (docs/imp-30092026/05-manual-checklist.md).
+- Size: test APK (arm64) 52 → 64 MB (+12 MB); the universal release APK delta is measured at the 2.4.0 build.
+  Web: maplibre in a lazy chunk (1.13 MB, ~297 KB gz) + worker files; CSS 83 KB (~12 KB gz) on every page.
+
+### Notes closed
+- 13, 17; 16 map half (the street-following proof is his drive).
+
+### Notes for the next phase
+- Phase 5 (events · memoria · gomas · precios): the domain modules from Phase 2 are ready (events, carMemory,
+  tireStats, fuelPrices); sql/027 (fuel_price_ref + importer) needs Xaviel's OK and a JWT or service-role decision.
 

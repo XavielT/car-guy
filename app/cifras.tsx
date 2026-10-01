@@ -134,7 +134,8 @@ export default function CifrasScreen() {
   const empty = !showSkeleton && stats != null && stats.kpis.spend === 0 && points.length === 0;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
+    // A stack screen since IMP 30092026 Phase 4 (it left the tab bar): the header owns the top inset.
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['bottom']}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.pad}>
         <ScreenTitle title={t.stats.title} size={34} sub={t.stats.subtitle(activeVehicle.name)} />
 

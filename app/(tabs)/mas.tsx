@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router as appRouter, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -105,7 +106,16 @@ export default function MasScreen() {
       <ScrollView contentContainerStyle={styles.pad}>
         <ScreenTitle title={t.more.title} size={34} sub={t.more.subtitle} />
 
-        <MoreSection title={t.more.garage} caption={t.more.garageCaption} style={styles.firstSection} />
+        {/* Cifras left the tab bar for the CONDUCIR button (IMP 30092026 Phase 4, ADR-43): first row here. */}
+        <IconRow
+          icon="stats-chart-outline"
+          label={t.tabs.cifras}
+          caption={t.drive.cifrasCaption}
+          onPress={() => router.push('/cifras')}
+          style={styles.firstSection}
+        />
+
+        <MoreSection title={t.more.garage} caption={t.more.garageCaption} />
         <NavRow
           label={t.more.garageOpen}
           caption={t.more.garageOpenCaption(data.vehicles.filter((v) => !v.isArchived).length, archived.length)}
@@ -328,6 +338,7 @@ const styles = StyleSheet.create({
   h: { fontSize: 34 },
   sub: { marginTop: 6, lineHeight: 22 },
   firstSection: { marginTop: space.xl },
+  iconRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: 1, borderRadius: radius.input, paddingHorizontal: space.lg, paddingVertical: space.md + 2, minHeight: 56, marginBottom: space.sm },
   meta: { marginTop: space.sm, lineHeight: 19, fontSize: 13 },
   cardBody: { fontSize: 14, marginTop: space.sm, lineHeight: 21 },
   vehicle: {
@@ -347,6 +358,48 @@ const styles = StyleSheet.create({
  * Más's section headers are eyebrows (IMP 28092026, 05-design-jdm.md): Saira
  * 400 tracked, muted, so the rows — not the headers — carry the weight.
  */
+/** A NavRow with a leading icon — Más's first row (Cifras). */
+function IconRow({
+  icon,
+  label,
+  caption,
+  onPress,
+  style,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  caption?: string;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { theme } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.iconRow,
+        { borderColor: theme.line, backgroundColor: theme.bg.surface },
+        pressed && { opacity: 0.85 },
+        style,
+      ]}>
+      <Ionicons name={icon} size={22} color={theme.accent} />
+      <View style={{ flex: 1 }}>
+        <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+          {label}
+        </T>
+        {caption ? (
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 3, lineHeight: 18 }}>
+            {caption}
+          </T>
+        ) : null}
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={theme.text.muted} />
+    </Pressable>
+  );
+}
+
 function MoreSection({ title, caption, style }: { title: string; caption?: string; style?: StyleProp<ViewStyle> }) {
   const { theme } = useTheme();
   return (

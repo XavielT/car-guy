@@ -5,9 +5,9 @@
  */
 
 /** MapLibre trip map — PROMPT-04. */
-export const FEATURE_MAP_V2 = false;
+export const FEATURE_MAP_V2 = true;
 /** Modo conducir + centre button — PROMPT-04. */
-export const FEATURE_DRIVE_MODE = false;
+export const FEATURE_DRIVE_MODE = true;
 /** es/en language switch (ADR-39) — PROMPT-03. On since Phase 3A: parity test green, Más → Idioma. */
 export const FEATURE_I18N = true;
 /** Eventos on milestones (ADR-44) — PROMPT-05. Off: history_feed's 'evento' rows read as 'hito'. */
