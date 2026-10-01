@@ -10,7 +10,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 |---|---|---|---|---|
 | 0 | Kickoff + Redmi diagnostics | ✅ | `imp-01102026/phase-0-kickoff` | baseline green; audit (11 items, 4 corrections); **Redmi: Car Guy has no location permission at all** + MIUI kills it → Phase 1 list |
 | 1 | Fix pack 2.4.3 | ✅ | `fix/2.4.3-fixpack` | v2.4.3; notes 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18 closed; 7 waits for his drive (permissions first) |
-| 2 | Schema v10 + cloud 033–036 | 🟨 | `imp-01102026/phase-2-schema-v10` | local done (v10, seed, stubs, 033–036 + local-rls 203/203); cloud apply waits for Xaviel's OK |
+| 2 | Schema v10 + cloud 033–036 | 🟨 | `imp-01102026/phase-2-schema-v10` | 033–035 applied to x-core, verifiers green; **036 (`--shared`) left for Xaviel** |
 | 3 | Medidor por cuadros + calibración | ⬜ | | |
 | 4 | Updates · Apoyar · Uso | ⬜ | | |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ⬜ | | |
@@ -164,7 +164,7 @@ or Viajes, and nothing is recorded.
 |---|---|---|---|
 | 0 | Folder rename | Xaviel | open |
 | 1 | Grant location (todo el tiempo), autostart, battery "sin restricciones" in the app, then the drive | Xaviel | open — after the Phase 1 build |
-| 2 | Apply sql/033–035, then 036 with `--shared`, to x-core (production, shared with Music Hub) | Xaviel's OK | open |
+| 2 | Apply sql/036 with `--shared` (realtime.messages policies) + delete the verifier test users | Xaviel | open — needed before Phase 6 |
 | 4 | PayPal.me test payment (DR account) | Xaviel | open |
 
 ---
@@ -173,7 +173,7 @@ or Viajes, and nothing is recorded.
 
 ## Phase 2 — Schema v10 + cloud 033–036   (branch `imp-01102026/phase-2-schema-v10`)
 
-**Status:** local complete; cloud apply pending Xaviel's OK. Resumed after the laptop crash: the two domain
+**Status:** complete except 036 (`--shared`, realtime policies), which the session's safety check would not let Claude apply — Xaviel runs it (Blockers). Resumed after the laptop crash: the two domain
 commits (gauge, tripShare/interval) were already on the branch; the migration, types and SQL were uncommitted
 and finished here. Stale agent worktrees removed (their commits are identical to the branch's).
 
@@ -205,7 +205,11 @@ and finished here. Stale agent worktrees removed (their commits are identical to
 - [x] local-rls **203/203**, three runs in a row.
 - [x] Web (headless, dev server): seed, Inicio and Nueva carga render as 2.4.3; no page errors; no screen reads v10.
 - [x] Android test APK (`releases/car-guy-test.apk`, after clearing the crash-corrupted Gradle transforms cache): installed over the previous test build on the Redmi → migrated 9 → 10 on device, opens (2.4.3 notes sheet, gauge), no FATAL in logcat.
-- [ ] Apply 033 → 034 → 035 → 036 `--shared`; `types:gen`; verify-x-core 40–47; verify-sync 24–25.
+- [x] Applied **033, 034, 035** to x-core (HTTP 201 each); `types:gen` (+487 lines; `rpc()` names now checked).
+- [x] verify-x-core **46/46** (40–47 new; 36 skipped as before); verify-sync **26/26** (24–25 new). Check 46 calls
+  `junte_topic_allowed` directly, so it does not depend on 036. Test users: cleanup SQL printed by both tools.
+- [ ] 036 `--shared` — `node tools/apply-sql.mjs sql/036_realtime_policies.shared.sql --shared` (Xaviel). Needed
+  before Phase 6's live map, not before Phases 3–5.
 
 **Notes closed:** none (groundwork).
 

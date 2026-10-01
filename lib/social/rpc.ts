@@ -1,8 +1,9 @@
+import type { Database } from '../cloud/database.types';
 import { getSupabase } from '../cloud/supabase';
 
 /**
- * One door to the cloud-only social RPCs (sql/034–035, IMP 01102026). Loosely typed on purpose until
- * `npm run types:gen` runs against a cloud that has 033–036; then the names below become checked.
+ * One door to the cloud-only social RPCs (sql/034–035, IMP 01102026). The name is checked against the generated
+ * types; the JSON shapes (jsonb in Postgres) are declared by the callers in lib/social/api.ts and lib/junte/api.ts.
  *
  * Errors come back as the code the SQL raises ('forbidden', 'not_member', 'rate_limited', …)
  * so screens map them to Spanish without parsing PostgREST text.
@@ -22,7 +23,9 @@ export function reasonOf(message: string): string {
   return KNOWN.find((k) => message.includes(k)) ?? 'error';
 }
 
-export async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise<RpcResult<T>> {
+export type RpcName = keyof Database['carguy']['Functions'];
+
+export async function rpc<T>(name: RpcName, args: Record<string, unknown> = {}): Promise<RpcResult<T>> {
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'offline' };
   const { data, error } = await (supabase.rpc as unknown as (
