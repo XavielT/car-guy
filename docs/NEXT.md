@@ -6,7 +6,7 @@ still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
-## Cycle 4 — IMP 30092026 (Car Guy 2.4 "Tōge") — released 2026-09-30
+## Cycle 4 — IMP 30092026 (Car Guy 2.4 "Tōge") — released 2026-10-01
 
 Seventeen notes from Xaviel's use of 2.2/2.3 → fix pack 2.3.1 (fill-up detail + no duplicates, stations,
 reserve light, "≈ por echada", routes that keep their points), then es/en + skeletons, MapLibre + Modo
@@ -15,6 +15,10 @@ welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), l
 [`imp-30092026/04-tracking/PROGRESS.md`](imp-30092026/04-tracking/PROGRESS.md).
 
 ### Carried to the next cycle (from 2.4)
+- **Read the legal texts** (content/legal/*.md, not legal advice): 2.4.0 shipped them on his "do all the stuff";
+  any wording change is a LEGAL_VERSION bump, so the sheet asks everyone again.
+- **Legal acceptance on his phone:** Más → Legal says accepted on 01 oct 2026 although the upgrade check tapped
+  "Ahora no" — confirm he accepted elsewhere; if not, look at the sheet's tap targets.
 - **Xaviel's real drive** with Modo conducir open (~10 min, city streets): the trip detail's line must follow
   the streets; if not, long-press the route → export the GeoJSON (docs/imp-30092026/05-manual-checklist.md).
 - **Play Store checklist**, now that legal exists: the three pages are live (/terminos, /privacidad,

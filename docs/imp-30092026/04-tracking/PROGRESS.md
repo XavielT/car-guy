@@ -16,7 +16,7 @@ phase" carry context between sessions.
 | 3B | Skeletons | ✅ | `imp-30092026/phase-3-i18n-skeletons` | 50/50 data screens with their twin; no flash on the fast path (Redmi 56 fps capture) |
 | 4 | Map · Modo conducir · centre button | ✅ | `imp-30092026/phase-4-map-drive` | MapLibre native + web, drive mode, CONDUCIR disc; Redmi + web verified; street check = Xaviel's real drive |
 | 5 | Eventos · memoria · gomas · precios | ✅ | `imp-30092026/phase-5-memory` | merged; sql/029 + 027 on x-core (verify-x-core 34/34); live MICM import waits for the importer key |
-| 6 | Perfil · bienvenida · legal · release 2.4.0 | 🟡 | `imp-30092026/phase-6-people-release` | built + web + Redmi checked; **release waits for Xaviel** (contact e-mail, legal read, sql/028, service key) |
+| 6 | Perfil · bienvenida · legal · release 2.4.0 | ✅ | `imp-30092026/phase-6-people-release` | **v2.4.0 released 2026-10-01** (versionCode 13); sql/028 + 030 on x-core; prod deletion 7/7; smokes 6/6 · 6/6 · 3/3; installed over his real 2.3.1 |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
 
@@ -24,23 +24,23 @@ phase" carry context between sessions.
 
 | # | Note | Closed in | Status |
 |---|---|---|---|
-| 1 | Fuel prices: date picker, sources, history + analytics, MICM import | 5 | ⬜ |
-| 2 | Language switch es/en | 3A | ⬜ |
-| 3 | Tires changed: counter, badges, messages, share | 5 | ⬜ |
-| 4 | Skeleton on every screen | 3B | ⬜ |
-| 5 | Vehicle events with proofs | 5 | ⬜ |
-| 6 | Vehicle details to remember | 5 | ⬜ |
-| 7 | More fuel stations (Petronan…) | 1 | ⬜ |
-| 8 | Fill-up save flow: detail, no duplicates | 1 | ⬜ |
-| 9 | Partials count (≈ por echada) | 1 | ⬜ |
-| 10 | Profile picture + default avatars | 6 | ⬜ |
-| 11 | Welcome tutorial + tips | 6 | ⬜ |
-| 12 | Reserve light only | 1 | ⬜ |
-| 13 | Route on a real map | 4 | ⬜ |
+| 1 | Fuel prices: date picker, sources, history + analytics, MICM import | 5 | ✅ |
+| 2 | Language switch es/en | 3A | ✅ |
+| 3 | Tires changed: counter, badges, messages, share | 5 | ✅ |
+| 4 | Skeleton on every screen | 3B | ✅ |
+| 5 | Vehicle events with proofs | 5 | ✅ |
+| 6 | Vehicle details to remember | 5 | ✅ |
+| 7 | More fuel stations (Petronan…) | 1 | ✅ |
+| 8 | Fill-up save flow: detail, no duplicates | 1 | ✅ |
+| 9 | Partials count (≈ por echada) | 1 | ✅ |
+| 10 | Profile picture + default avatars | 6 | ✅ |
+| 11 | Welcome tutorial + tips | 6 | ✅ |
+| 12 | Reserve light only | 1 | ✅ |
+| 13 | Route on a real map | 4 | ✅ built — street check = Xaviel's real drive (carried) |
 | 14 | Study Wheelz over adb | 0 | ✅ 9 screens read-only → `01-research/05-wheelz-firsthand.md` (redacted PNGs in `wheelz/`) |
-| 15 | Legal: terms, privacy, consent, deletion | 6 | ⬜ |
-| 16 | Straight line instead of streets | 1 + 4 | ⬜ |
-| 17 | Drive mode module with centre icon | 4 | ⬜ |
+| 15 | Legal: terms, privacy, consent, deletion | 6 | ✅ |
+| 16 | Straight line instead of streets | 1 + 4 | ✅ built — street check = Xaviel's real drive (carried) |
+| 17 | Drive mode module with centre icon | 4 | ✅ |
 
 ## Audit corrections (Phase 0)
 
@@ -107,22 +107,22 @@ Read-only audit of the code against 02-state-of-the-repo.md (2026-09-30, at 2.3.
 
 | Route | While loading today | Skeleton twin | Done |
 |---|---|---|---|
-| (tabs)/garaje | nothing until `cards` load | GarajeSkeleton | ⬜ |
-| (tabs)/historial | EmptyState flashes (`entries` starts `[]`) | HistorialSkeleton | ⬜ |
-| (tabs)/cifras | title only until `stats` | CifrasSkeleton | ⬜ |
-| (tabs)/index | sections (odometer, facts, weekly) arrive late | InicioSkeleton (partial) | ⬜ |
-| vehiculo/[id] (hub) | `null` → MissingRecord; facts late | VehicleHubSkeleton | ⬜ |
-| vehiculo/[id]/album | nothing until photos | AlbumSkeleton | ⬜ |
-| vehiculo/[id]/build | blank View | BuildSkeleton | ⬜ |
-| vehiculo/[id]/ficha | blank View | FichaSkeleton | ⬜ |
-| viajes/index | nothing until list | ViajesSkeleton | ⬜ |
-| chequeo/index | "nothing due" EmptyState flashes | ChequeoSkeleton | ⬜ |
-| documentos/index · recordatorios/index · tareas/index | EmptyState flashes | ListSkeleton | ⬜ |
-| admin/index · admin/usuarios · admin/comentarios · reporte | ActivityIndicator | tiles/list skeletons | ⬜ |
-| catalogo/* · compartidos · contactos/* · obd/* · pista/* · exportar · foto/[id] · garaje/miembros | empty list / `null` then fill | ListSkeleton / DetailSkeleton | ⬜ |
-| detail screens (gasto, servicio, tarea, documento, recordatorio, inspeccion, mod, hito, viaje, pista/evento, pista/sesion) | `null` → MissingRecord | DetailSkeleton | ⬜ |
-| forms that load (ContactForm, WishlistForm, MilestoneForm, ModForm, SessionForm) | empty fields, then fill | FormSkeleton | ⬜ |
-| vehiculo/[id]/{album/estado, compartir, fluidos, libro} | title only / `null` | DetailSkeleton | ⬜ |
+| (tabs)/garaje | nothing until `cards` load | GarajeSkeleton | ✅ 3B |
+| (tabs)/historial | EmptyState flashes (`entries` starts `[]`) | HistorialSkeleton | ✅ 3B |
+| (tabs)/cifras | title only until `stats` | CifrasSkeleton | ✅ 3B |
+| (tabs)/index | sections (odometer, facts, weekly) arrive late | InicioSkeleton (partial) | ✅ 3B |
+| vehiculo/[id] (hub) | `null` → MissingRecord; facts late | VehicleHubSkeleton | ✅ 3B |
+| vehiculo/[id]/album | nothing until photos | AlbumSkeleton | ✅ 3B |
+| vehiculo/[id]/build | blank View | BuildSkeleton | ✅ 3B |
+| vehiculo/[id]/ficha | blank View | FichaSkeleton | ✅ 3B |
+| viajes/index | nothing until list | ViajesSkeleton | ✅ 3B |
+| chequeo/index | "nothing due" EmptyState flashes | ChequeoSkeleton | ✅ 3B |
+| documentos/index · recordatorios/index · tareas/index | EmptyState flashes | ListSkeleton | ✅ 3B |
+| admin/index · admin/usuarios · admin/comentarios · reporte | ActivityIndicator | tiles/list skeletons | ✅ 3B |
+| catalogo/* · compartidos · contactos/* · obd/* · pista/* · exportar · foto/[id] · garaje/miembros | empty list / `null` then fill | ListSkeleton / DetailSkeleton | ✅ 3B |
+| detail screens (gasto, servicio, tarea, documento, recordatorio, inspeccion, mod, hito, viaje, pista/evento, pista/sesion) | `null` → MissingRecord | DetailSkeleton | ✅ 3B |
+| forms that load (ContactForm, WishlistForm, MilestoneForm, ModForm, SessionForm) | empty fields, then fill | FormSkeleton | ✅ 3B |
+| vehiculo/[id]/{album/estado, compartir, fluidos, libro} | title only / `null` | DetailSkeleton | ✅ 3B |
 | No skeleton needed (store-backed or static): (tabs)/mas, carga/*, precios, odometro, onboarding, versiones, instalar, notificaciones, invitacion, comentario, cuenta (auth spinner), nueva-contrasena, vehiculo/nuevo, vehiculo/[id]/editar, viajes/ajustes, viajes/permisos, the "nuevo" forms, dev/* | — | — | n/a |
 
 ## Wheelz first-hand (Phase 0)
@@ -260,7 +260,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers green |
 | 5 | Apply `sql/029` (privacy) and `sql/027` | Xaviel's OK | ✅ applied 2026-09-30; the role file (`027_…role.shared.sql`) only for the JWT path — not applied |
 | 6 | Contact e-mail for the legal texts | Xaviel | ✅ xavieldev@gmail.com (his pick, 2026-09-30) |
-| 6 | Read the legal drafts (content/legal/*.md; not legal advice — docs/imp-30092026/06-legal-texts.md) | Xaviel | open |
+| 6 | Read the legal drafts (content/legal/*.md; not legal advice — docs/imp-30092026/06-legal-texts.md) | Xaviel | released on his "do all the stuff" (2026-09-30); his read is still owed — a wording change is a LEGAL_VERSION bump |
 | 6 | Apply `sql/028_delete_account.sql` | Xaviel's OK | ✅ applied 2026-09-30; verify-x-core 35/35 |
 | 6 | `SUPABASE_SERVICE_ROLE_KEY` in Vercel (deletion + MICM importer) | Xaviel | ✅ set (production, sensitive) with the current key — he chose not to rotate first; rotate later and update Vercel |
 | 5 | Importer key in Vercel | Xaviel | ✅ service-key path (SUPABASE_SERVICE_ROLE_KEY) |
@@ -635,8 +635,8 @@ in-house as react-native-svg components. They are Car Guy's own work, so no lice
 
 ## Phase 6 — Perfil · bienvenida · legal · release 2.4.0   (branch `imp-30092026/phase-6-people-release`)
 
-**Status:** built and checked; the release is waiting for Xaviel (see Blockers)
-**Commits:** `467df66` Phase 6 build · `872eef7` background-location disclosure
+**Status:** complete — merged `bcbfe46`, release `e0fb873`, **v2.4.0 published 2026-10-01**
+**Commits:** `467df66` Phase 6 build · `872eef7` background-location disclosure · `121bcb2` contact + sql/028 · `e0fb873` release + sql/030
 
 ### Changed
 - **Avatars + profile (note 10):** 16 in-house drawings (`components/avatars/`, react-native-svg; trademark
@@ -663,8 +663,29 @@ in-house as react-native-svg components. They are Car Guy's own work, so no lice
   legal pages in both languages; acceptance sheet; delete screen; signup refused without consent.
 - [x] Redmi (test build over its data = the upgrade path): no welcome; the legal sheet once (Accept → gone after a
   relaunch); in-app privacy policy renders; Perfil with the 16 avatars; delete screen signed out → Go to account.
-- [ ] Fresh-install welcome on the device (MIUI blocks new adb installs while he is away), signed-in deletion on a
-  throwaway account against x-core (needs sql/028), the 2.3.1 → 2.4.0 upgrade with his real data, release.
+- [x] Signed-in deletion against production (2026-10-01): throwaway `carguy-test-…-del@example.com` + vehicle + photo →
+  POST car-guy.vercel.app/api/eliminar-cuenta 200 {removed 1, deleted vehicle 1, vehicle_member 1}; sign-in refused,
+  photo gone, old token reads nothing — 7/7. The account removed itself; nothing to clean.
+- [x] Upgrade 2.3.1 → 2.4.0 on the Redmi with his real data (backup `~/car-guy-backups/car-guy-pre-2.4.0.json`, app
+  unused since): `install -r` ok; Novedades 2.4.0 sheet, then the legal sheet once; no welcome; Spanish kept (phone
+  is English — the existing-garage rule); 3 live vehicles (the other 10 rows in the backup are deleted QA cars),
+  photos, statuses, "Todo subido", CONDUCIR disc.
+- [x] Release: `release-apk.sh` (bundle env, 4 functions load, EAS cert a16450a0…, versionName 2.4.0, versionCode 13 —
+  12 went to a build killed by a laptop crash), `--publish` → v2.4.0, latest/download → car-guy.apk; smoke-public-page
+  6/6, smoke-legal 6/6, smoke-apk 3/3; portfolio card (xaviel-web-v2 `9c052f5`) live.
+- [ ] Fresh-install welcome on the device — MIUI blocks a new adb install without his tap; covered on web.
+
+### Observed at release
+- After "Ahora no" on his phone the sheet did not return on the next cold start: Más → Legal says "Aceptados el 01 oct
+  de 2026". The only writers are the two ACEPTO buttons and signup; the tap was on "Ahora no" (y 2149, button
+  ~1956–2090 for ACEPTO). Either he accepted elsewhere (synced row) or the tap registered as ACEPTO — asked him.
+  `service_role` has no SELECT on carguy.legal_acceptance, so the cloud row was not read.
+
+## Final state (IMP 30092026)
+
+All six phases merged; 2.3.1 and 2.4.0 "Tōge" released; notes 1–17 built. Carried (docs/NEXT.md): his real drive
+(street check for notes 13/16 + the trip GeoJSON export), his read of the legal texts, rotating the service-role key,
+the Music Hub sign-in check, public "Lo que uso" and readable avatars (one SQL file each).
 
 ### Notes closed
 - 10, 11, 15 (built; final with the release).
