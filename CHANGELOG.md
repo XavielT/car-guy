@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.2 (2026-10-01)
+
+- **Reserva del tanque**: en el formulario del vehículo puedes poner cuánto queda cuando prende la luz de
+  reserva (el manual lo dice). Las estimaciones de las cargas parciales parten de ahí; si lo dejas vacío,
+  siguen usando el 10 % del tanque.
+- **Modo conducir**: la línea del recorrido ya no sale en rojo "sin dato" cuando el GPS no da la velocidad;
+  la calcula con la distancia y el tiempo, como el detalle del viaje.
+- **Códigos OBD**: la búsqueda encuentra también la descripción en inglés ("misfire" → P0300).
+- **Lo que uso en tu página**: sale en español como el resto de la página, aunque uses la app en inglés.
+
 ## 2.4.1 (2026-10-01)
 
 - **Lo que uso en tu página pública**: en Compartir hay un interruptor nuevo, "Lo que uso" (apagado hasta que
