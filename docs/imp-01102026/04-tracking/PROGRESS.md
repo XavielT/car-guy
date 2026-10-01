@@ -204,7 +204,7 @@ and finished here. Stale agent worktrees removed (their commits are identical to
 - [x] tsc, `npm run lint` (0 errors), jest **2,101** (117 suites), `npm run build` green.
 - [x] local-rls **203/203**, three runs in a row.
 - [x] Web (headless, dev server): seed, Inicio and Nueva carga render as 2.4.3; no page errors; no screen reads v10.
-- [ ] Android test APK (the crash corrupted the Gradle transforms cache; cleared, rebuilding).
+- [x] Android test APK (`releases/car-guy-test.apk`, after clearing the crash-corrupted Gradle transforms cache): installed over the previous test build on the Redmi → migrated 9 → 10 on device, opens (2.4.3 notes sheet, gauge), no FATAL in logcat.
 - [ ] Apply 033 → 034 → 035 → 036 `--shared`; `types:gen`; verify-x-core 40–47; verify-sync 24–25.
 
 **Notes closed:** none (groundwork).
