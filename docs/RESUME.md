@@ -1,8 +1,8 @@
 # Resume prompt — Car Guy, finishing IMP 17092026
 
-> **Current cycle (2026-09-30): IMP 30092026 — Car Guy 2.4 "Tōge".** Package in
-> [`docs/imp-30092026/`](imp-30092026/README.md); run the prompts in `03-prompts/` in order and log in
-> `04-tracking/PROGRESS.md`. Previous cycle: [`docs/imp-29092026/`](imp-29092026/README.md) (2.2.0 → 2.3.0,
+> **Current cycle (2026-10-01): IMP 01102026 — Car Guy 2.5 "Nakama".** Package in
+> [`docs/imp-01102026/`](imp-01102026/README.md); run the prompts in `03-prompts/` in order and log in
+> `04-tracking/PROGRESS.md`. Previous cycle: [`docs/imp-30092026/`](imp-30092026/README.md) (2.3.1 → 2.4.2,
 > released). What follows is the historical 17092026 resume prompt.
 
 Paste everything below the line into a fresh `claude` session started in the repo root.

@@ -6,6 +6,14 @@ still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
+## Cycle 5 — IMP 01102026 (Car Guy 2.5 "Nakama") — in progress
+
+Eighteen notes from Xaviel's use of 2.4.x on the Redmi (APK) and his iPhone (Safari Home-Screen PWA) → fix pack
+2.4.3 (iPhone PWA truth, fresh-location rule, Android auto-trip fix, header avatar, garage labels, mods
+everywhere, paint jobs), schema v10, the gauge by squares with learned liters, OTA updates + in-app APK, "Apoyar
+Car Guy" + a usage meter, public profiles / follows / privacy, juntes with a live map → 2.5.0. Package:
+[`imp-01102026/`](imp-01102026/README.md), log: [`imp-01102026/04-tracking/PROGRESS.md`](imp-01102026/04-tracking/PROGRESS.md).
+
 ## Cycle 4 — IMP 30092026 (Car Guy 2.4 "Tōge") — released 2026-10-01
 
 Seventeen notes from Xaviel's use of 2.2/2.3 → fix pack 2.3.1 (fill-up detail + no duplicates, stations,

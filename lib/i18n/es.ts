@@ -157,6 +157,10 @@ export const es = {
     lcd: { km: 'KM DEL VIAJE', time: 'MINUTOS', avg: 'MEDIA KM/H', max: 'MÁXIMA KM/H' },
     /** The share sheet's title for a trip's GeoJSON. */
     geojsonDialog: 'Puntos GPS del viaje',
+    /** Viajes → Ajustes → avanzado (IMP 01102026 Phase 0): what decides Automático, without positions. */
+    diagnosticsExport: 'Exportar diagnóstico de viajes',
+    diagnosticsHint: 'Un archivo con permisos, el servicio y la hora de los últimos puntos GPS (sin ubicaciones), para revisar por qué no se grabó un viaje.',
+    diagnosticsDialog: 'Diagnóstico de viajes',
     lcdA11y: (what: string, value: string) => `${what}: ${value}. Toca para cambiar`,
     gps: { good: 'GPS con buena señal', weak: 'GPS con señal débil', none: 'Sin señal de GPS' },
     recording: 'Grabando viaje',
