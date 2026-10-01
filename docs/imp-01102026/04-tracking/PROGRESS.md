@@ -13,7 +13,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 2 | Schema v10 + cloud 033–036 | 🟨 | `imp-01102026/phase-2-schema-v10` | 033–035 applied to x-core, verifiers green; **036 (`--shared`) left for Xaviel** |
 | 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
 | 4 | Updates · Apoyar · Uso | ✅ | `imp-01102026/phase-4-updates` | notes 4, 6; OTA + APK proven on the Redmi; FEATURE_OTA, FEATURE_SUPPORT on |
-| 5 | Perfiles · seguir · privacidad · compartir viajes | ⬜ | | |
+| 5 | Perfiles · seguir · privacidad · compartir viajes | ✅ | `imp-01102026/phase-5-social` | notes 11, 12, 14, 16; sql/037 applied; two-account web check 12/12 |
 | 6 | Juntes · chat (off) · release 2.5.0 | ⬜ | | |
 
 ## Notes from the brief
@@ -30,10 +30,10 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 8 | Stale/far location | 1 | ✅ |
 | 9 | Home top-right logo unclear | 1 | ✅ |
 | 10 | Welcome explains the odometer | 1 | ✅ |
-| 11 | Influencer public profile | 5 | ⬜ |
-| 12 | Friends | 5 | ⬜ |
+| 11 | Influencer public profile | 5 | ✅ |
+| 12 | Friends | 5 | ✅ |
 | 13 | Routes with friends (juntes, live, chat later) | 6 | ⬜ |
-| 14 | Choose what is public | 5 | ⬜ |
+| 14 | Choose what is public | 5 | ✅ |
 | 15 | Garage label UI issues | 1 | ✅ |
 | 16 | Me on the map (avatar), public photo | 1 + 5 | 🟡 dot ✅ (1); public photo in 5 |
 | 17 | Clear path to add mods; dailies; accessories; DOP | 1 | ✅ |
@@ -155,6 +155,18 @@ or Viajes, and nothing is recorded.
   a recompute carries it over.
 - Phase 3: amounts show in **the car's unit** (gal for his cars), not always L as the spec's examples read.
 - Phase 3: a new **fuel lamp** joins Inicio's telltale row (there was none); tapping it opens Nueva carga.
+- Phase 5: **public photo = a ≤60 KB 128 px JPEG data URI on the profile row** (`photo_public_jpeg`, sql/037), not a
+  storage object: others' files in carguy-media are private and the private path carries the user id (ADR-54);
+  a public-bucket copy would need new policies on the shared storage.objects. get_public_profile / junte_detail
+  now return `photo` and never `avatar_path`.
+- Phase 5: **privacy zones are added from "mi ubicación ahora"** (a fresh fix ≤ 100 m), with a label and a radius
+  100/300/500/1000 m; no map-pin picker this phase.
+- Phase 5: `trip_share.polyline_trimmed` is a **JSON array of encoded pieces** (a zone splits a route; pieces are never
+  joined).
+- Phase 5: the web page `/u/<handle>` shows the card, bio, IG, cars (linked to their public page) and stats — **no
+  routes** (shared trips are in the app). `show_fichas` is stored but has no block yet: a car's ficha is reached
+  through its public page.
+- Phase 5: handle availability is `is_handle_free()` (sql/037), not search_profiles.
 - Phase 4: the "Gracias" list is **names the admin types** (`app_config.support_thanks`) after a supporter agrees,
   not a profile opt-in column — same consent, no schema change.
 - Phase 4: **no new web toast**: Phase 1's service worker already reloads the PWA once on a new version (ADR-48).
@@ -176,6 +188,9 @@ or Viajes, and nothing is recorded.
 | 4 | Release builds may need more Gradle Metaspace with expo-updates (the test build did: 512 MB → OOM) | medium | add a config plugin / gradle.properties before `release-apk.sh` |
 | 4 | Web: a brand-new browser profile sometimes boots into "not a database" (OPFS first open), seen 3× headless under load | medium | look at the SQLite worker open race |
 | 4 | The `preview` channel carries the test OTA ("Novedades y versiones · OTA"); a fresh test build gets it until the next preview update | low | next preview publish replaces it |
+| 5 | /u/<handle> is not deployed (needs the merge/push); `node tools/smoke-profile.mjs <handle>` after it | medium | the handler passed locally against x-core |
+| 5 | Verifier/QA accounts to clean up: `carguy-test-1790896956029-*` (+ Phase 2's verify runs) | low | sql/999 on Xaviel's "run the test user cleanup" |
+| 5 | Header titles are upper-cased by the theme, so `@qa_x` shows as `@QA_X` | low | handles are case-sensitive in meaning; consider a no-transform title for /u |
 | 2 | `lib/db/shareQueries.ts` imports `../i18n/es` directly (lint rule ADR-39) when linted on its own; `npm run lint` passes | low | |
 
 ## Blockers
@@ -190,6 +205,45 @@ or Viajes, and nothing is recorded.
 ---
 
 ## Phase reports
+
+## Phase 5 — Perfiles · seguir · privacidad · compartir viajes   (branch `imp-01102026/phase-5-social`)
+
+**Status:** done; `FEATURE_SOCIAL = true`. **Notes closed: 11, 12, 14, 16.**
+
+### Changed
+- **sql/037** (applied to x-core, local-rls 215/215): `photo_public_jpeg` + `photo` in get_public_profile/junte_detail,
+  `is_handle_free`, `list_follows(followers|following|friends|requests_sent)`, `admin_reports` /
+  `admin_set_report_status`.
+- **Perfil → Perfil público** (`components/social/PublicProfileEditor.tsx`): @handle normalised as typed + live check
+  (Disponible / Es el tuyo / Ya lo usa alguien / Reservado / formato / cooldown 30 d), bio 160, Instagram, switches
+  (cuenta pública, foto pública, carros, stats, fichas), "Qué ven los demás" → /u/<me>. Privacy zones
+  (`PrivacyZonesEditor`, local-first, synced).
+- **Perfil público** `app/u/[handle].tsx` (native + web, deep link carguy://u/<handle>): only get_public_profile +
+  list_trip_shares; Seguir / Solicitar / Solicitado / Siguiendo / Amigos / Seguir también; counts; bio, IG, cars,
+  stats, shared trips drawn from the trimmed pieces (`RouteThumb`, no map tiles); "…" → Reportar · Bloquear.
+- **Más → Comunidad** (`app/comunidad.tsx`): search (accent-folded in the RPC), Solicitudes (aceptar/rechazar), Amigos,
+  Seguidores (quitar), Siguiendo (+ enviadas), Bloqueados (desbloquear); `lib/social/store.ts` with the
+  `social_cache` table, optimistic reducer (`lib/social/cache.ts`), "sin conexión" offline; cleared on sign-out.
+- **Compartir viaje** (`app/viaje/compartir/[id].tsx`): trimmed on the phone (`trimForSharing`, seeded 300–500 m ends,
+  zones cut), preview over the full route (owner's phone only), Seguidores / Solo amigos / Público, title,
+  Dejar de compartir; `trip_share` row synced — the cloud gets only the trimmed pieces.
+- **Web** `/u/<handle>` (`api/u/[handle].ts`, `lib/share/profileHtml.ts`, vercel.json): OG tags, og:image = public
+  photo (`?photo=1` serves the bytes) or the drawn avatar PNG (`public/avatars/*.png`, `tools/render-avatars.mjs`) or
+  the app icon; noindex unless public. `tools/smoke-profile.mjs`.
+- **Admin → Reportes**; Términos §6: one paragraph on @usuario (version unchanged; FEATURE_LEGAL is off).
+
+### Acceptance
+- [x] tsc, lint (0 errors), jest **2,146** (handle rules, visibility resolver, cache reducer, web renderer, base64).
+- [x] **Two accounts** (web UI for A, API for B and stranger C — throwaway, never Xaviel's): A signs in, handle
+  "Disponible", saved; A → private B = "Solicitado"; B accepts + follows back → Amigos lists B; A shares the DS3 trip
+  "solo amigos" → B sees it, C and anon do not; the shared route starts 451 m / ends 408 m from the real ends; A blocks
+  B → neither sees the other and B loses the share; others never get A's id or a photo with photo_public off.
+  Screens `docs/qa/imp-01102026-phase-5-web-*.png`.
+- [x] `/u/<handle>` handler run locally against x-core: 200 + og + bio for the public profile, 404 noindex for unknown
+  and malformed handles, no uuid in the HTML.
+- [ ] Deployed `/u/<handle>` + smoke-profile (after merge).
+- [x] Android test APK on the Redmi: deep links `carguytest://u/<handle>` and `carguytest://comunidad` open the profile and Comunidad (read-only — the test app is signed into Xaviel's account); no FATAL. `…-android-comunidad.png`.
+- [ ] Xaviel: his @handle, switches and zones on his own phone; a second real person for a real follow.
 
 ## Phase 4 — Updates · Apoyar · Uso y costos   (branch `imp-01102026/phase-4-updates`)
 
