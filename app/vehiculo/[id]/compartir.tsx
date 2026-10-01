@@ -20,7 +20,7 @@ import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
-const FLAG_KEYS: Exclude<keyof ShareFlags, 'tires'>[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'status', 'costs', 'plate', 'vin'];
+const FLAG_KEYS: Exclude<keyof ShareFlags, 'tires' | 'memory'>[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'status', 'costs', 'plate', 'vin'];
 const MAX_PHOTOS = 24;
 
 /**
@@ -65,7 +65,7 @@ export default function ShareScreen() {
     };
   }, [id]);
 
-  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length + 1} />;
+  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length + 2} />;
   if (!vehicle || !flags) return null;
   const live = Boolean(share?.slug && !share.revokedAt && share.publishedAt);
   const url = live && share?.slug ? shareUrl(share.slug) : null;
@@ -232,6 +232,18 @@ export default function ShareScreen() {
             </T>
           </View>
           <Switch value={flags.tires} onValueChange={(on) => void setFlag('tires', on)} accessibilityLabel={t.tiresUi.shareFlag} disabled={busy} />
+        </View>
+        {/* sql/032: "Lo que uso", spec-sheet rows only (lib/db/shareQueries.ts publicMemoryRows). */}
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+              {t.share.memoryFlag}
+            </T>
+            <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
+              {t.share.memoryHint}
+            </T>
+          </View>
+          <Switch value={flags.memory} onValueChange={(on) => void setFlag('memory', on)} accessibilityLabel={t.share.memoryFlag} disabled={busy} />
         </View>
       </View>
       {live ? (

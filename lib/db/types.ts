@@ -870,6 +870,10 @@ export type VehicleShare = Syncable & {
   showStatus: boolean;
   /** v8: the public page's tires block (sql/025 public_dossier). */
   showTires: boolean;
+  /** v9 / sql/032: "Lo que uso" on the public page (off unless chosen). */
+  showMemory: boolean;
+  /** v9 / sql/032: the public "Lo que uso" rows as the phone worded them (JSON), published only with showMemory. */
+  memorySummary: string | null;
   /** v7 / sql/022: "lo que me ha costado" as the phone computed it (JSON), published only with showCosts. */
   costsSummary: string | null;
   ogMediaId: string | null;

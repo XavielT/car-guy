@@ -37,6 +37,8 @@ export type ShareFlags = {
   status: boolean;
   /** v8 / sql/025 `show_tires`: the tires block, counts only (ADR-45). Off unless chosen. */
   tires: boolean;
+  /** v9 / sql/032 `show_memory`: "Lo que uso", spec-sheet rows only (never free facts or Papeles). Off unless chosen. */
+  memory: boolean;
 };
 
 /** `public_dossier()`'s JSON (snake_case, as it comes over the wire). */
@@ -44,8 +46,8 @@ export type RawDossier = {
   slug: string | null;
   visibility: 'private' | 'link' | 'public';
   published_at?: string | null;
-  /** sql/025's `show` has no `tires` key (the block's presence says it); the phone's preview sends it. */
-  show: Omit<ShareFlags, 'tires'> & { tires?: boolean };
+  /** sql/025's `show` has no `tires` key (the block's presence says it); the phone's preview sends it. sql/032 sends `memory`. */
+  show: Omit<ShareFlags, 'tires' | 'memory'> & { tires?: boolean; memory?: boolean };
   vehicle: {
     name: string;
     type?: string | null;
@@ -108,12 +110,11 @@ export type RawDossier = {
   /** sql/025, only with show_tires: how many tire rows and how many per status (never brands, DOT or costs). */
   tires?: { count: number; badges: { status: string; count: number }[] } | null;
   /**
-   * "Lo que uso" (IMP 30092026 note 6), worded by the phone: the book builds it
-   * from the local tables when its switch is on. The cloud does not send it yet
-   * (needs a `show_memory` column and a public_dossier block); the page renders
-   * it whenever it is present.
+   * "Lo que uso" (IMP 30092026 note 6), worded by the phone. The book builds it from the local tables
+   * (every row) when its switch is on; the public page gets the copy the phone publishes in
+   * `vehicle_share.memory_summary` with show_memory — spec-sheet rows only (sql/032, publicMemoryRows).
    */
-  memory?: { section: string; title: string; label: string; value: string }[] | null;
+  memory?: { section: string; title: string; label: string; value: string; source?: 'ficha' | 'dato' }[] | null;
   photos: string[];
 };
 

@@ -2774,6 +2774,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          memory_summary: string | null
           og_media_id: string | null
           published_at: string | null
           revoked_at: string | null
@@ -2782,6 +2783,7 @@ export type Database = {
           show_docs: boolean
           show_location: boolean
           show_maintenance: boolean
+          show_memory: boolean
           show_mods: boolean
           show_odometer: boolean
           show_plate: boolean
@@ -2802,6 +2804,7 @@ export type Database = {
           created_at: string
           deleted_at?: string | null
           id: string
+          memory_summary?: string | null
           og_media_id?: string | null
           published_at?: string | null
           revoked_at?: string | null
@@ -2810,6 +2813,7 @@ export type Database = {
           show_docs?: boolean
           show_location?: boolean
           show_maintenance?: boolean
+          show_memory?: boolean
           show_mods?: boolean
           show_odometer?: boolean
           show_plate?: boolean
@@ -2830,6 +2834,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          memory_summary?: string | null
           og_media_id?: string | null
           published_at?: string | null
           revoked_at?: string | null
@@ -2838,6 +2843,7 @@ export type Database = {
           show_docs?: boolean
           show_location?: boolean
           show_maintenance?: boolean
+          show_memory?: boolean
           show_mods?: boolean
           show_odometer?: boolean
           show_plate?: boolean

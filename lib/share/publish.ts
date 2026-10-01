@@ -1,6 +1,6 @@
 import { getSupabase } from '../cloud/supabase';
 import { vehicleShares, vehicles as vehicleRepo } from '../db/repos';
-import { costsSummaryText, flagsPatch, getShare, shareId, sharedPhotoIds } from '../db/shareQueries';
+import { costsSummaryText, flagsPatch, getShare, memorySummaryText, shareId, sharedPhotoIds } from '../db/shareQueries';
 import type { VehicleShare } from '../db/types';
 import { sync } from '../sync/engine';
 import { localMediaBytes } from '../sync/mediaBytes';
@@ -37,6 +37,7 @@ async function signedIn(): Promise<boolean> {
 export async function saveShareSettings(vehicleId: string, patch: { flags?: ShareFlags; visibility?: VehicleShare['visibility'] }): Promise<VehicleShare> {
   const existing = await getShare(vehicleId);
   const showCosts = patch.flags ? patch.flags.costs : (existing?.showCosts ?? false);
+  const showMemory = patch.flags ? patch.flags.memory : Boolean(existing?.showMemory);
   return vehicleShares.upsert({
     id: shareId(vehicleId),
     vehicleId,
@@ -46,6 +47,8 @@ export async function saveShareSettings(vehicleId: string, patch: { flags?: Shar
     ...(patch.visibility ? { visibility: patch.visibility } : {}),
     // What the page shows under "Lo que me ha costado" (sql/022): the phone's figure.
     costsSummary: await costsSummaryText(vehicleId, showCosts),
+    // "Lo que uso" (sql/032): the phone's worded rows, spec sheet only.
+    memorySummary: await memorySummaryText(vehicleId, showMemory),
   });
 }
 
@@ -101,6 +104,7 @@ export async function enableShare(vehicleId: string, flags: ShareFlags, visibili
     vehicleId,
     ...flagsPatch(flags),
     costsSummary: await costsSummaryText(vehicleId, flags.costs),
+    memorySummary: await memorySummaryText(vehicleId, flags.memory),
     visibility,
     slug,
     publishedAt: existing?.publishedAt && existing.slug === slug ? existing.publishedAt : new Date().toISOString(),

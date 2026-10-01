@@ -167,6 +167,9 @@ export const enPart4: Pick<
     publish: 'Create link',
     update: 'Update the link',
     republishHint: 'Changes show on the link when you sync; new photos, when you tap "Update the link".',
+    /** sql/032: "What I use" on the page — spec-sheet rows only. */
+    memoryFlag: 'What I use',
+    memoryHint: 'Oil, filters, sizes and the brands you buy. Never your own notes, papers or where you buy.',
     publishing: 'Uploading… (syncs first, then copies the photos)',
     published: (n: number) => `Done. ${n} ${n === 1 ? 'photo' : 'photos'} on the link.`,
     publishedPartial: (n: number, failed: number) => `Link ready with ${n} photos; ${failed} couldn’t be copied (they’re not on this phone).`,

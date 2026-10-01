@@ -73,7 +73,7 @@ async function upgrade(db: DatabaseSync, today = new Date('2026-09-30T12:00:00Z'
 
 describe('fresh install: 0 → 8', () => {
   it('is the latest version and has every v8 table', () => {
-    expect(LATEST_VERSION).toBe(8);
+    expect(LATEST_VERSION).toBe(9);
     const tables = (appDb.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'`).all() as Row[]).map((r) => r.name);
     for (const t of ['fuel_price', 'fuel_price_ref', 'vehicle_fact', 'legal_acceptance']) expect(tables).toContain(t);
   });
@@ -214,7 +214,7 @@ describe('the app on v8 (store helpers, feed repo, backup)', () => {
     await savePriceBoard({ ...before.referencePrices, glp: 140 }, before.priceWeekLabel, before);
 
     const backup = JSON.parse(JSON.stringify(await buildBackup())) as BackupV2;
-    expect(backup.schemaVersion).toBe(8);
+    expect(backup.schemaVersion).toBe(9);
     expect(backup.tables.fuel_price).toHaveLength(1);
     expect(backup.tables.vehicle_fact).toHaveLength(1);
     expect(backup.tables.legal_acceptance).toHaveLength(1);

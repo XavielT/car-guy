@@ -1959,6 +1959,9 @@ export const es = {
     publish: 'Crear link',
     update: 'Actualizar el link',
     republishHint: 'Los cambios salen en el link al sincronizar; las fotos nuevas, al tocar "Actualizar el link".',
+    /** sql/032: "Lo que uso" on the page — spec-sheet rows only. */
+    memoryFlag: 'Lo que uso',
+    memoryHint: 'Aceite, filtros, medidas y marcas que compras. Nunca tus datos libres, papeles ni dónde compras.',
     publishing: 'Subiendo… (primero sincroniza, luego copia las fotos)',
     published: (n: number) => `Listo. ${n} ${n === 1 ? 'foto' : 'fotos'} en el link.`,
     publishedPartial: (n: number, failed: number) => `Link listo con ${n} fotos; ${failed} no se pudieron copiar (no están en este teléfono).`,
