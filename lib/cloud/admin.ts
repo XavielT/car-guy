@@ -114,7 +114,7 @@ export type AdminUser = {
   fuel_logs: number;
   trips: number;
   last_activity: string | null;
-  /** Not returned by sql/024's admin_users yet; the row falls back to initials of the e-mail. */
+  /** Since sql/031 (absent on a cloud without it → the row falls back to initials of the e-mail). */
   avatar_id?: string | null;
   display_name?: string | null;
 };
