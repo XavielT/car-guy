@@ -7,6 +7,7 @@ import { T } from '@/components/T';
 import { MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/components/trips/TripPieces';
 import { Badge, GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
+import { Alert } from '@/lib/alert';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { recordError } from '@/lib/diagnostics';
@@ -21,6 +22,16 @@ import { setTripsMode, tripsMode, type TripsMode } from '@/lib/trips/settings';
  * settings for it; the screen re-checks on return and arms the service), and
  * on Xiaomi phones shows the MIUI checklist.
  */
+/** Resolves true when the person taps Continuar on the background-location disclosure. */
+function confirmBackgroundDisclosure(): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(t.welcome.perms.backgroundTitle, t.welcome.perms.disclosure, [
+      { text: t.common.cancel, style: 'cancel', onPress: () => resolve(false) },
+      { text: t.common.continue, onPress: () => resolve(true) },
+    ]);
+  });
+}
+
 export default function TripPermissionsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -56,6 +67,12 @@ export default function TripPermissionsScreen() {
         // notification ("Detección automática de viajes activa") is never shown —
         // and the user should always see that the app is watching.
         await requestNotificationPermission().catch(() => false);
+        // Prominent disclosure (Play's background-location policy): the exact text, and an
+        // affirmative tap, right before the system prompt — not only in the welcome slide.
+        if (!(await confirmBackgroundDisclosure())) {
+          pending.current = false;
+          return;
+        }
         await Location.requestBackgroundPermissionsAsync();
       }
     } catch (error) {

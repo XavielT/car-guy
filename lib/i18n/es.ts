@@ -1760,6 +1760,7 @@ export const es = {
 
   common: {
     cancel: 'Cancelar',
+    continue: 'Continuar',
     save: 'Guardar',
     delete: 'Borrar',
     ok: 'Entendido',
