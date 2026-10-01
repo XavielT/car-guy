@@ -43,7 +43,7 @@ if [ "$OTA" = 1 ]; then
   if GATE=$(node tools/ota-gate.cjs check); then
     echo "✓ $GATE — publishing v${VERSION} as an EAS Update"
     set -a; . ./.env.expo.local; set +a
-    npx eas-cli@24.8.0 update --channel production --message "v${VERSION}" --non-interactive
+    npx eas-cli@24.8.0 update --channel production --environment production --platform android --message "v${VERSION}" --non-interactive
     if [ "$PUBLISH" = 1 ]; then
       NOTES=$(mktemp)
       release_notes > "$NOTES"

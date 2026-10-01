@@ -12,7 +12,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 1 | Fix pack 2.4.3 | ✅ | `fix/2.4.3-fixpack` | v2.4.3; notes 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18 closed; 7 waits for his drive (permissions first) |
 | 2 | Schema v10 + cloud 033–036 | 🟨 | `imp-01102026/phase-2-schema-v10` | 033–035 applied to x-core, verifiers green; **036 (`--shared`) left for Xaviel** |
 | 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
-| 4 | Updates · Apoyar · Uso | ⬜ | | |
+| 4 | Updates · Apoyar · Uso | ✅ | `imp-01102026/phase-4-updates` | notes 4, 6; OTA + APK proven on the Redmi; FEATURE_OTA, FEATURE_SUPPORT on |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ⬜ | | |
 | 6 | Juntes · chat (off) · release 2.5.0 | ⬜ | | |
 
@@ -23,9 +23,9 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 1 | Gauge by squares, per vehicle | 3 | ✅ |
 | 2 | iPhone PWA did not open once | 1 | ✅ |
 | 3 | Learn squares → liters, estimate remaining | 3 | ✅ |
-| 4 | Ads / money / Supabase Pro | 4 | ⬜ |
+| 4 | Ads / money / Supabase Pro | 4 | ✅ |
 | 5 | Last sync with time | 1 | ✅ |
-| 6 | Self-updating app | 4 (+ 6 OTA proof) | ⬜ |
+| 6 | Self-updating app | 4 (+ 6 OTA proof) | ✅ (production OTA proof in 6) |
 | 7 | Drive not recorded automatically | 0 + 1 | 🟡 iPhone: platform limit, said (banner). Android: diagnosed (0) + blocked card / battery / last-fix (1); **closes with his drive** after he grants the permissions |
 | 8 | Stale/far location | 1 | ✅ |
 | 9 | Home top-right logo unclear | 1 | ✅ |
@@ -155,6 +155,13 @@ or Viajes, and nothing is recorded.
   a recompute carries it over.
 - Phase 3: amounts show in **the car's unit** (gal for his cars), not always L as the spec's examples read.
 - Phase 3: a new **fuel lamp** joins Inicio's telltale row (there was none); tapping it opens Nueva carga.
+- Phase 4: the "Gracias" list is **names the admin types** (`app_config.support_thanks`) after a supporter agrees,
+  not a profile opt-in column — same consent, no schema change.
+- Phase 4: **no new web toast**: Phase 1's service worker already reloads the PWA once on a new version (ADR-48).
+- Phase 4: the APK check compares **semver** (`nativeApplicationVersion` vs the release tag), as the prompt says;
+  research §3b suggested versionCode, which /api/apk does not expose.
+- Phase 4: `fingerprint.config.js` skips the app version, `extra` (gitSha) and npm scripts — without it every commit
+  was a new runtime and no OTA would ever have reached an APK.
 - Phase 2: verify-x-core checks are **40–47** (39 was taken by sql/032); verify-sync gains 24–25.
 
 ## Observed, deferred
@@ -165,6 +172,10 @@ or Viajes, and nothing is recorded.
 | 0 | SW caches navigation responses without an `ok` check (`public/sw.js:93-96`) — a 5xx page could be served offline later | low | Phase 1's SW pass (ADR-48) |
 | 0 | Hero card `slice(0,2)` drops the status badge when engine + discipline badges exist | low | Phase 1 garage labels |
 | 2 | Realtime "Allow public access" stays on (shared project): Car Guy's junte channels must be opened with `private: true` or the 036 policies are not consulted | high for Phase 6 | `lib/junte` live client |
+| 4 | **v2.4.3 APK was never published on GitHub** (latest release is v2.4.2; web is on 2.4.3) — Phase 1's report said released | medium | ship with 2.5.0 (Phase 6) or `release-apk.sh --publish` from main |
+| 4 | Release builds may need more Gradle Metaspace with expo-updates (the test build did: 512 MB → OOM) | medium | add a config plugin / gradle.properties before `release-apk.sh` |
+| 4 | Web: a brand-new browser profile sometimes boots into "not a database" (OPFS first open), seen 3× headless under load | medium | look at the SQLite worker open race |
+| 4 | The `preview` channel carries the test OTA ("Novedades y versiones · OTA"); a fresh test build gets it until the next preview update | low | next preview publish replaces it |
 | 2 | `lib/db/shareQueries.ts` imports `../i18n/es` directly (lint rule ADR-39) when linted on its own; `npm run lint` passes | low | |
 
 ## Blockers
@@ -179,6 +190,46 @@ or Viajes, and nothing is recorded.
 ---
 
 ## Phase reports
+
+## Phase 4 — Updates · Apoyar · Uso y costos   (branch `imp-01102026/phase-4-updates`)
+
+**Status:** done; `FEATURE_OTA`, `FEATURE_SUPPORT` on. **Notes closed: 4, 6** (the production OTA 2.5.1 proof is
+Phase 6's).
+
+### Changed
+- **EAS Update** (ADR-52): `expo-updates` + `expo-intent-launcher`; `runtimeVersion: fingerprint`, `updates.url`,
+  ON_LOAD, fallback 0; channels in eas.json (preview / production / release-apk) and the request header written by
+  app.config.js per variant (test → `preview`, real → `production`) so every build path is right.
+  `fingerprint.config.js` (see deviations). `lib/updates/ota.ts` (check → fetch → otaReady; "Reiniciar" refuses
+  during a trip), `useUpdateChecks` (launch + back after 30 min), `UpdateBanner` on Inicio, Novedades shows
+  "Canal … · Actualización …" and "Buscar actualización" runs OTA + APK. After an OTA, "Tienes" shows the JS version.
+- **APK updater**: `lib/updates/apk.ts` — /api/apk (or `EXPO_PUBLIC_APK_FEED` for tests) once per launch, semver
+  compare, `File.createDownloadTask` with progress, size check, `contentUri` → ACTION_VIEW with the APK MIME
+  (`REQUEST_INSTALL_PACKAGES` in app.json), "¿Por qué pide permiso?", old downloads cleaned.
+- **Release gate**: `tools/ota-gate.cjs` (`check` / `record`), `release-apk.sh --ota` → `eas update --channel
+  production --environment production` when the fingerprint equals `releases/fingerprint.json` (now tracked), a
+  GitHub release with notes and no APK not marked latest; else refuses and builds the APK; every APK release records.
+- **Apoyar Car Guy** (ADR-53): Más → last row → why, this month's cost and the Pro ETA (published by the admin),
+  links / bank text / thanks from `app_config`, "Pronto" when nothing is set, "apoyar no cambia nada". No ads.
+- **Uso y costos** (admin): `admin_usage()` → bars vs Free limits (amber 70 %, red 90 %), daily history in
+  `app_config.usage_history`, least-squares slope → "Pro necesario ≈ <mes>", "Publicar en Apoyar", editor for links,
+  bank text and the thanks list. `lib/domain/usage.ts` pure + tests.
+- Test tooling: `TEST_APP_VERSION` (test variant claims an older version to exercise the real /api/apk), Gradle
+  Metaspace raised in `build-test-apk.sh`.
+
+### Acceptance
+- [x] tsc, lint (0 errors), jest **2,128** (semver, gate, usage slope/ETA among them).
+- [x] Redmi, test APK (preview channel): Novedades "Canal preview · Sin actualizaciones desde la instalación" →
+  published a JS-only update to `preview` (title "Novedades y versiones · OTA", runtime `47d83c9d…` = the APK's) →
+  reopen → expo-updates downloaded it → Inicio "ACTUALIZACIÓN LISTA · REINICIAR" → title changed, "Actualización
+  01a0f971". Screens `docs/qa/imp-01102026-phase-4-android-{novedades-canal,ota-banner,ota-applied}.png`.
+- [x] Redmi, test APK claiming 2.4.0: "NUEVA VERSIÓN 2.4.2 · 161 MB" from the real /api/apk → "Descargando… 7 %" →
+  size check → Android's installer chooser (cancelled; nothing installed). `…-android-apk-{banner,progress,installer}.png`.
+- [x] Native change gate: + one permission → runtime `8353…` → `c9e7…` (→ `--ota` refused); reverted → `8353…`.
+- [x] Web: Apoyar signed out shows the text and "Pronto" (`…-web-apoyar.png`).
+- [ ] Admin Uso y costos with real numbers — needs Xaviel's admin login (the RPC refuses anyone else; 40 in
+  verify-x-core proves the refusal). Then "Publicar en Apoyar".
+- [ ] PayPal.me test payment (checklist) → then add the link in Uso y costos → Formas de apoyar.
 
 ## Phase 3 — Medidor por cuadros + calibración   (branch `imp-01102026/phase-3-gauge`)
 
