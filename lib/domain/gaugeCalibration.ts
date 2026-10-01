@@ -42,7 +42,27 @@ export type GaugeCalibration = {
    * reserva" — present once there are ≥ 2 such fills (research §3.1 item 3).
    */
   reserve_l?: number;
+  /**
+   * "Reiniciar calibración" (or a tank change > 2 L): logs before this ISO date are ignored. Kept in the JSON
+   * so a recompute carries it over without another column (research §7.5's gauge_calibration_reset_at).
+   */
+  reset_at?: string | null;
 };
+
+/** `vehicle.gauge_calibration` text → the object, or null when absent or not one of ours. */
+export function parseCalibration(json: string | null | undefined): GaugeCalibration | null {
+  if (!json) return null;
+  try {
+    const c = JSON.parse(json) as Partial<GaugeCalibration>;
+    const okArrays = Array.isArray(c.grid) && Array.isArray(c.band) && c.grid.length === c.band.length && c.grid.length >= 2;
+    const okStatus = c.status === 'linear' || c.status === 'parcial' || c.status === 'aprendido';
+    // A bare reset marker (no grid yet) is still worth keeping.
+    if (!okArrays || !okStatus) return c.reset_at ? ({ grid: [], band: [], n_full: 0, n_partial: 0, status: 'linear', updated_at: null, reset_at: c.reset_at } as GaugeCalibration) : null;
+    return c as GaugeCalibration;
+  } catch {
+    return null;
+  }
+}
 
 /** One fuel log as calibration sees it. Fractions 0..1 (null = not read). */
 export type GaugeObservation = {

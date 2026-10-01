@@ -10,6 +10,7 @@ import {
   settings as settingsRepo,
   vehicles as vehicleRepo,
 } from './db/repos';
+import { recalibrateVehicle } from './db/gaugeOps';
 import { referencePricesNow, savePriceBoard } from './db/priceOps';
 import { resetDatabase } from './db/reset';
 import { armSlowQueries } from './dev/slowQueries';
@@ -199,6 +200,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         createdAt: f.createdAt,
         gaugeBefore8: f.gaugeBeforeEighths ?? null,
         gaugeAfter8: f.gaugeAfterEighths ?? null,
+        gaugeBeforeFrac: f.gaugeBeforeFrac ?? null,
+        gaugeAfterFrac: f.gaugeAfterFrac ?? null,
+        gaugeBeforeRaw: f.gaugeBeforeRaw ?? null,
+        gaugeAfterRaw: f.gaugeAfterRaw ?? null,
         inReserve: Boolean(f.inReserve),
       })),
       expenses: [...expenseRows.map(expenseToLegacy), ...maintenance.map(serviceToLegacyExpense)].sort(
@@ -366,8 +371,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           notes: input.notes,
           gaugeBeforeEighths: input.inReserve ? null : (input.gaugeBefore8 ?? null),
           gaugeAfterEighths: input.gaugeAfter8 ?? null,
+          // v10: the form sends the fraction + raw for every gauge type; a caller that sends only eighths
+          // (an import, an older screen) gets them derived, so the columns never disagree.
+          gaugeBeforeFrac: input.inReserve ? null : (input.gaugeBeforeFrac ?? (input.gaugeBefore8 != null ? input.gaugeBefore8 / 8 : null)),
+          gaugeBeforeRaw: input.inReserve ? null : (input.gaugeBeforeRaw ?? (input.gaugeBefore8 != null ? `${input.gaugeBefore8}/8` : null)),
+          gaugeAfterFrac: input.gaugeAfterFrac ?? (input.gaugeAfter8 != null ? input.gaugeAfter8 / 8 : null),
+          gaugeAfterRaw: input.gaugeAfterRaw ?? (input.gaugeAfter8 != null ? `${input.gaugeAfter8}/8` : null),
           inReserve: Boolean(input.inReserve),
         });
+        // ADR-51: every fill-up teaches the gauge.
+        await recalibrateVehicle(input.vehicleId);
         await load();
       });
       return fillId;
@@ -378,7 +391,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const deleteFillUp = useCallback(
     (fillUpId: string) => {
       background('escritura', async () => {
+        const vehicleId = (await fuelRepo.getById(fillUpId))?.vehicleId;
         await fuelRepo.softDelete(fillUpId);
+        if (vehicleId) await recalibrateVehicle(vehicleId);
         await load();
       });
     },
