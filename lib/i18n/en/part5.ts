@@ -15,6 +15,9 @@ export const enPart5: Pick<
   | 'install'
   | 'feedback'
   | 'versions'
+  | 'updates'
+  | 'support'
+  | 'usage'
   | 'dev'
 > = {
   specs: {
@@ -301,6 +304,53 @@ export const enPart5: Pick<
     wishlistInstalled: "Installed. That's clean.",
     publicLinkReady: "Link ready. Anything you didn't check stays hidden.",
   },
+  support: {
+    more: 'Support Car Guy',
+    moreCaption: 'If it helps you and you want to chip in for what it costs to run',
+    title: 'Support Car Guy',
+    eyebrow: 'SUPPORT · 応援',
+    why:
+      'Car Guy has no ads and does not sell your data. What it costs is the server that keeps your backups and syncs your cars, plus the website. Today it fits in free plans; when it grows, the next step is the server’s paid plan.',
+    costNow: (usd: number) => (usd > 0 ? `This month it costs ≈ US$${usd}.` : 'This month it costs US$0: everything fits in the free plans.'),
+    proEta: (usd: number, when: string) => `At this pace the server’s paid plan (US$${usd} a month) will be needed around ${when}.`,
+    proReached: (usd: number) => `The server’s paid plan (US$${usd} a month) is needed now.`,
+    proFar: 'Nothing needs paying for now.',
+    updated: (month: string) => `Figures for ${month}.`,
+    links: 'How to support',
+    bank: 'Bank transfer',
+    soon: 'Soon: there is no way to support set up yet.',
+    thanks: 'Thanks',
+    thanksCaption: 'People who supported and wanted to be listed.',
+    thanksAsk: 'If you support and want to be on this list, tell the admin.',
+    nothingChanges: 'Supporting changes nothing in the app: it stays the same for everyone.',
+  },
+  usage: {
+    link: 'Usage and costs',
+    linkCaption: 'Database, files and users against the free plan',
+    title: 'Usage and costs',
+    db: 'Database (shared with the server’s other app)',
+    storage: 'Car Guy files',
+    mau: 'Active users (30 days)',
+    users: (n: number) => `${n} Car Guy accounts`,
+    of: (used: string, limit: string, pct: number) => `${used} of ${limit} · ${pct} %`,
+    proEta: (when: string) => `Pro needed ≈ ${when}`,
+    proReached: 'Pro needed now',
+    proFar: 'Pro not needed at the current pace',
+    history: (n: number) => (n < 2 ? 'More than one day of data is needed for the trend.' : `Trend from ${n} days of data.`),
+    juntes: (n: number) => `${n} juntes in 30 days`,
+    egress: 'Download traffic cannot be measured from the app: check it in the server dashboard (Usage).',
+    publish: 'Publish to Support',
+    published: 'Published: Support now shows these figures.',
+    linksTitle: 'Ways to support',
+    linksHint: 'One per line: Name | https://…  (PayPal.me only after a test payment works).',
+    bankTitle: 'Bank transfer (optional)',
+    thanksTitle: 'Thanks list',
+    thanksHint: 'One name per line, only people who agreed to be listed.',
+    save: 'Save',
+    saved: 'Saved.',
+    failed: 'Could not save.',
+    loadFailed: 'The figures could not be read.',
+  },
   admin: {
     more: 'Admin panel',
     moreCaption: 'Users, system numbers and feedback. Only you see it.',
@@ -465,6 +515,30 @@ export const enPart5: Pick<
       count: (n: number) => (n === 1 ? '1 comment' : `${n} comments`),
       replySubject: 'Car Guy — your feedback',
     },
+  },
+  updates: {
+    otaReady: 'Update ready',
+    otaRestart: 'Restart',
+    otaTrip: 'Finish the trip and restart: the update is already downloaded.',
+    apkAvailable: (version: string, size: string | null) => (size ? `New version ${version} · ${size}` : `New version ${version}`),
+    apkInstall: 'Download and install',
+    apkDownloading: (pct: number) => `Downloading… ${pct} %`,
+    apkWhy: 'Why does it ask for permission?',
+    apkWhyTitle: 'Installing from Car Guy',
+    apkWhyBody:
+      'Car Guy is not on the Play Store, so Android asks once whether you allow it to install apps. Tap "Settings", turn on "Allow from this source", go back and tap "Install". Your data stays.',
+    apkErrors: {
+      download: 'The update could not be downloaded. Try again on Wi-Fi.',
+      size: 'The download arrived incomplete. Try again.',
+      intent: 'Android did not open the installer. Open the APK from Downloads.',
+    },
+    later: 'Later',
+    check: 'Check for updates',
+    checking: 'Checking…',
+    upToDate: 'You have the latest version.',
+    channel: (c: string) => `Channel ${c}`,
+    update: (id: string) => `Update ${id}`,
+    embedded: 'No updates since install',
   },
   versions: {
     notesLanguage: 'Release notes are written in Spanish.',

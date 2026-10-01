@@ -2734,6 +2734,54 @@ export const es = {
   },
 
   /** Enviar comentario + Comentarios recibidos (IMP 29092026 Phase 6, ADR-35). */
+  /** IMP 01102026 Phase 4 (note 4, ADR-53): no ads; a voluntary way to support, and what it costs. */
+  support: {
+    more: 'Apoyar Car Guy',
+    moreCaption: 'Si te sirve y quieres ayudar con lo que cuesta mantenerla',
+    title: 'Apoyar Car Guy',
+    eyebrow: 'APOYAR · 応援',
+    why:
+      'Car Guy no tiene anuncios y no vende tus datos. Lo que cuesta es el servidor que guarda tus copias y sincroniza tus carros, más la web. Hoy cabe en planes gratis; cuando crezca, el paso siguiente es el plan pago del servidor.',
+    costNow: (usd: number) => (usd > 0 ? `Este mes cuesta ≈ US$${usd}.` : 'Este mes cuesta US$0: todo cabe en los planes gratis.'),
+    proEta: (usd: number, when: string) => `A este ritmo hará falta el plan pago del servidor (US$${usd} al mes) hacia ${when}.`,
+    proReached: (usd: number) => `Ya hace falta el plan pago del servidor (US$${usd} al mes).`,
+    proFar: 'No hace falta pagar nada por ahora.',
+    updated: (month: string) => `Cifras de ${month}.`,
+    links: 'Cómo apoyar',
+    bank: 'Transferencia',
+    soon: 'Pronto: todavía no hay una forma de apoyar configurada.',
+    thanks: 'Gracias',
+    thanksCaption: 'Quienes apoyaron y quisieron salir aquí.',
+    thanksAsk: 'Si apoyas y quieres salir en esta lista, díselo al admin.',
+    nothingChanges: 'Apoyar no cambia nada en la app: todo sigue igual para todos.',
+  },
+  usage: {
+    link: 'Uso y costos',
+    linkCaption: 'Base de datos, archivos y usuarios contra el plan gratis',
+    title: 'Uso y costos',
+    db: 'Base de datos (compartida con la otra app del servidor)',
+    storage: 'Archivos de Car Guy',
+    mau: 'Usuarios activos (30 días)',
+    users: (n: number) => `${n} cuentas de Car Guy`,
+    of: (used: string, limit: string, pct: number) => `${used} de ${limit} · ${pct} %`,
+    proEta: (when: string) => `Pro necesario ≈ ${when}`,
+    proReached: 'Pro necesario ya',
+    proFar: 'Pro no hace falta al ritmo actual',
+    history: (n: number) => (n < 2 ? 'Hace falta más de un día de datos para la tendencia.' : `Tendencia con ${n} días de datos.`),
+    juntes: (n: number) => `${n} juntes en 30 días`,
+    egress: 'El tráfico de descarga no se puede medir desde la app: revísalo en el panel del servidor (Usage).',
+    publish: 'Publicar en Apoyar',
+    published: 'Publicado: Apoyar ya muestra estas cifras.',
+    linksTitle: 'Formas de apoyar',
+    linksHint: 'Una por línea: Nombre | https://…  (PayPal.me solo después de probar un pago de prueba).',
+    bankTitle: 'Transferencia (opcional)',
+    thanksTitle: 'Lista de gracias',
+    thanksHint: 'Un nombre por línea, solo de quien aceptó salir.',
+    save: 'Guardar',
+    saved: 'Guardado.',
+    failed: 'No se pudo guardar.',
+    loadFailed: 'No se pudieron leer las cifras.',
+  },
   admin: {
     more: 'Panel de administración',
     moreCaption: 'Usuarios, cifras del sistema y comentarios. Solo tú lo ves.',
@@ -2905,6 +2953,31 @@ export const es = {
    * Developer hints (IMP 29092026 Phase 1). Never shown on their own: only
    * appended in `__DEV__` or with "modo diagnóstico" on (lib/diagnosticsMode.ts).
    */
+  /** IMP 01102026 Phase 4 (note 6, ADR-52): the app updates itself. */
+  updates: {
+    otaReady: 'Actualización lista',
+    otaRestart: 'Reiniciar',
+    otaTrip: 'Termina el viaje y reinicia: la actualización ya se bajó.',
+    apkAvailable: (version: string, size: string | null) => (size ? `Nueva versión ${version} · ${size}` : `Nueva versión ${version}`),
+    apkInstall: 'Descargar e instalar',
+    apkDownloading: (pct: number) => `Descargando… ${pct} %`,
+    apkWhy: '¿Por qué pide permiso?',
+    apkWhyTitle: 'Instalar desde Car Guy',
+    apkWhyBody:
+      'Car Guy no está en la Play Store, así que Android pregunta una vez si permites que instale apps. Toca "Configuración", activa "Permitir de esta fuente", vuelve atrás y toca "Instalar". Tus datos se quedan.',
+    apkErrors: {
+      download: 'No se pudo bajar la actualización. Prueba otra vez con Wi-Fi.',
+      size: 'La descarga llegó incompleta. Prueba otra vez.',
+      intent: 'Android no abrió el instalador. Abre el APK desde Descargas.',
+    },
+    later: 'Luego',
+    check: 'Buscar actualización',
+    checking: 'Buscando…',
+    upToDate: 'Tienes la última versión.',
+    channel: (c: string) => `Canal ${c}`,
+    update: (id: string) => `Actualización ${id}`,
+    embedded: 'Sin actualizaciones desde la instalación',
+  },
   versions: {
     /** Shown only when the notes are not in the app's language (CHANGELOG.md is written in Spanish). */
     notesLanguage: '',

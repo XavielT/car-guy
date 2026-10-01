@@ -65,9 +65,19 @@ function applyVariant(config) {
   };
 }
 
+/**
+ * IMP 01102026 ADR-52: the EAS Update channel, written into the binary as the request header, so a local
+ * gradle/EAS build asks for the right updates whatever the build path (research 01 §3a: "verify once").
+ * The test app listens to `preview`; every real build to `production`.
+ */
+function withChannel(config) {
+  const channel = process.env.APP_VARIANT === 'test' ? 'preview' : 'production';
+  return { ...config, updates: { ...config.updates, requestHeaders: { ...config.updates?.requestHeaders, 'expo-channel-name': channel } } };
+}
+
 module.exports = ({ config }) => {
   assertReleaseEnv();
-  const base = applyVariant(config);
+  const base = withChannel(applyVariant(config));
   return {
     ...base,
     extra: { ...base.extra, gitSha: gitSha(), variant: process.env.APP_VARIANT ?? null },

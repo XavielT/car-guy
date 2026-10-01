@@ -35,6 +35,7 @@ import { initLanguage, localeTag, refreshSystemLanguage, t, useLanguage } from '
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
 import { useTripService } from '@/lib/trips/useTripService';
+import { useUpdateChecks } from '@/lib/updates/useUpdateChecks';
 import { useFeedbackBoot } from '@/lib/feedback/useFeedbackBoot';
 import { ThemeProvider, useTheme } from '@/lib/theme/useTheme';
 
@@ -264,6 +265,7 @@ function Shell() {
   useSyncTriggers();
   useTripService();
   useFeedbackBoot();
+  useUpdateChecks();
 
   // The shell only renders once the database opened, so reaching here is the
   // proof that the boot succeeded — and the only place that can honestly give
@@ -398,6 +400,7 @@ function Shell() {
         <Stack.Screen name="cuenta" options={{ headerShown: true, title: t.routes.account }} />
         <Stack.Screen name="nueva-contrasena" options={{ headerShown: true, title: t.routes.newPassword }} />
         <Stack.Screen name="versiones" options={{ headerShown: true, title: t.versions.title }} />
+        <Stack.Screen name="apoyar" options={{ headerShown: true, title: t.support.title }} />
         <Stack.Screen name="instalar" options={{ headerShown: true, title: t.install.title }} />
         <Stack.Screen name="legal/index" options={{ headerShown: true, title: t.legalUi.title }} />
         <Stack.Screen name="legal/[doc]" options={{ headerShown: true, title: t.legalUi.title }} />

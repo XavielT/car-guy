@@ -31,6 +31,7 @@ import { useProfile } from '@/lib/profile';
 import { Avatar } from '@/components/Avatar';
 import { TipCard } from '@/components/TipCard';
 import { AutoBlockedCard } from '@/components/trips/TripPieces';
+import { UpdateBanner } from '@/components/updates/UpdateBanner';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { tripsKeepAwake, tripsMode, type TripsMode } from '@/lib/trips/settings';
 import { garageFacts, lastWeeklyCheck, type GarageFacts } from '@/lib/db/garageQueries';
@@ -441,6 +442,8 @@ export default function HomeScreen() {
         <TipCard id="odometer" />
 
         {/* Automático chosen but blocked (permission, MIUI, battery): said here, not only in Ajustes. */}
+        {/* IMP 01102026 Phase 4: an update waiting (OTA) or a new APK. */}
+        <UpdateBanner />
         {FEATURE_TRIPS && tripsModeNow === 'auto' ? <AutoBlockedCard /> : null}
 
         {FEATURE_TRIPS && tripsModeNow !== 'off' && !live ? (

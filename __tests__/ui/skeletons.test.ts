@@ -17,6 +17,7 @@ const NO_SKELETON: Record<string, string> = {
   'app/onboarding.tsx': 'static',
   'app/bienvenida/index.tsx': 'static (the welcome slides; the vehicle form is a create form)',
   'app/versiones.tsx': 'static (bundled changelog)',
+  'app/apoyar.tsx': 'static text first; the published figures and links fill in',
   'app/instalar.tsx': 'static',
   'app/notificaciones.tsx': 'settings, instant',
   'app/invitacion/[code].tsx': 'auth flow with its own states',

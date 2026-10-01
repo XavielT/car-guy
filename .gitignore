@@ -68,7 +68,8 @@ docs/imp-17092026/04-tracking/x-core-inspect.txt
 # Release artefacts and signing material. The keystore especially: losing it
 # means no Android update is ever accepted as the same app again, and putting it
 # in a public repo is worse than losing it.
-releases/
+releases/*
+!releases/fingerprint.json
 *.keystore
 *.jks
 
