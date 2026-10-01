@@ -10,7 +10,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 |---|---|---|---|---|
 | 0 | Kickoff + Redmi diagnostics | ✅ | `imp-01102026/phase-0-kickoff` | baseline green; audit (11 items, 4 corrections); **Redmi: Car Guy has no location permission at all** + MIUI kills it → Phase 1 list |
 | 1 | Fix pack 2.4.3 | ✅ | `fix/2.4.3-fixpack` | v2.4.3; notes 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18 closed; 7 waits for his drive (permissions first) |
-| 2 | Schema v10 + cloud 033–036 | ⬜ | | |
+| 2 | Schema v10 + cloud 033–036 | 🟨 | `imp-01102026/phase-2-schema-v10` | local done (v10, seed, stubs, 033–036 + local-rls 203/203); cloud apply waits for Xaviel's OK |
 | 3 | Medidor por cuadros + calibración | ⬜ | | |
 | 4 | Updates · Apoyar · Uso | ⬜ | | |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ⬜ | | |
@@ -140,6 +140,13 @@ or Viajes, and nothing is recorded.
 - Package path is under `october 2026`, not `september 2026`.
 - The 2-minute background walk was not run (no permission → no fixes possible); see diagnostics.
 - `apply-sql.mjs` has no inspect mode; (k) used the generated types.
+- Phase 2: **history_feed v7** (junte rows) moves to Phase 6 — there is no local junte table to list until then.
+- Phase 2: **036 has only the realtime policies.** No `pg_trgm`/`unaccent` and no `carguy_private` schema: search
+  folds accents with `translate()` (enough for Spanish at this size) and the helpers live in `carguy` with
+  explicit revokes — fewer project-wide objects on a project shared with Music Hub.
+- Phase 2: the DS3 keeps its **real 50 L tank**; research 03 §3.4 assumed 45 L. The four readings and liters are
+  the example's, so Phase 3's learned table will differ slightly from the research's numbers (same shape).
+- Phase 2: verify-x-core checks are **40–47** (39 was taken by sql/032); verify-sync gains 24–25.
 
 ## Observed, deferred
 
@@ -148,6 +155,8 @@ or Viajes, and nothing is recorded.
 | 0 | Disk 95 % (6.5 GB free) | medium | clear old local APKs in `releases/` with Xaviel's OK before the next universal build |
 | 0 | SW caches navigation responses without an `ok` check (`public/sw.js:93-96`) — a 5xx page could be served offline later | low | Phase 1's SW pass (ADR-48) |
 | 0 | Hero card `slice(0,2)` drops the status badge when engine + discipline badges exist | low | Phase 1 garage labels |
+| 2 | Realtime "Allow public access" stays on (shared project): Car Guy's junte channels must be opened with `private: true` or the 036 policies are not consulted | high for Phase 6 | `lib/junte` live client |
+| 2 | `lib/db/shareQueries.ts` imports `../i18n/es` directly (lint rule ADR-39) when linted on its own; `npm run lint` passes | low | |
 
 ## Blockers
 
@@ -155,11 +164,50 @@ or Viajes, and nothing is recorded.
 |---|---|---|---|
 | 0 | Folder rename | Xaviel | open |
 | 1 | Grant location (todo el tiempo), autostart, battery "sin restricciones" in the app, then the drive | Xaviel | open — after the Phase 1 build |
+| 2 | Apply sql/033–035, then 036 with `--shared`, to x-core (production, shared with Music Hub) | Xaviel's OK | open |
 | 4 | PayPal.me test payment (DR account) | Xaviel | open |
 
 ---
 
 ## Phase reports
+
+## Phase 2 — Schema v10 + cloud 033–036   (branch `imp-01102026/phase-2-schema-v10`)
+
+**Status:** local complete; cloud apply pending Xaviel's OK. Resumed after the laptop crash: the two domain
+commits (gauge, tripShare/interval) were already on the branch; the migration, types and SQL were uncommitted
+and finished here. Stale agent worktrees removed (their commits are identical to the branch's).
+
+### Changed
+- **Migration v10** (`lib/db/migrationV10.ts`): vehicle `gauge_type` (default `needle8`) / `gauge_segments` /
+  `gauge_reserve_at` / `gauge_calibration`; fuel_log `gauge_{before,after}_{frac,raw}` backfilled from the eighths
+  (`n/8`, eighths kept for 2.4.x phones); `trip_share`, `privacy_zone` (synced, in backups and `ALL_TABLES`);
+  `social_cache`, `junte_cache` (cloud caches, cleared by reset). Tests `__tests__/db/migrate-v10.test.ts`: 0 → 10,
+  v9 fixture → v10 backfill, seed, backup round-trip, reset clears caches.
+- **Domain** (already committed): `lib/domain/gauge.ts`, `gaugeCalibration.ts` (PAV, worked example),
+  `tripShare.ts`, `lib/junte/interval.ts` (T = max(4, n²/60)), with tests.
+- **Client stubs:** `lib/social/rpc.ts` (one door, SQL error codes → reasons), `lib/social/api.ts`,
+  `lib/junte/api.ts` (`junteTopic`). Loosely typed until `types:gen` runs against a cloud with 033–036.
+- **Cloud SQL:** 033 app_config + admin_usage; 034 handle/bio/switches, reserved handles, follow/block/report,
+  profile/search/follow RPCs, trip_share + privacy_zone; 035 juntes + RPCs; 036 (`--shared`) realtime.messages
+  policies for `carguy:junte:` topics. Fixed here: `end_junte` on a junte that had not started violated
+  `ends_at > starts_at` (now `ends_at = starts_at` for a cancel; `create_junte` refuses an empty window), and the
+  036 restrictive guard returned NULL — a denial for **every** app — on access with no topic (now coalesced).
+- **Tools:** local-rls runs 033–036 twice each + scenarios 034/035 (35l2 new, junte order made deterministic);
+  `verify-x-core.mjs` 40–47; `verify-sync.mjs` 24–25 (trip_share, privacy_zone); `apply-sql.mjs` now treats
+  policies on `realtime.`/`public.`/`auth.` tables and `create extension` as shared (it waved 036 through).
+- **Sync:** `SYNC_TABLES` + trip_share, privacy_zone; parity test reads 033–034; the boolean map is compared on
+  synced tables only (profiles' switches and app_config are RPC-only).
+- **Seed:** the DS3 reads 9 squares, reserve at 1, with research 03 §3.4's four readings on four of its 12 fill-ups.
+- **Flags** (`lib/flagsV10.ts`): GAUGE_SEGMENTS, OTA, SUPPORT, SOCIAL, JUNTES, JUNTE_CHAT — all false.
+
+### Acceptance
+- [x] tsc, `npm run lint` (0 errors), jest **2,101** (117 suites), `npm run build` green.
+- [x] local-rls **203/203**, three runs in a row.
+- [x] Web (headless, dev server): seed, Inicio and Nueva carga render as 2.4.3; no page errors; no screen reads v10.
+- [ ] Android test APK (the crash corrupted the Gradle transforms cache; cleared, rebuilding).
+- [ ] Apply 033 → 034 → 035 → 036 `--shared`; `types:gen`; verify-x-core 40–47; verify-sync 24–25.
+
+**Notes closed:** none (groundwork).
 
 ## Phase 1 — Fix pack 2.4.3   (branch `fix/2.4.3-fixpack`, merged `2afff29`)
 
