@@ -11,7 +11,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 0 | Kickoff + Redmi diagnostics | ✅ | `imp-01102026/phase-0-kickoff` | baseline green; audit (11 items, 4 corrections); **Redmi: Car Guy has no location permission at all** + MIUI kills it → Phase 1 list |
 | 1 | Fix pack 2.4.3 | ✅ | `fix/2.4.3-fixpack` | v2.4.3; notes 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18 closed; 7 waits for his drive (permissions first) |
 | 2 | Schema v10 + cloud 033–036 | 🟨 | `imp-01102026/phase-2-schema-v10` | 033–035 applied to x-core, verifiers green; **036 (`--shared`) left for Xaviel** |
-| 3 | Medidor por cuadros + calibración | ⬜ | | |
+| 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
 | 4 | Updates · Apoyar · Uso | ⬜ | | |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ⬜ | | |
 | 6 | Juntes · chat (off) · release 2.5.0 | ⬜ | | |
@@ -20,9 +20,9 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 
 | # | Note | Closed in | Status |
 |---|---|---|---|
-| 1 | Gauge by squares, per vehicle | 3 | ⬜ |
+| 1 | Gauge by squares, per vehicle | 3 | ✅ |
 | 2 | iPhone PWA did not open once | 1 | ✅ |
-| 3 | Learn squares → liters, estimate remaining | 3 | ⬜ |
+| 3 | Learn squares → liters, estimate remaining | 3 | ✅ |
 | 4 | Ads / money / Supabase Pro | 4 | ⬜ |
 | 5 | Last sync with time | 1 | ✅ |
 | 6 | Self-updating app | 4 (+ 6 OTA proof) | ⬜ |
@@ -146,6 +146,15 @@ or Viajes, and nothing is recorded.
   explicit revokes — fewer project-wide objects on a project shared with Music Hub.
 - Phase 2: the DS3 keeps its **real 50 L tank**; research 03 §3.4 assumed 45 L. The four readings and liters are
   the example's, so Phase 3's learned table will differ slightly from the research's numbers (same shape).
+- Phase 3: a reading taken on another grid **keeps its raw text** ("3/8" stays "3/8") and counts at weight 0.5
+  (research §7.4) instead of the prompt's "saving converts existing readings' raw labels" — the raw is what he saw.
+- Phase 3: the fuel lamp is **red on the best estimate** (≤ reserve, or ≤ reserve_at squares), not on the band's top
+  (research §4): after a long drive the band is wide and "hi ≤ reserve" would light only when the car is dry.
+- Phase 3: the hub's tank line hides after **30 days** (02-screens) rather than research §4's 14.
+- Phase 3: "Reiniciar calibración" stores its date **inside `gauge_calibration`** (`reset_at`), not a new column;
+  a recompute carries it over.
+- Phase 3: amounts show in **the car's unit** (gal for his cars), not always L as the spec's examples read.
+- Phase 3: a new **fuel lamp** joins Inicio's telltale row (there was none); tapping it opens Nueva carga.
 - Phase 2: verify-x-core checks are **40–47** (39 was taken by sql/032); verify-sync gains 24–25.
 
 ## Observed, deferred
@@ -170,6 +179,43 @@ or Viajes, and nothing is recorded.
 ---
 
 ## Phase reports
+
+## Phase 3 — Medidor por cuadros + calibración   (branch `imp-01102026/phase-3-gauge`)
+
+**Status:** done; `FEATURE_GAUGE_SEGMENTS = true`. **Notes closed: 1, 3.**
+
+### Changed
+- **Economy on fractions** (`lib/domain/partialEconomy.ts`): levels read `gauge_*_frac` (eighths as fallback) on the
+  car's grid; linear ± C/(2G) + nonlinK·C — needle numbers identical (test); learned grid ± band when the status is
+  not linear; the learned reserve; "F without full" generalised to C·(1 − 1/(2G)). `fuelCfgFor` carries the gauge
+  and the parsed calibration, so Inicio, Cifras, the fill-up detail, Nueva carga and the CSV all follow.
+- **Vehicle gauge** (`lib/domain/gaugeVehicle.ts`): observations (other-grid readings ×0.5), `calibrateVehicle`
+  (reset kept), `tankNow` (last after-level − km since at the recent km/L, band √(b² + (used·rel)²), 30-day cutoff,
+  telltale), `formatFrac`, `stepForLiters`. `lib/db/gaugeOps.ts` `recalibrateVehicle` writes only on change; the
+  store runs it after every fill-up save/delete, vehicle save after a gauge/tank change, the seed after the DS3.
+- **Pickers** (`components/fuel/GaugePicker.tsx`): one fraction API over the needle arc, `SegmentsPicker` (N squares,
+  lowest red, tap / tap-again −1 / drag, haptic tick, adjustable a11y "4 de 9 cuadros") and `PercentPicker` (5 %
+  track + LCD); "Solo la luz de reserva" on all. The form keeps an untouched reading's original fraction/raw.
+- **Fill-up form:** after Antes, "≈ 3.3 gal en el tanque (2.4–4.2)" (learned) or the linear caption; "quedaría ≈ …
+  de …" on a partial.
+- **Vehicle form** (`components/vehicle/GaugeTypeSection.tsx`): "¿Cómo marca la gasolina tu carro?" — Aguja ·
+  Cuadritos · Porcentaje cards, stepper 3–20 with live preview, "¿Cuándo se prende la luz de reserva?"; editing the
+  tank by > 2 L with a learned gauge offers "¿Reiniciar el aprendizaje del medidor?".
+- **Hub** `TankLine`: "Tanque: 9/9 ≈ 13.2 gal · ≈ 900 km (740–1050) · hace 4 d". **Inicio:** fuel lamp (amber ≤ 2
+  squares / 2/8 / 20 %, red at the reserve). **Ficha → Medidor:** the table F…E with ± bands, status, n tanks,
+  "Reiniciar calibración". The fill-up detail shows readings as seen ("2/9").
+- Strings es/en; tests `__tests__/domain/gaugeVehicle.test.ts` (14) on top of Phase 2's gauge/calibration tests.
+
+### Acceptance
+- [x] tsc, lint (0 errors; 1 old warning in `app/cuenta.tsx`), jest **2,115**.
+- [x] Web (headless, es-DO, 390 px): seed → "DS3: medidor de 9 cuadros, aprendido (3 tanques llenos)"; hub tank line;
+  Ficha table monotone with bands; DS3 Nueva carga shows 9 squares, 2 → 6 gives "2 de 9 · ≈ 3.3 gal (2.4–4.2)" and
+  "6 de 9"; Trueno → Porcentaje shows the % track, → Aguja shows the arc again; no page errors.
+  Screens: `docs/qa/imp-01102026-phase-3-*.png`.
+- [x] Android test APK on the Redmi: new vehicle → Bars, stepper to 9 (live preview, lowest red), "1 bar left",
+  saved; Nueva carga → 9 squares, tap → "2 of 9 · ≈ 2.9 gal in the tank (linear…)" (13.2 gal × 2/9); no FATAL.
+  Screens: `docs/qa/imp-01102026-phase-3-android-*.png`.
+- [ ] His DS3 for real: Editar → Cuadritos, 9, reserva; then mark the squares on the next fills (checklist).
 
 ## Phase 2 — Schema v10 + cloud 033–036   (branch `imp-01102026/phase-2-schema-v10`)
 

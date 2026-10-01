@@ -16,6 +16,9 @@
 - [ ] iPhone: delete the old PWA, open car-guy.vercel.app, "Añadir a inicio", open it, and confirm
       the banner about iPhone limits; at night check that the dot is at your house.
 - [ ] Say whether the DS3's reserve light comes on with 0 or 1 square (the form will ask).
+- [ ] Phase 3 on the phone: DS3 → Editar → "¿Cómo marca la gasolina tu carro?" → Cuadritos, 9, the reserve answer.
+  On the next fill-ups tap the squares **before** pumping (and after, on a partial); after two full tanks at
+  different levels Ficha → Medidor says "aprendido". If the tank size is wrong, fix it there first.
 
 ## Phase 2
 - [ ] Approve `sql/033`, `034`, `035` and the `--shared` `036_realtime_policies.shared.sql`
