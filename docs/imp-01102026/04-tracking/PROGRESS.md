@@ -2,14 +2,14 @@
 
 Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 
-**Started:** 2026-10-01 · **Status:** Phase 0 done
+**Started:** 2026-10-01 · **Status:** Phase 1 released (2.4.3)
 
 ## Phase status
 
 | # | Phase | Status | Branch | Notes |
 |---|---|---|---|---|
 | 0 | Kickoff + Redmi diagnostics | ✅ | `imp-01102026/phase-0-kickoff` | baseline green; audit (11 items, 4 corrections); **Redmi: Car Guy has no location permission at all** + MIUI kills it → Phase 1 list |
-| 1 | Fix pack 2.4.3 | ⬜ | | |
+| 1 | Fix pack 2.4.3 | ✅ | `fix/2.4.3-fixpack` | v2.4.3; notes 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18 closed; 7 waits for his drive (permissions first) |
 | 2 | Schema v10 + cloud 033–036 | ⬜ | | |
 | 3 | Medidor por cuadros + calibración | ⬜ | | |
 | 4 | Updates · Apoyar · Uso | ⬜ | | |
@@ -21,23 +21,23 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | # | Note | Closed in | Status |
 |---|---|---|---|
 | 1 | Gauge by squares, per vehicle | 3 | ⬜ |
-| 2 | iPhone PWA did not open once | 1 | ⬜ |
+| 2 | iPhone PWA did not open once | 1 | ✅ |
 | 3 | Learn squares → liters, estimate remaining | 3 | ⬜ |
 | 4 | Ads / money / Supabase Pro | 4 | ⬜ |
-| 5 | Last sync with time | 1 | ⬜ |
+| 5 | Last sync with time | 1 | ✅ |
 | 6 | Self-updating app | 4 (+ 6 OTA proof) | ⬜ |
-| 7 | Drive not recorded automatically | 0 + 1 | 🟡 Android half diagnosed (Phase 0): no location permission, MIUI autostart off, killed by MIUI; fix + his drive in Phase 1 |
-| 8 | Stale/far location | 1 | ⬜ |
-| 9 | Home top-right logo unclear | 1 | ⬜ |
-| 10 | Welcome explains the odometer | 1 | ⬜ |
+| 7 | Drive not recorded automatically | 0 + 1 | 🟡 iPhone: platform limit, said (banner). Android: diagnosed (0) + blocked card / battery / last-fix (1); **closes with his drive** after he grants the permissions |
+| 8 | Stale/far location | 1 | ✅ |
+| 9 | Home top-right logo unclear | 1 | ✅ |
+| 10 | Welcome explains the odometer | 1 | ✅ |
 | 11 | Influencer public profile | 5 | ⬜ |
 | 12 | Friends | 5 | ⬜ |
 | 13 | Routes with friends (juntes, live, chat later) | 6 | ⬜ |
 | 14 | Choose what is public | 5 | ⬜ |
-| 15 | Garage label UI issues | 1 | ⬜ |
-| 16 | Me on the map (avatar), public photo | 1 + 5 | ⬜ |
-| 17 | Clear path to add mods; dailies; accessories; DOP | 1 | ⬜ |
-| 18 | Paint job on the DS3 | 1 | ⬜ |
+| 15 | Garage label UI issues | 1 | ✅ |
+| 16 | Me on the map (avatar), public photo | 1 + 5 | 🟡 dot ✅ (1); public photo in 5 |
+| 17 | Clear path to add mods; dailies; accessories; DOP | 1 | ✅ |
+| 18 | Paint job on the DS3 | 1 | ✅ |
 
 ## Audit corrections (Phase 0)
 
@@ -160,6 +160,59 @@ or Viajes, and nothing is recorded.
 ---
 
 ## Phase reports
+
+## Phase 1 — Fix pack 2.4.3   (branch `fix/2.4.3-fixpack`, merged `2afff29`)
+
+**Status:** released — v2.4.3 (see the release lines below). No schema change.
+
+### Changed
+- **iPhone PWA (note 2, ADR-48):** `public/sw.js` → `carguy-v5`: pages `no-store`, cached only when `ok`, cached
+  copy after 4 s on a slow network or on a 5xx; `app/+html.tsx` reloads once on `controllerchange` (not on the
+  first install). `lib/platform/capabilities.ts` (android-native · web-ios-pwa · web-ios-safari · web-android ·
+  web-desktop; iPadOS-as-Mac by touch points; 4 tests). `components/IosWebBanner.tsx` on Conducir, Viajes →
+  Ajustes, welcome permisos (+ "¿Por qué?" sheet). `storage.persist()` once after the first vehicle
+  (`storage_persist` setting). Boot-lock copy names "Car Guy open in Safari" on iPhone.
+- **Fresh location (notes 8, 16; ADR-49):** `lib/trips/freshness.ts` (dot ≤ 15 s & ≤ 50 m; 7 tests);
+  `lib/trips/myPosition.ts` (one ref-counted watch: web `enableHighAccuracy`/`maximumAge: 0`/`timeout 20 s`,
+  Android `getCurrentPositionAsync` first, restart on foreground; 5 tests); `components/map/UserDot.tsx` (avatar
+  in an amber ring + course arrow, greyed when old) on native (`Marker`, the SDK puck removed — it cannot be
+  filtered; camera follows only a fresh fix, a pan stops it via `userInteraction`) and web (overlay placed with
+  `map.project`). Conducir: "Buscando GPS…" / "Última posición: hace N" / no-permission line.
+  **Auto start:** the engine drops fixes older than **90 s** (or from the future) while idle — not 15 s: the
+  watching service defers up to 60 s (`auto.ts`), so 15 s would discard real batches; a cached last-known fix
+  is minutes–hours old (deviation from ADR-49's wording, recorded). GPX replay test now delivers each batch at
+  its own "now"; new test: a drive delivered 2 h late opens nothing.
+- **Automático on Android (note 7, Phase 0 list):** `lib/trips/autoStatus.ts` (first blocker: permission →
+  MIUI autostart → battery; 5 tests); `AutoBlockedCard` on Inicio + Viajes; `armAuto` records why it declined;
+  `modules/miui-autostart` + `getBatteryState()` (PowerManager) and `openBatterySettings()` (the system dialog,
+  `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in the module manifest; fallback to the list); the MIUI checklist's
+  battery step shows ✓/✗ + "Permitir en segundo plano"; `LastFixLine` in Ajustes; the export carries the battery state.
+- **Header (note 9):** Inicio → `<Avatar size={36}>` → Cuenta; 改 (28 px, "Modificado") on the Build tab.
+- **Sync time (note 5):** `dateTimeLabel` ("30 sept de 2026 · 3:58 p. m." / "Sep 30, 2026 · 3:58 PM"; 3 tests)
+  in Cuenta and the sync pill's long-press + screen-reader label.
+- **Garage labels (note 15):** `Badge onPhoto` = solid #121212 @ 85 % with light text over covers; the hero
+  keeps the status badge (engine + status) instead of `slice(0,2)`; Ex card: two-line name, one-line stats,
+  記憶 in the corner. Screens: `docs/qa/imp-01102026-phase-1-garaje-*-{360,390}.png`, `…-sheet-360.png`,
+  `…-inicio-360.png`, `…-conducir-360.png`.
+- **Mods path (note 17):** "+ Mod" next to the hub odometer (any status; only a viewer cannot); garage card
+  long-press → Agregar mod · Nueva echada · Chequeo; categories `accesorios`, `estetica` + presets (es/en);
+  `seedCatalog()` now `INSERT OR IGNORE`s mod categories on every launch (migration v2 seeded them once, so new
+  ones never reached existing phones). Costs were already DOP-first (audit g).
+- **Paint (note 18):** service types `pintura_completa`, `desabollado_pintura` (carroceria, no interval); the
+  form groups "Carrocería y pintura"; saving one offers "Guardar como evento" → milestone `pintura` (hito)
+  linked to the service.
+- **Welcome (note 10):** slide "Tu odómetro" after "Tu carro" + tip `odometer` on Inicio.
+
+### Acceptance
+- [x] tsc, lint, jest **1,998**, i18n frozen 0, check:api 4, local schema unchanged (v9).
+- [x] Web 360/390 px: labels, long-press sheet, avatar header, Conducir lines; no page errors.
+- [x] Web deploy `2afff29`; smoke-public-page 6/6, smoke-legal 6/6, smoke-apk 3/3; live `sw.js` = carguy-v5.
+- [ ] Redmi: permissions granted by Xaviel in the app → walk test (Último punto GPS) → **his drive** (note 7).
+- [ ] iPhone PWA: reinstall from the Home Screen, banner, dot at home at night (checklist).
+
+**Platforms verified:** web desktop (headless 360/390) · Redmi (install over 2.4.2, below) · iPhone PWA — his checklist.
+**Notes closed:** 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18; 7 pending the drive.
+
 
 ## Phase 0 — Kickoff + Redmi diagnostics   (branch `imp-01102026/phase-0-kickoff`)
 

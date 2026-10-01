@@ -6,6 +6,10 @@
       for the diagnostics; a 2-minute walk with the phone in your pocket is part of it.
 
 ## Phase 1
+- [ ] **First, on the Redmi (Phase 0 found none of these set):** Viajes → Ajustes → Automático → follow the
+      steps — location **"Permitir todo el tiempo"** + precise, MIUI **Inicio automático** on, battery
+      **"Sin restricciones"** ("Permitir en segundo plano" opens it). The red "Automático no está grabando"
+      card on Inicio disappears when all is set, and Ajustes shows "Último punto GPS recibido: hace …".
 - [ ] Install 2.4.3 over 2.4.2 (backup first). **Drive with the Redmi** (10+ min, app in the
       background, screen off): the trip must appear by itself. If not, Viajes → Ajustes → "Exportar
       diagnóstico de viajes" and send the JSON.
