@@ -41,6 +41,7 @@
  *  36. a Music Hub-only login is refused by it (optional creds). (sql/028)
  *  37. the owner reads member_avatars of its car; no photo path. (sql/031)
  *  38. anon and an outsider are refused by member_avatars.      (sql/031)
+ *  39. public dossier `memory`: only with show_memory, spec-sheet rows only. (sql/032)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -517,9 +518,31 @@ async function main() {
       method: 'PATCH', headers: authA, body: JSON.stringify({ show_tires: true, updated_at: new Date(Date.now() + 120_000).toISOString() }),
     });
     const tiresOn = await rpcAnon(slug);
+    // 39 — "Lo que uso" (sql/032): only spec-sheet rows outside Papeles reach the page, whatever is stored.
+    const memorySummary = JSON.stringify([
+      { section: 'aceite', title: 'Aceite', label: 'Aceite que compro', value: 'VerifyOil 5W-30', source: 'ficha' },
+      { section: 'papeles', title: 'Papeles', label: 'Póliza', value: 'VERIFY-POLICY', source: 'ficha' },
+      { section: 'electrico', title: 'Eléctrico', label: 'Código de radio', value: 'VERIFY-RADIO', source: 'dato' },
+    ]);
+    await call(`/rest/v1/vehicle_share?id=eq.veh_test_share_${stamp}`, {
+      method: 'PATCH', headers: authA, body: JSON.stringify({ memory_summary: memorySummary, show_memory: false, updated_at: new Date(Date.now() + 140_000).toISOString() }),
+    });
+    const memoryOff = await rpcAnon(slug);
+    const memoryPatch = await call(`/rest/v1/vehicle_share?id=eq.veh_test_share_${stamp}`, {
+      method: 'PATCH', headers: authA, body: JSON.stringify({ show_memory: true, updated_at: new Date(Date.now() + 160_000).toISOString() }),
+    });
+    const memoryOn = await rpcAnon(slug);
+    const memoryText = JSON.stringify(memoryOn.body ?? {});
     await call(`/rest/v1/vehicle_share?id=eq.veh_test_share_${stamp}`, {
       method: 'PATCH', headers: authA, body: JSON.stringify({ revoked_at: new Date().toISOString(), slug: null, updated_at: new Date(Date.now() + 180_000).toISOString() }),
     });
+    record(
+      '39. public dossier: no "Lo que uso" with show_memory off; with it on only the spec-sheet row, never Papeles or a free fact (sql/032)',
+      memoryPatch.status < 300 && memoryOff.body?.memory === undefined && memoryOff.body?.show?.memory === false &&
+        Array.isArray(memoryOn.body?.memory) && memoryOn.body.memory.length === 1 && memoryOn.body.memory[0].value === 'VerifyOil 5W-30' &&
+        !memoryText.includes('VERIFY-POLICY') && !memoryText.includes('VERIFY-RADIO'),
+      `patch ${memoryPatch.status} · off ${JSON.stringify(memoryOff.body?.memory ?? null)} · on ${JSON.stringify(memoryOn.body?.memory ?? memoryOn.body)}`,
+    );
     record(
       '31. public dossier: no tires with show_tires off; count + badges with it on, never a brand (sql/025)',
       republish.status < 300 && tiresOff.body?.vehicle?.name === 'Verificación' && tiresOff.body?.tires === undefined &&
