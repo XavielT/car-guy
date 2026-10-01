@@ -5,7 +5,9 @@ import { View } from 'react-native';
 import { TabsInicioSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { CarGuyTabBar } from '@/components/tabbar';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { FEATURE_ONBOARDING_V2 } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
+import { useWelcomeGate } from '@/lib/onboarding/welcome';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -21,10 +23,15 @@ export default function TabLayout() {
   const { theme } = useTheme();
   // While the store opens: Inicio's outline (ADR-40), after 150 ms so a fast
   // open paints straight to the tabs; before that, the bare background.
-  const showSkeleton = useDelayedLoading(!ready);
+  // The welcome (PROMPT-06): `onboarded_version` unset → /bienvenida. An install
+  // upgraded from 2.3.x (vehicles already there) is marked onboarded here, unseen.
+  const welcome = useWelcomeGate(ready, data.vehicles.length, FEATURE_ONBOARDING_V2);
+  const showSkeleton = useDelayedLoading(!ready || welcome === 'loading');
 
   if (showSkeleton) return <TabsInicioSkeleton />;
-  if (!ready) return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
+  if (!ready || welcome === 'loading') return <View style={{ flex: 1, backgroundColor: theme.bg.base }} />;
+
+  if (welcome === 'show') return <Redirect href="/bienvenida" />;
 
   if (data.vehicles.length === 0) {
     return <Redirect href="/onboarding" />;

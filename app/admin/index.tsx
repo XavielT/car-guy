@@ -140,6 +140,7 @@ export default function AdminPanel() {
 
       <NavRow label={t.admin.usersLink} caption={t.admin.usersCaption} onPress={() => router.push('/admin/usuarios')} />
       <NavRow label={t.admin.feedbackLink} caption={t.feedback.admin.moreCaption} onPress={() => router.push('/admin/comentarios')} />
+      <NavRow label={t.deleteAccount.admin.link} caption={t.deleteAccount.admin.linkCaption} onPress={() => router.push('/admin/eliminar')} />
     </ScrollView>
   );
 }

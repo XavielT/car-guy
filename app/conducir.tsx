@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CompactSpeed } from '@/components/drive/CompactSpeed';
 import { LiveMap, type RoutePoint } from '@/components/map';
+import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, useAutoReadiness } from '@/components/trips/TripPieces';
 import { Segmented } from '@/components/ui';
@@ -216,6 +217,7 @@ export default function ConducirScreen() {
       ]}
       contentContainerStyle={{ padding: space.lg, paddingBottom: (landscape ? 0 : insets.bottom) + space.lg, gap: space.md }}>
       {!landscape ? <View style={[styles.grabber, { backgroundColor: ink.lineStrong }]} /> : null}
+      {live ? null : <TipCard id="drive" dark style={{ marginBottom: 0 }} />}
 
       <View style={styles.chips}>
         <Chip

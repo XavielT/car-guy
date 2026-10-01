@@ -19,6 +19,7 @@ import { AppState, Platform, useWindowDimensions, View } from 'react-native';
 import { AlertHost } from '@/components/AlertHost';
 import { clearBootAttempts, DatabaseBoundary } from '@/components/BootError';
 import { NovedadesSheet } from '@/components/changelog/NovedadesSheet';
+import { LegalSheet } from '@/components/legal/LegalSheet';
 import { FirstSyncBanner } from '@/components/FirstSyncBanner';
 import { launchAlreadyRan, LaunchOverlay, markLaunchAppReady } from '@/components/LaunchOverlay';
 import { TabsBootSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
@@ -302,6 +303,7 @@ function Shell() {
             empty <title> that wins over anything static in +html.tsx. */}
         <Stack.Screen name="(tabs)" options={{ title: t.routes.home }} />
         <Stack.Screen name="onboarding" options={{ title: t.routes.home }} />
+        <Stack.Screen name="bienvenida/index" options={{ title: t.welcome.route, gestureEnabled: false }} />
         <Stack.Screen
           name="vehiculo/nuevo"
           options={{ presentation: 'modal', headerShown: true, title: t.routes.newVehicle }}
@@ -397,8 +399,13 @@ function Shell() {
         <Stack.Screen name="nueva-contrasena" options={{ headerShown: true, title: t.routes.newPassword }} />
         <Stack.Screen name="versiones" options={{ headerShown: true, title: t.versions.title }} />
         <Stack.Screen name="instalar" options={{ headerShown: true, title: t.install.title }} />
+        <Stack.Screen name="legal/index" options={{ headerShown: true, title: t.legalUi.title }} />
+        <Stack.Screen name="legal/[doc]" options={{ headerShown: true, title: t.legalUi.title }} />
+        <Stack.Screen name="borrar-cuenta" options={{ headerShown: true, title: t.deleteAccount.title }} />
       </Stack>
       <NovedadesSheet />
+      {/* After Novedades in the tree; it waits for that sheet to close (ADR-47). */}
+      <LegalSheet />
       <FirstSyncBanner />
       {/* Last child, so the dialog sits over every screen the Stack renders. */}
       <AlertHost />

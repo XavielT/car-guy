@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 
 import { BestsStrip, EventCard } from '@/components/track/TrackPieces';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
+import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { Chip, EmptyState, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -60,6 +61,7 @@ export default function TrackIndexScreen() {
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
         {t.track.title}
       </T>
+      <TipCard id="track" />
       {vehicles.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>
           <Chip label={t.history.all} selected={!filter} onPress={() => setFilter(null)} />

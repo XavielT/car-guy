@@ -2,6 +2,7 @@ import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
 import { Field } from '@/components/Field';
 import { AdminUsersSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
@@ -12,6 +13,7 @@ import { fetchAdminUsers, refreshRole, ROLES, setUserRole, useAdminGate, type Ad
 import { useSession } from '@/lib/cloud/auth';
 import { dateLabel } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { useProfile } from '@/lib/profile';
 import { useTheme } from '@/lib/theme/useTheme';
 
 const ROLE_TONE: Record<Role, 'red' | 'amber' | 'outline'> = { admin: 'red', premium: 'amber', member: 'outline' };
@@ -26,6 +28,7 @@ export default function AdminUsers() {
   const { theme } = useTheme();
   const gate = useAdminGate();
   const { session } = useSession();
+  const profile = useProfile();
   const [users, setUsers] = useState<AdminUser[] | null | 'error'>(null);
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<AdminUser | null>(null);
@@ -122,6 +125,11 @@ export default function AdminUsers() {
               accessibilityLabel={`${u.email}, ${t.admin.roles[u.role]}`}
               style={[styles.row, { backgroundColor: theme.bg.surface, borderColor: me ? theme.accent : theme.lineStrong }]}>
               <View style={styles.rowTop}>
+                {me ? (
+                  <Avatar size={32} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName ?? u.email} decorative />
+                ) : (
+                  <Avatar size={32} avatarId={u.avatar_id} name={u.display_name || u.email} decorative />
+                )}
                 <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }} numberOfLines={1}>
                   {u.email}
                 </T>

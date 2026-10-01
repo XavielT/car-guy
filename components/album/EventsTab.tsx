@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { EmptyState, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -76,11 +77,18 @@ export function EventsTab({ vehicleId, version, readOnly }: { vehicleId: string;
   const add = () => router.push({ pathname: '/evento/nuevo', params: { vehicleId } });
   if (!rows) return null;
   const items = eventTimeline(rows, vehicleId);
+  const tip = readOnly ? null : <TipCard id="events" />;
   if (!items.length) {
-    return <EmptyState icon="flag-outline" message={t.events.tabEmpty} actionLabel={readOnly ? undefined : t.events.add} onAction={readOnly ? undefined : add} />;
+    return (
+      <View>
+        {tip}
+        <EmptyState icon="flag-outline" message={t.events.tabEmpty} actionLabel={readOnly ? undefined : t.events.add} onAction={readOnly ? undefined : add} />
+      </View>
+    );
   }
   return (
     <View>
+      {tip}
       {items.map((item, i) => {
         const m = item.milestone;
         const meta = [dateLabel(m.occurredAt), m.odometerKm != null ? fmtKm(Math.round(m.odometerKm)) : null, m.locationLabel || null].filter(Boolean).join(' · ');

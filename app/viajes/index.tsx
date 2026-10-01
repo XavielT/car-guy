@@ -5,6 +5,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, useWindowDimensions, View }
 import { HeatMap } from '@/components/map';
 
 import { TripsListSkeleton } from '@/components/skeletons/TripsListSkeleton';
+import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions } from '@/components/trips/TripPieces';
 import { Chip, EmptyState, GhostButton, Segmented } from '@/components/ui';
@@ -76,6 +77,7 @@ export default function TripsScreen() {
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
         {t.trips.title}
       </T>
+      <TipCard id="trips" />
 
       {vehicles.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>

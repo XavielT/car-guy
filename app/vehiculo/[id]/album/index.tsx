@@ -6,6 +6,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, View, useWindowDimensions 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { StorageMeter } from '@/components/album/StorageMeter';
 import { VehicleAlbumSkeleton } from '@/components/skeletons/VehicleSkeletons';
+import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { Badge, EmptyState, GhostButton, HazardDivider, Segmented, type BadgeTone } from '@/components/ui';
 import { categoryColors, categoryInkLight, radius, space, type CategoryKey } from '@/constants/theme';
@@ -174,6 +175,8 @@ export default function AlbumScreen() {
           })}
         </ScrollView>
       ) : null}
+
+      <TipCard id="album" style={{ marginTop: space.md, marginBottom: 0 }} />
 
       <View style={styles.actions}>
         <GhostButton label={t.album.addHito} onPress={() => router.push({ pathname: '/evento/nuevo', params: { vehicleId: id, type: 'hito' } })} style={{ flex: 1 }} />

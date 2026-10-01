@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/Avatar';
 import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
@@ -26,9 +27,12 @@ import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_I18N, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { FEATURE_ONBOARDING_V2 } from '@/lib/flagsV8';
+import { resetTips } from '@/lib/onboarding/tips';
 import { FEEDBACK_ROUTE } from '@/lib/feedback';
 import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
 import { describeCounts } from '@/lib/import/tucombustible';
+import { useProfile } from '@/lib/profile';
 import { useStore } from '@/lib/store';
 import { useTheme, type ThemePreference } from '@/lib/theme/useTheme';
 
@@ -46,6 +50,7 @@ export default function MasScreen() {
   const installOffer = useInstallOffer();
   const isAdmin = useIsAdmin();
   const { session } = useSession();
+  const profile = useProfile();
   const { unseen: versionUnseen } = useVersionSeen();
 
   const version = appVersion;
@@ -104,7 +109,17 @@ export default function MasScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <ScreenTitle title={t.more.title} size={34} sub={t.more.subtitle} />
+        <ScreenTitle
+          title={t.more.title}
+          size={34}
+          sub={t.more.subtitle}
+          trailing={
+            // Perfil (IMP 30092026 Phase 6): the person's avatar, photo → drawing → initials.
+            <Pressable onPress={() => router.push('/perfil')} accessibilityRole="button" accessibilityLabel={t.profileUi.headerA11y} hitSlop={8}>
+              <Avatar size={48} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName ?? session?.user.email} decorative />
+            </Pressable>
+          }
+        />
 
         {/* Cifras left the tab bar for the CONDUCIR button (IMP 30092026 Phase 4, ADR-43): first row here. */}
         <IconRow
@@ -280,8 +295,28 @@ export default function MasScreen() {
           onPress={() => router.push('/notificaciones')}
         />
 
+        {FEATURE_ONBOARDING_V2 ? (
+          <>
+            <MoreSection title={t.welcome.help.title} />
+            <NavRow
+              label={t.welcome.help.again}
+              caption={t.welcome.help.againCaption}
+              onPress={() => router.push({ pathname: '/bienvenida', params: { again: '1' } })}
+            />
+            <NavRow
+              label={t.welcome.help.tips}
+              caption={t.welcome.help.tipsCaption}
+              onPress={() => {
+                void resetTips();
+                Alert.alert(t.welcome.help.tipsResetTitle, t.welcome.help.tipsReset);
+              }}
+            />
+          </>
+        ) : null}
+
         <MoreSection title={t.more.about} />
         {installOffer ? <NavRow label={t.install.more} caption={t.install.moreCaption} onPress={() => router.push('/instalar')} /> : null}
+        <NavRow label={t.legalUi.more} caption={t.legalUi.moreCaption} onPress={() => router.push('/legal')} />
         <NavRow
           label={t.versions.more}
           caption={versionUnseen ? t.versions.moreUnseen : t.versions.moreCaption}

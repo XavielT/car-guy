@@ -605,3 +605,26 @@ the file name carries the same dates (used as fallback).
 ### Notes closed
 - 1 (manual history + import built; live import after the key), 3, 5, 6.
 
+
+## Avatars trademark checklist (Phase 6)
+
+The 16 avatars in `components/avatars/` (ids + labels: `lib/avatars.ts`, `t.profileUi.avatars`) were drawn
+in-house as react-native-svg components. They are Car Guy's own work, so no licence or attribution is needed
+("Avatares © Car Guy"). Before shipping any change to them:
+
+- [x] **No brand shapes.** No maker's emblem, no badge, no grille pattern, no wordmark, no lettering except
+  the three generic kanji.
+- [x] **No logos or liveries.** No sponsor decals or real racing liveries (no Castrol, Advan, Rothmans and so
+  on). Helmets carry plain stripes and blocks of colour only, never a real driver's or maker's design.
+- [x] **No real model silhouettes.** The coupe, hatch, kei, pickup and wagon are built from straight lines and
+  soft corners on one shared ground line and wheel. None follows a specific car's body lines (no Supra, RX-7,
+  GT-R, AE86, Civic, Hilux and so on). No signature light shapes, no badge placement.
+- [x] **Generic parts.** The six-spoke wheel follows no real wheel maker's design. The turbo is a generic
+  compressor housing. The wrenches have no brand marking.
+- [x] **Kanji are words, not marks.** 改 (kai, "modified"), 走 (hashiru, "to run"), 峠 (tōge, "mountain pass")
+  are set in the bundled Noto Sans JP (SIL OFL), on plain discs. **Open item:** someone who reads Japanese
+  should confirm they read as intended (research 02 §4).
+- [x] **Fixed house palette.** Amber #FFB300 / #FF8F00, orange #FF5F00, red #E10600, ink #EDEDED, on #121212.
+  No colour combination copies a brand's trade dress.
+- [ ] A new avatar goes through this list before its id ships. Ids never change once shipped, because they
+  are stored in `carguy.profiles.avatar_id`.

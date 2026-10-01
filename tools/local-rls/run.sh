@@ -44,10 +44,14 @@ $P -f sql/027_fuel_price_ref.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 # 029: public_dossier without events (ADR-44); re-runnable.
 $P -f sql/029_dossier_hito_only.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/029_dossier_hito_only.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+# 028: delete_my_account + admin_pending_deletions (Phase 6); re-runnable. Its scenario runs last (it deletes A).
+$P -f sql/028_delete_account.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+$P -f sql/028_delete_account.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 OUT=$($P -f tools/local-rls/scenario.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
 OUT="$OUT
 $($P -f tools/local-rls/scenario_027.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
-$($P -f tools/local-rls/scenario_029.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')"
+$($P -f tools/local-rls/scenario_029.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')
+$($P -f tools/local-rls/scenario_028.sql 2>&1 | grep -oE '(PASS|FAIL|ERROR).*')"
 echo "$OUT"
 echo "$OUT" | grep -q -E '^(FAIL|ERROR)' && exit 1
 echo "all passed"
