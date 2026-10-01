@@ -133,6 +133,11 @@ export const es = {
     interiorMaterial: 'Material',
     tank: 'Tanque',
     tankConverted: (typed: string, unit: string, other: string, otherUnit: string) => `${typed} ${unit} ≈ ${other} ${otherUnit}`,
+    /** The reserve light's volume (vehicle.reserve_volume_l): the partial-fill estimates start from it. */
+    reserve: 'Reserva',
+    reserveHint: (fallback: string | null) =>
+      `Lo que queda cuando prende la luz de reserva (el manual lo dice).${fallback ? ` Vacío: ${fallback}, el 10 % del tanque.` : ' Vacío: el 10 % del tanque.'}`,
+    reserveTooBig: 'La reserva tiene que ser menor que el tanque.',
     purchaseCaption: 'Para saber lo que te ha costado el carro.',
     purchasePrice: 'Precio de compra (RD$)',
     status: 'Estado',

@@ -6,7 +6,7 @@ import { VehicleForm, type VehicleDraft } from '@/components/VehicleForm';
 import { currentOdometer as currentOdometerQuery, vehicles as vehicleRepo } from '@/lib/db/repos';
 import { vehicleGallery } from '@/lib/db/tripOps';
 import { saveVehicleDraft } from '@/lib/db/vehicleOps';
-import { tankForDisplay } from '@/lib/domain/units';
+import { fromLiters, tankForDisplay } from '@/lib/domain/units';
 import { dateInputFromIso } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
@@ -37,6 +37,7 @@ export default function EditarVehiculoScreen() {
         vin: v.vin,
         defaultFuelType: v.defaultFuelType,
         tankVolume: tankForDisplay(v.tankVolume, v.tankVolumeEntered, v.volumeUnit, v.defaultFuelType),
+        reserveVolume: v.reserveVolumeL == null ? null : Math.round(fromLiters(v.reserveVolumeL, v.volumeUnit) * 100) / 100,
         odometerKm: km,
         purchaseDate: v.purchaseDate ? dateInputFromIso(v.purchaseDate) : null,
         purchasePrice: v.purchasePrice,

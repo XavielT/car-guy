@@ -36,6 +36,8 @@ export type VehicleDraft = {
   defaultFuelType: FuelType;
   /** In `volumeUnit`, as typed; saveVehicleDraft stores liters. */
   tankVolume: number | null;
+  /** The reserve light's volume, in `volumeUnit` (→ reserve_volume_l). null = 10 % of the tank; undefined = leave alone. */
+  reserveVolume?: number | null;
   /** Written as an `odometer_reading` with source 'manual', not a vehicle column. */
   odometerKm: number | null;
   /** Stretches the seeded aceite_motor reminder to 10,000 km / 12 months. */
@@ -117,6 +119,7 @@ export function VehicleForm({
   const [unit, setUnit] = useState<VolumeUnit>(initial?.volumeUnit ?? 'gal');
   const [perHundred, setPerHundred] = useState(initial?.economyUnit === 'l_100km');
   const [tank, setTank] = useState(initial?.tankVolume ? String(initial.tankVolume) : '');
+  const [reserve, setReserve] = useState(initial?.reserveVolume ? String(initial.reserveVolume) : '');
   const [odometer, setOdometer] = useState(initial?.odometerKm ? String(initial.odometerKm) : '');
   const [synthetic, setSynthetic] = useState(initial?.synthetic ?? false);
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? '');
@@ -154,11 +157,15 @@ export function VehicleForm({
   const sold = status === 'vendido' || status === 'perdido';
   const tankValue = tank.trim() ? parseDecimal(tank) : null;
   const caption = tankCaption(tankValue, unit);
+  const reserveValue = reserve.trim() ? parseDecimal(reserve) : null;
+  // GNV's tank is m³ and its gauge a pressure dial: no reserve estimate (lib/domain/partialEconomy.ts).
+  const liquid = fuel !== 'gnv';
   const unitLabel = (u: VolumeUnit) => (u === 'gal' ? 'gal' : 'L');
 
   function changeUnit(next: VolumeUnit) {
     // The number follows the unit, so the liters stored do not change.
     setTank((t) => convertTankText(t, unit, next, parseDecimal));
+    setReserve((r) => convertTankText(r, unit, next, parseDecimal));
     setUnit(next);
   }
 
@@ -176,6 +183,8 @@ export function VehicleForm({
       return setError(/^\s*-/.test(odometer) ? t.vehicle.odometerNegative : t.common.invalidNumber(t.vehicle.odometer));
     }
     if (tank.trim() && tankValue == null) return setError(t.common.invalidNumber(t.vehicleForm.tank));
+    if (liquid && reserve.trim() && (reserveValue == null || reserveValue <= 0)) return setError(t.common.invalidNumber(t.vehicleForm.reserve));
+    if (liquid && reserveValue != null && tankValue != null && reserveValue >= tankValue) return setError(t.vehicleForm.reserveTooBig);
     if (purchasePrice.trim() && parseDecimal(purchasePrice) == null) {
       return setError(t.common.invalidNumber(t.vehicleForm.purchasePrice));
     }
@@ -209,6 +218,7 @@ export function VehicleForm({
       volumeUnit: unit,
       economyUnit: perHundred ? 'l_100km' : unit === 'l' ? 'km_l' : 'km_gal',
       tankVolume: tankValue,
+      reserveVolume: liquid ? reserveValue : null,
       odometerKm: parsedOdometer,
       synthetic,
       purchaseDate: purchaseDate || null,
@@ -317,6 +327,17 @@ export function VehicleForm({
           />
         </View>
       </View>
+
+      {liquid ? (
+        <Field
+          label={`${t.vehicleForm.reserve} (${unitLabel(unit)})`}
+          placeholder={unit === 'gal' ? '1.5' : '6'}
+          keyboardType="decimal-pad"
+          value={reserve}
+          onChangeText={setReserve}
+          hint={t.vehicleForm.reserveHint(tankValue != null && tankValue > 0 ? `${Math.round(tankValue * 10) / 100} ${unitLabel(unit)}` : null)}
+        />
+      ) : null}
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
         {t.vehicleForm.economyUnit}
