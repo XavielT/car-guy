@@ -15,7 +15,7 @@ import { loadMemory } from './memoryQueries';
 
 export const shareId = (vehicleId: string) => `share_${vehicleId}`;
 
-export const DEFAULT_FLAGS: ShareFlags = { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true, status: false, tires: false };
+export const DEFAULT_FLAGS: ShareFlags = { plate: false, vin: false, costs: false, odometer: true, maintenance: true, mods: true, track: true, story: true, status: false, tires: false, memory: false };
 
 export function flagsOf(s: VehicleShare | null): ShareFlags {
   if (!s) return { ...DEFAULT_FLAGS };
@@ -30,6 +30,7 @@ export function flagsOf(s: VehicleShare | null): ShareFlags {
     story: s.showStory,
     status: s.showStatus,
     tires: Boolean(s.showTires),
+    memory: Boolean(s.showMemory),
   };
 }
 
@@ -45,6 +46,7 @@ export function flagsPatch(f: ShareFlags): Partial<VehicleShare> {
     showStory: f.story,
     showStatus: f.status,
     showTires: f.tires,
+    showMemory: f.memory,
   };
 }
 
@@ -208,11 +210,10 @@ export async function localRawDossier(
     raw.tires = { count: rows.reduce((t, r) => t + r.n, 0), badges: rows.map((r) => ({ status: r.status, count: r.n })) };
   }
 
-  // "Lo que uso" (note 6): the book's switch; the cloud does not send it yet.
-  if (opts.memory) {
-    const { sections } = await loadMemory(vehicleId);
-    raw.memory = sections.flatMap((sec) => sec.rows.map((r) => ({ section: sec.id, title: sec.title, label: r.label, value: r.value })));
-  }
+  // "Lo que uso" (note 6): the book's switch prints every row; the share's switch (sql/032) shows the
+  // page's subset — the preview is the page, word for word.
+  if (opts.memory) raw.memory = await memoryRows(vehicleId);
+  else if (flags.memory) raw.memory = await publicMemory(vehicleId);
 
   // Note 8: "lo que me ha costado", the same ownershipCost figure as Cifras — only with "costos" on.
   if (flags.costs) raw.costs = await costsSummaryFor(vehicleId);
@@ -246,6 +247,43 @@ export async function costsSummaryFor(vehicleId: string): Promise<RawDossier['co
     : null;
 }
 
+type MemoryRows = NonNullable<RawDossier['memory']>;
+type KeyedMemoryRow = MemoryRows[number] & { key: string };
+
+async function keyedMemoryRows(vehicleId: string): Promise<KeyedMemoryRow[]> {
+  const { sections } = await loadMemory(vehicleId);
+  return sections.flatMap((sec) =>
+    sec.rows.map((r) => ({ key: r.key, section: sec.id, title: sec.title, label: r.label, value: r.value, source: r.source })),
+  );
+}
+
+const unkeyed = (rows: KeyedMemoryRow[]): MemoryRows => rows.map(({ key: _key, ...r }) => r);
+
+/** Every "Lo que uso" row — the book's chapter. */
+async function memoryRows(vehicleId: string): Promise<MemoryRows> {
+  return unkeyed(await keyedMemoryRows(vehicleId));
+}
+
+/**
+ * What "Lo que uso" may show on the public page (sql/032): what the car takes and what the owner buys —
+ * spec-sheet rows only. Never the free facts (radio codes, key codes…), never Papeles, never "where I buy"
+ * (it can be a person). The cloud applies the same source/section filter to whatever it is sent.
+ */
+export function publicMemoryRows<R extends { key: string; section: string; source?: string }>(rows: R[]): R[] {
+  return rows.filter((r) => r.source === 'ficha' && r.section !== 'papeles' && r.key !== 'whereBought');
+}
+
+async function publicMemory(vehicleId: string): Promise<MemoryRows> {
+  return unkeyed(publicMemoryRows(await keyedMemoryRows(vehicleId)));
+}
+
+/** "Lo que uso" as the share row stores it: JSON text, or null when the switch is off or nothing is filled. */
+export async function memorySummaryText(vehicleId: string, showMemory: boolean): Promise<string | null> {
+  if (!showMemory) return null;
+  const rows = await publicMemory(vehicleId);
+  return rows.length ? JSON.stringify(rows) : null;
+}
+
 /** The summary as the share row stores it: JSON text, or null when "costos" is off or nothing is recorded. */
 export async function costsSummaryText(vehicleId: string, showCosts: boolean): Promise<string | null> {
   if (!showCosts) return null;
@@ -254,21 +292,29 @@ export async function costsSummaryText(vehicleId: string, showCosts: boolean): P
 }
 
 /**
- * Before every sync: a published car's cost summary follows its data (a new
- * fill-up, a mod sold), so the page never shows a figure the phone no longer
- * has. Writes only the rows whose summary changed.
+ * Before every sync: a published car's cost summary and "Lo que uso" follow its
+ * data (a new fill-up, a mod sold, a new oil brand), so the page never shows
+ * what the phone no longer has. Writes only the rows whose summary changed.
  */
 export async function refreshShareSummaries(): Promise<number> {
   const db = await getDb();
-  const rows = await db.getAllAsync<{ id: string; vehicle_id: string; show_costs: number; costs_summary: string | null }>(
-    `SELECT id, vehicle_id, show_costs, costs_summary FROM vehicle_share
+  const rows = await db.getAllAsync<{
+    id: string;
+    vehicle_id: string;
+    show_costs: number;
+    costs_summary: string | null;
+    show_memory: number;
+    memory_summary: string | null;
+  }>(
+    `SELECT id, vehicle_id, show_costs, costs_summary, show_memory, memory_summary FROM vehicle_share
       WHERE deleted_at IS NULL AND slug IS NOT NULL AND revoked_at IS NULL`,
   );
   let changed = 0;
   for (const r of rows) {
-    const next = await costsSummaryText(r.vehicle_id, r.show_costs === 1);
-    if (next === r.costs_summary) continue;
-    await vehicleShares.upsert({ id: r.id, costsSummary: next });
+    const costs = await costsSummaryText(r.vehicle_id, r.show_costs === 1);
+    const memory = await memorySummaryText(r.vehicle_id, r.show_memory === 1);
+    if (costs === r.costs_summary && memory === r.memory_summary) continue;
+    await vehicleShares.upsert({ id: r.id, costsSummary: costs, memorySummary: memory });
     changed++;
   }
   return changed;

@@ -287,6 +287,14 @@ export const MIGRATIONS: Migration[] = [
   },
   // v8 (2.4, IMP 30092026): prices, events, the car's memory, legal, tires switch, trip diagnostics — ./migrationV8.ts.
   { version: 8, up: migrationV8(), data: migrateV8Data },
+  // v9 (2.4.1): "Lo que uso" on the public page — its switch and the phone's worded copy (sql/032).
+  {
+    version: 9,
+    up: [
+      `ALTER TABLE vehicle_share ADD COLUMN show_memory INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE vehicle_share ADD COLUMN memory_summary TEXT`,
+    ],
+  },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

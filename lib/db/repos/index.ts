@@ -121,6 +121,7 @@ export const vehicleShares = makeRepo<VehicleShare>({
     'showStatus',
     'showStory',
     'showTires',
+    'showMemory',
   ],
 });
 export const vehicleMembers = makeRepo<VehicleMember>({ table: 'vehicle_member' });
