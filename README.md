@@ -38,7 +38,8 @@ un extra.
 - **Build** (2.1): mods, STOCK → ACTUAL, wishlist, inventario de piezas, aros y gomas
 - **DIY** (2.1): ficha de servicio con presets y VIN, fluidos, códigos OBD, contactos
 - **Pista** (2.1): eventos y sesiones con setup, tiempos, gomas y pastillas, resumen del día
-- **Compartir** (2.1): ficha pública por link, libro del carro en PDF, garaje compartido
+- **Compartir** (2.1): ficha pública por link (con "Lo que uso" desde la 2.4.1), libro del carro en PDF, garaje
+  compartido con el avatar de cada quien
 - **Lo que me ha costado** (2.2): el costo total de cada carro y por km, en Cifras, el PDF y el CSV
 - **Novedades y comentarios** (2.2): lo nuevo de cada versión y un formulario para reportar problemas,
   sin cuenta

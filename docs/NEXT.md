@@ -31,9 +31,10 @@ welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), l
 - **Music Hub sign-in check**: confirm a Car Guy-only account cannot open Music Hub (the reverse of 2.1.3's rule).
 - **Service-role key**: it appeared in a session's terminal output on 2026-09-30; rotate it in Supabase and
   update Vercel (`SUPABASE_SERVICE_ROLE_KEY`) and `.env.supabase`.
-- Public page "Lo que uso" needs `vehicle_share.show_memory` + a public_dossier block (one SQL file).
+- ✅ Public page "Lo que uso" — sql/032 applied 2026-10-01 (show_memory + memory_summary, spec-sheet rows only),
+  local schema v9, merged `ca32a21`; in 2.4.1. verify-x-core 38/38.
 - ✅ Others' avatars in member / admin lists — sql/031 applied 2026-10-01 (member_avatars + admin_users columns), merged
-  `3fd316f`, web live; phones get it with the next APK (no release just for this). verify-x-core 37/37.
+  `3fd316f`; in 2.4.1. verify-x-core 37/37.
 
 ## Cycle 3 — IMP 29092026 (Car Guy 2.2 "Kaidō") — released 2026-09-30
 

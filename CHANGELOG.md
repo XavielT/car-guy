@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.4.1 (2026-10-01)
+
+- **Lo que uso en tu página pública**: en Compartir hay un interruptor nuevo, "Lo que uso" (apagado hasta que
+  lo prendas). Con él, tu página muestra lo que lleva el carro y lo que compras — aceite, filtros, medidas,
+  bombillos, batería —, y se actualiza sola al sincronizar. Nunca salen tus datos libres (código de radio…),
+  los papeles ni dónde compras.
+- **Avatares de los demás**: en Miembros y en el panel de administración se ve el dibujo que eligió cada
+  persona, no solo sus iniciales. Las fotos propias siguen siendo privadas.
+
 ## 2.4.0 "Tōge" (2026-09-30)
 
 - **Idioma**: la app en español o en inglés (Más → Idioma). "Sistema" sigue el idioma del teléfono; si ya
