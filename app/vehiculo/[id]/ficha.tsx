@@ -52,6 +52,8 @@ import { dateLabel, id as newId } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { dtcText } from "@/lib/i18n/catalog";
 import { useStore } from "@/lib/store";
+import { GaugeCalibrationCard } from "@/components/fuel/GaugeCalibrationCard";
+import { FEATURE_GAUGE_SEGMENTS } from "@/lib/flagsV10";
 import { useTheme } from "@/lib/theme/useTheme";
 
 /**
@@ -410,6 +412,17 @@ export default function FichaScreen() {
                 })}
               </View>
             ))}
+
+            {/* IMP 01102026 Phase 3: what this car's gauge means in fuel, as learned. */}
+            {FEATURE_GAUGE_SEGMENTS ? (
+              <GaugeCalibrationCard
+                vehicle={vehicle}
+                onChanged={() => {
+                  void load();
+                  void refresh();
+                }}
+              />
+            ) : null}
 
             <T
               face="eyebrow"

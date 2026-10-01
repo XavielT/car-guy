@@ -9,6 +9,7 @@ import { isLiquid, tankForStorage, toLiters } from '../domain/units';
 import { t } from '../i18n';
 import type { VehicleStatus } from './types';
 import { enqueue, now } from './client';
+import { recalibrateVehicle } from './gaugeOps';
 import {
   albumItems as albumItemRepo,
   milestones as milestoneRepo,
@@ -97,6 +98,10 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         interiorMaterial: draft.interiorMaterial,
         statusNote,
         statusSince,
+        // v10: the gauge (undefined leaves it alone; segments only with a square count).
+        gaugeType: draft.gaugeType,
+        gaugeSegments: draft.gaugeType === undefined ? undefined : draft.gaugeType === 'segments' ? (draft.gaugeSegments ?? null) : null,
+        gaugeReserveAt: draft.gaugeType === undefined ? undefined : (draft.gaugeReserveAt ?? null),
       },
       db,
     );
@@ -164,6 +169,15 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
     await seedVehicleDefaults(saved.id);
     if (draft.synthetic) await applySyntheticOil(saved.id);
   }
+  // ADR-51: another grid or another tank changes what the fill-ups say about the gauge.
+  const gaugeChanged =
+    existing != null &&
+    (existing.gaugeType !== saved.gaugeType ||
+      existing.gaugeSegments !== saved.gaugeSegments ||
+      existing.gaugeReserveAt !== saved.gaugeReserveAt ||
+      existing.tankVolume !== saved.tankVolume ||
+      existing.reserveVolumeL !== saved.reserveVolumeL);
+  if (gaugeChanged) await recalibrateVehicle(saved.id);
 
   return saved.id;
 }

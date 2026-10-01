@@ -49,6 +49,8 @@ import { currentMarbeteNudge, marbeteTierLabel } from '@/lib/domain/legal-dr';
 import { mergeAttention, STATUS_LABEL } from '@/lib/domain/reminders';
 import { economyLabel } from '@/lib/fuel';
 import { fuelCfgFor, latestKnown, partialEconomy, weightedAverage } from '@/lib/domain/partialEconomy';
+import { tankNow } from '@/lib/domain/gaugeVehicle';
+import { FEATURE_GAUGE_SEGMENTS } from '@/lib/flagsV10';
 import { statusBadgeLabel } from '@/lib/domain/vehicleStatus';
 import { km as fmtKm, kmPerUnit, money, volume as fmtVolume } from '@/lib/format';
 import { t } from '@/lib/i18n';
@@ -252,6 +254,16 @@ export default function HomeScreen() {
     label: l.label,
     onPress: l.icon === 'checklist' ? () => router.push('/chequeo') : () => router.push('/recordatorios'),
   }));
+  // IMP 01102026 Phase 3 (research 03 §4): the fuel lamp — amber at ≤ 2 squares / 2/8 / 20 %, red at the reserve.
+  const tank = FEATURE_GAUGE_SEGMENTS && activeVehicle.detail ? tankNow(activeVehicle.detail, vehicleFillups, odometerKm) : null;
+  if (tank) {
+    lamps.push({
+      icon: 'fuel',
+      status: tank.telltale === 'red' ? 'vencido' : tank.telltale === 'amber' ? 'proximo' : 'off',
+      label: t.gauge.tank,
+      onPress: () => router.push('/carga/nueva'),
+    });
+  }
 
   const notify = (text: string) => {
     setTripNotice(text);

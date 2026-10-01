@@ -125,7 +125,15 @@ export function fuelCsv(logs: FuelLog[], unit: VolumeUnit = 'gal', cfg?: FuelCfg
   }));
   const economy = economyById(asFillUps);
   // The gauge picture (note 4): a partial with readings has an estimate; without cfg, none.
-  const gauged = asFillUps.map((f, i) => ({ ...f, gaugeBefore8: logs[i].gaugeBeforeEighths, gaugeAfter8: logs[i].gaugeAfterEighths, inReserve: logs[i].inReserve }));
+  const gauged = asFillUps.map((f, i) => ({
+    ...f,
+    gaugeBefore8: logs[i].gaugeBeforeEighths,
+    gaugeAfter8: logs[i].gaugeAfterEighths,
+    // v10: the same readings the screens use (squares, percent).
+    gaugeBeforeFrac: logs[i].gaugeBeforeFrac,
+    gaugeAfterFrac: logs[i].gaugeAfterFrac,
+    inReserve: logs[i].inReserve,
+  }));
   const partial = partialEconomy(gauged, cfg ?? { capacityL: null, unitL: unit === 'l' ? 1 : 3.785411784 });
   const statusOf = new Map(partial.series.map((p) => [p.fillUpId, p]));
 

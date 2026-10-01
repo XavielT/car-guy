@@ -1,3 +1,4 @@
+import { recalibrateVehicle } from '../db/gaugeOps';
 import { fuelForStorage } from '../domain/units';
 import { enqueue } from '@/lib/db/client';
 import {
@@ -279,6 +280,9 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
     });
   }
   lines.push('DS3: 12 cargas regular (cuatro parciales, tres entre las últimas seis; una tras carga olvidada)');
+  // IMP 01102026 Phase 3: what the app learns from those readings, as the store would after each fill-up.
+  const cal = await recalibrateVehicle(GARAGE_IDS.ds3);
+  if (cal) lines.push(`DS3: medidor de 9 cuadros, ${JSON.parse(cal).status} (${JSON.parse(cal).n_full} tanques llenos)`);
 
   lines.push(...(await seedFailedCheck(at)));
 

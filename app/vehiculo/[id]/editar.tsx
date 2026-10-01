@@ -5,7 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { VehicleForm, type VehicleDraft } from '@/components/VehicleForm';
 import { currentOdometer as currentOdometerQuery, vehicles as vehicleRepo } from '@/lib/db/repos';
 import { vehicleGallery } from '@/lib/db/tripOps';
+import { recalibrateVehicle } from '@/lib/db/gaugeOps';
 import { saveVehicleDraft } from '@/lib/db/vehicleOps';
+import { Alert } from '@/lib/alert';
+import { parseCalibration } from '@/lib/domain/gaugeCalibration';
+import { isLearned } from '@/lib/domain/gaugeVehicle';
 import { fromLiters, tankForDisplay } from '@/lib/domain/units';
 import { dateInputFromIso } from '@/lib/format';
 import { t } from '@/lib/i18n';
@@ -65,6 +69,9 @@ export default function EditarVehiculoScreen() {
         statusNote: v.statusNote,
         statusSince: v.statusSince ? dateInputFromIso(v.statusSince) : null,
         galleryIds: gallery.map((item) => item.mediaId),
+        gaugeType: v.gaugeType,
+        gaugeSegments: v.gaugeSegments,
+        gaugeReserveAt: v.gaugeReserveAt,
       });
     })();
   }, [id]);
@@ -78,9 +85,23 @@ export default function EditarVehiculoScreen() {
         submitLabel={t.vehicle.save}
         onSubmit={(draft) => {
           void (async () => {
+            const before = await vehicleRepo.getById(draft.id ?? id);
             await saveVehicleDraft(draft);
+            const after = await vehicleRepo.getById(draft.id ?? id);
             await refresh();
             router.back();
+            // Research 03 §7.5: a tank that changed by more than 2 L may be a new tank — offer to relearn the gauge.
+            const changedL = before?.tankVolume != null && after?.tankVolume != null ? Math.abs(after.tankVolume - before.tankVolume) : 0;
+            if (after && changedL > 2 && isLearned(parseCalibration(after.gaugeCalibration))) {
+              Alert.alert(t.gauge.resetTitle, t.gauge.resetTankBody, [
+                { text: t.common.cancel, style: 'cancel' },
+                {
+                  text: t.gauge.reset,
+                  style: 'destructive',
+                  onPress: () => void recalibrateVehicle(after.id, { resetAt: new Date().toISOString() }).then(refresh),
+                },
+              ]);
+            }
           })();
         }}
       />

@@ -14,6 +14,12 @@ import { PickerField, SearchSheet, type SearchItem } from '@/components/pickers'
 import { brandsForFuel, normaliseStation, recentStations } from '@/lib/domain/stations';
 import { foldText } from '@/lib/domain/text';
 import { GaugePicker } from '@/components/fuel/GaugePicker';
+import { fromFraction, type GaugeCfg } from '@/lib/domain/gauge';
+import { remaining } from '@/lib/domain/gaugeCalibration';
+import { gaugeCfgOf, isLearned } from '@/lib/domain/gaugeVehicle';
+import { fuelCfgFor, readingFrac } from '@/lib/domain/partialEconomy';
+import { fromLiters } from '@/lib/domain/units';
+import { FEATURE_GAUGE_SEGMENTS } from '@/lib/flagsV10';
 import { usePriceData } from '@/hooks/usePriceData';
 import { boardSourceLabel, prefillPrice } from '@/lib/domain/fuelPrices';
 import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtVol } from '@/lib/format';
@@ -63,9 +69,19 @@ export function FillUpForm({
   const [total, setTotal] = useState(initial ? String(initial.totalDop) : '');
   const [full, setFull] = useState(initial?.isFullTank ?? true);
   const [missedPrevious, setMissedPrevious] = useState(initial?.missedPrevious ?? false);
-  // Note 4: the gauge before and after pumping, both optional.
-  const [gaugeBefore, setGaugeBefore] = useState<number | null>(initial?.gaugeBefore8 ?? null);
-  const [gaugeAfter, setGaugeAfter] = useState<number | null>(initial?.gaugeAfter8 ?? null);
+  // Note 4: the gauge before and after pumping, both optional. v10: as fractions 0..1 on the car's own grid;
+  // an untouched reading on an edit keeps the fraction and raw text it was saved with.
+  const [gaugeBefore, setGaugeBeforeState] = useState<number | null>(readingFrac(initial?.gaugeBeforeFrac, initial?.gaugeBefore8));
+  const [gaugeAfter, setGaugeAfterState] = useState<number | null>(readingFrac(initial?.gaugeAfterFrac, initial?.gaugeAfter8));
+  const [touched, setTouched] = useState({ before: false, after: false });
+  const setGaugeBefore = (f: number | null) => {
+    setTouched((x) => ({ ...x, before: true }));
+    setGaugeBeforeState(f);
+  };
+  const setGaugeAfter = (f: number | null) => {
+    setTouched((x) => ({ ...x, after: true }));
+    setGaugeAfterState(f);
+  };
   const [inReserve, setInReserve] = useState(initial?.inReserve ?? false);
   // A saved log keeps the station text it had ("Otra" from before 2.3.1 reads as none).
   const [station, setStation] = useState(initial?.station && initial.station !== 'Otra' ? initial.station : '');
@@ -73,7 +89,10 @@ export function FillUpForm({
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
   // v6: labels follow the vehicle's volume unit (GNV stays m³).
-  const volumeUnit = data.vehicles.find((v) => v.id === vehicleId)?.detail?.volumeUnit ?? 'gal';
+  const detail = data.vehicles.find((v) => v.id === vehicleId)?.detail;
+  const volumeUnit = detail?.volumeUnit ?? 'gal';
+  // v10 (ADR-51): the dash this car has; the needle until FEATURE_GAUGE_SEGMENTS.
+  const gaugeCfg: GaugeCfg = FEATURE_GAUGE_SEGMENTS ? gaugeCfgOf(detail) : { type: 'needle8' };
   const meta = { unitLabel: unitLabelFor(fuel, volumeUnit), perUnitLabel: perUnitLabelFor(fuel, volumeUnit) };
   const prefill = initial ? null : prefillPrice(board, fuel, volumeUnit);
   // Until typed, the field shows the board's price (derived, so it follows the fuel and the board).
@@ -96,6 +115,40 @@ export function FillUpForm({
       }),
     [vol, price, total],
   );
+
+  /** The readings as stored: fraction + raw on the car's grid, eighths for a needle (2.4.x phones read those). */
+  function gaugeFields() {
+    const one = (frac: number | null, wasTouched: boolean, initFrac: number | null | undefined, initRaw: string | null | undefined) => {
+      if (frac == null) return { frac: null, raw: null };
+      if (!wasTouched && initial && initFrac != null) return { frac: initFrac, raw: initRaw ?? fromFraction(frac, gaugeCfg)?.raw ?? null };
+      const r = fromFraction(frac, gaugeCfg);
+      return { frac: r?.frac ?? frac, raw: r?.raw ?? null };
+    };
+    const before = inReserve ? { frac: null, raw: null } : one(gaugeBefore, touched.before, initial?.gaugeBeforeFrac ?? (initial?.gaugeBefore8 != null ? initial.gaugeBefore8 / 8 : null), initial?.gaugeBeforeRaw);
+    const after = one(gaugeAfter, touched.after, initial?.gaugeAfterFrac ?? (initial?.gaugeAfter8 != null ? initial.gaugeAfter8 / 8 : null), initial?.gaugeAfterRaw);
+    const eighths = (f: number | null) => (f == null || gaugeCfg.type !== 'needle8' ? null : Math.round(f * 8));
+    return {
+      gaugeBefore8: eighths(before.frac),
+      gaugeAfter8: eighths(after.frac),
+      gaugeBeforeFrac: before.frac,
+      gaugeBeforeRaw: before.raw,
+      gaugeAfterFrac: after.frac,
+      gaugeAfterRaw: after.raw,
+    };
+  }
+
+  // Research 03 §4: what the Antes reading means in the tank, always with its band.
+  const fuelCfg = fuelCfgFor(detail);
+  const inTank =
+    FEATURE_GAUGE_SEGMENTS && fuelCfg.capacityL && (gaugeBefore != null || inReserve)
+      ? remaining(fuelCfg.calibration ?? null, gaugeCfg, fuelCfg.capacityL, inReserve ? 0 : gaugeBefore, null, { onReserve: inReserve, reserveL: fuelCfg.reserveL })
+      : null;
+  // Liters to 1 L, gallons to 0.1 gal (research §4's display rule, in the car's unit).
+  const shown = (liters: number) => {
+    const v = fromLiters(liters, volumeUnit);
+    return volumeUnit === 'l' ? String(Math.round(v)) : v.toFixed(1);
+  };
+  const fuelForLiters = (v: number) => v * fuelCfg.unitL;
 
   function save() {
     const odometerKm = parseDecimal(odo);
@@ -138,8 +191,7 @@ export function FillUpForm({
       missedPrevious,
       station: chosenStation,
       notes: notes.trim(),
-      gaugeBefore8: inReserve ? null : gaugeBefore,
-      gaugeAfter8: gaugeAfter,
+      ...gaugeFields(),
       inReserve,
     });
     if (accepted === false) {
@@ -239,13 +291,24 @@ export function FillUpForm({
           </T>
           <GaugePicker
             label={t.gauge.before}
+            cfg={gaugeCfg}
             value={gaugeBefore}
             onChange={setGaugeBefore}
             reserve={{ on: inReserve, onToggle: setInReserve }}
           />
-          <GaugePicker label={t.gauge.after} value={gaugeAfter} onChange={setGaugeAfter} />
+          {inTank ? (
+            <T face="body" style={[styles.hint, { color: theme.text.secondary, marginTop: -space.xs, marginBottom: space.md }]}>
+              {isLearned(fuelCfg.calibration) && !inReserve
+                ? t.gauge.inTankLearned(shown(inTank.liters), shown(inTank.band[0]), shown(inTank.band[1]), meta.unitLabel)
+                : t.gauge.inTankLinear(shown(inTank.liters), meta.unitLabel)}
+              {amounts && !full
+                ? `\n${t.gauge.wouldBe(shown(Math.min(inTank.liters + fuelForLiters(amounts.volume), fuelCfg.capacityL!)), shown(fuelCfg.capacityL!), meta.unitLabel)}`
+                : ''}
+            </T>
+          ) : null}
+          <GaugePicker label={t.gauge.after} cfg={gaugeCfg} value={gaugeAfter} onChange={setGaugeAfter} />
           {/* F without "Tanque lleno": probably it was full — say so, do not decide (research 02 §1.4). */}
-          {gaugeAfter === 8 && !full ? (
+          {gaugeAfter === 1 && !full ? (
             <Pressable
               onPress={() => setFull(true)}
               accessibilityRole="button"
