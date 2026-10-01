@@ -15,7 +15,7 @@ phase" carry context between sessions.
 | 3A | Language es/en | ✅ | `imp-30092026/phase-3-i18n-skeletons` | en.ts complete (typed), live `t`, Más → Idioma, catalogue, dates; web sweep clean |
 | 3B | Skeletons | ✅ | `imp-30092026/phase-3-i18n-skeletons` | 50/50 data screens with their twin; no flash on the fast path (Redmi 56 fps capture) |
 | 4 | Map · Modo conducir · centre button | ✅ | `imp-30092026/phase-4-map-drive` | MapLibre native + web, drive mode, CONDUCIR disc; Redmi + web verified; street check = Xaviel's real drive |
-| 5 | Eventos · memoria · gomas · precios | 🟡 | `imp-30092026/phase-5-memory` | all four built + web-verified; sql/027 + 029 written (local-rls green) — **x-core apply + importer key wait for Xaviel** |
+| 5 | Eventos · memoria · gomas · precios | ✅ | `imp-30092026/phase-5-memory` | merged; sql/029 + 027 on x-core (verify-x-core 34/34); live MICM import waits for the importer key |
 | 6 | Perfil · bienvenida · legal · release 2.4.0 | ⬜ | | |
 
 ⬜ not started · 🟡 in progress · ✅ done · 🔴 blocked
@@ -249,6 +249,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 4 | The live trail in Modo conducir is one colour (red); the trip detail colours by speed bucket | low | colour the tail by the latest bucket if Xaviel wants it |
 | 4 | No Expo Go guard card for the map (a dev build is assumed; Expo Go is not used in this project) | low | — |
 | 5 | **Privacy:** the cloud public page (public_dossier, 022 → 025) lists every milestone under show_story — an accident with its cost and pendiente would be public | **high** | ✅ written: `sql/029_dossier_hito_only.sql` (only event_type = 'hito'); local-rls 29a–c green; **apply needs Xaviel's OK** |
+| 5 | **Production:** every public page (`/c/<slug>`) answered 500 since the Phase 3 merge — lib/i18n's static expo-localization import reached the Vercel function through the catalogue labels | **high** | ✅ hotfix `d6ce1c6` (lazy guarded require); `tools/check-api-load.mjs` (npm run check:api, also in release-apk.sh); smoke-public-page 6/6 |
 | 5 | `tools/apply-sql.mjs`'s shared-change guard does not catch `create role` / `grant … to authenticator` | low | pass `--shared` deliberately for 027's role file; teaching the guard is Xaviel's call |
 
 ## Blockers
@@ -257,7 +258,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 |---|---|---|---|
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel | open |
 | 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers green |
-| 5 | Apply `sql/029` (privacy) and `sql/027` (+ `027_fuel_price_ref_role.shared.sql` for the JWT path) | Xaviel's OK | open |
+| 5 | Apply `sql/029` (privacy) and `sql/027` | Xaviel's OK | ✅ applied 2026-09-30; the role file (`027_…role.shared.sql`) only for the JWT path — not applied |
 | 5 | Importer key in Vercel: `CARGUY_IMPORTER_JWT` (JWT `{"role":"carguy_importer"}` signed with the project's JWT secret) **or** `SUPABASE_SERVICE_ROLE_KEY` | Xaviel (dashboard + Vercel env) | open — without it /api/precios answers 503 `no-writer-key` with the parsed rows |
 
 ---
@@ -596,9 +597,10 @@ the file name carries the same dates (used as fallback).
 - [x] Redmi (test build over the seed fixture): the C3 hub has the Events tab; the new-event form (type chips,
   severity, pendiente, proofs); Ficha → "What I use" (search, a fact with Copiar); Precios (board with source
   chips, + Add price, Import MICM now, history by week). No JS errors.
-- **Not merged to main on purpose:** with events live, an event synced to the cloud would appear on a public
-  page with the story switch on until sql/029 is applied. Merge after 029.
-- [ ] sql/029 + 027 on x-core, verify-x-core 33–34, importer key in Vercel, a real import — **Xaviel**.
+- Merged to main after sql/029 was live.
+- [x] sql/029 + sql/027 applied to x-core (Xaviel: "do it"); verify-x-core **34/34**; smoke-public-page **6/6**
+  (story still shows, events do not); sql/999 cleanup.
+- [ ] Importer key in Vercel + a real import — **Xaviel** (dedicated JWT + the role file, or the service key).
 
 ### Notes closed
 - 1 (manual history + import built; live import after the key), 3, 5, 6.
