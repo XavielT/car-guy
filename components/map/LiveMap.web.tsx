@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { committedLength, pointFeature, ROUTE_CASING_PAINT, ROUTE_LINE_LAYOUT, ROUTE_LINE_WIDTH, routeSegments, speedColorExpression, tailStart } from '@/lib/trips/geojson';
 
 import { Recenter } from './Recenter';
+import { USER_DOT_SIZE, UserDot } from './UserDot';
 import type { LiveMapProps } from './types';
 import { useMapStyle } from './useMapStyle';
 import { createMap, setSourceData, type GLMap } from './webMap';
@@ -13,11 +14,13 @@ import { createMap, setSourceData, type GLMap } from './webMap';
 const HOME: [number, number] = [-69.93, 18.47];
 
 /**
- * The drive-mode map, web half: no user puck — the camera follows the newest
- * trail point (a white dot marks it) until the person drags the map; the
- * re-centre button brings the follow back. Same two-source trail as native.
+ * The drive-mode map, web half: the user's avatar dot is an overlay placed with
+ * `map.project()` (IMP 01102026 ADR-49) — the camera follows it only on a fresh
+ * fix; without `me`, the newest trail point (a white dot) as before. A drag
+ * stops the follow; the re-centre button brings it back. Same two-source trail
+ * as native.
  */
-export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable }: LiveMapProps) {
+export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, me, avatar }: LiveMapProps) {
   const top = insets?.top ?? 0;
   const bottom = insets?.bottom ?? 0;
   const box = useRef<View>(null);
@@ -36,6 +39,11 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
   const committed = useMemo(() => routeSegments(trail.slice(0, k)), [k, first]);
   const tail = useMemo(() => routeSegments(trail.slice(tailStart(k))), [trail, k]);
   const last = trail.length ? trail[trail.length - 1] : null;
+  const [screen, setScreen] = useState<{ x: number; y: number; bearing: number } | null>(null);
+  const meRef = useRef(me);
+  useEffect(() => {
+    meRef.current = me;
+  });
 
   useEffect(() => {
     const el = box.current as unknown as HTMLElement | null;
@@ -48,6 +56,13 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
       mapRef.current = m;
       // A drag by the person (not our easeTo) stops the follow.
       m.on('dragstart', () => setTracking(false));
+      // The overlay dot follows every camera move.
+      m.on('move', () => {
+        const p = meRef.current;
+        if (!p) return;
+        const pt = m.project([p.lng, p.lat]);
+        setScreen({ x: pt.x, y: pt.y, bearing: m.getBearing() });
+      });
       m.on('load', () => {
         if (cancelled) return;
         for (const id of ['trail-committed', 'trail-tail']) {
@@ -86,13 +101,32 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
     const m = mapRef.current;
     if (!ready || !m) return;
     setSourceData(m, 'trail-tail', tail);
-    setSourceData(m, 'car', pointFeature(last));
-    if (follow && tracking && last) m.easeTo({ center: [last.lng, last.lat], zoom: Math.max(m.getZoom(), 15), duration: 800 });
-  }, [ready, tail, last, follow, tracking]);
+    // With the user's own dot the white trail-end circle would be a second "me".
+    setSourceData(m, 'car', pointFeature(me ? null : last));
+    if (follow && tracking && !me && last) m.easeTo({ center: [last.lng, last.lat], zoom: Math.max(m.getZoom(), 15), duration: 800 });
+  }, [ready, tail, last, follow, tracking, me]);
+
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!ready || !m) return;
+    if (!me) {
+      setScreen(null);
+      return;
+    }
+    const pt = m.project([me.lng, me.lat]);
+    setScreen({ x: pt.x, y: pt.y, bearing: m.getBearing() });
+    // Only a fresh fix moves the camera (ADR-49): a stale one is drawn greyed where it was.
+    if (follow && tracking && me.fresh) m.easeTo({ center: [me.lng, me.lat], zoom: Math.max(m.getZoom(), 15), duration: 800 });
+  }, [ready, me, follow, tracking]);
 
   return (
     <View style={styles.fill}>
       <View ref={box} style={styles.fill} />
+      {me && screen ? (
+        <View pointerEvents="none" style={[styles.dot, { left: screen.x - (USER_DOT_SIZE + 16) / 2, top: screen.y - (USER_DOT_SIZE + 16) / 2 }]}>
+          <UserDot fresh={me.fresh} arrowDeg={me.heading == null ? null : me.heading - screen.bearing} {...avatar} />
+        </View>
+      ) : null}
       {follow && !tracking ? <Recenter bottom={bottom} onPress={() => setTracking(true)} /> : null}
     </View>
   );
@@ -100,4 +134,5 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#0B0B0D' },
+  dot: { position: 'absolute' },
 });

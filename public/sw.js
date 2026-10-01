@@ -10,7 +10,14 @@
  * bump: everything under /_expo/static/ is content-hashed, so a new build asks
  * for new filenames and the stale entries are only ever dead weight.
  */
-const CACHE = 'carguy-v4';
+const CACHE = 'carguy-v5';
+/**
+ * v5 (IMP 01102026 note 2 — the iPhone PWA did not open once): pages are fetched with `no-store`, only an
+ * `ok` page is cached (a 5xx served mid-deploy used to be kept and replayed offline), and a slow network
+ * falls back to the cached page after NAV_TIMEOUT_MS instead of a blank screen. The page reloads once when
+ * a new worker takes over (app/+html.tsx), so the HTML and its hashed chunks always come from one build.
+ */
+const NAV_TIMEOUT_MS = 4000;
 
 self.addEventListener('install', () => {
   // Nothing to precache: the export is hashed and the shell is picked up on
@@ -86,21 +93,42 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Pages: network first, so a deploy is picked up immediately, falling back to
-  // the last copy of this route and finally to the app entry point.
+  // the last copy of this route and finally to the app entry point — on no
+  // network, and after NAV_TIMEOUT_MS when a cached copy exists.
   if (request.mode === 'navigate') {
+    const cached = () =>
+      caches
+        .match(request)
+        .then((hit) => hit ?? caches.match('/'));
+    const network = fetch(request, { cache: 'no-store' }).then((response) => {
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE).then((cache) => cache.put(request, copy));
+      }
+      return response;
+    });
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() =>
-          caches
-            .match(request)
-            .then((hit) => hit ?? caches.match('/'))
-            .then((hit) => hit ?? Response.error()),
-        ),
+      new Promise((resolve) => {
+        let done = false;
+        const finish = (r) => {
+          if (!done && r) {
+            done = true;
+            resolve(r);
+          }
+        };
+        const timer = setTimeout(() => cached().then(finish), NAV_TIMEOUT_MS);
+        network
+          .then((r) => {
+            clearTimeout(timer);
+            // A server error with a cached copy at hand: the copy is the better page.
+            if (!r.ok) return cached().then((hit) => finish(hit ?? r));
+            finish(r);
+          })
+          .catch(() => {
+            clearTimeout(timer);
+            cached().then((hit) => finish(hit ?? Response.error()));
+          });
+      }),
     );
   }
 });

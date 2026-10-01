@@ -5,6 +5,7 @@ export const enPart3: Pick<
   | 'placeholder'
   | 'guide'
   | 'boot'
+  | 'platform'
   | 'more'
   | 'backup'
   | 'onboarding'
@@ -156,7 +157,7 @@ export const enPart3: Pick<
     brand: 'CAR GUY',
     lockedTitle: 'Your data is busy',
     lockedBody:
-      'Another tab or the previous app still has the database open. Close the other Car Guy tabs and try again. Nothing was lost.',
+      'Another tab or the previous app still has the database open. Close the other Car Guy tabs (on iPhone: also Car Guy open in Safari, if you use the Home Screen icon) and try again. Nothing was lost.',
     crashTitle: 'Something broke on startup',
     crashBody:
       'Your data is still saved on this device. Try again; if it keeps happening, close the app and open it again.',
@@ -670,6 +671,18 @@ export const enPart3: Pick<
     reset: 'Back to seed prices',
   },
 
+  /** IMP 01102026 ADR-48: what the iPhone web app cannot do, said plainly. */
+  platform: {
+    iosTitle: 'On iPhone (web) Car Guy only records manual trips with the screen on.',
+    iosBody: 'Automatic detection exists in the Android app.',
+    iosWhy: 'Why?',
+    iosWhyTitle: 'Car Guy on iPhone',
+    iosWhyBody: [
+      'On iPhone, Car Guy is a web app (the Home Screen icon). Safari does not let a web app use location in the background: when you lock the screen or switch apps, the GPS pauses.',
+      'So on iPhone a trip is recorded only while Car Guy is open with the screen on, and automatic detection does not exist. It is an Apple rule, not a bug in the app.',
+      'Everything else works the same: fill-ups, maintenance, checks, photos and syncing with your account.',
+    ],
+  },
   common: {
     cancel: 'Cancel',
     continue: 'Continue',

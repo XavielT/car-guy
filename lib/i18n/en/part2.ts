@@ -73,6 +73,11 @@ export const enPart2: Pick<
   },
 
   service: {
+    /** IMP 01102026 note 18. */
+    bodyGroup: 'Body and paint',
+    paintEventAsk: "Save it as an event in the car's story too?",
+    paintEventYes: 'Save as event',
+    paintEventNo: 'Just the service',
     newTitle: 'New record',
     editTitle: 'Edit record',
     kind: 'Type',

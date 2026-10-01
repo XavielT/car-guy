@@ -19,7 +19,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { AppState, Platform } from 'react-native';
 
-import { recordError } from '../diagnostics';
+import { recordError, recordNote } from '../diagnostics';
 import { t } from '../i18n';
 import { feed, machineState } from './engine';
 import { setTripsSingleConfig, tripsMode, tripsSingleConfig } from './settings';
@@ -111,7 +111,11 @@ async function wanted(phase: 'idle' | 'recording'): Promise<Intensity> {
  */
 export async function armAuto(): Promise<boolean> {
   try {
-    if ((await tripsMode()) !== 'auto' || (await autoReadiness()) !== 'ready') {
+    const mode = await tripsMode();
+    const readiness = mode === 'auto' ? await autoReadiness() : null;
+    if (mode !== 'auto' || readiness !== 'ready') {
+      // Phase 0's Redmi: Automático chosen, no permission, and nothing anywhere said why it was off.
+      if (mode === 'auto') recordNote('trip-arm', `Automático not armed: ${readiness}`);
       await disarmAuto();
       return false;
     }

@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import android.util.Log
@@ -54,6 +55,39 @@ class MiuiAutostartModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("MiuiAutostart")
+
+    /**
+     * Battery optimisation (IMP 01102026 Phase 1, Phase 0 finding): "unrestricted" when Android lets Car Guy
+     * run in the background without Doze limits, else "optimized"; "unknown" when it cannot tell.
+     */
+    Function("getBatteryState") {
+      val ctx = appContext.reactContext ?: return@Function "unknown"
+      try {
+        val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (pm.isIgnoringBatteryOptimizations(ctx.packageName)) "unrestricted" else "optimized"
+      } catch (e: Throwable) {
+        Log.d(TAG, "battery: ${e.javaClass.simpleName}")
+        "unknown"
+      }
+    }
+
+    /** The system's "allow Car Guy to run in the background" dialog; else the battery-optimisation list. */
+    Function("openBatterySettings") {
+      val ctx = appContext.reactContext ?: return@Function false
+      val ask = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${ctx.packageName}"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      try {
+        ctx.startActivity(ask)
+        true
+      } catch (e: Throwable) {
+        try {
+          ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+          true
+        } catch (e2: Throwable) {
+          false
+        }
+      }
+    }
 
     Function("getState") {
       val ctx = appContext.reactContext ?: return@Function "unknown"

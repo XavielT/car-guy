@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CompactSpeed } from '@/components/drive/CompactSpeed';
 import { LiveMap, type RoutePoint } from '@/components/map';
+import { IosWebBanner } from '@/components/IosWebBanner';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, useAutoReadiness } from '@/components/trips/TripPieces';
@@ -25,6 +26,9 @@ import { appendTrail, trailSince } from '@/lib/trips/driveTrail';
 import { startManualTrip, stopTrip } from '@/lib/trips/live';
 import { getLiveTrip, gpsNow, setLiveTrip, useLiveTrip } from '@/lib/trips/liveStore';
 import { setTripsMode, tripsMode, type TripsMode } from '@/lib/trips/settings';
+import { isFreshFix } from '@/lib/trips/freshness';
+import { useMyPosition } from '@/lib/trips/myPosition';
+import { useProfile } from '@/lib/profile';
 
 /** Always dark: a map at night, whatever the app theme (ModoConducir mockup). */
 const ink = palette.dark;
@@ -52,6 +56,9 @@ export default function ConducirScreen() {
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
   const focused = useIsFocused();
+  // The user's own dot (ADR-49): a shared foreground watch while this screen is in front.
+  const pos = useMyPosition(focused);
+  const profile = useProfile();
   const { activeVehicle, data, setActiveVehicle } = useStore();
   const live = useLiveTrip();
   const auto = useAutoReadiness();
@@ -124,12 +131,17 @@ export default function ConducirScreen() {
   }, [tripId, focused]);
   const trail = trailOf && trailOf.tripId === tripId ? trailOf.points : NO_TRAIL;
 
-  // The sheet's clock (tiempo, GPS going stale) — only while recording.
+  // The sheet's clock (tiempo, GPS going stale) and the dot's age — while recording or in front.
   useEffect(() => {
-    if (!live) return;
+    if (!live && !focused) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [live]);
+  }, [live, focused]);
+
+  const meFresh = pos.fix ? isFreshFix(pos.fix, now) : false;
+  const me = pos.fix ? { lat: pos.fix.lat, lng: pos.fix.lng, heading: pos.fix.heading, fresh: meFresh } : null;
+  const gpsLine =
+    pos.status === 'denied' ? t.drive.gpsDenied : !pos.fix ? (pos.status === 'idle' ? null : t.drive.gpsSearching) : meFresh ? null : t.drive.lastPosition(now - pos.fix.t);
 
   const notify = (text: string) => {
     setNotice(text);
@@ -218,6 +230,7 @@ export default function ConducirScreen() {
       contentContainerStyle={{ padding: space.lg, paddingBottom: (landscape ? 0 : insets.bottom) + space.lg, gap: space.md }}>
       {!landscape ? <View style={[styles.grabber, { backgroundColor: ink.lineStrong }]} /> : null}
       {live ? null : <TipCard id="drive" dark style={{ marginBottom: 0 }} />}
+      {live ? null : <IosWebBanner dark />}
 
       <View style={styles.chips}>
         <Chip
@@ -343,7 +356,14 @@ export default function ConducirScreen() {
       {native && focused ? <KeepScreenOn /> : null}
 
       <View style={StyleSheet.absoluteFill}>
-        <LiveMap trail={trail} follow insets={{ top: insets.top + 120, bottom: landscape ? 0 : sheetH }} onUnavailable={() => setMapOff(true)} />
+        <LiveMap
+          trail={trail}
+          follow
+          insets={{ top: insets.top + 120, bottom: landscape ? 0 : sheetH }}
+          onUnavailable={() => setMapOff(true)}
+          me={me}
+          avatar={{ photoUri: profile.photoUri, avatarId: profile.avatarId, name: profile.displayName }}
+        />
       </View>
 
       <LinearGradient
@@ -375,6 +395,14 @@ export default function ConducirScreen() {
           ) : null}
         </View>
       </View>
+
+      {gpsLine && !mapOff ? (
+        <View style={[styles.mapOff, { top: insets.top + 170, borderColor: ink.lineStrong }]} accessibilityLiveRegion="polite">
+          <T face="body" style={{ color: ink.text.secondary, fontSize: 12 }}>
+            {gpsLine}
+          </T>
+        </View>
+      ) : null}
 
       {mapOff ? (
         <View style={[styles.mapOff, { top: insets.top + 170, borderColor: ink.lineStrong }]}>

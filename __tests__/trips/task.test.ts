@@ -71,10 +71,18 @@ function withParkedTail(fixes: ReturnType<typeof loadDrive>, minutes = 5) {
   return [...fixes, ...tail];
 }
 
+/** Each batch arrives just after its newest fix, as the phone delivers it (ADR-49 judges age against "now"). */
 async function deliver(fixes: ReturnType<typeof loadDrive>, batch = 10) {
   const run = mockExecutors.get(TRIP_TASK)!;
-  for (let i = 0; i < fixes.length; i += batch) {
-    await run({ data: { locations: fixes.slice(i, i + batch).map(toLocation) }, error: null, executionInfo: { eventId: String(i), taskName: TRIP_TASK } });
+  const clock = jest.spyOn(Date, 'now');
+  try {
+    for (let i = 0; i < fixes.length; i += batch) {
+      const slice = fixes.slice(i, i + batch);
+      clock.mockReturnValue(slice[slice.length - 1].t + 1000);
+      await run({ data: { locations: slice.map(toLocation) }, error: null, executionInfo: { eventId: String(i), taskName: TRIP_TASK } });
+    }
+  } finally {
+    clock.mockRestore();
   }
 }
 
@@ -142,6 +150,22 @@ it('records the GPX drive from background batches: one trip through the 2-min st
   const note = recentErrors().filter((e) => e.kind === 'note' && e.where === 'trip-finalize').at(-1);
   expect(note?.message).toMatch(/raw \d+ kept \d+ route \d+ · dropped acc \d+ dup \d+ jump \d+ excursion \d+/);
   await disarmAuto();
+});
+
+it('ADR-49: a drive delivered hours late (cached fixes) never opens a trip while idle', async () => {
+  await settingsRepo.set('trips_enabled', 'auto');
+  await armAuto();
+  const drive = loadDrive(8);
+  const run = mockExecutors.get(TRIP_TASK)!;
+  const clock = jest.spyOn(Date, 'now').mockReturnValue(drive[drive.length - 1].t + 2 * 3_600_000);
+  try {
+    for (let i = 0; i < drive.length; i += 10) {
+      await run({ data: { locations: drive.slice(i, i + 10).map(toLocation) }, error: null, executionInfo: { eventId: String(i), taskName: TRIP_TASK } });
+    }
+  } finally {
+    clock.mockRestore();
+  }
+  expect(tripRows()).toHaveLength(0);
 });
 
 it('"Iniciar viaje" while Automático watches adopts the stream: one manual trip, the task feeds it', async () => {

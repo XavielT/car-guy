@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { T } from '@/components/T';
 import { Badge, GhostButton, PrimaryButton } from '@/components/ui';
+import { Hanko } from '@/components/ui/Hanko';
 import { radius, space } from '@/constants/theme';
 import { buildData, type BuildData } from '@/lib/db/buildQueries';
 import { jsonObject } from '@/lib/domain/album';
@@ -40,6 +41,10 @@ export function BuildTab({ vehicleId, version }: { vehicleId: string; version: n
   const open = (tab?: string) => router.push({ pathname: '/vehiculo/[id]/build', params: { id: vehicleId, ...(tab ? { tab } : {}) } });
   return (
     <View style={{ gap: space.sm }}>
+      {/* 改 = modificado: the seal lives with the build it describes (note 9). */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <Hanko char="改" size={28} accessibilityLabel={t.build.seal} />
+      </View>
       <BuildSummary vehicleId={vehicleId} version={version} build={build} />
       <StockActualCard current={current} onPress={() => open('specs')} />
       <PrimaryButton label={t.build.open} onPress={() => open()} />

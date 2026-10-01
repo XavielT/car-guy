@@ -75,6 +75,17 @@ export function dateLabel(iso: string): string {
   });
 }
 
+/**
+ * "30 sep 2026 · 3:58 p. m." / "Sep 30, 2026 · 3:58 PM" — a moment, not just a day (IMP 01102026 note 5:
+ * Cuenta → última sincronización). Intl in the app's language; local time.
+ */
+export function dateTimeLabel(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const time = date.toLocaleTimeString(localeTag(), { hour: 'numeric', minute: '2-digit' });
+  return `${dateLabel(iso)} · ${time}`;
+}
+
 export function monthTitle(year: number, month: number): string {
   const label = new Date(year, month, 1).toLocaleDateString(localeTag(), {
     month: 'long',

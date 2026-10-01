@@ -11,7 +11,6 @@ import { T } from '@/components/T';
 import {
   Badge,
   ClusterHero,
-  Hanko,
   QuickActions,
   Surface,
   TelltaleRow,
@@ -28,6 +27,10 @@ import { SpeedCluster } from '@/components/ui/SpeedCluster';
 import { Alert } from '@/lib/alert';
 import { startManualTrip, stopTrip } from '@/lib/trips/live';
 import { useLiveTrip } from '@/lib/trips/liveStore';
+import { useProfile } from '@/lib/profile';
+import { Avatar } from '@/components/Avatar';
+import { TipCard } from '@/components/TipCard';
+import { AutoBlockedCard } from '@/components/trips/TripPieces';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { tripsKeepAwake, tripsMode, type TripsMode } from '@/lib/trips/settings';
 import { garageFacts, lastWeeklyCheck, type GarageFacts } from '@/lib/db/garageQueries';
@@ -68,6 +71,7 @@ const ACCOUNT_CARD_KEY = 'account_card_dismissed';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const profile = useProfile();
   const { theme } = useTheme();
   const { activeVehicle, vehicleFillups, vehicleExpenses, data, setActiveVehicle } = useStore();
 
@@ -321,7 +325,8 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={t.routes.account}
             hitSlop={8}>
-            <Hanko char="改" size={42} accessibilityLabel={t.routes.account} />
+            {/* Note 9: the person's own avatar, not the 改 seal (it now marks the Build tab). */}
+            <Avatar size={36} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName} decorative />
           </Pressable>
         </View>
 
@@ -419,6 +424,12 @@ export default function HomeScreen() {
         </ClusterHero>
         </Animated.View>
         )}
+
+        {/* Note 10: how this odometer rises — once, until "Entendido". */}
+        <TipCard id="odometer" />
+
+        {/* Automático chosen but blocked (permission, MIUI, battery): said here, not only in Ajustes. */}
+        {FEATURE_TRIPS && tripsModeNow === 'auto' ? <AutoBlockedCard /> : null}
 
         {FEATURE_TRIPS && tripsModeNow !== 'off' && !live ? (
           <Pressable

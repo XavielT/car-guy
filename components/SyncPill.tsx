@@ -1,4 +1,8 @@
+import { Pressable } from 'react-native';
+
 import { StatusPill, type Tone } from '@/components/ui/StatusPill';
+import { Alert } from '@/lib/alert';
+import { dateTimeLabel } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useSync } from '@/lib/sync/useSync';
 
@@ -11,7 +15,7 @@ import { useSync } from '@/lib/sync/useSync';
  * failed sync earns the red.
  */
 export function SyncPill() {
-  const { status, pending, running } = useSync();
+  const { status, pending, running, lastSyncAt } = useSync();
 
   const [tone, label]: [Tone, string] = running
     ? ['neutral', t.sync.syncing]
@@ -21,5 +25,15 @@ export function SyncPill() {
         ? ['proximo', t.sync.pending(pending)]
         : ['ok', t.sync.upToDate];
 
-  return <StatusPill status={tone} label={label} />;
+  // Long-press (and the screen reader) tell when it last synced — the same moment Cuenta shows (note 5).
+  const when = lastSyncAt ? dateTimeLabel(lastSyncAt) : t.sync.never;
+  return (
+    <Pressable
+      onLongPress={() => Alert.alert(t.account.lastSync, when)}
+      accessibilityRole="text"
+      accessibilityLabel={`${label}. ${t.account.lastSync}: ${when}`}
+      hitSlop={6}>
+      <StatusPill status={tone} label={label} />
+    </Pressable>
+  );
 }

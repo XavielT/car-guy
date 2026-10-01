@@ -274,6 +274,7 @@ export default function VehicleHubScreen() {
             ) : null}
           </View>
 
+          <View style={styles.odoRow}>
           <Pressable
             onPress={() => {
               setActiveVehicle(vehicle.id);
@@ -288,6 +289,19 @@ export default function VehicleHubScreen() {
               {t.cluster.caption}
             </T>
           </Pressable>
+          {/* Note 17: a clear way in — any status, a daily included; only a viewer cannot add. */}
+          {FEATURE_BUILD && !viewer ? (
+            <Pressable
+              onPress={() => router.push({ pathname: '/mod/nuevo', params: { vehicleId: vehicle.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={t.build.add}
+              style={[styles.addMod, { borderColor: theme.accent }]}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 13 }}>
+                {t.hub.addMod}
+              </T>
+            </Pressable>
+          ) : null}
+          </View>
         </View>
 
         {/* 1 — the page tabs (sticky) */}
@@ -769,6 +783,8 @@ const styles = StyleSheet.create({
   titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' },
   name: { fontSize: 28 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.md, flexWrap: 'wrap' },
+  odoRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md },
+  addMod: { borderWidth: 1, borderRadius: radius.tag, paddingHorizontal: space.md, minHeight: 36, justifyContent: 'center', marginBottom: space.sm },
   odo: { alignSelf: 'flex-start', alignItems: 'center', borderWidth: 1, borderRadius: radius.input, paddingHorizontal: space.md, paddingVertical: space.sm, marginTop: space.md, marginBottom: space.sm },
   tab: { minHeight: 40, justifyContent: 'center', paddingHorizontal: space.md, borderRadius: radius.tag, borderWidth: 1, marginRight: space.sm },
   eyebrow: { fontSize: 11, marginBottom: space.sm },

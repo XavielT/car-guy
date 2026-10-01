@@ -308,6 +308,21 @@ export const enPart1: Pick<
     miuiAutostartOn: '✓ On for this phone',
     miuiAutostartOff: '✗ Off: Automatic will stop when you close the app',
     miuiOpenAutostart: 'Open autostart',
+    batteryOn: '✓ No battery restrictions',
+    batteryOff: '✗ Battery saver on: Android may pause Automatic',
+    batteryOpen: 'Allow in background',
+    /** IMP 01102026 Phase 1 (Phase 0 finding): Automatic chosen but not able to record — said where it is seen. */
+    autoBlockedTitle: 'Automatic is not recording',
+    autoBlocked: {
+      foreground: 'Car Guy has no location permission.',
+      background: 'Location "all the time" is missing.',
+      approximate: 'It only has approximate location; it needs precise.',
+      unavailable: 'This phone does not allow background tasks.',
+      autostart: "MIUI's autostart is off.",
+      battery: 'Battery saver may pause it.',
+    },
+    autoBlockedFix: 'Fix it',
+    lastFixAt: (ago: string | null) => (ago ? `Last GPS point received: ${ago} ago` : 'No GPS point has arrived yet'),
     miuiIntro: 'MIUI kills apps in the background. So Automatic doesn’t stop:',
     miuiSteps: [
       'Settings › Apps › Car Guy › Autostart: on.',
@@ -398,6 +413,7 @@ export const enPart1: Pick<
   origins: { jdm: 'JDM', usdm: 'USDM', eudm: 'EUDM', local: 'Local', otro: 'Other' },
 
   hub: {
+    addMod: '+ Mod',
     tabs: { resumen: 'Overview', album: 'Album', eventos: 'Events', build: 'Build', ficha: 'Specs', pista: 'Track', viajes: 'Trips', docs: 'Docs' },
     soon: (tab: string) => `${tab}: coming soon. We’re putting it together.`,
     story: 'The story',
@@ -437,6 +453,10 @@ export const enPart1: Pick<
   },
 
   garage: {
+    /** Long-press on a garage card (IMP 01102026 note 17). */
+    quickMod: 'Add mod',
+    quickFuel: 'New fill-up',
+    quickCheck: 'Check',
     ownership: {
       since: (when: string, tenure: string) => `Since ${when} · ${tenure}`,
       soldRange: (from: number, to: number) => `${from} → sold ${to}`,

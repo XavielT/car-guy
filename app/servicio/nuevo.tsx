@@ -22,6 +22,8 @@ import {
 } from '@/lib/db/repos';
 import { lastOilFor } from '@/lib/db/oilQueries';
 import { saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
+import { saveMilestone } from '@/lib/db/albumQueries';
+import { recordError } from '@/lib/diagnostics';
 import type { ServiceKind, ServiceType, VehicleSpecsheet } from '@/lib/db/types';
 import { suggestionsFor } from '@/lib/domain/carMemory';
 import { todayIso } from '@/lib/domain/dates';
@@ -36,6 +38,9 @@ import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal, roundMoney } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
+
+/** Note 18: the paint types; saving one offers the matching story event. */
+const PAINT_TYPES: readonly string[] = ['pintura_completa', 'desabollado_pintura'];
 
 const KINDS: ServiceKind[] = ['mantenimiento', 'reparacion', 'mejora'];
 
@@ -250,6 +255,10 @@ export default function NuevoServicioScreen() {
   const visible = search.trim()
     ? catalog.filter((t) => catalogLabel('serviceType', t).toLowerCase().includes(search.trim().toLowerCase()))
     : catalog;
+  // Note 18: body work and paint get their own group, so a paint job has an obvious home.
+  const visibleMain = visible.filter((ty) => ty.category !== 'carroceria');
+  const visibleBody = visible.filter((ty) => ty.category === 'carroceria');
+  const paintPicked = selected.some((id) => PAINT_TYPES.includes(id));
 
   function save() {
     if (!effectiveTitle.trim()) return setError(t.service.titleRequired);
@@ -290,12 +299,34 @@ export default function NuevoServicioScreen() {
       });
       await refresh();
 
-      Alert.alert(
-        t.service.savedTitle,
-        result.resets.length
-          ? `${t.service.savedWithResets}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`
-          : effectiveTitle.trim(),
-      );
+      const message = result.resets.length
+        ? `${t.service.savedWithResets}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`
+        : effectiveTitle.trim();
+      if (paintPicked && kind === 'mantenimiento' && !editingId) {
+        // Note 18: a paint job is also part of the car's story — one tap, linked to this service.
+        Alert.alert(t.service.savedTitle, `${message}\n\n${t.service.paintEventAsk}`, [
+          { text: t.service.paintEventNo, style: 'cancel', onPress: () => router.back() },
+          {
+            text: t.service.paintEventYes,
+            onPress: () =>
+              void saveMilestone({
+                vehicleId: activeVehicle!.id,
+                kind: 'pintura',
+                eventType: 'hito',
+                occurredAt: isoFromDateInput(date),
+                odometerKm: parsedOdometer,
+                title: effectiveTitle.trim(),
+                costDop: total > 0 ? total : null,
+                linkedServiceId: recordId,
+              })
+                .then(() => refresh())
+                .catch((e) => recordError('paint-event', e))
+                .finally(() => router.back()),
+          },
+        ]);
+        return;
+      }
+      Alert.alert(t.service.savedTitle, message);
       router.back();
     })();
   }
@@ -375,30 +406,44 @@ export default function NuevoServicioScreen() {
               />
             ))}
             <Field label={t.service.searchItems} value={search} onChangeText={setSearch} />
-            <View style={styles.row}>
-              {visible.map((type) => {
-                const on = selected.includes(type.id);
-                return (
-                  <Pressable
-                    key={type.id}
-                    onPress={() =>
-                      setSelected((prev) =>
-                        prev.includes(type.id) ? prev.filter((x) => x !== type.id) : [...prev, type.id],
-                      )
-                    }
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: on }}
-                    style={[
-                      styles.itemChip,
-                      { borderColor: on ? theme.accentFill : theme.line, backgroundColor: on ? theme.accentFill : theme.bg.raised },
-                    ]}>
-                    <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
-                      {catalogLabel('serviceType', type)}
+            {([
+              [visibleMain, null],
+              [visibleBody, t.service.bodyGroup],
+            ] as const).map(([list, label]) =>
+              list.length ? (
+                <View key={label ?? 'main'}>
+                  {label ? (
+                    <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
+                      {label}
                     </T>
-                  </Pressable>
-                );
-              })}
-            </View>
+                  ) : null}
+              <View style={styles.row}>
+                {list.map((type) => {
+                  const on = selected.includes(type.id);
+                  return (
+                    <Pressable
+                      key={type.id}
+                      onPress={() =>
+                        setSelected((prev) =>
+                          prev.includes(type.id) ? prev.filter((x) => x !== type.id) : [...prev, type.id],
+                        )
+                      }
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: on }}
+                      style={[
+                        styles.itemChip,
+                        { borderColor: on ? theme.accentFill : theme.line, backgroundColor: on ? theme.accentFill : theme.bg.raised },
+                      ]}>
+                      <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
+                        {catalogLabel('serviceType', type)}
+                      </T>
+                    </Pressable>
+                  );
+                })}
+              </View>
+                </View>
+              ) : null,
+            )}
           </>
         ) : null}
 

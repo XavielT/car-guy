@@ -263,6 +263,17 @@ export function ModForm({
         ))}
       </View>
 
+      {t.modForm.presets[categoryId]?.length ? (
+        <>
+          {eyebrow(t.modForm.presetsTitle)}
+          <View style={styles.chips}>
+            {t.modForm.presets[categoryId].map((p) => (
+              <Chip key={p} label={p} selected={name === p} onPress={() => (setName(p), setError(null))} />
+            ))}
+          </View>
+        </>
+      ) : null}
+
       <Field label={t.modForm.name} placeholder={t.modForm.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
       <View style={styles.pair}>
         <View style={{ flex: 1 }}>

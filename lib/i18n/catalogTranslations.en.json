@@ -96,6 +96,12 @@
     },
     "otro": {
       "name": "Other"
+    },
+    "pintura_completa": {
+      "name": "Full paint job"
+    },
+    "desabollado_pintura": {
+      "name": "Dent repair and partial paint"
     }
   },
   "legalReminder": {
@@ -199,6 +205,12 @@
     },
     "otro": {
       "name": "Other"
+    },
+    "accesorios": {
+      "name": "Accessories"
+    },
+    "estetica": {
+      "name": "Looks"
     }
   },
   "venue": {

@@ -13,10 +13,16 @@ export type BadgeTone = 'red' | 'amber' | 'green' | 'outline';
 export function Badge({
   label,
   tone = 'red',
+  onPhoto = false,
   style,
 }: {
   label: string;
   tone?: BadgeTone;
+  /**
+   * Drawn over a cover photo (IMP 01102026 note 15): the outline badge becomes a solid dark chip — a thin
+   * outline over a busy photo could not be read. Filled tones are unchanged.
+   */
+  onPhoto?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const { theme } = useTheme();
@@ -24,7 +30,9 @@ export function Badge({
     red: { bg: theme.redline, fg: '#FFFFFF', border: 'rgba(255, 77, 69, 0.4)' },
     amber: { bg: theme.accentFill, fg: theme.accentFillInk, border: 'rgba(0, 0, 0, 0.15)' },
     green: { bg: theme.status.ok, fg: '#121212', border: 'rgba(0, 0, 0, 0.15)' },
-    outline: { bg: 'transparent', fg: theme.text.secondary, border: theme.lineStrong },
+    outline: onPhoto
+      ? { bg: 'rgba(18, 18, 18, 0.85)', fg: '#F2F2F2', border: 'rgba(255, 255, 255, 0.22)' }
+      : { bg: 'transparent', fg: theme.text.secondary, border: theme.lineStrong },
   }[tone];
 
   return (

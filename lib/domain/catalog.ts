@@ -59,6 +59,9 @@ export const SERVICE_TYPES: ServiceTypeSeed[] = [
   { id: 'separador_agua', name: 'Drenar separador de agua (diésel)', category: 'filtros', km: 5000, months: 6, appliesTo: 'diesel', seedReminder: 'diesel' },
   { id: 'cadena_moto', name: 'Cadena / kit de arrastre', category: 'otro', km: 500, months: 1, appliesTo: 'motor', seedReminder: 'motor', notes: 'Lubricar; cambiar cerca de los 20,000 km' },
   { id: 'lavado', name: 'Lavado y detallado', category: 'carroceria', km: null, months: null, appliesTo: 'all', seedReminder: false },
+  // IMP 01102026 note 18: a paint job done months ago had no home. No interval: it is a record, not a reminder.
+  { id: 'pintura_completa', name: 'Pintura completa', category: 'carroceria', km: null, months: null, appliesTo: 'all', seedReminder: false },
+  { id: 'desabollado_pintura', name: 'Desabollado y pintura parcial', category: 'carroceria', km: null, months: null, appliesTo: 'all', seedReminder: false },
   { id: 'otro', name: 'Otro', category: 'otro', km: null, months: null, appliesTo: 'all', seedReminder: false },
 ];
 
@@ -400,6 +403,9 @@ export const MOD_CATEGORIES: ModCategorySeed[] = [
   { id: 'iluminacion', name: 'Iluminación', icon: 'bulb-outline' },
   { id: 'audio_electrico', name: 'Audio / eléctrico', icon: 'flash-outline' },
   { id: 'fabricacion', name: 'Fabricación', icon: 'construct-outline' },
+  // IMP 01102026 note 17: the mods a daily gets — accessories and looks (presets in t.modForm.presets).
+  { id: 'accesorios', name: 'Accesorios', icon: 'pricetag-outline' },
+  { id: 'estetica', name: 'Estética', icon: 'color-palette-outline' },
   { id: 'otro', name: 'Otro', icon: 'ellipsis-horizontal' },
 ];
 

@@ -61,8 +61,17 @@ body {
 
 // Registered from the shell rather than from a component: it should run on
 // every exported route, and it has nothing to do with the React tree.
+// A new worker taking over reloads the page once (IMP 01102026 note 2), so the HTML and its hashed chunks
+// come from the same build — but not on the very first install, when there was no controller before.
 const registerServiceWorker = `
 if ('serviceWorker' in navigator) {
+  var hadController = !!navigator.serviceWorker.controller;
+  var reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    window.location.reload();
+  });
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('/sw.js').catch(function () {});
   });

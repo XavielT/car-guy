@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.4.3 (2026-10-01)
+
+- **Automático, de verdad**: si elegiste Automático pero falta algo (el permiso de ubicación, el inicio
+  automático de MIUI o el ahorro de batería), Inicio y Viajes lo dicen con un botón para arreglarlo. En Viajes →
+  Ajustes ves cuándo llegó el último punto GPS, y el paso de la batería dice si está bien y abre el permiso.
+- **Tu ubicación**: en Modo conducir eres tu avatar en un círculo ámbar con la flecha de dirección. Solo se
+  dibuja con un GPS reciente y preciso; si no, sale gris con "Buscando GPS…" o "Última posición: hace 3 h", y
+  un viaje automático nunca empieza con una posición vieja.
+- **iPhone**: la app web dice lo que Safari no permite (viajes solo manuales y con la pantalla encendida) y abre
+  mejor después de una actualización.
+- **Inicio**: arriba a la derecha está tu avatar (te lleva a Cuenta); el sello 改 ahora vive en el Build.
+- **Cuenta**: la última sincronización con la hora ("30 sept de 2026 · 3:58 p. m.").
+- **Garaje**: el estado sobre la foto se lee (fondo oscuro), los nombres largos no se cortan en los carros que
+  ya no están, y manteniendo presionada una tarjeta: Agregar mod · Nueva echada · Chequeo.
+- **Mods**: botón "+ Mod" en la ficha del carro (también en un daily); categorías nuevas Accesorios y Estética
+  con opciones rápidas (tapones de válvula, polarizado, radio, alfombras, emblemas, luces LED…).
+- **Pintura**: "Pintura completa" y "Desabollado y pintura parcial" en Carrocería y pintura; al guardar te
+  ofrece guardarla también como evento en la historia del carro.
+- **Bienvenida**: una pantalla nueva explica cómo sube el odómetro, y un consejo en Inicio.
+- **Diagnóstico**: Viajes → Ajustes → avanzado → "Exportar diagnóstico de viajes" (sin ubicaciones).
+
 ## 2.4.2 (2026-10-01)
 
 - **Reserva del tanque**: en el formulario del vehículo puedes poner cuánto queda cuando prende la luz de
