@@ -5,7 +5,7 @@ import type { VehicleDraft } from '@/components/VehicleForm';
 import { addMonths, todayIso } from '../domain/dates';
 import { isArchivedFor } from '../domain/garage';
 import { statusLabel } from '../domain/vehicleStatus';
-import { tankForStorage } from '../domain/units';
+import { isLiquid, tankForStorage, toLiters } from '../domain/units';
 import { t } from '../i18n';
 import type { VehicleStatus } from './types';
 import { enqueue, now } from './client';
@@ -60,6 +60,13 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         vin: draft.vin,
         defaultFuelType: draft.defaultFuelType,
         ...tank,
+        // The reserve light (Phase 0 audit): liters like the tank; undefined leaves the column alone.
+        reserveVolumeL:
+          draft.reserveVolume === undefined
+            ? undefined
+            : draft.reserveVolume == null || !isLiquid(draft.defaultFuelType)
+              ? null
+              : Math.round(toLiters(draft.reserveVolume, volumeUnit) * 1000) / 1000,
         initialOdometerKm: draft.odometerKm,
         purchaseDate: draft.purchaseDate,
         purchasePrice: draft.purchasePrice,

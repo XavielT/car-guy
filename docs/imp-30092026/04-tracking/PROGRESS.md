@@ -237,7 +237,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | Found in | Issue | Severity | Notes |
 |---|---|---|---|
 | 0 | Editing a fill-up overwrites its `createdAt` (`lib/store.tsx:339-345`) | low | ✅ fixed in Phase 1 |
-| 0 | No screen edits `vehicle.reserve_volume_l` (reserve estimate always 10 % of the tank) | low | Phase 1 (note 12) can add it to the vehicle form |
+| 0 | No screen edits `vehicle.reserve_volume_l` (reserve estimate always 10 % of the tank) | low | ✅ 2026-10-01: "Reserva" in the vehicle form (vehicle's unit → liters; hidden for GNV; must be < tank) |
 | 0 | Stored `trip_point`s skip the excursion filter; `RouteSvg` draws raw points uncleaned | medium | ✅ Phase 1: `routePointsForDrawing` cleans + trims to `endedAt` |
 | 0 | Disk 90 % (12 GB free) | medium | Phase 4's native rebuild needs room; clear `~/.gradle/caches` if short |
 | 2 | `migrate()` ran twice at once (SQLiteProvider `onInit` + `getDb()`) on the first launch after an update → rollback, empty store for that launch | **high** | ✅ fixed in Phase 2 (`66f233e`, test reproduces it); it existed since 2.0 — 2.2.x upgrades were lucky on timing |

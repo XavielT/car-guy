@@ -113,3 +113,31 @@ it('the hub\'s "Cambiar estado" writes the same kind of milestone', async () => 
   const titles = all(`SELECT title FROM milestone WHERE vehicle_id = 'veh_c3' AND kind = 'estado' ORDER BY created_at`).map((r) => r.title);
   expect(titles.at(-1)).toBe('Cambió a EN EL TALLER · cambio de clutch');
 });
+
+describe('the reserve light (vehicle.reserve_volume_l)', () => {
+  const reserve = () => row(`SELECT reserve_volume_l AS r FROM vehicle WHERE id = 'veh_c3'`).r as number | null;
+
+  it('typed in gallons, stored in liters', async () => {
+    await saveVehicleDraft(draft({ reserveVolume: 1.5 }));
+    expect(reserve()).toBeCloseTo(1.5 * GAL_L, 3);
+  });
+
+  it('typed in liters, stored as typed', async () => {
+    await saveVehicleDraft(draft({ volumeUnit: 'l', tankVolume: 45, reserveVolume: 6 }));
+    expect(reserve()).toBe(6);
+  });
+
+  it('a draft without the field leaves the stored reserve alone; null clears it (back to 10 % of the tank)', async () => {
+    await saveVehicleDraft(draft({ volumeUnit: 'l', tankVolume: 45, reserveVolume: 6 }));
+    const { reserveVolume: _omit, ...older } = draft({ volumeUnit: 'l', tankVolume: 45 });
+    await saveVehicleDraft(older as VehicleDraft);
+    expect(reserve()).toBe(6);
+    await saveVehicleDraft(draft({ volumeUnit: 'l', tankVolume: 45, reserveVolume: null }));
+    expect(reserve()).toBeNull();
+  });
+
+  it('GNV has no reserve estimate: nothing is stored', async () => {
+    await saveVehicleDraft(draft({ defaultFuelType: 'gnv', reserveVolume: 2 }));
+    expect(reserve()).toBeNull();
+  });
+});
