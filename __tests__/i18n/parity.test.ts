@@ -18,7 +18,7 @@ const SAME_OK = new Set([
   'AUTOCROSS', 'RUNS', 'Runs', 'runs', 'Camber (°)', 'LSD', 'LAUNCH', 'Two-step (rpm)', 'Trap (km/h)', 'NEUTRAL', 'Neutral',
   'SPECS', 'IDEA', 'Idea', 'DYNO', 'STOCK', 'stock', 'SNAPSHOTS', 'CORE', 'Treadwear', 'TRACK', 'SWAP', 'ECU',
   'ADMIN · 管理', 'Admin', 'Premium', 'ANDROID · インストール', 'Commit', 'github.com/XavielT/car-guy/releases',
-  'Español', 'English', 'MICM', 'App', 'Stock', 'Interior',
+  'Español', 'English', 'MICM', 'App', 'Stock', 'Interior', 'Legal',
 ]);
 
 /** Proper nouns that contain Spanish words; removed before the leftover check. */

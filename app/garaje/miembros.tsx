@@ -3,6 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
 import { Field } from '@/components/Field';
 import { GarageMembersSkeleton } from '@/components/skeletons/GarageMembersSkeleton';
 import { T } from '@/components/T';
@@ -14,6 +15,7 @@ import { useSession } from '@/lib/cloud/auth';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Vehicle, VehicleMember } from '@/lib/db/types';
 import { t } from '@/lib/i18n';
+import { useProfile } from '@/lib/profile';
 import { createInvite, inviteLink, listMembers, removeMember, setMemberRole } from '@/lib/share/members';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -29,6 +31,7 @@ export default function MembersScreen() {
   const { theme } = useTheme();
   const { session } = useSession();
   const { refresh } = useStore();
+  const profile = useProfile();
   const me = session?.user.id ?? null;
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [members, setMembers] = useState<VehicleMember[]>([]);
@@ -134,6 +137,12 @@ export default function MembersScreen() {
       {members.map((m) => (
         <View key={m.id} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
           <View style={styles.top}>
+            {/* My own row shows my profile; others' drawings and photos are not readable here (lib/profile.ts), so initials. */}
+            {m.userId === me ? (
+              <Avatar size={32} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName ?? m.displayName} decorative />
+            ) : (
+              <Avatar size={32} name={m.displayName} decorative />
+            )}
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }} numberOfLines={1}>
               {m.displayName ?? '—'}
               {m.userId === me ? ` ${t.members.you}` : ''}

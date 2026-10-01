@@ -15,12 +15,14 @@ const NO_SKELETON: Record<string, string> = {
   'app/carga/[id]/index.tsx': 'store-backed',
   'app/odometro.tsx': 'store-backed form',
   'app/onboarding.tsx': 'static',
+  'app/bienvenida/index.tsx': 'static (the welcome slides; the vehicle form is a create form)',
   'app/versiones.tsx': 'static (bundled changelog)',
   'app/instalar.tsx': 'static',
   'app/notificaciones.tsx': 'settings, instant',
   'app/invitacion/[code].tsx': 'auth flow with its own states',
   'app/comentario.tsx': 'create form',
   'app/cuenta.tsx': 'auth spinner is the state',
+  'app/perfil.tsx': 'local settings, instant (lib/profile.ts)',
   'app/nueva-contrasena.tsx': 'auth form',
   'app/vehiculo/nuevo.tsx': 'create form',
   'app/vehiculo/[id]/editar.tsx': 'store-backed form (vehicle detail in memory)',
@@ -44,6 +46,9 @@ const NO_SKELETON: Record<string, string> = {
   'app/pista/sesion/nueva.tsx': 'create form',
   'app/dev/seed.tsx': 'developer tool',
   'app/dev/tokens.tsx': 'developer tool',
+  'app/legal/index.tsx': 'static (bundled texts)',
+  'app/legal/[doc].tsx': 'static (bundled Markdown)',
+  'app/borrar-cuenta.tsx': 'auth flow with its own states',
 };
 
 // Tracked and new (not yet committed) route files; a tracked file moved away in the

@@ -37,6 +37,8 @@
  *  33. anon reads fuel_price_ref (the MICM weeks).             (sql/027)
  *  34. anon cannot insert into it nor call the importer RPC.   (sql/027)
  *  (The importer RPC writing as carguy_importer: local-rls 27a–27l — the JWT is Vercel's only.)
+ *  35. anon cannot execute delete_my_account.                 (sql/028)
+ *  36. a Music Hub-only login is refused by it (optional creds). (sql/028)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -554,6 +556,36 @@ async function main() {
       insert.status >= 400 && rpc.status >= 400,
       `insert ${insert.status} ${JSON.stringify(insert.body?.code ?? '')} · rpc ${rpc.status} ${JSON.stringify(rpc.body?.code ?? '')}`,
     );
+  }
+
+  // 35–36 — Eliminar cuenta (sql/028): the RPC refuses anon and an account that is not Car Guy's.
+  // Nothing is deleted here: test A and B are never passed to delete_my_account (that path is
+  // local-rls 28a–28p). 36 needs an existing Music Hub-only login in .env.local
+  // (CARGUY_VERIFY_MUSICHUB_EMAIL / CARGUY_VERIFY_MUSICHUB_PASSWORD) — x-core cannot create one
+  // from here (invite-only); without it the check is skipped, not passed.
+  {
+    const anonDelete = await call('/rest/v1/rpc/delete_my_account', { method: 'POST', body: '{}' });
+    record(
+      '35. anon cannot execute delete_my_account (sql/028)',
+      anonDelete.status >= 400,
+      `status ${anonDelete.status} · ${JSON.stringify(anonDelete.body?.code ?? anonDelete.body?.message ?? '')}`,
+    );
+    const mhEmail = env.CARGUY_VERIFY_MUSICHUB_EMAIL;
+    const mhPassword = env.CARGUY_VERIFY_MUSICHUB_PASSWORD;
+    if (mhEmail && mhPassword) {
+      const login = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: mhEmail, password: mhPassword }) });
+      const mhToken = login.body?.access_token;
+      const refused = mhToken
+        ? await call('/rest/v1/rpc/delete_my_account', { method: 'POST', headers: { Authorization: `Bearer ${mhToken}` }, body: '{}' })
+        : null;
+      record(
+        '36. a Music Hub-only account is refused by delete_my_account (not_carguy) — nothing of it is touched',
+        Boolean(refused) && refused.status >= 400 && /not_carguy/.test(JSON.stringify(refused.body)),
+        refused ? `status ${refused.status} · ${JSON.stringify(refused.body?.message ?? refused.body)}` : `sign-in ${login.status}`,
+      );
+    } else {
+      console.log('SKIP  36. Music Hub-only refusal — set CARGUY_VERIFY_MUSICHUB_EMAIL / _PASSWORD in .env.local (local-rls 28b covers it)');
+    }
   }
 
   // 24–28 — Enviar comentario (sql/021 + 021_feedback_storage.shared). No

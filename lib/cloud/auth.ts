@@ -99,6 +99,8 @@ export async function signUp(
   if (error) return { ok: false, message: translateAuthError(error.message) };
   // The signup trigger has just given it a carguy.profiles row (sql/002).
   if (data.user) await rememberMember(data.user.id);
+  // Signed straight in (x-core has e-mail confirmation off): the anonymous profile goes up.
+  if (data.user && data.session) afterSignIn(data.user.id);
   return { ok: true };
 }
 
@@ -119,7 +121,19 @@ export async function signIn(email: string, password: string): Promise<AuthResul
     await supabase.auth.signOut();
     return { ok: false, message: member === false ? t.account.errors.otherApp : t.account.errors.network };
   }
+  afterSignIn(data.user.id);
   return { ok: true };
+}
+
+/**
+ * The profile set up without an account uploads now; a phone with none takes
+ * the account's (lib/profile.ts). Fire and forget, imported lazily: signing in
+ * must not wait on a photo upload, and auth must not pull the media stack in.
+ */
+function afterSignIn(userId: string): void {
+  void import('../profile')
+    .then((profile) => profile.syncProfileOnSignIn(userId))
+    .catch((error) => recordError('profile-sign-in', error));
 }
 
 /**

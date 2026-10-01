@@ -13,6 +13,6 @@ export const FEATURE_I18N = true;
 /** Eventos on milestones (ADR-44) — PROMPT-05. On: app/evento/*, the hub's Eventos tab, Historial 'evento' rows. */
 export const FEATURE_EVENTS = true;
 /** Perfil + bienvenida v2 — PROMPT-06. */
-export const FEATURE_ONBOARDING_V2 = false;
+export const FEATURE_ONBOARDING_V2 = true;
 /** Términos y privacidad acceptance — PROMPT-06. */
 export const FEATURE_LEGAL = false;

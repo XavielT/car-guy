@@ -672,6 +672,7 @@ export const enPart3: Pick<
 
   common: {
     cancel: 'Cancel',
+    continue: 'Continue',
     save: 'Save',
     delete: 'Delete',
     ok: 'Got it',

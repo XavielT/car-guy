@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/Avatar';
 import { Field } from '@/components/Field';
+import { SignupConsent } from '@/components/legal/SignupConsent';
 import { T } from '@/components/T';
 import {
   Badge,
   GhostButton,
-  Hanko,
   KeyValueRow,
+  NavRow,
   PrimaryButton,
   SectionHeader,
   Segmented,
@@ -26,10 +28,12 @@ import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { FEATURE_ALBUM, FEATURE_SYNC } from '@/lib/flags';
 import { StorageMeter } from '@/components/album/StorageMeter';
 import { dateLabel } from '@/lib/format';
+import { recordAcceptance } from '@/lib/legal/acceptance';
 import { t } from '@/lib/i18n';
 import { newerSchemaCount } from '@/lib/sync/engine';
 import { useSync } from '@/lib/sync/useSync';
 import { wipeCloudData } from '@/lib/sync/wipeCloud';
+import { useProfile } from '@/lib/profile';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -48,6 +52,7 @@ export default function CuentaScreen() {
   const { theme } = useTheme();
   const { resetAll } = useStore();
   const { session, ready, configured, otherApp } = useSession();
+  const profile = useProfile();
   const role = useRole();
   const { status, pending, lastSyncAt, running, syncNow } = useSync();
 
@@ -55,6 +60,8 @@ export default function CuentaScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  // Creating an account is the one thing that needs the terms accepted (ADR-47).
+  const [consent, setConsent] = useState(false);
   const [reveal, setReveal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +76,7 @@ export default function CuentaScreen() {
     setError(null);
     if (!email.trim()) return setError(t.account.errors.emailRequired);
     if (!password) return setError(t.account.errors.passwordRequired);
+    if (mode === 'signUp' && !consent) return setError(t.legalUi.signupNeedsConsent);
 
     setBusy(true);
     const result =
@@ -78,6 +86,7 @@ export default function CuentaScreen() {
     if (!result.ok) return setError(result.message);
 
     setPassword('');
+    if (mode === 'signUp') void recordAcceptance();
     if (mode === 'signUp') Alert.alert(t.account.createdTitle, t.account.createdBody);
   }
 
@@ -138,6 +147,11 @@ export default function CuentaScreen() {
           {t.account.subtitle}
         </T>
 
+        {/* Perfil works with or without an account (local first; uploads once signed in). */}
+        <View style={{ marginTop: space.lg }}>
+          <NavRow label={t.profileUi.open} caption={profile.displayName ?? t.profileUi.openCaption} onPress={() => router.push('/perfil')} />
+        </View>
+
         {!configured ? (
           <Surface style={styles.card}>
             <StatusPill status="proximo" label={t.account.notConfiguredPill} />
@@ -173,8 +187,10 @@ export default function CuentaScreen() {
                     {session.user.email}
                   </T>
                 </View>
-                {/* The hanko avatar Inicio shows, with the account's initial. */}
-                <Hanko char={(session.user.email ?? '?').slice(0, 1).toUpperCase()} size={48} />
+                {/* The profile avatar (photo → drawing → initials); tapping it opens Perfil. */}
+                <Pressable onPress={() => router.push('/perfil')} accessibilityRole="button" accessibilityLabel={t.profileUi.headerA11y} hitSlop={8}>
+                  <Avatar size={48} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName ?? session.user.email} decorative />
+                </Pressable>
               </View>
               <View style={[styles.rule, { backgroundColor: theme.line }]} />
 
@@ -258,6 +274,7 @@ export default function CuentaScreen() {
                 <GhostButton danger label={t.sync.wipeCloud} onPress={confirmWipeCloud} />
               </>
             ) : null}
+            <NavRow danger label={t.deleteAccount.entry} caption={t.deleteAccount.entryCaption} onPress={() => router.push('/borrar-cuenta')} />
           </>
         ) : (
           <>
@@ -322,6 +339,7 @@ export default function CuentaScreen() {
                 onChangeText={setDisplayName}
               />
             ) : null}
+            {mode === 'signUp' ? <SignupConsent checked={consent} onChange={setConsent} /> : null}
 
             {error || otherApp ? (
               <T

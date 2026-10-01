@@ -9,6 +9,7 @@ import { StockActualCard } from '@/components/build/StockActualCard';
 import { TireStatsCard } from '@/components/build/TireStatsCard';
 import { Field } from '@/components/Field';
 import { VehicleBuildSkeleton } from '@/components/skeletons/VehicleSkeletons';
+import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { Chip, EmptyState, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
@@ -245,6 +246,7 @@ export default function BuildScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
+        <TipCard id="build" />
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
