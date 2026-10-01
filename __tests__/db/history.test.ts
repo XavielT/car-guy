@@ -61,4 +61,7 @@ it('OBD search folds accents too ("posicion" finds "posición")', async () => {
   expect(withAccent.length).toBeGreaterThan(0);
   expect(without.map((d) => d.code)).toEqual(withAccent.map((d) => d.code));
   expect((await dtcCodes.search('p0301'))[0]?.code).toBe('P0301');
+  // The English description matches too, whatever the app's language.
+  const misfire = await dtcCodes.search('misfire', 500);
+  expect(misfire.map((d) => d.code)).toEqual(expect.arrayContaining(['P0300', 'P0301']));
 });

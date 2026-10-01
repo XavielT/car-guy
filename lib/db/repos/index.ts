@@ -160,16 +160,16 @@ export const dtcCodes = {
     return row ? toDtc(row) : null;
   },
   /**
-   * Code or Spanish description, accent- and case-insensitive ("valvula" finds
-   * "válvula"): SQLite's NOCASE folds ASCII only, so the bundled table (~1k
-   * rows, read-only) is read once and filtered in JS.
+   * Code or description — Spanish or English, whatever the app's language (a mechanic says "misfire" in
+   * Spanish too) — accent- and case-insensitive ("valvula" finds "válvula"): SQLite's NOCASE folds ASCII
+   * only, so the bundled table (~1k rows, read-only) is read once and filtered in JS.
    */
   async search(q: string, limit = 50): Promise<DtcCode[]> {
     const fold = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const wanted = fold(q.trim());
     dtcCache ??= getDb().then((db) => db.getAllAsync<Record<string, unknown>>('SELECT * FROM dtc_code ORDER BY code')).then((rows) => rows.map(toDtc));
     const all = await dtcCache;
-    return all.filter((d) => fold(d.code).includes(wanted) || fold(d.descEs).includes(wanted)).slice(0, limit);
+    return all.filter((d) => fold(d.code).includes(wanted) || fold(d.descEs).includes(wanted) || fold(d.descEn ?? '').includes(wanted)).slice(0, limit);
   },
 };
 

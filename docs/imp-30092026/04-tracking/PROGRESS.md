@@ -245,7 +245,7 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 2 | Domain copy (price sources, event types/severities, memory sections, tire badges/messages) is in module constants, not `lib/i18n/es.ts` | low | ✅ moved in Phase 3A |
 | 3A | The public page `/c/<slug>` (lib/share/html.ts, dossier.ts) renders Spanish always | low | needs `vehicle_share.locale` (the owner's language at publish) — a later cycle |
 | 3A | `npm audit`: 3 moderate (decode-uri-component ≤ 0.4.2 via expo-router → query-string 7) | low | pre-existing; the only fix (0.5.0) is ESM-only and query-string 7 `require`s it — wait for expo-router |
-| 3A | OBD search matches `descEs` only | low | English search of codes by description — later |
+| 3A | OBD search matches `descEs` only | low | ✅ 2026-10-01: matches the English description too, in either language ("misfire" → P0300…) |
 | 4 | The live trail in Modo conducir is one colour (red); the trip detail colours by speed bucket | low | ✅ 2026-10-01: it was already speed-coloured; only fixes without a GPS speed fell back to the "unknown" red — they now derive distance ÷ time like the trip detail (`lib/trips/driveTrail.ts`) |
 | 4 | No Expo Go guard card for the map (a dev build is assumed; Expo Go is not used in this project) | low | — |
 | 5 | **Privacy:** the cloud public page (public_dossier, 022 → 025) lists every milestone under show_story — an accident with its cost and pendiente would be public | **high** | ✅ written: `sql/029_dossier_hito_only.sql` (only event_type = 'hito'); local-rls 29a–c green; **apply needs Xaviel's OK** |
