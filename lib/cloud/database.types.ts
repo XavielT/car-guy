@@ -1617,6 +1617,7 @@ export type Database = {
           locale: string | null
           media_quota_bytes: number
           photo_public: boolean
+          photo_public_jpeg: string | null
           role: string
           show_cars: boolean
           show_fichas: boolean
@@ -1639,6 +1640,7 @@ export type Database = {
           locale?: string | null
           media_quota_bytes?: number
           photo_public?: boolean
+          photo_public_jpeg?: string | null
           role?: string
           show_cars?: boolean
           show_fichas?: boolean
@@ -1661,6 +1663,7 @@ export type Database = {
           locale?: string | null
           media_quota_bytes?: number
           photo_public?: boolean
+          photo_public_jpeg?: string | null
           role?: string
           show_cars?: boolean
           show_fichas?: boolean
@@ -3699,6 +3702,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_reports: { Args: { p_limit?: number }; Returns: Json }
+      admin_set_report_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
       admin_set_role: {
         Args: { p_role: string; p_user: string }
         Returns: string
@@ -3757,6 +3765,7 @@ export type Database = {
       get_public_profile: { Args: { p_handle: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_app_user: { Args: never; Returns: boolean }
+      is_handle_free: { Args: { p_handle: string }; Returns: string }
       is_member: { Args: { min_role?: string; v: string }; Returns: boolean }
       join_junte: { Args: { p_code: string }; Returns: string }
       junte_blocked_author: { Args: { author: string }; Returns: boolean }
@@ -3776,6 +3785,7 @@ export type Database = {
         Args: { p_junte: string; p_trip_share: string }
         Returns: undefined
       }
+      list_follows: { Args: { p_kind: string }; Returns: Json }
       list_trip_shares: {
         Args: { lim?: number; p_handle: string }
         Returns: Json
