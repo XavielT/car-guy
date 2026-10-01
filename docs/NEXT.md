@@ -17,8 +17,6 @@ welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), l
 ### Carried to the next cycle (from 2.4)
 - **Read the legal texts** (content/legal/*.md, not legal advice): 2.4.0 shipped them on his "do all the stuff";
   any wording change is a LEGAL_VERSION bump, so the sheet asks everyone again.
-- **Legal acceptance on his phone:** Más → Legal says accepted on 01 oct 2026 although the upgrade check tapped
-  "Ahora no" — confirm he accepted elsewhere; if not, look at the sheet's tap targets.
 - **Xaviel's real drive** with Modo conducir open (~10 min, city streets): the trip detail's line must follow
   the streets; if not, long-press the route → export the GeoJSON (docs/imp-30092026/05-manual-checklist.md).
 - **Play Store checklist**, now that legal exists: the three pages are live (/terminos, /privacidad,
@@ -28,7 +26,7 @@ welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), l
 - **MapTiler fallback key** (EXPO_PUBLIC_MAPTILER_KEY) only if OpenFreeMap ever fails — not set today.
 - **MICM parser status:** the four notices of Sep 2026 parse (lib/micm/parse.ts); the weekly cron runs Saturday
   12:00 UTC; if MICM changes the PDF layout the importer answers stale and the manual entry still works.
-- **Music Hub sign-in check**: confirm a Car Guy-only account cannot open Music Hub (the reverse of 2.1.3's rule).
+- Music Hub sign-in check: dropped for now (Xaviel, 2026-10-01 — Car Guy only).
 - **Service-role key**: it appeared in a session's terminal output on 2026-09-30; rotate it in Supabase and
   update Vercel (`SUPABASE_SERVICE_ROLE_KEY`) and `.env.supabase`.
 - ✅ Public page "Lo que uso" — sql/032 applied 2026-10-01 (show_memory + memory_summary, spec-sheet rows only),

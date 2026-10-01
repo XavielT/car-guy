@@ -677,8 +677,7 @@ in-house as react-native-svg components. They are Car Guy's own work, so no lice
 
 ### Observed at release
 - After "Ahora no" on his phone the sheet did not return on the next cold start: Más → Legal says "Aceptados el 01 oct
-  de 2026". The only writers are the two ACEPTO buttons and signup; the tap was on "Ahora no" (y 2149, button
-  ~1956–2090 for ACEPTO). Either he accepted elsewhere (synced row) or the tap registered as ACEPTO — asked him.
+  de 2026". Resolved: Xaviel accepted it himself (2026-10-01); the sheet behaved as designed.
   `service_role` has no SELECT on carguy.legal_acceptance, so the cloud row was not read.
 
 ## Final state (IMP 30092026)
