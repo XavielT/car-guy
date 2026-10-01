@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.4.0 "Tōge" (2026-09-30)
+
+- **Idioma**: la app en español o en inglés (Más → Idioma). "Sistema" sigue el idioma del teléfono; si ya
+  tenías tu garaje, se queda en español hasta que lo cambies.
+- **Modo conducir y mapa**: el botón rojo CONDUCIR en el centro de la barra abre un mapa en vivo con tu
+  velocidad, la ruta que vas haciendo y los botones para iniciar o terminar. La pantalla no se apaga y se puede
+  girar. Cada viaje se ve ahora sobre un mapa de calles real, coloreado por velocidad, y "Por dónde manejas" es
+  un mapa de calor. Cifras se mudó a Más (y tiene su atajo en Inicio).
+- **Eventos**: guarda lo que le pasa al carro — choque, daño menor, avería, se calentó, multa, viaje largo, junte —
+  con gravedad, costo, lo que falta por hacer ("pintar el guardafango") y fotos o PDF como prueba. Aparecen en
+  la pestaña Eventos del carro, en Historial, en el álbum y en el libro. La página pública nunca los muestra.
+- **Mi carro, de memoria**: en la ficha, "Lo que uso" guarda qué aceite, filtro, bombillos y gomas le compras y
+  cualquier dato que quieras recordar (código del radio, torques…), con búsqueda. Al registrar un cambio de
+  aceite te ofrece "Igual que siempre".
+- **Gomas**: cuenta cuántas gomas has quemado, con insignias ("Primer juego", "Quemagomas"…), aviso de ciclos de
+  calor y una tarjeta para compartir.
+- **Precios**: historial de precios con fecha, fuente y estación, gráfica en Cifras, y la carga nueva toma el
+  precio del tablero. Los precios del MICM se importan solos cada semana.
+- **Perfil y bienvenida**: tu nombre y una foto o uno de 16 dibujos de la casa. Quien instala la app por primera
+  vez ve una bienvenida corta y consejos en cada sección.
+- **Legal**: términos, privacidad y cómo borrar tu cuenta, en la app y en la web. Desde Cuenta puedes eliminar tu
+  cuenta y todos tus datos.
+- **Arreglos**: cada pantalla muestra su esqueleto mientras carga, en vez de un vacío; la página pública volvió
+  a abrir; los eventos ya no salen en la página pública.
+
 ## 2.3.1 (2026-09-30)
 
 - **Cada echada tiene su pantalla**: al guardar una carga llegas a su detalle (litros, total, precio, odómetro

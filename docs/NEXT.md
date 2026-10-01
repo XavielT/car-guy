@@ -6,13 +6,29 @@ still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
-## Cycle 4 — IMP 30092026 (Car Guy 2.4 "Tōge") — started 2026-09-30
+## Cycle 4 — IMP 30092026 (Car Guy 2.4 "Tōge") — released 2026-09-30
 
 Seventeen notes from Xaviel's use of 2.2/2.3 → fix pack 2.3.1 (fill-up detail + no duplicates, stations,
 reserve light, "≈ por echada", routes that keep their points), then es/en + skeletons, MapLibre + Modo
 conducir behind a centre button, the car's memory (events, "lo que uso", tires, fuel prices + MICM), profile /
 welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), log:
 [`imp-30092026/04-tracking/PROGRESS.md`](imp-30092026/04-tracking/PROGRESS.md).
+
+### Carried to the next cycle (from 2.4)
+- **Xaviel's real drive** with Modo conducir open (~10 min, city streets): the trip detail's line must follow
+  the streets; if not, long-press the route → export the GeoJSON (docs/imp-30092026/05-manual-checklist.md).
+- **Play Store checklist**, now that legal exists: the three pages are live (/terminos, /privacidad,
+  /eliminar-cuenta), the background-location disclosure sits right before the system prompt, in-app account
+  deletion works; still to do — a Data safety form, a store listing, signing with a Play upload key, and an
+  honest look at whether background location is worth the review.
+- **MapTiler fallback key** (EXPO_PUBLIC_MAPTILER_KEY) only if OpenFreeMap ever fails — not set today.
+- **MICM parser status:** the four notices of Sep 2026 parse (lib/micm/parse.ts); the weekly cron runs Saturday
+  12:00 UTC; if MICM changes the PDF layout the importer answers stale and the manual entry still works.
+- **Music Hub sign-in check**: confirm a Car Guy-only account cannot open Music Hub (the reverse of 2.1.3's rule).
+- **Service-role key**: it appeared in a session's terminal output on 2026-09-30; rotate it in Supabase and
+  update Vercel (`SUPABASE_SERVICE_ROLE_KEY`) and `.env.supabase`.
+- Public page "Lo que uso" needs `vehicle_share.show_memory` + a public_dossier block (one SQL file).
+- Others' avatars in member / admin lists need an avatar_id that members may read (one SQL file).
 
 ## Cycle 3 — IMP 29092026 (Car Guy 2.2 "Kaidō") — released 2026-09-30
 

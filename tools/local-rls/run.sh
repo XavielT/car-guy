@@ -44,6 +44,7 @@ $P -f sql/027_fuel_price_ref.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 # 029: public_dossier without events (ADR-44); re-runnable.
 $P -f sql/029_dossier_hito_only.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/029_dossier_hito_only.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
+$P -f sql/030_service_role_usage.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 # 028: delete_my_account + admin_pending_deletions (Phase 6); re-runnable. Its scenario runs last (it deletes A).
 $P -f sql/028_delete_account.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/028_delete_account.sql 2>&1 | grep -E 'ERROR' && exit 1 || true

@@ -42,6 +42,14 @@ un extra.
 - **Lo que me ha costado** (2.2): el costo total de cada carro y por km, en Cifras, el PDF y el CSV
 - **Novedades y comentarios** (2.2): lo nuevo de cada versión y un formulario para reportar problemas,
   sin cuenta
+- **Español e inglés** (2.4): Más → Idioma; "Sistema" sigue el teléfono
+- **Modo conducir y mapa** (2.4): botón CONDUCIR en el centro de la barra, mapa en vivo, cada viaje sobre un
+  mapa de calles (OpenFreeMap) coloreado por velocidad, mapa de calor
+- **Eventos, Lo que uso, gomas y precios** (2.4): lo que le pasa al carro con pruebas y pendientes; lo que le
+  compras y cualquier dato que quieras recordar; contador de gomas quemadas con insignias; historial de precios
+  y los del MICM importados cada semana
+- **Perfil, bienvenida y legal** (2.4): avatar o foto, una bienvenida para quien llega nuevo, términos,
+  privacidad y eliminar la cuenta desde la app
 
 Todo vive en el teléfono. La cuenta en la nube es opcional y nunca hace falta para usar la app.
 
