@@ -84,7 +84,8 @@
     "test": "jest",
     "lint": "expo lint",
     "types:gen": "npx supabase gen types typescript --project-id nakgrkcqyuycadeuenuw --schema carguy > lib/cloud/database.types.ts.tmp && mv lib/cloud/database.types.ts.tmp lib/cloud/database.types.ts",
-    "postinstall": "patch-package && node tools/copy-maplibre-worker.mjs"
+    "postinstall": "patch-package && node tools/copy-maplibre-worker.mjs",
+    "check:api": "node tools/check-api-load.mjs"
   },
   "private": true,
   "overrides": {

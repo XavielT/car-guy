@@ -1,4 +1,3 @@
-import { getLocales } from 'expo-localization';
 import { useSyncExternalStore } from 'react';
 
 import type { Dict, Lang } from './dict';
@@ -51,6 +50,11 @@ function emit(): void {
 /** The device's first language, if it is one we have; Spanish otherwise. */
 export function deviceLanguage(): Lang {
   try {
+    // Lazy and guarded: this module also runs inside Vercel functions (api/c/[slug].ts reaches it
+    // through the catalogue labels), where expo-localization → react-native cannot load. A static
+    // import there crashed every public page (FUNCTION_INVOCATION_FAILED) — found 2026-09-30.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getLocales } = require('expo-localization') as typeof import('expo-localization');
     return getLocales()[0]?.languageCode === 'en' ? 'en' : 'es';
   } catch {
     return 'es';

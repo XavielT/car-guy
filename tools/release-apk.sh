@@ -42,6 +42,8 @@ fi
 
 # 1. The cloud is in the bundle (note 13).
 node tools/check-bundle-env.mjs "$APK"
+# The Vercel functions must load in plain Node (a static expo import once broke every public page).
+node tools/check-api-load.mjs
 
 # 2. Signed with the users' key.
 CERT=$("$APKSIGNER" verify --print-certs "$APK" | grep -m1 'SHA-256' | awk '{print $NF}')
