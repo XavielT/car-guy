@@ -61,4 +61,4 @@ Si cambiamos estos términos de forma importante, la app te lo avisa y te pide a
 
 ## 11. Ley aplicable y contacto
 
-Estos términos se rigen por las leyes de la República Dominicana; los tribunales de Santo Domingo son los competentes. Para cualquier consulta: **CONTACTO@EJEMPLO**.
+Estos términos se rigen por las leyes de la República Dominicana; los tribunales de Santo Domingo son los competentes. Para cualquier consulta: **xavieldev@gmail.com**.

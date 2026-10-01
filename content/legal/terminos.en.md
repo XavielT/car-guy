@@ -61,4 +61,4 @@ If we change these terms in an important way, the app tells you and asks you to 
 
 ## 11. Governing law and contact
 
-These terms are governed by the laws of the Dominican Republic; the courts of Santo Domingo have jurisdiction. For any question: **CONTACTO@EJEMPLO**.
+These terms are governed by the laws of the Dominican Republic; the courts of Santo Domingo have jurisdiction. For any question: **xavieldev@gmail.com**.

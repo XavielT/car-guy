@@ -4,7 +4,7 @@
 
 ## 1. Who is responsible
 
-**Xaviel Terrero**, in the Dominican Republic, responsible for Car Guy (a personal project). Contact: **CONTACTO@EJEMPLO**.
+**Xaviel Terrero**, in the Dominican Republic, responsible for Car Guy (a personal project). Contact: **xavieldev@gmail.com**.
 
 ## 2. The short version
 
@@ -58,7 +58,7 @@ The servers are **outside the Dominican Republic** (United States). By creating 
 Under the Dominican Republic's **Law 172-13 on the Protection of Personal Data**, you have the right to **access** your data, **rectify** it, **cancel** (erase) it and **object** to its processing.
 
 - In the app you can see and correct everything you record, **export** it and **delete your account** (More → Account → Delete account).
-- For any other request, write to **CONTACTO@EJEMPLO**. We answer within the time limits set by the law.
+- For any other request, write to **xavieldev@gmail.com**. We answer within the time limits set by the law.
 
 ## 10. Background location
 

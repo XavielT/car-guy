@@ -4,7 +4,7 @@
 
 ## 1. Quién es el responsable
 
-**Xaviel Terrero**, en la República Dominicana, responsable de Car Guy (proyecto personal). Contacto: **CONTACTO@EJEMPLO**.
+**Xaviel Terrero**, en la República Dominicana, responsable de Car Guy (proyecto personal). Contacto: **xavieldev@gmail.com**.
 
 ## 2. Lo esencial
 
@@ -58,7 +58,7 @@ Los servidores están **fuera de la República Dominicana** (Estados Unidos). Al
 Conforme a la **Ley 172-13 de Protección de Datos de Carácter Personal** de la República Dominicana, tienes derecho a **acceder** a tus datos, **rectificarlos**, **cancelarlos** (suprimirlos) y **oponerte** a su tratamiento.
 
 - En la app puedes ver y corregir todo lo que registras, **exportarlo** y **eliminar tu cuenta** (Más → Cuenta → Eliminar cuenta).
-- Para cualquier otra solicitud, escribe a **CONTACTO@EJEMPLO**. Respondemos en los plazos que fija la ley.
+- Para cualquier otra solicitud, escribe a **xavieldev@gmail.com**. Respondemos en los plazos que fija la ley.
 
 ## 10. Ubicación en segundo plano
 

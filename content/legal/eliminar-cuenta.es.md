@@ -17,7 +17,7 @@ En la versión web es igual: entra en Car Guy en el navegador, inicia sesión y 
 
 ## Sin la app
 
-Si ya no tienes la app, escribe a **CONTACTO@EJEMPLO** desde el correo de tu cuenta, con el asunto **"Eliminar mi cuenta de Car Guy"**. Para proteger tu cuenta, solo atendemos la solicitud si llega desde ese mismo correo. La procesamos en un plazo máximo de 30 días y te confirmamos por correo.
+Si ya no tienes la app, escribe a **xavieldev@gmail.com** desde el correo de tu cuenta, con el asunto **"Eliminar mi cuenta de Car Guy"**. Para proteger tu cuenta, solo atendemos la solicitud si llega desde ese mismo correo. La procesamos en un plazo máximo de 30 días y te confirmamos por correo.
 
 ## Qué se borra
 

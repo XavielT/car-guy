@@ -24,7 +24,7 @@ export const LEGAL_DATE = '2026-10-01';
  * chooses the address: replace it here AND in content/legal/*.md, then `node tools/build-legal.mjs`
  * (__tests__/legal/markdown.test.ts checks the texts use this same value).
  */
-export const LEGAL_CONTACT = 'CONTACTO@EJEMPLO';
+export const LEGAL_CONTACT = 'xavieldev@gmail.com';
 
 /** The Markdown of one text in one language. */
 export function legalMarkdown(doc: LegalDocId, lang: LegalLang): string {

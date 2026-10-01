@@ -259,11 +259,11 @@ recording — PROGRESS audit (e)) and 5(c) (pre-roll) stays unbuilt.
 | 0 | Folder rename `~/dev2/tu-gasolina-rd` → `~/dev2/car-guy` | Xaviel | open |
 | 2 | Apply `sql/025` + `sql/026` to x-core | Xaviel's OK | ✅ applied 2026-09-30; verifiers green |
 | 5 | Apply `sql/029` (privacy) and `sql/027` | Xaviel's OK | ✅ applied 2026-09-30; the role file (`027_…role.shared.sql`) only for the JWT path — not applied |
-| 6 | Contact e-mail for the legal texts (now `CONTACTO@EJEMPLO`; `LEGAL_CONTACT` in lib/legal/index.ts + six .md, then `node tools/build-legal.mjs`) | Xaviel | open — **blocks the 2.4.0 release and the merge** (the pages are public) |
+| 6 | Contact e-mail for the legal texts | Xaviel | ✅ xavieldev@gmail.com (his pick, 2026-09-30) |
 | 6 | Read the legal drafts (content/legal/*.md; not legal advice — docs/imp-30092026/06-legal-texts.md) | Xaviel | open |
-| 6 | Apply `sql/028_delete_account.sql` (not --shared) | Xaviel's OK | open |
-| 6 | `SUPABASE_SERVICE_ROLE_KEY` in Vercel for api/eliminar-cuenta.ts (and, if he picks it, the MICM importer) — rotate the key first | Xaviel | open — without it deletion removes all data and the admin removes the login by hand |
-| 5 | Importer key in Vercel: `CARGUY_IMPORTER_JWT` (JWT `{"role":"carguy_importer"}` signed with the project's JWT secret) **or** `SUPABASE_SERVICE_ROLE_KEY` | Xaviel (dashboard + Vercel env) | open — without it /api/precios answers 503 `no-writer-key` with the parsed rows |
+| 6 | Apply `sql/028_delete_account.sql` | Xaviel's OK | ✅ applied 2026-09-30; verify-x-core 35/35 |
+| 6 | `SUPABASE_SERVICE_ROLE_KEY` in Vercel (deletion + MICM importer) | Xaviel | ✅ set (production, sensitive) with the current key — he chose not to rotate first; rotate later and update Vercel |
+| 5 | Importer key in Vercel | Xaviel | ✅ service-key path (SUPABASE_SERVICE_ROLE_KEY) |
 
 ---
 

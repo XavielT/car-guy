@@ -17,7 +17,7 @@ On the web it is the same: open Car Guy in the browser, sign in and follow the s
 
 ## Without the app
 
-If you no longer have the app, write to **CONTACTO@EJEMPLO** from your account's e-mail address, with the subject **"Delete my Car Guy account"**. To protect your account, we only act on a request sent from that same address. We process it within 30 days at most and confirm by e-mail.
+If you no longer have the app, write to **xavieldev@gmail.com** from your account's e-mail address, with the subject **"Delete my Car Guy account"**. To protect your account, we only act on a request sent from that same address. We process it within 30 days at most and confirm by e-mail.
 
 ## What gets deleted
 

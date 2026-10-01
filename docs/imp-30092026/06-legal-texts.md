@@ -21,7 +21,7 @@
 
 ## Blockers for Xaviel
 
-1. **Contact e-mail.** Every text says `CONTACTO@EJEMPLO`. Choose the address, then replace it in
+1. **Contact e-mail.** Every text says `xavieldev@gmail.com`. Choose the address, then replace it in
    `lib/legal/index.ts` (`LEGAL_CONTACT`) and in the six Markdown files, and run
    `node tools/build-legal.mjs`. The test checks the texts and the constant agree and that no other
    address appears.
