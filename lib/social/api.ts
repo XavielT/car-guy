@@ -12,8 +12,8 @@ export type PublicProfile = {
   handle: string;
   display_name: string | null;
   avatar_id: string | null;
-  /** Only when the owner made the photo public. */
-  avatar_path: string | null;
+  /** sql/037: a small JPEG data URI, only when the owner made the photo public. */
+  photo: string | null;
   is_public: boolean;
   is_me: boolean;
   premium: boolean;
@@ -30,7 +30,24 @@ export type PublicProfile = {
 
 export type ProfileHit = { handle: string; display_name: string | null; avatar_id: string | null; is_public: boolean; my_follow: FollowStatus | null };
 
-export type PersonRef = { handle: string; display_name: string | null; avatar_id: string | null };
+export type PersonRef = { handle: string; display_name: string | null; avatar_id: string | null; photo?: string | null };
+
+/** list_follows (sql/037) rows. */
+export type FollowPerson = PersonRef & { follows_me: boolean; i_follow: boolean; since: string };
+export type FollowListKind = 'followers' | 'following' | 'friends' | 'requests_sent';
+
+export type HandleCheck = 'free' | 'mine' | 'taken' | 'reserved' | 'format';
+
+export type AdminReport = {
+  id: string;
+  target_type: ReportType;
+  target_id: string;
+  reason: string;
+  status: 'new' | 'seen' | 'done';
+  created_at: string;
+  reporter: string | null;
+  reporter_name: string | null;
+};
 
 /** my_social — counts and the pending requests, cached in social_cache under 'me'. */
 export type MySocial = { followers: number; following: number; friends: number; requests: PersonRef[]; blocked: string[] };
@@ -60,4 +77,8 @@ export const unblockUser = (handle: string) => rpc<null>('unblock_user', { p_han
 export const mySocial = () => rpc<MySocial>('my_social');
 export const reportTarget = (type: ReportType, target: string, reason = ''): Promise<RpcResult<string>> =>
   rpc<string>('report_target', { p_type: type, p_target: target, p_reason: reason });
+export const isHandleFree = (handle: string) => rpc<HandleCheck>('is_handle_free', { p_handle: handle });
+export const listFollows = (kind: FollowListKind) => rpc<FollowPerson[]>('list_follows', { p_kind: kind });
+export const adminReports = (limit = 100) => rpc<AdminReport[]>('admin_reports', { p_limit: limit });
+export const setReportStatus = (id: string, status: AdminReport['status']) => rpc<null>('admin_set_report_status', { p_id: id, p_status: status });
 export const listTripShares = (handle: string, lim = 30) => rpc<SharedTrip[]>('list_trip_shares', { p_handle: handle, lim });

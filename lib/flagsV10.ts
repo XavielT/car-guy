@@ -10,8 +10,8 @@ export const FEATURE_GAUGE_SEGMENTS = true;
 export const FEATURE_OTA = true;
 /** "Apoyar Car Guy" + admin Uso y costos (ADR-53) — PROMPT-04. On: Más → Apoyar (last row), Admin → Uso y costos. */
 export const FEATURE_SUPPORT = true;
-/** @handle, public profiles, follows, privacy, shared trips (ADR-54…56) — PROMPT-05. */
-export const FEATURE_SOCIAL = false;
+/** @handle, public profiles, follows, privacy, shared trips (ADR-54…56) — PROMPT-05. On: Perfil público, /u/<handle>, Comunidad, Compartir viaje, Admin → Reportes. */
+export const FEATURE_SOCIAL = true;
 /** Juntes with the live map (ADR-57) — PROMPT-06. */
 export const FEATURE_JUNTES = false;
 /** Junte chat: built in PROMPT-06 but stays off until push notifications exist. */

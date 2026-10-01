@@ -28,7 +28,7 @@ import { exportBackup, importBackup } from '@/lib/backup';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_I18N, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { FEATURE_ONBOARDING_V2 } from '@/lib/flagsV8';
-import { FEATURE_SUPPORT } from '@/lib/flagsV10';
+import { FEATURE_SOCIAL, FEATURE_SUPPORT } from '@/lib/flagsV10';
 import { resetTips } from '@/lib/onboarding/tips';
 import { FEEDBACK_ROUTE } from '@/lib/feedback';
 import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
@@ -235,6 +235,9 @@ export default function MasScreen() {
             ) : undefined
           }
         />
+
+        {/* IMP 01102026 Phase 5: people. */}
+        {FEATURE_SOCIAL ? <NavRow label={t.social.more} caption={t.social.moreCaption} onPress={() => router.push('/comunidad')} /> : null}
 
         <MoreSection
           title={t.more.data}

@@ -43,6 +43,8 @@ Car Guy is a personal app for keeping your car's history: fuel, maintenance, che
 
 Do not use Car Guy to attack or overload the service, scrape data, access other people's accounts, or reverse engineer it for those purposes.
 
+Your **@username**, your bio and what you share on your public profile must not impersonate another person or brand, nor be offensive or misleading. We may change a @username that breaks this or reserve ones that would confuse (for example "admin" or "carguy"). You can report and block profiles from the app.
+
 ## 7. Suspension and termination
 
 You can stop using Car Guy and delete your account at any time. We may suspend an account that abuses the service. What happens to your data when the account is deleted is in the [Privacy Policy](/privacidad?lang=en).

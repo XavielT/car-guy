@@ -10,6 +10,7 @@
   ],
   "rewrites": [
     { "source": "/c/:slug", "destination": "/api/c/:slug" },
+    { "source": "/u/:handle", "destination": "/api/u/:handle" },
     { "source": "/vehiculo/:id/editar", "destination": "/vehiculo/[id]/editar" },
     { "source": "/vehiculo/:id/album/estado", "destination": "/vehiculo/[id]/album/estado" },
     { "source": "/vehiculo/:id/album", "destination": "/vehiculo/[id]/album" },

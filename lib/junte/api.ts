@@ -26,7 +26,8 @@ export type JunteDetail = {
     handle: string;
     display_name: string | null;
     avatar_id: string | null;
-    avatar_path: string | null;
+    /** sql/037: public photo copy (data URI) or null. */
+    photo: string | null;
     role: 'owner' | 'member';
     status: JunteMemberStatus;
     is_me: boolean;
