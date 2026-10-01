@@ -1,4 +1,5 @@
 import { lookup } from './dtc';
+import { EVENT_TYPE_ICON, EVENT_TYPE_LABEL, eventFromFeed, eventSubtitle } from './events';
 import type { HistoryEntry } from '../db/types';
 import { FUEL_CATALOG } from '../fuel';
 import { EXPENSE_CATEGORY_LABELS } from '../db/types';
@@ -61,6 +62,7 @@ export function historySubtitle(entry: HistoryEntry): string | null {
 }
 
 function baseSubtitle(entry: HistoryEntry): string | null {
+  if (entry.kind === 'evento') return eventFeedSubtitle(entry);
   if (entry.kind === 'gasto') return expenseLabel(entry.subtitle) ?? entry.subtitle;
   if (entry.kind === 'obd') {
     const d = lookup(entry.title);
@@ -102,9 +104,9 @@ export function historyKindLabel(kind: HistoryEntry['kind']): string {
     case 'mod':
       return t.history.kinds.mod;
     case 'hito':
-    // Events get their own label with their screens (PROMPT-05, FEATURE_EVENTS).
-    case 'evento':
       return t.history.kinds.hito;
+    case 'evento':
+      return t.events.historyChip;
     case 'pista':
       return t.history.kinds.pista;
     case 'obd':
@@ -114,4 +116,20 @@ export function historyKindLabel(kind: HistoryEntry['kind']): string {
     default:
       return kind;
   }
+}
+
+/**
+ * An 'evento' row's meta line (history_feed v6, ADR-44): "Accidente · Moderado ·
+ * pendiente: pintar el guardafango". The cost is the row's amount, so it is not
+ * repeated here.
+ */
+function eventFeedSubtitle(entry: HistoryEntry): string | null {
+  const { kind: _kind, ...ev } = eventFromFeed(entry.subtitle);
+  const line = eventSubtitle({ id: entry.id, vehicleId: entry.vehicleId, kind: 'otro', occurredAt: entry.occurredAt, title: entry.title, ...ev, costDop: null });
+  return [EVENT_TYPE_LABEL[ev.eventType], line].filter(Boolean).join(' · ');
+}
+
+/** The Ionicons glyph for an 'evento' row (its event type's icon); null = the kind's own. */
+export function historyIcon(entry: Pick<HistoryEntry, 'kind' | 'subtitle'>): string | null {
+  return entry.kind === 'evento' ? EVENT_TYPE_ICON[eventFromFeed(entry.subtitle).eventType] : null;
 }

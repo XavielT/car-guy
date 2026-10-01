@@ -1,7 +1,15 @@
 import { DEFAULT_PRICE_WEEK, DEFAULT_REFERENCE_PRICES } from '@/lib/fuel';
 import {
+  boardSourceLabel,
+  chartSeries,
   currentBoard,
+  importMessage,
+  micmWeekOf,
   parseWeekLabel,
+  prefillPrice,
+  priceHistory,
+  shouldPingImporter,
+  shortDayLabel,
   referencePricesFromBoard,
   series,
   weekRangeLabel,
@@ -57,6 +65,25 @@ describe('parseWeekLabel', () => {
     ['1–7 mar 2025', '2025-03-01'],
     ['2026-08-15', '2026-08-15'],
     ['15/08/2026', '2026-08-15'],
+  ])('%s → %s', (label, iso) => {
+    expect(parseWeekLabel(label, TODAY)).toBe(iso);
+  });
+
+  it.each([
+    // MICM's own wording and file names (fixtures, Phase 5)
+    ['del sábado veintiséis (26) de septiembre al día viernes dos (02) de octubre de dos mil veintiséis (2026)', '2026-09-26'],
+    ['diecinueve (19) al día viernes veinticinco (25) de septiembre de dos mil veintiséis (2026)', '2026-09-19'],
+    ['AVISO-PRE.-SEM.CORTE-26-SEP-02-OCT-DE-2026-ESC.-2-ESC.-3.pdf', '2026-09-26'],
+    ['AVISO-PRE.-SEM.CORTE-05-11-SEP-DE-2026', '2026-09-05'],
+    // English order (the en board writes "26 Sep 2026", people type "Sep 26")
+    ['Sep 26 – Oct 2, 2026', '2026-09-26'],
+    ['Dec 28 – Jan 3, 2027', '2026-12-28'],
+    ['week of Sep 26', '2026-09-26'],
+    // the en board's own label round-trips
+    ['26 Sep – 2 Oct 2026 (MICM)', '2026-09-26'],
+    // a day 0 or 32 is not a day; the next number is
+    ['0 – 5 sep 2026', '2026-09-05'],
+    ['semana 26 sep (3 oct)', '2026-09-26'],
   ])('%s → %s', (label, iso) => {
     expect(parseWeekLabel(label, TODAY)).toBe(iso);
   });
@@ -224,5 +251,90 @@ describe('weekRangeLabel', () => {
       expect(parseWeekLabel(l, TODAY)).toBe(parseWeekLabel(weekRangeLabel(parseWeekLabel(l, TODAY)), TODAY));
     }
     expect(weekRangeLabel('2026-08-15')).toBe('15 ago 2026');
+  });
+});
+
+describe('Phase 5 board helpers', () => {
+  it('boardSourceLabel: MICM says the week, a user row its source and day', () => {
+    expect(shortDayLabel('2026-09-26')).toBe('26 sep');
+    expect(boardSourceLabel({ source: 'micm', date: '2026-09-26' })).toBe('MICM · semana del 26 sep');
+    expect(boardSourceLabel({ source: 'manual', date: '2026-10-03' })).toBe('Manual · 3 oct');
+    expect(boardSourceLabel({ source: 'estacion', date: '2026-09-28' })).toBe('Estación · 28 sep');
+  });
+
+  it('a manual row inside the MICM week wins on the board; one from the week before does not', () => {
+    const refs = [ref('regular', 317.5, '2026-09-26', '2026-10-02')];
+    expect(currentBoard([user('u1', 'regular', 310, '2026-09-26', { source: 'manual' })], refs)[0]).toMatchObject({ origin: 'user', price: 310 });
+    expect(currentBoard([user('u1', 'regular', 310, '2026-09-28')], refs)[0].origin).toBe('user');
+    expect(currentBoard([user('u1', 'regular', 310, '2026-09-25')], refs)[0]).toMatchObject({ origin: 'ref', price: 317.5 });
+  });
+
+  it('micmWeekOf: the Saturday on or before', () => {
+    expect(micmWeekOf('2026-09-26')).toBe('2026-09-26'); // Saturday
+    expect(micmWeekOf('2026-10-02')).toBe('2026-09-26'); // Friday
+    expect(micmWeekOf('2026-09-30')).toBe('2026-09-26');
+    expect(micmWeekOf('2027-01-01')).toBe('2026-12-26');
+  });
+
+  it('priceHistory: grouped by week, newest first, user before MICM on a tie, current flagged', () => {
+    const weeks = priceHistory(
+      'regular',
+      [
+        user('u1', 'regular', 310, '2026-09-26', { source: 'recibo' }),
+        user('u2', 'regular', 312, '2026-09-29'),
+        user('u3', 'premium', 350, '2026-09-29'),
+        user('u4', 'regular', 1, '2026-09-29', { deletedAt: 'x' }),
+      ],
+      [ref('regular', 317.5, '2026-09-26', '2026-10-02'), ref('regular', 315.5, '2026-09-19', '2026-09-25', true)],
+    );
+    expect(weeks.map((w) => [w.weekStart, w.weekEnd])).toEqual([
+      ['2026-09-26', '2026-10-02'],
+      ['2026-09-19', '2026-09-25'],
+    ]);
+    expect(weeks[0].items.map((i) => [i.key, i.origin, i.current])).toEqual([
+      ['u2', 'user', true],
+      ['u1', 'user', false],
+      ['2026-09-26:regular', 'ref', false],
+    ]);
+    expect(weeks[1].items[0]).toMatchObject({ origin: 'ref', stale: true, source: 'micm' });
+    expect(priceHistory('gnv', [], [])).toEqual([]);
+  });
+
+  it('prefillPrice: the board price, per liter when the car counts liters, GNV untouched', () => {
+    const board = currentBoard([user('u1', 'gnv', 43.97, '2026-09-01')], [ref('regular', 317.5, '2026-09-26', '2026-10-02')]);
+    expect(prefillPrice(board, 'regular')).toMatchObject({ price: 317.5, entry: { source: 'micm' } });
+    expect(prefillPrice(board, 'regular', 'l')?.price).toBe(83.87);
+    expect(prefillPrice(board, 'gnv', 'l')?.price).toBe(43.97);
+    expect(prefillPrice(board, 'premium')).toBeNull();
+  });
+
+  it('shouldPingImporter: > 8 days old or none, once a day, never without the table', () => {
+    expect(shouldPingImporter('2026-09-26', '2026-10-04', null)).toBe(false); // 8 days
+    expect(shouldPingImporter('2026-09-26', '2026-10-05', null)).toBe(true); // 9 days
+    expect(shouldPingImporter('2026-09-26', '2026-10-05', '2026-10-05')).toBe(false);
+    expect(shouldPingImporter(null, '2026-10-05', '2026-10-04')).toBe(true);
+    expect(shouldPingImporter(null, '2026-10-05', null, true)).toBe(false);
+  });
+
+  it('chartSeries: both series, last 12 months only, oldest first', () => {
+    const s = chartSeries(
+      'regular',
+      [user('u1', 'regular', 310, '2026-09-28'), user('u0', 'regular', 290, '2025-08-01'), user('u2', 'regular', 300, '2026-01-10')],
+      [ref('regular', 317.5, '2026-09-26', '2026-10-02'), ref('regular', 315.5, '2026-09-19', '2026-09-25'), ref('premium', 350, '2026-09-26', '2026-10-02')],
+      '2026-09-30',
+    );
+    expect(s.user.map((p) => p.date)).toEqual(['2026-01-10', '2026-09-28']);
+    expect(s.micm).toEqual([
+      { date: '2026-09-19', price: 315.5 },
+      { date: '2026-09-26', price: 317.5 },
+    ]);
+  });
+
+  it('importMessage per answer', () => {
+    expect(importMessage(null)).toMatch(/importador/);
+    expect(importMessage({ ok: true, weekStart: '2026-09-26', weekEnd: '2026-10-02' })).toBe('Importado: 26 sep – 2 oct 2026.');
+    expect(importMessage({ ok: true, upToDate: true, weekStart: '2026-09-26', weekEnd: '2026-10-02' })).toMatch(/^Ya estaba al día/);
+    expect(importMessage({ ok: false, reason: 'pdf-not-text', weekStart: null, weekEnd: null })).toMatch(/imagen/);
+    expect(importMessage({ ok: false, reason: 'no-writer-key', weekStart: null, weekEnd: null })).toMatch(/configurado/);
   });
 });

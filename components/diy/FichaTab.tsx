@@ -57,6 +57,7 @@ export function FichaTab({ vehicleId, version }: { vehicleId: string; version: n
         {t.ficha.obdOpen(open)}
       </T>
       <PrimaryButton label={t.ficha.open} onPress={() => router.push({ pathname: '/vehiculo/[id]/ficha', params: { id: vehicleId } })} />
+      <GhostButton label={t.memory.open} onPress={() => router.push({ pathname: '/vehiculo/[id]/ficha', params: { id: vehicleId, tab: 'memoria' } })} />
       <View style={styles.pair}>
         <GhostButton label={t.ficha.fluids} onPress={() => router.push({ pathname: '/vehiculo/[id]/fluidos', params: { id: vehicleId } })} style={{ flex: 1 }} />
         <GhostButton label={t.ficha.obdAll} onPress={() => router.push({ pathname: '/obd', params: { vehicleId } })} style={{ flex: 1 }} />

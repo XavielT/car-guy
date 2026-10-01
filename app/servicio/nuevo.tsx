@@ -18,10 +18,12 @@ import {
   serviceRecordItems as itemRepo,
   serviceRecords as serviceRecordRepo,
   serviceTypes as serviceTypeRepo,
+  specsheets as specsheetRepo,
 } from '@/lib/db/repos';
 import { lastOilFor } from '@/lib/db/oilQueries';
 import { saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
-import type { ServiceKind, ServiceType } from '@/lib/db/types';
+import type { ServiceKind, ServiceType, VehicleSpecsheet } from '@/lib/db/types';
+import { suggestionsFor } from '@/lib/domain/carMemory';
 import { todayIso } from '@/lib/domain/dates';
 import { EMPTY_OIL, isOilItem, normalizeOil, type OilFields } from '@/lib/domain/oil';
 import { odometerWarning } from '@/lib/domain/odometer';
@@ -104,6 +106,8 @@ export default function NuevoServicioScreen() {
   // The Aceite block per oil item, and the previous oil offered for each (note 16).
   const [oil, setOil] = useState<Record<string, OilFields>>({});
   const [lastOil, setLastOil] = useState<Record<string, OilFields | null>>({});
+  // "Igual que siempre" (IMP 30092026 note 6): what the car's memory says it takes.
+  const [sheet, setSheet] = useState<VehicleSpecsheet | null>(null);
 
   const [catalog, setCatalog] = useState<ServiceType[]>([]);
   const [currentKm, setCurrentKm] = useState<number | null>(null);
@@ -117,13 +121,15 @@ export default function NuevoServicioScreen() {
     if (!vehicleId) return;
     let cancelled = false;
     (async () => {
-      const [types, km, rows, previousShops] = await Promise.all([
+      const [types, km, rows, previousShops, specsheet] = await Promise.all([
         serviceTypeRepo.list(undefined, { orderBy: 'sort_order', direction: 'ASC' }),
         currentOdometerQuery(vehicleId),
         odometerRepo.list(vehicleId),
         shopSuggestions(vehicleId),
+        specsheetRepo.getForVehicle(vehicleId).catch(() => null),
       ]);
       if (cancelled) return;
+      setSheet(specsheet);
       setCatalog(types);
       setCurrentKm(km);
       setReadings(rows);
@@ -364,6 +370,7 @@ export default function NuevoServicioScreen() {
                 value={oil[type.id] ?? EMPTY_OIL}
                 onChange={(next) => setOil((prev) => ({ ...prev, [type.id]: next }))}
                 last={lastOil[type.id]}
+                memory={suggestionsFor(type.id, sheet)}
                 fuel={oilFuel}
               />
             ))}

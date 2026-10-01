@@ -190,12 +190,75 @@ export function eventSubtitle(m: EventRow): string {
  * What the events cost the car, for Cifras "Lo que me ha costado". An event linked
  * to a service is already counted there (the service carries the bill), so it
  * adds nothing here.
+ * Hitos add nothing either (see eventCostRows).
  */
 export function eventCostDop(milestones: readonly EventRow[], vehicleId: string): number {
-  let total = 0;
-  for (const m of ofVehicle(milestones, vehicleId)) {
-    if (m.linkedServiceId || m.costDop == null || !(m.costDop > 0)) continue;
-    total += m.costDop;
-  }
-  return total;
+  return eventCostRows(milestones, vehicleId).reduce((sum, m) => sum + (m.costDop ?? 0), 0);
+}
+
+/**
+ * The rows behind eventCostDop, newest first: what the Cifras block lists under
+ * its total. Events only — a hito's money is its purchase, mod or service — and
+ * not one linked to a service (the service carries the bill) or without a cost.
+ */
+export function eventCostRows<T extends EventRow>(milestones: readonly T[], vehicleId: string): T[] {
+  return ofVehicle(milestones, vehicleId)
+    .filter((m) => isEvent(m) && !m.linkedServiceId && m.costDop != null && m.costDop > 0)
+    .sort(newestFirst);
+}
+
+/** What history_feed v6 packs into an 'evento' row's subtitle: `kind|event_type|severity|pending|resolved_at`. */
+export type FeedEvent = Pick<EventFields, 'eventType' | 'severity' | 'pending' | 'resolvedAt'> & { kind: string };
+
+const EVENT_IDS = new Set<string>(EVENT_ICONS.map(([id]) => id));
+
+/** Unpacks an 'evento' feed subtitle; unknown or missing parts fall back to 'otro' / null / ''. */
+export function eventFromFeed(subtitle: string | null | undefined): FeedEvent {
+  const [kind = '', type = '', severity = '', pending = '', resolvedAt = ''] = (subtitle ?? '').split('|');
+  return {
+    kind,
+    eventType: EVENT_IDS.has(type) ? (type as EventType) : 'otro',
+    severity: (SEVERITY_IDS as string[]).includes(severity) ? (severity as Severity) : null,
+    pending,
+    resolvedAt: resolvedAt || null,
+  };
+}
+
+/** The editor's state before it is saved. */
+export type EventDraft = {
+  eventType: EventType;
+  severity: Severity | null;
+  /** As typed ("45,000", "RD$ 3500"); '' = no cost. */
+  cost: string;
+  pending: string;
+  resolved: boolean;
+  /** The resolved date already on the row, kept when "Resuelto" stays on. */
+  resolvedAt: string | null;
+  linkedServiceId: string | null;
+  linkedModId: string | null;
+  linkedInspectionId: string | null;
+  locationLabel: string;
+};
+
+/**
+ * The v8 columns from the editor (ADR-44): a hito carries no severity; an event
+ * with none gets 'leve'; the cost parses to pesos or null; "Resuelto" stamps
+ * `resolvedAt` (today, unless the row already had a date) and needs something
+ * pending to resolve — clearing the pending text clears the date too.
+ */
+export function eventFieldsFromDraft(d: EventDraft, today: string): EventFields {
+  const raw = d.cost.replace(/[^\d.]/g, '');
+  const cost = raw ? Number(raw) : null;
+  const pending = d.pending.trim();
+  return {
+    eventType: d.eventType,
+    severity: d.eventType === 'hito' ? null : (d.severity ?? 'leve'),
+    costDop: cost != null && Number.isFinite(cost) && cost > 0 ? cost : null,
+    pending,
+    resolvedAt: pending && d.resolved ? (d.resolvedAt ?? today) : null,
+    linkedServiceId: d.linkedServiceId,
+    linkedModId: d.linkedModId,
+    linkedInspectionId: d.linkedInspectionId,
+    locationLabel: d.locationLabel.trim(),
+  };
 }

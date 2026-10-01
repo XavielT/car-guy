@@ -54,7 +54,7 @@ export const enPart1: Pick<
     newDocument: 'New document',
     document: 'Document',
     notifications: 'Notifications',
-    prices: 'MICM prices',
+    prices: 'Prices',
     report: 'Report',
     export: 'Export',
     account: 'Account',
@@ -389,7 +389,7 @@ export const enPart1: Pick<
   origins: { jdm: 'JDM', usdm: 'USDM', eudm: 'EUDM', local: 'Local', otro: 'Other' },
 
   hub: {
-    tabs: { resumen: 'Overview', album: 'Album', build: 'Build', ficha: 'Specs', pista: 'Track', viajes: 'Trips', docs: 'Docs' },
+    tabs: { resumen: 'Overview', album: 'Album', eventos: 'Events', build: 'Build', ficha: 'Specs', pista: 'Track', viajes: 'Trips', docs: 'Docs' },
     soon: (tab: string) => `${tab}: coming soon. We’re putting it together.`,
     story: 'The story',
     storyEmpty: 'You haven’t written this car’s story yet.',

@@ -225,12 +225,12 @@ describe('the app on v8 (store helpers, feed repo, backup)', () => {
     expect((appDb.sqlite.prepare(`SELECT value FROM vehicle_fact`).get() as Row).value).toBe('1234');
   });
 
-  it('while FEATURE_EVENTS is off, Historial reads an event as the hito it was', async () => {
+  it('with FEATURE_EVENTS on, Historial reads an event as an evento row, not a hito', async () => {
     await restoreV2(fixture as unknown as BackupV2);
     const acc = appDb.sqlite.prepare(`SELECT id, vehicle_id FROM milestone WHERE kind = 'accidente'`).get() as Row;
-    const feed = await history.feed(acc.vehicle_id as string, { kinds: ['hito'] });
-    const row = feed.find((e) => e.id === acc.id);
-    expect(row).toMatchObject({ kind: 'hito', subtitle: 'accidente', amountDop: null });
+    expect((await history.feed(acc.vehicle_id as string, { kinds: ['hito'] })).find((e) => e.id === acc.id)).toBeUndefined();
+    const row = (await history.feed(acc.vehicle_id as string, { kinds: ['evento'] })).find((e) => e.id === acc.id);
+    expect(row).toMatchObject({ kind: 'evento', subtitle: 'accidente|accidente|moderado||' });
   });
 
   it('the purge keeps points until keep_until, and stamps it for finished trips', async () => {

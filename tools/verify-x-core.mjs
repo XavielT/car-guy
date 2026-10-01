@@ -34,6 +34,9 @@
  *  30. vehicle_fact: outsider nothing, viewer member reads, cannot write. (sql/026)
  *  31. public dossier `tires` only with show_tires.           (sql/025)
  *  32. anon reads none of the three new tables.               (sql/026)
+ *  33. anon reads fuel_price_ref (the MICM weeks).             (sql/027)
+ *  34. anon cannot insert into it nor call the importer RPC.   (sql/027)
+ *  (The importer RPC writing as carguy_importer: local-rls 27a–27l — the JWT is Vercel's only.)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -526,6 +529,30 @@ async function main() {
       '32. anon cannot read fuel_price, vehicle_fact or legal_acceptance',
       anonNew.every((r) => r.status === 401 || r.body?.code === '42501' || (Array.isArray(r.body) && r.body.length === 0)),
       anonNew.map((r) => `${r.status} ${JSON.stringify(r.body?.code ?? r.body)}`).join(' · '),
+    );
+  }
+
+  // 33–34 — the MICM reference table (sql/027): anyone reads, nobody but the importer writes.
+  {
+    const read = await call('/rest/v1/fuel_price_ref?select=week_start,fuel_type,price&order=week_start.desc&limit=6');
+    record(
+      '33. anon reads fuel_price_ref (sql/027)',
+      read.status === 200 && Array.isArray(read.body),
+      `status ${read.status} · ${Array.isArray(read.body) ? `${read.body.length} rows${read.body[0] ? ` · newest ${read.body[0].week_start}` : ''}` : JSON.stringify(read.body?.code ?? read.body)}`,
+    );
+    const insert = await call('/rest/v1/fuel_price_ref', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ week_start: '1999-01-02', week_end: '1999-01-08', fuel_type: 'premium', price: 1 }),
+    });
+    const rpc = await call('/rest/v1/rpc/upsert_fuel_price_ref', {
+      method: 'POST',
+      body: JSON.stringify({ rows: [{ week_start: '1999-01-02', week_end: '1999-01-08', fuel_type: 'premium', price: 1 }] }),
+    });
+    record(
+      '34. anon cannot insert into fuel_price_ref nor execute upsert_fuel_price_ref (sql/027)',
+      insert.status >= 400 && rpc.status >= 400,
+      `insert ${insert.status} ${JSON.stringify(insert.body?.code ?? '')} · rpc ${rpc.status} ${JSON.stringify(rpc.body?.code ?? '')}`,
     );
   }
 

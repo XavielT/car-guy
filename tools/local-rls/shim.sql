@@ -12,3 +12,4 @@ alter table storage.objects enable row level security;
 create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
 grant usage on schema storage to anon, authenticated; grant select, insert, update, delete on storage.objects to authenticated; grant execute on all functions in schema storage to anon, authenticated;
 create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, email text);
+create role authenticator noinherit nologin; -- PostgREST's login role; sql/027_fuel_price_ref_role.shared.sql grants carguy_importer to it

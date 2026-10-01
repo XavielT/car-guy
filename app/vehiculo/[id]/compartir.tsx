@@ -20,7 +20,7 @@ import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
-const FLAG_KEYS: (keyof ShareFlags)[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'status', 'costs', 'plate', 'vin'];
+const FLAG_KEYS: Exclude<keyof ShareFlags, 'tires'>[] = ['story', 'mods', 'maintenance', 'track', 'odometer', 'status', 'costs', 'plate', 'vin'];
 const MAX_PHOTOS = 24;
 
 /**
@@ -65,7 +65,7 @@ export default function ShareScreen() {
     };
   }, [id]);
 
-  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length} />;
+  if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length + 1} />;
   if (!vehicle || !flags) return null;
   const live = Boolean(share?.slug && !share.revokedAt && share.publishedAt);
   const url = live && share?.slug ? shareUrl(share.slug) : null;
@@ -221,6 +221,18 @@ export default function ShareScreen() {
             <Switch value={flags[k]} onValueChange={(on) => void setFlag(k, on)} accessibilityLabel={t.share.flags[k]} disabled={busy} />
           </View>
         ))}
+        {/* ADR-45: the tires block (sql/025 show_tires), counts only. */}
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+              {t.tiresUi.shareFlag}
+            </T>
+            <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
+              {t.tiresUi.shareHint}
+            </T>
+          </View>
+          <Switch value={flags.tires} onValueChange={(on) => void setFlag('tires', on)} accessibilityLabel={t.tiresUi.shareFlag} disabled={busy} />
+        </View>
       </View>
       {live ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>

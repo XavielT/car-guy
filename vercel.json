@@ -5,6 +5,9 @@
   "framework": null,
   "cleanUrls": true,
   "trailingSlash": false,
+  "crons": [
+    { "path": "/api/precios", "schedule": "0 12 * * 6" }
+  ],
   "rewrites": [
     { "source": "/c/:slug", "destination": "/api/c/:slug" },
     { "source": "/vehiculo/:id/editar", "destination": "/vehiculo/[id]/editar" },

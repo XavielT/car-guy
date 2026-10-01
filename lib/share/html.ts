@@ -136,6 +136,20 @@ export function renderDossierHtml(d: Dossier, opts: { url: string }): string {
     }</div></section>`);
   }
 
+  // ADR-45, only with "gomas" on (publicDossier leaves it null otherwise).
+  if (d.tires) {
+    sections.push(`<section><h2>Gomas quemadas</h2><div class="card"><div class="stats"><div class="stat"><div class="eyebrow">Gomas</div><div class="big amber">${d.tires.count}</div></div>${
+      d.tires.badge ? `<div class="stat"><div class="eyebrow">Insignia</div><div class="n" style="font-weight:700;margin-top:4px">${esc(d.tires.badge)}</div></div>` : ''
+    }</div><div class="d" style="color:var(--muted);margin-top:8px">${esc(d.tires.line)}</div></div></section>`);
+  }
+
+  // Note 6, only when the dossier carries it.
+  if (d.memory?.length) {
+    sections.push(`<section><h2>Lo que uso</h2><div class="card">${d.memory
+      .map((g) => `<div class="eyebrow" style="margin-top:8px">${esc(g.title)}</div>${g.rows.map((r) => `<div class="row"><div><div class="d">${esc(r.label)}</div></div><div class="c">${esc(r.value)}</div></div>`).join('')}`)
+      .join('')}</div></section>`);
+  }
+
   if (d.photos.length) {
     sections.push(`<section><h2>Fotos</h2><div class="grid">${d.photos
       .map((p) => `<a href="${esc(p.full)}"><img loading="lazy" src="${esc(p.thumb)}" alt=""></a>`)

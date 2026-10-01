@@ -121,7 +121,9 @@ function localIso(date: Date): string {
  * 2026-08-15, "25 sep – 2 oct 2026" → 2026-09-25, "28 dic 2026 – 3 ene 2027" →
  * 2026-12-28. The year is the first one written after the first month; with
  * only the closing year written and the range crossing New Year ("28 dic – 3
- * ene 2027"), it is the year before. No year at all → today's year. Anything
+ * ene 2027"), it is the year before. English order ("Sep 26 – Oct 2, 2026")
+ * reads too: a month right before the first day is that day's. No year at all
+ * → today's year. Anything
  * unreadable → today (local calendar day), never an error: the v8 migration
  * runs this over whatever a person typed into the 2.3.x settings field.
  */
@@ -142,7 +144,13 @@ export function parseWeekLabel(label: string | null | undefined, today: Date = n
 
   let monthAt = -1;
   let month = -1;
-  for (let i = dayAt + 1; i < tokens.length; i++) {
+  // English order, "Sep 26 – Oct 2, 2026": a month right before the first day is that day's.
+  const before = dayAt > 0 && /^[a-z]+$/.test(tokens[dayAt - 1]) ? monthOf(tokens[dayAt - 1]) : null;
+  if (before != null) {
+    monthAt = dayAt;
+    month = before;
+  }
+  for (let i = dayAt + 1; monthAt < 0 && i < tokens.length; i++) {
     const m = /^[a-z]+$/.test(tokens[i]) ? monthOf(tokens[i]) : null;
     if (m != null) {
       monthAt = i;
@@ -322,4 +330,187 @@ export function referencePricesFromBoard(
   if (newest?.origin === 'user' && newest.note.trim()) priceWeekLabel = newest.note.trim();
   else if (newest) priceWeekLabel = `${weekRangeLabel(newest.date, newest.dateEnd)} (${fuelPriceSourceLabel(newest.source)})`;
   return { referencePrices, priceWeekLabel };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5: the board's chips, the history, the fill-up prefill, the chart
+// ---------------------------------------------------------------------------
+
+/** "26 sep" (no year), in the current language. */
+export function shortDayLabel(iso: string): string {
+  const { m, d } = parts(dayOf(iso));
+  return `${d} ${t.priceSources.months[m]}`;
+}
+
+/** The board row's chip: "MICM · semana del 26 sep", "Manual · 3 oct", "Estación · 28 sep". */
+export function boardSourceLabel(entry: Pick<BoardEntry, 'source' | 'date'>): string {
+  const day = shortDayLabel(entry.date);
+  return entry.source === 'micm'
+    ? t.fuelPricesUi.chip(fuelPriceSourceLabel('micm'), t.fuelPricesUi.weekOf(day))
+    : t.fuelPricesUi.chip(fuelPriceSourceLabel(entry.source), day);
+}
+
+/** The MICM week a day falls in: the Saturday on or before it (notices run Saturday–Friday). */
+export function micmWeekOf(iso: string): string {
+  const { y, m, d } = parts(dayOf(iso));
+  const date = new Date(Date.UTC(y, m, d));
+  date.setUTCDate(d - ((date.getUTCDay() + 1) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
+export function addDays(iso: string, n: number): string {
+  const { y, m, d } = parts(dayOf(iso));
+  return new Date(Date.UTC(y, m, d + n)).toISOString().slice(0, 10);
+}
+
+export type HistoryItem = {
+  /** fuel_price.id or fuel_price_ref.id. */
+  key: string;
+  date: string;
+  price: number;
+  origin: 'user' | 'ref';
+  source: FuelPriceSource;
+  station: string;
+  note: string;
+  stale: boolean;
+  /** The row the board shows for this fuel right now. */
+  current: boolean;
+};
+
+export type HistoryWeek = { weekStart: string; weekEnd: string; items: HistoryItem[] };
+
+/**
+ * One fuel's prices, every row (user and MICM), grouped by MICM week (Saturday
+ * to Friday), newest week first; inside a week the newest date first, and on
+ * the same date the person's row before MICM's (the board's tie rule).
+ */
+export function priceHistory(fuelType: FuelType, userRows: readonly FuelPriceRow[], refRows: readonly FuelPriceRefRow[]): HistoryWeek[] {
+  const board = currentBoard(userRows, refRows).find((e) => e.fuelType === fuelType);
+  const items: (HistoryItem & { createdAt: string })[] = [];
+  for (const r of liveUserRows(userRows)) {
+    if (r.fuelType !== fuelType) continue;
+    items.push({
+      key: r.id,
+      date: dayOf(r.validFrom),
+      price: r.price,
+      origin: 'user',
+      source: r.source,
+      station: r.station ?? '',
+      note: r.note ?? '',
+      stale: false,
+      current: board?.rowId === r.id,
+      createdAt: r.createdAt,
+    });
+  }
+  for (const r of liveRefRows(refRows)) {
+    if (r.fuelType !== fuelType) continue;
+    items.push({
+      key: r.id,
+      date: dayOf(r.weekStart),
+      price: r.price,
+      origin: 'ref',
+      source: 'micm',
+      station: '',
+      note: '',
+      stale: Boolean(r.stale),
+      current: board?.rowId === r.id,
+      createdAt: '',
+    });
+  }
+  items.sort(
+    (a, b) =>
+      b.date.localeCompare(a.date) ||
+      (a.origin === b.origin ? b.createdAt.localeCompare(a.createdAt) : a.origin === 'user' ? -1 : 1),
+  );
+  const weeks: HistoryWeek[] = [];
+  for (const { createdAt: _c, ...item } of items) {
+    const weekStart = micmWeekOf(item.date);
+    let week = weeks.find((w) => w.weekStart === weekStart);
+    if (!week) {
+      week = { weekStart, weekEnd: addDays(weekStart, 6), items: [] };
+      weeks.push(week);
+    }
+    week.items.push(item);
+  }
+  return weeks;
+}
+
+/** GAL_L without importing units (pure, and the same constant). */
+const LITERS_PER_GALLON = 3.785411784;
+
+export type PricePrefill = { price: number; entry: BoardEntry };
+
+/**
+ * What the fill-up form's price field starts with: the board's price for the
+ * fuel, in the vehicle's volume unit (the board is per gallon; per liter
+ * divides; GNV stays per m³), rounded to cents. Null when the board has none.
+ */
+export function prefillPrice(board: readonly BoardEntry[], fuelType: FuelType, volumeUnit: 'gal' | 'l' = 'gal'): PricePrefill | null {
+  const entry = board.find((e) => e.fuelType === fuelType);
+  if (!entry) return null;
+  const perUnit = volumeUnit === 'l' && fuelType !== 'gnv' ? entry.price / LITERS_PER_GALLON : entry.price;
+  return { price: Math.round(perUnit * 100) / 100, entry };
+}
+
+/**
+ * Launch rule: ping the importer (GET /api/precios) when the newest MICM week
+ * in the cache started more than 8 days ago — or there is none — and it was not
+ * pinged today already. `null` newest with `tableMissing` (sql/027 not applied)
+ * never pings. Days are local calendar days (ISO).
+ */
+export function shouldPingImporter(newestWeekStart: string | null, today: string, lastPingDay: string | null, tableMissing = false): boolean {
+  if (tableMissing) return false;
+  if (lastPingDay === today) return false;
+  if (!newestWeekStart) return true;
+  const age = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${dayOf(newestWeekStart)}T00:00:00Z`)) / 86_400_000);
+  return age > 8;
+}
+
+export type ChartSeries = { user: { date: string; price: number }[]; micm: { date: string; price: number }[] };
+
+/**
+ * The Cifras chart's two series for one fuel over the last `months` months:
+ * every MICM week, and every price the person recorded (not merged, so a
+ * station price under the MICM line is visible). Oldest first.
+ */
+export function chartSeries(
+  fuelType: FuelType,
+  userRows: readonly FuelPriceRow[],
+  refRows: readonly FuelPriceRefRow[],
+  today: string,
+  months = 12,
+): ChartSeries {
+  const { y, m, d } = parts(today);
+  const since = new Date(Date.UTC(y, m - months, d)).toISOString().slice(0, 10);
+  const user = liveUserRows(userRows)
+    .filter((r) => r.fuelType === fuelType && dayOf(r.validFrom) >= since && dayOf(r.validFrom) <= today)
+    .map((r) => ({ date: dayOf(r.validFrom), price: r.price }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const micm = liveRefRows(refRows)
+    .filter((r) => r.fuelType === fuelType && dayOf(r.weekStart) >= since && dayOf(r.weekStart) <= today)
+    .map((r) => ({ date: dayOf(r.weekStart), price: r.price }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return { user, micm };
+}
+
+/** The line under "Importar MICM ahora" for what /api/precios answered (null = not reached). */
+export function importMessage(
+  answer: { ok: boolean; upToDate?: boolean; reason?: string; weekStart: string | null; weekEnd: string | null } | null,
+): string {
+  const ui = t.fuelPricesUi;
+  if (!answer) return ui.importOffline;
+  const week = answer.weekStart ? weekRangeLabel(answer.weekStart, answer.weekEnd) : '';
+  if (answer.ok) return answer.upToDate ? ui.importUpToDate(week) : ui.importDone(week);
+  switch (answer.reason) {
+    case 'pdf-not-text':
+      return ui.importFailed(ui.reasons.notText);
+    case 'no-writer-key':
+    case 'not-configured':
+      return ui.importFailed(ui.reasons.notConfigured);
+    case 'notices-unreachable':
+    case 'pdf-unreachable':
+      return ui.importFailed(ui.reasons.unreachable);
+    default:
+      return ui.importFailed(ui.reasons.unreadable);
+  }
 }

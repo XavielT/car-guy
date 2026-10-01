@@ -197,3 +197,55 @@ describe('edge cases', () => {
     expect(messagesFor(s)).toEqual(['8 gomas · 8 este año', 'Al ritmo actual, ya toca otro juego', 'Faltan 2 para «Quemagomas»']);
   });
 });
+
+describe('counting rules: status changes and consumables', () => {
+  it('a mounted tire later sold or burned counts once, retired, aged to its last edit', () => {
+    const sold = tire('x', '2025-01-10', 'vendida', { updatedAt: '2025-04-10T12:00:00.000Z' });
+    const burned = tire('x', '2025-01-10', 'quemada', { updatedAt: '2025-02-09T12:00:00.000Z' });
+    const s = tireStats([sold, burned], [], 'x', { now: NOW });
+    expect(s).toMatchObject({ total: 2, retired: 2, burned: 1, mounted: 0, active: 0 });
+    expect(s.perTire.map((p) => p.ageDays).sort((a, b) => a - b)).toEqual([30, 90]);
+  });
+
+  it('a goma_quemada usage on a tire already marked quemada is not counted twice', () => {
+    const burned = tire('x', '2026-05-01', 'quemada');
+    const s = tireStats([burned], [], 'x', {
+      now: NOW,
+      consumables: [{ id: 'u1', kind: 'goma_quemada', tireId: burned.id, wheelSetId: null, qty: 1, createdAt: '2026-05-20T00:00:00Z' }],
+    });
+    expect(s).toMatchObject({ total: 1, burned: 1 });
+  });
+
+  it('a heat warning only for a mounted tire past the limit', () => {
+    const stored = tire('x', '2026-05-01', 'guardada', { heatCycles: 20 });
+    const mounted = tire('x', '2026-05-01', 'en_uso', { heatCycles: 8 });
+    expect(tireStats([stored, mounted], [], 'x', { now: NOW }).heatWarnings).toEqual([]);
+    expect(tireStats([stored, mounted], [], 'x', { now: NOW, heatCycleLimit: 7 }).heatWarnings.map((w) => w.id)).toEqual([mounted.id]);
+  });
+});
+
+describe('pace and badge dates', () => {
+  it('4 tires in the last 6 months is 0.17 sets a month; the next set is due ~6 months after the last', () => {
+    const s = tireStats(Array.from({ length: 4 }, () => tire('p', '2026-09-01', 'en_uso')), [], 'p', { now: NOW });
+    expect(s.setsPerMonth).toBe(0.17);
+    expect(s.nextSetInDays).toBeGreaterThan(150);
+    expect(messagesFor(s)[2]).toBe('Al ritmo actual, próximo juego en ~5 meses');
+  });
+
+  it('tires older than 6 months set no pace', () => {
+    expect(tireStats([tire('p', '2025-01-01', 'quemada')], [], 'p', { now: NOW }).nextSetInDays).toBeNull();
+  });
+
+  it('a badge is dated by the n-th tire, undated rows sort by when they were written down', () => {
+    const rows = [
+      tire('b', '2026-01-03', 'quemada'),
+      tire('b', null, 'nueva', { createdAt: '2025-12-01T10:00:00.000Z' }),
+      tire('b', '2025-11-02', 'quemada'),
+      tire('b', '2026-02-10', 'quemada'),
+    ];
+    const s = tireStats(rows, [], 'b', { now: NOW });
+    expect(badgesFor(s)[0]).toMatchObject({ id: 'primer_juego', earned: true, reachedAt: '2026-02-10' });
+    expect(s.datedAsc).toEqual(['2025-11-02', '2025-12-01', '2026-01-03', '2026-02-10']);
+    expect(nextBadge(s, 'en')).toMatchObject({ id: 'quemagomas', label: 'Tire burner', remaining: 6 });
+  });
+});

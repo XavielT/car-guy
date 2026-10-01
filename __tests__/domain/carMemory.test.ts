@@ -1,4 +1,4 @@
-import { carMemory, searchMemory, suggestionsFor, type MemorySpecsheet, type VehicleFactRow } from '@/lib/domain/carMemory';
+import { carMemory, searchMemory, suggestionForFluid, suggestionsFor, type MemorySpecsheet, type VehicleFactRow } from '@/lib/domain/carMemory';
 
 /** The seed's DS3 (Phase 2 §4): "what I buy" filled in. Fram PH6607 is a fictional PN for the seed. */
 const DS3: MemorySpecsheet = {
@@ -128,5 +128,35 @@ describe('suggestionsFor', () => {
     expect(suggestionsFor('aceite_motor', null)).toBeNull();
     expect(suggestionsFor(null, DS3)).toBeNull();
     expect(suggestionsFor('aceite_motor', {})).toBeNull();
+  });
+});
+
+describe('suggestionForFluid (the check runner\'s fluid card)', () => {
+  it('maps a fluid kind to the service type that remembers it', () => {
+    expect(suggestionForFluid('aceite', DS3)!.summary).toBe('Castrol Edge 5W-30 · Fram PH6607');
+    expect(suggestionForFluid('coolant', DS3)!.summary).toBe('Revkogel 2000');
+    expect(suggestionForFluid('bateria', DS3)!.summary).toBe('Bosch · 60 Ah 640 A');
+    expect(suggestionForFluid('filtro_aire', DS3)!.label).toBe('Igual que siempre: CA11213');
+  });
+
+  it('null for the washer, an unknown kind, no kind or no sheet', () => {
+    expect(suggestionForFluid('washer', DS3)).toBeNull();
+    expect(suggestionForFluid('nitro', DS3)).toBeNull();
+    expect(suggestionForFluid(null, DS3)).toBeNull();
+    expect(suggestionForFluid('aceite', null)).toBeNull();
+  });
+});
+
+describe('search fold, more cases', () => {
+  const sections = carMemory(DS3, FACTS);
+  it('every word must appear, in any order, across label, value and section', () => {
+    expect(searchMemory(sections, 'radio 4471')[0].rows.map((r) => r.label)).toEqual(['Código de radio']);
+    expect(searchMemory(sections, 'radio 9999')).toEqual([]);
+    expect(searchMemory(sections, 'GOMEZ').flatMap((s) => s.rows.map((r) => r.key))).toEqual(['whereBought']);
+  });
+  it('a hit keeps its section title and drops the other rows', () => {
+    const hits = searchMemory(sections, 'póliza');
+    expect(hits.map((h) => h.title)).toEqual(['Papeles']);
+    expect(hits[0].rows).toHaveLength(1);
   });
 });

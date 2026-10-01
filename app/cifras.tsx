@@ -11,6 +11,9 @@ import { StackedBars } from '@/components/charts/StackedBars';
 import { TabsCifrasSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
 import { TripsCifrasBlock } from '@/components/trips/TripPieces';
+import { EventCostsBlock } from '@/components/cifras/EventCostsBlock';
+import { PricesBlock } from '@/components/cifras/PricesBlock';
+import { TiresBlock } from '@/components/cifras/TiresBlock';
 import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
@@ -322,6 +325,8 @@ export default function CifrasScreen() {
 
             {/* Note 8: "lo que me ha costado" — lib/domain/costs.ts, the same figure as the report and the CSV. */}
             {stats.ownership ? <OwnershipCard cost={stats.ownership} /> : null}
+            {/* Phase 5: events' costs that no service already counts (lib/domain/events.ts eventCostDop). */}
+            <EventCostsBlock vehicleId={activeVehicle.id} />
             {garageSize >= 2 && garage ? <GarageCostCard garage={garage} /> : null}
 
             <SectionHeader title={t.stats.upcoming} caption={t.stats.upcomingCaption} />
@@ -365,6 +370,8 @@ export default function CifrasScreen() {
 
         {/* Phase 5: this month's trips; renders nothing without any. */}
         {FEATURE_TRIPS ? <TripsCifrasBlock vehicleId={activeVehicle.id} /> : null}
+        {FEATURE_BUILD ? <TiresBlock vehicleId={activeVehicle.id} /> : null}
+        <PricesBlock defaultFuel={activeVehicle.defaultFuelType} />
       </ScrollView>
     </SafeAreaView>
   );

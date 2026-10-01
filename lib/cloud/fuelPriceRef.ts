@@ -1,4 +1,9 @@
+import { Platform } from 'react-native';
+
 import { enqueue, now } from '../db/client';
+import { listFuelPriceRefs } from '../db/priceOps';
+import { settings } from '../db/repos';
+import { shouldPingImporter } from '../domain/fuelPrices';
 import type { FuelPriceRef } from '../db/types';
 import { recordError } from '../diagnostics';
 import { getSupabase } from './supabase';
@@ -8,8 +13,9 @@ import { getSupabase } from './supabase';
  *
  * Not the sync engine: the cloud table is anyone's to read (anon SELECT) and
  * nobody's to write from the app, so there is no push, no cursor and no
- * user_id. It is created in Phase 5 (sql/027); until then the table does not
- * exist and the fetch answers "not there" — that is silence, not an error.
+ * user_id. The table is sql/027 (Phase 5); until it is applied the fetch answers
+ * "not there" — that is silence, not an error. Phase 5 adds the importer
+ * calls (api/precios.ts): the button on Precios and the launch ping.
  */
 
 /** A cloud row of carguy.fuel_price_ref (sql/027). */
@@ -56,15 +62,13 @@ export function mapRefRows(rows: readonly CloudFuelPriceRef[]): FuelPriceRef[] {
 /** The last 26 weeks is plenty for the board and the chart. */
 const WEEKS = 26;
 
-/**
- * Fetches the reference rows and replaces the cache. Returns how many rows the
- * cache now holds, or null when nothing was fetched (offline, no cloud, no table).
- */
-export async function refreshFuelPriceRef(): Promise<number | null> {
+type RefreshOutcome = { status: 'ok'; count: number } | { status: 'missing' | 'offline' | 'error' | 'no-cloud' };
+
+async function pullRefs(): Promise<RefreshOutcome> {
   const supabase = getSupabase();
-  if (!supabase) return null;
+  if (!supabase) return { status: 'no-cloud' };
   const since = new Date(Date.now() - WEEKS * 7 * 86_400_000).toISOString().slice(0, 10);
-  // Not in the generated types until sql/027 exists (Phase 5).
+  // Not in the generated types (sql/027 is applied by hand).
   const untyped = supabase as unknown as {
     from(table: string): {
       select(columns: string): {
@@ -76,14 +80,15 @@ export async function refreshFuelPriceRef(): Promise<number | null> {
   try {
     result = await untyped.from('fuel_price_ref').select('week_start, week_end, fuel_type, price, pdf_url, imported_at, stale').gte('week_start', since);
   } catch {
-    return null; // offline
+    return { status: 'offline' };
   }
   if (result.error) {
-    if (!isMissingTable(result.error)) recordError('fuel-price-ref', result.error.message ?? String(result.error.code));
-    return null;
+    if (isMissingTable(result.error)) return { status: 'missing' };
+    recordError('fuel-price-ref', result.error.message ?? String(result.error.code));
+    return { status: 'error' };
   }
   const rows = mapRefRows(result.data ?? []);
-  if (!rows.length) return 0;
+  if (!rows.length) return { status: 'ok', count: 0 };
   await enqueue(async (db) => {
     for (const r of rows) {
       await db.runAsync(
@@ -95,5 +100,81 @@ export async function refreshFuelPriceRef(): Promise<number | null> {
       );
     }
   });
-  return rows.length;
+  return { status: 'ok', count: rows.length };
+}
+
+/**
+ * Fetches the reference rows and replaces the cache. Returns how many rows the
+ * cache now holds, or null when nothing was fetched (offline, no cloud, no table).
+ */
+export async function refreshFuelPriceRef(): Promise<number | null> {
+  const outcome = await pullRefs();
+  return outcome.status === 'ok' ? outcome.count : null;
+}
+
+// ---------------------------------------------------------------------------
+// The importer (api/precios.ts, Phase 5)
+// ---------------------------------------------------------------------------
+
+const SITE = 'https://car-guy.vercel.app';
+
+/** The deployed function: same origin on the deployed web app, the production URL from native and localhost. */
+export function importerUrl(platform: string = Platform.OS, host: string | null = typeof location !== 'undefined' ? location.hostname : null): string {
+  if (platform === 'web' && host && host !== 'localhost' && host !== '127.0.0.1') return '/api/precios';
+  return `${SITE}/api/precios`;
+}
+
+/** What /api/precios answers (lib/micm/importer.ts ImportResult, as JSON). */
+export type ImporterAnswer = {
+  ok: boolean;
+  stale: boolean;
+  reason?: string;
+  upToDate?: boolean;
+  imported: number;
+  weekStart: string | null;
+  weekEnd: string | null;
+};
+
+/** GET /api/precios; null when it could not be reached or did not answer JSON. */
+export async function callImporter(): Promise<ImporterAnswer | null> {
+  try {
+    const response = await fetch(importerUrl(), { headers: { Accept: 'application/json' } });
+    const body = (await response.json()) as ImporterAnswer;
+    return body && typeof body === 'object' && 'ok' in body ? body : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Precios → "Importar MICM ahora": the function, then the cache. */
+export async function importMicmNow(): Promise<{ answer: ImporterAnswer | null; cached: number | null }> {
+  const answer = await callImporter();
+  const cached = await refreshFuelPriceRef();
+  return { answer, cached };
+}
+
+const PING_KEY = 'micm_import_ping_day';
+
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * On launch: pull the cache; when its newest week is more than 8 days old (the
+ * Saturday cron did not run, or Hobby skipped it), ping the importer once a day
+ * and pull again. Silent: the table missing (sql/027 not applied), offline, or
+ * the importer failing changes nothing on screen. Returns rows pulled, or null.
+ */
+export async function refreshFuelPriceRefOnLaunch(): Promise<number | null> {
+  const first = await pullRefs();
+  if (first.status !== 'ok') return null;
+  const newest = (await listFuelPriceRefs())[0]?.weekStart ?? null;
+  const today = localToday();
+  const lastPing = await settings.get<string | null>(PING_KEY, null);
+  if (!shouldPingImporter(newest, today, lastPing)) return first.count;
+  await settings.set(PING_KEY, today);
+  const answer = await callImporter();
+  if (!answer?.ok || answer.upToDate) return first.count;
+  return refreshFuelPriceRef();
 }

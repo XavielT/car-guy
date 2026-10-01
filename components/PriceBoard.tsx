@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { T } from '@/components/T';
 import { CarbonFrame } from '@/components/ui/CarbonFrame';
 import { palette, radius, space } from '@/constants/theme';
+import { boardSourceLabel, type BoardEntry } from '@/lib/domain/fuelPrices';
 import { money } from '@/lib/format';
 import { FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
 import type { ReferencePrices } from '@/lib/types';
@@ -17,6 +18,11 @@ import type { ReferencePrices } from '@/lib/types';
  * no text on it), the eyebrow in Saira tracked amber, the week in Saira 800,
  * then each grade on its own LCD well with the price in JetBrains Mono amber —
  * Tu Combustible RD's LED digits, the one surface still about buying fuel.
+ *
+ * Phase 5 (ADR-46): with `entries` (the board, lib/domain/fuelPrices.ts),
+ * each grade carries where its price came from and since when —
+ * "MICM · semana del 26 sep", "Manual · 3 oct" — amber-outlined when the MICM
+ * week is the last good one (`stale`).
  */
 const board = palette.dark;
 
@@ -25,11 +31,13 @@ export function PriceBoard({
   amount,
   caption,
   prices,
+  entries,
 }: {
   eyebrow: string;
   amount: string;
   caption: string;
   prices: ReferencePrices;
+  entries?: readonly BoardEntry[];
 }) {
   return (
     <View style={styles.board}>
@@ -53,18 +61,30 @@ export function PriceBoard({
         </T>
 
         <View style={styles.grid}>
-          {FUEL_ORDER.map((type) => (
-            <View key={type} style={styles.row}>
-              <T face="title" style={styles.grade} numberOfLines={1}>
-                {FUEL_CATALOG[type].shortLabel}
-              </T>
-              <View style={styles.well}>
-                <T face="monoBold" style={styles.price} numberOfLines={1}>
-                  {money(prices[type])}
-                </T>
+          {FUEL_ORDER.map((type) => {
+            const entry = entries?.find((e) => e.fuelType === type);
+            return (
+              <View key={type} style={styles.row}>
+                <View style={styles.gradeCol}>
+                  <T face="title" style={styles.grade} numberOfLines={1}>
+                    {FUEL_CATALOG[type].shortLabel}
+                  </T>
+                  {entry ? (
+                    <View style={[styles.chip, entry.stale && styles.chipStale]}>
+                      <T face="body" style={[styles.chipText, entry.stale && { color: board.accent }]} numberOfLines={1}>
+                        {boardSourceLabel(entry)}
+                      </T>
+                    </View>
+                  ) : null}
+                </View>
+                <View style={styles.well}>
+                  <T face="monoBold" style={styles.price} numberOfLines={1}>
+                    {money(entry?.price ?? prices[type])}
+                  </T>
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </View>
     </View>
@@ -110,13 +130,23 @@ const styles = StyleSheet.create({
   caption: { color: board.text.secondary, marginTop: 4, fontSize: 13, lineHeight: 18 },
   grid: { marginTop: space.md, gap: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  gradeCol: { flex: 1, minWidth: 0, alignItems: 'flex-start', gap: 3 },
   grade: {
     color: board.text.secondary,
     fontSize: 14,
     letterSpacing: 1,
     textTransform: 'uppercase',
-    flex: 1,
   },
+  chip: {
+    borderWidth: 1,
+    borderColor: board.lineStrong,
+    borderRadius: radius.lamp,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    maxWidth: '100%',
+  },
+  chipStale: { borderColor: board.accent },
+  chipText: { color: board.text.muted, fontSize: 11, lineHeight: 15 },
   // The LCD inset each price sits in.
   well: {
     backgroundColor: board.bg.well,

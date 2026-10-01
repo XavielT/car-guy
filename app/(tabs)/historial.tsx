@@ -18,7 +18,8 @@ import type { HistoryEntry } from '@/lib/db/types';
 import { perFillEconomy, type PerFillEconomy } from '@/lib/domain/perFillEconomy';
 import { dateLabel, economyNumber, economyValue, km as fmtKm, kmPerUnit, money, monthTitle } from '@/lib/format';
 import { economyLabel } from '@/lib/fuel';
-import { historySubtitle, historyTitle } from '@/lib/domain/history';
+import { historyIcon, historySubtitle, historyTitle } from '@/lib/domain/history';
+import { FEATURE_EVENTS } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
 import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { economyById } from '@/lib/math';
@@ -39,6 +40,8 @@ const filters = (): { key: 'todo' | RecordKind; label: string }[] => [
   // Milestones and track days are in the feed already (schema v2); their chips
   // appear with the screens that create them.
   ...(FEATURE_ALBUM ? [{ key: 'hito' as const, label: t.history.kinds.hito }] : []),
+  // Events (ADR-44): crashes, breakdowns, tickets — their own rows since PROMPT-05.
+  ...(FEATURE_EVENTS ? [{ key: 'evento' as const, label: t.events.historyChip }] : []),
   ...(FEATURE_TRACK ? [{ key: 'pista' as const, label: t.history.kinds.pista }] : []),
   ...(FEATURE_TRIPS ? [{ key: 'viaje' as const, label: t.history.kinds.viaje }] : []),
 ];
@@ -183,6 +186,7 @@ export default function HistorialScreen() {
                 <RecordRow
                   key={`${entry.kind}-${entry.id}`}
                   kind={entry.kind}
+                  icon={historyIcon(entry)}
                   title={historyTitle(entry)}
                   meta={metaFor(entry, oilLines.get(entry.id))}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
@@ -217,7 +221,8 @@ export default function HistorialScreen() {
             [t.history.addOdometer, '/odometro'],
             ...(FEATURE_ALBUM
               ? ([
-                  [t.history.addMilestone, '/hito/nuevo'],
+                  [t.history.addMilestone, '/evento/nuevo?type=hito'],
+                  ...(FEATURE_EVENTS ? ([[t.events.add, '/evento/nuevo']] as const) : []),
                   [t.history.addPhotos, '/album/importar'],
                 ] as const)
               : []),
@@ -312,7 +317,7 @@ function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {
     return;
   }
   if (entry.kind === 'hito' || entry.kind === 'evento') {
-    router.push({ pathname: '/hito/[id]', params: { id: entry.id } });
+    router.push({ pathname: '/evento/[id]', params: { id: entry.id } });
     return;
   }
   if (entry.kind === 'obd') {

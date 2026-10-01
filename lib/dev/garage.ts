@@ -20,6 +20,7 @@ import {
   wheelSets as wheelSetRepo,
   wishlist as wishlistRepo,
 } from '@/lib/db/repos';
+import { upsertFuelPriceRefs } from '@/lib/db/priceOps';
 import { seedVehicleDefaults } from '@/lib/db/seed';
 import { trips as tripRepo } from '@/lib/db/tripOps';
 import { saveInspection } from '@/lib/db/inspectionOps';
@@ -459,6 +460,33 @@ async function seedV8(at: (daysAgo: number) => string, today: Date): Promise<str
       await priceRepo.upsert({ id: `dev_price_${validFrom}_${fuelType}`, fuelType, price: moved, validFrom, source: 'manual', station: '', note: '' });
     }
   }
+
+  // The four MICM weeks of September 2026 as the importer stores them (docs/imp-30092026/fixtures/micm/),
+  // into the local cache only — the weeks not after today, so the board's tie rule shows (ADR-46).
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const micm: [string, string, string, number[]][] = [
+    ['2026-09-05', '2026-09-11', 'AVISO-PRE.-SEM.CORTE-05-11-SEP-DE-2026.pdf', [341.1, 310.5, 262.8, 293.1, 135.2]],
+    ['2026-09-12', '2026-09-18', 'AVISO-PRE.-SEM.CORTE-12-18-SEP-DE-2026.pdf', [341.1, 310.5, 262.8, 293.1, 135.2]],
+    ['2026-09-19', '2026-09-25', 'AVISO-PRE.-SEM.CORTE-19-25-SEP-DE-2026.pdf', [350.1, 315.5, 267.8, 302.1, 135.2]],
+    ['2026-09-26', '2026-10-02', 'AVISO-PRE.-SEM.CORTE-26-SEP-02-OCT-DE-2026-ESC.-2-ESC.-3.pdf', [353.1, 317.5, 270.8, 306.1, 135.2]],
+  ];
+  const micmFuels = ['premium', 'regular', 'gasoil_regular', 'gasoil_optimo', 'glp'];
+  await upsertFuelPriceRefs(
+    micm
+      .filter(([weekStart]) => weekStart <= todayIso)
+      .flatMap(([weekStart, weekEnd, pdf, prices]) =>
+        micmFuels.map((fuelType, i) => ({
+          id: `${weekStart}:${fuelType}`,
+          fuelType,
+          price: prices[i],
+          weekStart,
+          weekEnd,
+          pdfUrl: `https://micm.gob.do/wp-content/uploads/2026/09/${pdf}`,
+          importedAt: `${weekStart}T12:00:00.000Z`,
+          stale: false,
+        })),
+      ),
+  );
 
   // The Trueno's tires, two years of them (ADR-45's counters need a history).
   const history: [string, string, Tire['status'], number, number, string, number][] = [
