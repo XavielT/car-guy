@@ -13,3 +13,10 @@ create function storage.foldername(name text) returns text[] language sql immuta
 grant usage on schema storage to anon, authenticated; grant select, insert, update, delete on storage.objects to authenticated; grant execute on all functions in schema storage to anon, authenticated;
 create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, email text);
 create role authenticator noinherit nologin; -- PostgREST's login role; sql/027_fuel_price_ref_role.shared.sql grants carguy_importer to it
+-- Realtime (IMP 01102026 sql/036): the shared messages table + realtime.topic(), read from a setting the scenario sets.
+create schema realtime;
+create table realtime.messages (id bigserial primary key, topic text not null, extension text not null, payload jsonb, inserted_at timestamptz default now());
+create function realtime.topic() returns text language sql stable as $$ select nullif(current_setting('realtime.topic', true), '') $$;
+alter table realtime.messages enable row level security;
+grant usage on schema realtime to anon, authenticated; grant select, insert on realtime.messages to authenticated;
+grant usage on sequence realtime.messages_id_seq to authenticated; grant execute on all functions in schema realtime to anon, authenticated;

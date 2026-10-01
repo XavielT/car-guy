@@ -523,6 +523,31 @@ async function main() {
     `${legal.detail} · after stale ${legal.afterStale?.locale} · back ${legal.back?.locale} · accepted_at ${legal.back?.accepted_at}`,
   );
 
+  // IMP 01102026 (sql/034): the owner's shared trips and privacy zones sync like any owned row.
+  const ts = await roundTrip(
+    'trip_share', `sync_probe_share_${stamp}`,
+    { trip_id: `sync_probe_trip_${stamp}`, visibility: 'friends', polyline_trimmed: '_p~iF~ps|U', distance_m: 11200, duration_s: 1500, started_day: '2026-09-27', title: 'Prueba' },
+    { title: 'VIEJO' }, { title: 'Nuevo', visibility: 'public' },
+  );
+  check(
+    '24. trip_share round-trips (integers, a day, the visibility) with last-write-wins',
+    ts.ok && ts.afterStale?.title === 'Prueba' && ts.back?.title === 'Nuevo' && ts.back?.visibility === 'public' &&
+      ts.back?.distance_m === 11200 && ts.back?.started_day === '2026-09-27' && ts.back?.user_id === userId,
+    `${ts.detail} · after stale ${ts.afterStale?.title} · back ${ts.back?.title} (${ts.back?.visibility}, ${ts.back?.distance_m} m, ${ts.back?.started_day})`,
+  );
+
+  const zone = await roundTrip(
+    'privacy_zone', `sync_probe_zone_${stamp}`,
+    { label: 'Casa', lat: 18.4712345, lng: -69.9312345, radius_m: 300 },
+    { radius_m: 120 }, { radius_m: 450 },
+  );
+  check(
+    '25. privacy_zone round-trips (the coordinates to the 7th decimal) with last-write-wins',
+    zone.ok && zone.afterStale?.radius_m === 300 && zone.back?.radius_m === 450 &&
+      zone.back?.lat === 18.4712345 && zone.back?.lng === -69.9312345 && zone.back?.user_id === userId,
+    `${zone.detail} · after stale ${zone.afterStale?.radius_m} · back ${zone.back?.radius_m} @ ${zone.back?.lat},${zone.back?.lng}`,
+  );
+
   const failed = results.filter((r) => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} passed.`);
   console.log('\n--- cleanup ---');
