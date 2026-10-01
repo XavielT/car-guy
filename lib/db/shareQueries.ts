@@ -5,6 +5,7 @@ import type { RawDossier, ShareFlags } from '../share/dossier';
 import { isEmptyCost } from '../domain/costs';
 import { vehicleOwnershipCost } from './statsQueries';
 import { loadMemory } from './memoryQueries';
+import { es } from '../i18n/es';
 
 /**
  * The share's local reads (IMP 28092026 Phase 7). `localRawDossier` builds the
@@ -273,8 +274,20 @@ export function publicMemoryRows<R extends { key: string; section: string; sourc
   return rows.filter((r) => r.source === 'ficha' && r.section !== 'papeles' && r.key !== 'whereBought');
 }
 
+/**
+ * The public page renders in Spanish (lib/share/html.ts, docs/NEXT.md), so its "Lo que uso" does too, whatever
+ * the app's language: an English owner's page must not mix "Oil I buy" into Spanish headings. Every public row
+ * is a spec-sheet field, so its title and label come straight from the Spanish dictionary; values are the
+ * owner's own text (and numbers, which read the same in es-DO).
+ */
+function inSpanish(rows: KeyedMemoryRow[]): KeyedMemoryRow[] {
+  const sections = es.carMemory.sections as Record<string, string>;
+  const fields = es.carMemory.fields as Record<string, string>;
+  return rows.map((r) => ({ ...r, title: sections[r.section] ?? r.title, label: fields[r.key] ?? r.label }));
+}
+
 async function publicMemory(vehicleId: string): Promise<MemoryRows> {
-  return unkeyed(publicMemoryRows(await keyedMemoryRows(vehicleId)));
+  return unkeyed(inSpanish(publicMemoryRows(await keyedMemoryRows(vehicleId))));
 }
 
 /** "Lo que uso" as the share row stores it: JSON text, or null when the switch is off or nothing is filled. */

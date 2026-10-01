@@ -6,6 +6,7 @@ import type { TestDb } from '../helpers/sqlite';
 import { vehicleShares } from '@/lib/db/repos';
 import { saveBuyFields, saveFact } from '@/lib/db/memoryQueries';
 import { DEFAULT_FLAGS, localRawDossier, memorySummaryText, publicMemoryRows, refreshShareSummaries } from '@/lib/db/shareQueries';
+import { __setLanguageForTests } from '@/lib/i18n';
 
 jest.mock('@/lib/db/client', () => {
   const helpers = require('../helpers/sqlite');
@@ -48,6 +49,26 @@ describe('memorySummaryText', () => {
     expect(rows.every((r) => r.source === 'ficha')).toBe(true);
     expect(text).not.toMatch(/4821|POL-123456|Don Pedro|809-555/);
     expect(text).not.toMatch(/"key"/);
+  });
+});
+
+describe('the page is Spanish', () => {
+  afterEach(() => __setLanguageForTests('es'));
+
+  it('an English app still publishes Spanish titles and labels (the page renders in Spanish)', async () => {
+    __setLanguageForTests('en');
+    const rows = JSON.parse((await memorySummaryText('v', true))!) as { title: string; label: string; value: string }[];
+    const oil = rows.find((r) => r.value === 'Motul')!;
+    const { es } = jest.requireActual('@/lib/i18n/es') as typeof import('@/lib/i18n/es');
+    expect(oil.label).toBe(es.carMemory.fields.oilBrand);
+    expect(oil.title).toBe(es.carMemory.sections.aceite);
+  });
+
+  it('… while the book, in the owner\'s language, stays English', async () => {
+    __setLanguageForTests('en');
+    const { en } = jest.requireActual('@/lib/i18n/en') as typeof import('@/lib/i18n/en');
+    const book = await localRawDossier('v', DEFAULT_FLAGS, { memory: true });
+    expect(book!.memory!.find((r) => r.value === 'Motul')!.label).toBe(en.carMemory.fields.oilBrand);
   });
 });
 

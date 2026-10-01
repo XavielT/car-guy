@@ -15,6 +15,9 @@ welcome / legal → 2.4.0. Package: [`imp-30092026/`](imp-30092026/README.md), l
 [`imp-30092026/04-tracking/PROGRESS.md`](imp-30092026/04-tracking/PROGRESS.md).
 
 ### Carried to the next cycle (from 2.4)
+- **Public page in the owner's language**: /c/<slug> renders Spanish always (lib/share/html.ts + dossier.ts, ~140
+  strings, plus statusLabel/modBadge). Needs `vehicle_share.locale` set at publish and a renderer that takes a
+  dictionary. Until then the phone publishes "Lo que uso" in Spanish too (2.4.1+ on main), so a page never mixes.
 - **Read the legal texts** (content/legal/*.md, not legal advice): 2.4.0 shipped them on his "do all the stuff";
   any wording change is a LEGAL_VERSION bump, so the sheet asks everyone again.
 - **Xaviel's real drive** with Modo conducir open (~10 min, city streets): the trip detail's line must follow
