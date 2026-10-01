@@ -340,6 +340,10 @@ export const enPart6: Pick<
   },
 
   drive: {
+    /** ADR-49: no dot until a fresh fix; an old one is greyed and says how old. */
+    gpsSearching: 'Looking for GPS…',
+    gpsDenied: 'No location permission: the map does not know where you are.',
+    lastPosition: (ms: number) => `Last position: ${ms < 60_000 ? `${Math.round(ms / 1000)} s` : ms < 3_600_000 ? `${Math.round(ms / 60_000)} min` : `${Math.round(ms / 3_600_000)} h`} ago`,
     eyebrow: 'Drive mode',
     open: 'Open drive mode',
     openRecording: 'Open drive mode · recording a trip',
@@ -519,6 +523,14 @@ export const enPart6: Pick<
       formTitle: 'Your first car',
       backToSlides: 'Back to the welcome',
     },
+    /** IMP 01102026 note 10: how the home odometer rises. */
+    odometer: {
+      eyebrow: 'Your odometer',
+      title: 'How the mileage goes up',
+      body: 'The odometer on Home rises with what you log, not with the car itself:',
+      ways: ['Fill-ups with their odometer reading', 'Services and checks', 'GPS trips (an estimate)'],
+      fix: 'Until you type the real one it is an approximation. Tap the number on Home to correct it any time.',
+    },
     features: {
       eyebrow: 'What it does',
       title: 'What you can do',
@@ -557,6 +569,7 @@ export const enPart6: Pick<
       album: 'Import several photos at once with the button above; switch between timeline and grid.',
       events: 'An event is something that happened to the car: a dent, a trip, an award. Mark "Pending" what still needs fixing.',
       drive: 'Glance at the screen or hand it to the passenger. The trip keeps recording if you close this screen.',
+      odometer: 'The odometer rises with what you log: fill-ups, services, checks and trips (≈ until you type the real one). Tap the number to correct it.',
     },
     help: {
       title: 'Help',

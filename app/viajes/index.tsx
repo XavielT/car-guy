@@ -7,7 +7,7 @@ import { HeatMap } from '@/components/map';
 import { TripsListSkeleton } from '@/components/skeletons/TripsListSkeleton';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
-import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions } from '@/components/trips/TripPieces';
+import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions, AutoBlockedCard } from '@/components/trips/TripPieces';
 import { Chip, EmptyState, GhostButton, Segmented } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -78,6 +78,7 @@ export default function TripsScreen() {
         {t.trips.title}
       </T>
       <TipCard id="trips" />
+      <AutoBlockedCard />
 
       {vehicles.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>

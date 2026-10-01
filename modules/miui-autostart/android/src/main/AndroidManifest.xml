@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- The direct "allow background" dialog (ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) needs it. Car Guy is
+       distributed outside Play (Xaviel's channels); a Play listing would have to justify it (Automático). -->
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+</manifest>

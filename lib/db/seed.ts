@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { INSPECTION_TEMPLATES, legalReminder, SERVICE_TYPES, type ServiceTypeSeed } from '../domain/catalog';
+import { INSPECTION_TEMPLATES, legalReminder, MOD_CATEGORIES, SERVICE_TYPES, type ServiceTypeSeed } from '../domain/catalog';
 import { addMonths, nextJanuary31, todayIso } from '../domain/dates';
 import { enqueue } from './client';
 import {
@@ -64,6 +64,16 @@ export async function seedCatalog(db?: SQLiteDatabase): Promise<void> {
           deletedAt: null,
         },
         handle,
+      );
+    }
+
+    // Mod categories: migration v2 seeded them once, so a category added later (accesorios, estetica — IMP
+    // 01102026 note 17) never reached an existing phone. INSERT OR IGNORE: a user's rename survives.
+    const now = new Date().toISOString();
+    for (const [index, c] of MOD_CATEGORIES.entries()) {
+      await handle.runAsync(
+        'INSERT OR IGNORE INTO mod_category (id, name, icon, sort_order, is_seeded, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)',
+        [c.id, c.name, c.icon, index, now, now],
       );
     }
 

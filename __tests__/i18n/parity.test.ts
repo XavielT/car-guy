@@ -11,6 +11,9 @@ type Tree = Record<string, unknown>;
 
 /** Values that are the same word in both languages: car culture, units, brands, names. */
 const SAME_OK = new Set([
+  // IMP 01102026: the same word in both languages.
+  '+ Mod',
+  'Spoiler',
   'Car Guy', 'CAR GUY', 'Regular', 'Óptimo', 'Build', 'Links', 'Link', 'Mod', 'Mods', 'MODS', 'Wishlist', 'WISHLIST', 'Color', 'Material',
   'Toyota, Honda, Hyundai…', 'Corolla, CR-V…', '© OpenStreetMap', 'Xiaomi / Redmi / POCO', 'autodromo', 'santiago', 'isla',
   'Manual', 'CVT', 'JDM', 'USDM', 'EUDM', 'Local', 'Docs', 'Total (RD$)', 'Normal', 'Marbete', 'Total', 'PRESET', 'VPIC',

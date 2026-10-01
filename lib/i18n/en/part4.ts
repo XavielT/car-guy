@@ -478,6 +478,8 @@ export const enPart4: Pick<
     },
   },
   build: {
+    /** IMP 01102026 note 9: the 改 seal moved here from Inicio, where it was not understood. */
+    seal: 'Modified',
     eyebrow: (name: string) => `${name} · BUILD`,
     tabs: { mods: 'MODS', specs: 'SPECS', wishlist: 'WISHLIST', inventario: 'INVENTORY' },
     invested: 'invested',
@@ -513,6 +515,12 @@ export const enPart4: Pick<
     wishStatuses: { idea: 'IDEA', ahorrando: 'SAVING UP', pedido: 'ORDERED', convertido: 'INSTALLED', descartado: 'DROPPED' },
   },
   modForm: {
+    /** IMP 01102026 note 17: one tap fills the name — the mods a daily gets. */
+    presetsTitle: 'Quick',
+    presets: {
+      accesorios: ['Valve caps', 'Radio / screen', 'Floor mats', 'Steering wheel cover', 'Horn', 'Charger / phone mount'],
+      estetica: ['Window tint', 'Badges', 'LED lights', 'Spoiler', 'Decals', 'Wrap / vinyl'],
+    } as Record<string, string[]>,
     newTitle: 'New mod',
     editTitle: 'Edit mod',
     fromWishlist: 'From your wishlist: check what it really cost.',

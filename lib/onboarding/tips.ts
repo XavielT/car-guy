@@ -7,7 +7,7 @@ import type { SettingsKV } from './welcome';
  * shown until dismissed. Dismissed ids live in the `tips_seen` setting as a JSON
  * list; Más → Ayuda → Consejos empties it.
  */
-export const TIP_IDS = ['trips', 'build', 'track', 'album', 'events', 'drive'] as const;
+export const TIP_IDS = ['trips', 'build', 'track', 'album', 'events', 'drive', 'odometer'] as const;
 export type TipId = (typeof TIP_IDS)[number];
 export const TIPS_KEY = 'tips_seen';
 

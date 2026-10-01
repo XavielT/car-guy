@@ -36,6 +36,7 @@ export type TripDiagnosticsInput = {
   taskRegistered: boolean | null;
   updatesStarted: boolean | null;
   miuiAutostart: string;
+  battery: string;
   state: TripMachineState | null;
   lastFixes: FixTiming[];
   errors: DiagnosticEntry[];
@@ -59,9 +60,8 @@ export function buildTripDiagnostics(input: TripDiagnosticsInput) {
       locationUpdatesStarted: input.updatesStarted,
     },
     miuiAutostart: input.miuiAutostart,
-    // Battery optimisation has no JS API in this build (PowerManager.isIgnoringBatteryOptimizations is native);
-    // `adb shell dumpsys deviceidle whitelist` answers it.
-    batteryOptimisation: 'unknown',
+    // PowerManager.isIgnoringBatteryOptimizations (modules/miui-autostart since 2.4.3); 'unknown' on older APKs.
+    batteryOptimisation: input.battery,
     machine: s
       ? {
           phase: s.phase,
@@ -104,7 +104,7 @@ function snapshot(p: { status: string; granted: boolean; canAskAgain: boolean; a
 
 /** Gathers the live facts (each one best-effort: a failing probe says null, never throws). */
 export async function gatherTripDiagnostics(): Promise<ReturnType<typeof buildTripDiagnostics>> {
-  const [Location, TaskManager, { autoReadiness, TRIP_TASK }, settings, { machineState }, { getDb }, { getAutostartState }, version] =
+  const [Location, TaskManager, { autoReadiness, TRIP_TASK }, settings, { machineState }, { getDb }, { getAutostartState, getBatteryState }, version] =
     await Promise.all([
       import('expo-location'),
       import('expo-task-manager'),
@@ -149,6 +149,7 @@ export async function gatherTripDiagnostics(): Promise<ReturnType<typeof buildTr
     taskRegistered: registered,
     updatesStarted: started,
     miuiAutostart: getAutostartState(),
+    battery: getBatteryState(),
     state,
     lastFixes: (rows ?? []).slice().reverse(),
     errors: recentErrors(),

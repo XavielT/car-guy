@@ -17,7 +17,10 @@ import { localeTag, t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
-import { getAutostartState, openAutostartSettings, type AutostartState } from '@/modules/miui-autostart';
+import { getAutostartState, getBatteryState, openAutostartSettings, openBatterySettings, type AutostartState, type BatteryState } from '@/modules/miui-autostart';
+import { agoShort, autoBlocker, lastFixTime } from '@/lib/trips/autoStatus';
+import { machineState } from '@/lib/trips/engine';
+import { tripsMode, type TripsMode } from '@/lib/trips/settings';
 import type { Fix, LatLng } from '@/lib/trips/geo';
 import { fitTiles, OSM_COPYRIGHT_URL, TILE_SIZE } from '@/lib/trips/tiles';
 import {
@@ -197,13 +200,21 @@ export function isMiuiPhone(): boolean {
 export function MiuiChecklist() {
   const { theme } = useTheme();
   const [autostart, setAutostart] = useState<AutostartState>(() => getAutostartState());
+  const [battery, setBattery] = useState<BatteryState>(() => getBatteryState());
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (st) => st === 'active' && setAutostart(getAutostartState()));
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st !== 'active') return;
+      setAutostart(getAutostartState());
+      setBattery(getBatteryState());
+    });
     return () => sub.remove();
   }, []);
   if (!isMiuiPhone()) return null;
   const verdict =
     autostart === 'enabled' ? { text: t.trips.miuiAutostartOn, color: theme.statusText.ok } : autostart === 'disabled' ? { text: t.trips.miuiAutostartOff, color: theme.statusText.vencido } : null;
+  // Step 2 is the battery one: its real state since 2.4.3 (Phase 0 found the Redmi optimised).
+  const batteryVerdict =
+    battery === 'unrestricted' ? { text: t.trips.batteryOn, color: theme.statusText.ok } : battery === 'optimized' ? { text: t.trips.batteryOff, color: theme.statusText.vencido } : null;
   return (
     <Surface padded style={{ gap: space.sm, marginTop: space.md }}>
       <T face="title" style={{ color: theme.text.primary, fontSize: 16, textTransform: 'uppercase' }}>
@@ -222,13 +233,80 @@ export function MiuiChecklist() {
               {verdict.text}
             </T>
           ) : null}
+          {i === 1 && batteryVerdict ? (
+            <T face="semibold" style={{ color: batteryVerdict.color, fontSize: 13 }}>
+              {batteryVerdict.text}
+            </T>
+          ) : null}
         </View>
       ))}
       {autostart !== 'enabled' ? (
         <GhostButton label={t.trips.miuiOpenAutostart} onPress={() => void (openAutostartSettings() || Linking.openSettings())} />
       ) : null}
+      {battery === 'optimized' ? <GhostButton label={t.trips.batteryOpen} onPress={() => void (openBatterySettings() || Linking.openSettings())} /> : null}
       <GhostButton label={t.trips.openSettings} onPress={() => void Linking.openSettings()} />
     </Surface>
+  );
+}
+
+/**
+ * "Automático no está grabando" (IMP 01102026 Phase 1): Phase 0 found the Redmi in Automático with no location
+ * permission at all, and nothing outside Ajustes said so. Shown on Inicio and Viajes only when the mode is
+ * Automático and something blocks it; one tap to Permisos. Re-read on every return to the app.
+ */
+export function AutoBlockedCard() {
+  const { theme } = useTheme();
+  const router = useRouter();
+  const auto = useAutoReadiness();
+  const [mode, setMode] = useState<TripsMode | null>(null);
+  const [extra, setExtra] = useState(() => ({ autostart: getAutostartState(), battery: getBatteryState() }));
+  useEffect(() => {
+    const read = () => {
+      void tripsMode().then(setMode);
+      setExtra({ autostart: isMiuiPhone() ? getAutostartState() : 'unknown', battery: getBatteryState() });
+    };
+    read();
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && read());
+    return () => sub.remove();
+  }, []);
+  if (Platform.OS === 'web') return null;
+  const blocker = autoBlocker({ mode, readiness: auto.state, autostart: isMiuiPhone() ? extra.autostart : 'unknown', battery: extra.battery });
+  if (!blocker) return null;
+  return (
+    <Surface padded style={{ gap: space.xs, borderColor: theme.statusText.vencido, borderWidth: 1 }}>
+      <T face="title" style={{ color: theme.statusText.vencido, fontSize: 15, textTransform: 'uppercase' }} accessibilityRole="header">
+        {t.trips.autoBlockedTitle}
+      </T>
+      <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
+        {t.trips.autoBlocked[blocker]}
+      </T>
+      <GhostButton label={t.trips.autoBlockedFix} onPress={() => router.push('/viajes/permisos')} />
+    </Surface>
+  );
+}
+
+/** "Último punto GPS recibido: hace 3 min" — so the person can see the service is alive (Viajes → Ajustes). */
+export function LastFixLine() {
+  const { theme } = useTheme();
+  const [at, setAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    let alive = true;
+    const read = () => void machineState().then((s) => alive && setAt(lastFixTime(s))).catch(() => {});
+    read();
+    const id = setInterval(() => {
+      setNow(Date.now());
+      read();
+    }, 15_000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+  return (
+    <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
+      {t.trips.lastFixAt(at == null ? null : agoShort(now - at))}
+    </T>
   );
 }
 

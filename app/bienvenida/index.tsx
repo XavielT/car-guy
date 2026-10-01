@@ -27,11 +27,12 @@ import { userMessage } from '@/lib/diagnostics';
 import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { markOnboarded } from '@/lib/onboarding/welcome';
+import { IosWebBanner } from '@/components/IosWebBanner';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
-type SlideId = 'lang' | 'profile' | 'car' | 'features' | 'perms' | 'account';
-const SLIDES: SlideId[] = ['lang', 'profile', 'car', 'features', 'perms', 'account'];
+type SlideId = 'lang' | 'profile' | 'car' | 'odometer' | 'features' | 'perms' | 'account';
+const SLIDES: SlideId[] = ['lang', 'profile', 'car', 'odometer', 'features', 'perms', 'account'];
 /** The setting the profile screen (app/perfil.tsx) reads; written here so the name is not typed twice. */
 const NAME_KEY = 'profile_display_name';
 
@@ -165,6 +166,7 @@ export default function BienvenidaScreen() {
                 {item === 'car' ? (
                   <CarSlide carName={firstCar ? firstCar.name : null} onAdd={() => setForm(true)} onImport={handleImport} onLater={() => goTo(SLIDES.indexOf('features'))} />
                 ) : null}
+                {item === 'odometer' ? <OdometerSlide /> : null}
                 {item === 'features' ? <FeaturesSlide /> : null}
                 {item === 'perms' ? <PermsSlide /> : null}
                 {item === 'account' ? <AccountSlide onOpen={() => router.push('/cuenta')} /> : null}
@@ -293,6 +295,33 @@ function CarSlide({ carName, onAdd, onImport, onLater }: { carName: string | nul
   );
 }
 
+/** Note 10: the Inicio odometer is what the person logs, not a live reading from the car. */
+function OdometerSlide() {
+  const { theme } = useTheme();
+  const o = t.welcome.odometer;
+  return (
+    <>
+      <Art>
+        <LcdDigits value={52380} minDigits={6} height={44} accessibilityLabel="052380 km" />
+      </Art>
+      <Heading eyebrow={o.eyebrow} title={o.title} />
+      <T face="body" style={{ color: theme.text.secondary, fontSize: 15, lineHeight: 22 }}>
+        {o.body}
+      </T>
+      <View style={{ gap: space.xs, marginTop: space.sm }}>
+        {o.ways.map((w) => (
+          <T key={w} face="body" style={{ color: theme.text.primary, fontSize: 15, lineHeight: 22 }}>
+            {`· ${w}`}
+          </T>
+        ))}
+      </View>
+      <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20, marginTop: space.md }}>
+        {o.fix}
+      </T>
+    </>
+  );
+}
+
 function FeaturesSlide() {
   const { theme } = useTheme();
   const cards = [
@@ -355,6 +384,8 @@ function PermsSlide() {
         <GaugeRing progress={0.5} size={120} value="GPS" label="走" />
       </Art>
       <Heading eyebrow={p.eyebrow} title={p.title} body={p.body} />
+      {/* ADR-48: on an iPhone the background-location paragraph below cannot apply — say so first. */}
+      <IosWebBanner />
       <View style={{ gap: space.sm }}>
         {row('images-outline', p.photosTitle, p.photosBody)}
         {row('navigate-outline', p.locationTitle, p.locationBody)}

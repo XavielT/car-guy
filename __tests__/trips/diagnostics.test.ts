@@ -22,6 +22,7 @@ const input = (over: Partial<TripDiagnosticsInput> = {}): TripDiagnosticsInput =
   taskRegistered: false,
   updatesStarted: false,
   miuiAutostart: 'disabled',
+  battery: 'optimized',
   state: {
     v: 1,
     phase: 'recording',
@@ -53,6 +54,7 @@ it('says what decides Automático: mode, permissions, service, MIUI, machine tim
   expect(d.permissions.background?.granted).toBe(false);
   expect(d.service.locationUpdatesStarted).toBe(false);
   expect(d.miuiAutostart).toBe('disabled');
+  expect(d.batteryOptimisation).toBe('optimized');
   expect(d.machine?.phase).toBe('recording');
   expect(d.machine?.openTrip).toEqual({ source: 'auto', startedSecondsAgo: 600, segments: 1, distanceM: 4321, lastFixSecondsAgo: 5 });
   expect(d.machine?.lastClosed).toEqual({ endedSecondsAgo: 3600, durationS: 3600, distanceM: 12001, segments: 2 });

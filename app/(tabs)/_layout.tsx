@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, Tabs } from 'expo-router';
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import { Platform, View } from 'react-native';
 
 import { TabsInicioSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { CarGuyTabBar } from '@/components/tabbar';
@@ -8,6 +9,8 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { FEATURE_ONBOARDING_V2 } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
 import { useWelcomeGate } from '@/lib/onboarding/welcome';
+import { settings as settingsRepo } from '@/lib/db/repos';
+import { requestPersistentStorage } from '@/lib/platform/capabilities';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -18,8 +21,25 @@ import { useTheme } from '@/lib/theme/useTheme';
  * `chequeo/index` and is reached from Inicio's QuickActions and telltale, from
  * Más and from its notification. Fuel is `carga/nueva`, from QuickActions.
  */
+/**
+ * Web only, once per device, after the first vehicle exists (ADR-48): ask the browser to keep Car Guy's data
+ * under storage pressure. WebKit decides by heuristics (a Home-Screen app usually gets it); the answer is
+ * kept in `storage_persist` and never asked again.
+ */
+function usePersistOnce(when: boolean) {
+  useEffect(() => {
+    if (!when || Platform.OS !== 'web') return;
+    void (async () => {
+      if ((await settingsRepo.get<string | null>('storage_persist', null)) != null) return;
+      const granted = await requestPersistentStorage();
+      await settingsRepo.set('storage_persist', granted == null ? 'unsupported' : granted ? 'granted' : 'denied');
+    })().catch(() => {});
+  }, [when]);
+}
+
 export default function TabLayout() {
   const { ready, data } = useStore();
+  usePersistOnce(ready && data.vehicles.length > 0);
   const { theme } = useTheme();
   // While the store opens: Inicio's outline (ADR-40), after 150 ms so a fast
   // open paints straight to the tabs; before that, the bare background.

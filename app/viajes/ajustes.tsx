@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { IosWebBanner } from '@/components/IosWebBanner';
 import { T } from '@/components/T';
-import { MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/components/trips/TripPieces';
+import { LastFixLine, MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/components/trips/TripPieces';
 import { GhostButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
@@ -88,6 +89,7 @@ export default function TripSettingsScreen() {
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 28, textTransform: 'uppercase' }}>
         {t.trips.settingsTitle}
       </T>
+      <IosWebBanner />
 
       {eyebrow(t.trips.mode)}
       {mode ? (
@@ -110,6 +112,7 @@ export default function TripSettingsScreen() {
           {t.trips.readiness[auto.state]}
         </T>
       ) : null}
+      {shownMode === 'auto' && Platform.OS !== 'web' ? <LastFixLine /> : null}
       {shownMode === 'auto' ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginTop: space.sm }}>
           {t.trips.battery}

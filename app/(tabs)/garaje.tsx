@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RevokedPrompt } from '@/components/share/RevokedPrompt';
 import { TabsGarajeSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
-import { Badge, CarbonFrame, Chip, PrimaryButton } from '@/components/ui';
+import { Badge, CarbonFrame, Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { garageFacts, type GarageFacts } from '@/lib/db/garageQueries';
@@ -68,7 +68,9 @@ const MODES: { key: GarageMode; icon: keyof typeof Ionicons.glyphMap }[] = [
 export default function GarajeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { data } = useStore();
+  const { data, setActiveVehicle } = useStore();
+  // Long-press on a card (note 17): the three things one does to a car without opening it.
+  const [quick, setQuick] = useState<Card | null>(null);
   const [filter, setFilter] = useState<Filter | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [layout, setLayout] = useState<GarageLayout | null>(FEATURE_GARAGE_V2 ? null : DEFAULT_GARAGE_LAYOUT);
@@ -159,6 +161,15 @@ export default function GarajeScreen() {
   const mode = current.mode;
 
   const openCard = (c: Card) => router.push({ pathname: '/vehiculo/[id]', params: { id: c.vehicle.id } });
+  const quickGo = (to: 'mod' | 'fuel' | 'check') => {
+    const c = quick;
+    setQuick(null);
+    if (!c) return;
+    if (to === 'mod') return router.push({ pathname: '/mod/nuevo', params: { vehicleId: c.vehicle.id } });
+    // The fill-up and the check act on the active car.
+    setActiveVehicle(c.vehicle.id);
+    router.push(to === 'fuel' ? '/carga/nueva' : '/chequeo');
+  };
   const move = (section: Card[], c: Card, delta: -1 | 1) =>
     dispatch({ type: 'move', id: c.vehicle.id, delta, section: section.map(idOf), all: allIds });
   /** A drag: `steps` single moves applied in one go, one write. */
@@ -273,18 +284,18 @@ export default function GarajeScreen() {
           </View>
         ) : mode === 'covers' ? (
           shown.map((c) => (
-            <CoverCard key={c.vehicle.id} card={c} pinned={current.pinned === c.vehicle.id} onPress={() => openCard(c)} />
+            <CoverCard key={c.vehicle.id} card={c} pinned={current.pinned === c.vehicle.id} onPress={() => openCard(c)} onLongPress={() => setQuick(c)} />
           ))
         ) : mode === 'list' ? (
           <View style={{ gap: space.sm }}>
             {shown.map((c) => (
-              <ListRow key={c.vehicle.id} card={c} pinned={current.pinned === c.vehicle.id} onPress={() => openCard(c)} />
+              <ListRow key={c.vehicle.id} card={c} pinned={current.pinned === c.vehicle.id} onPress={() => openCard(c)} onLongPress={() => setQuick(c)} />
             ))}
           </View>
         ) : shown.length ? (
           <View style={styles.grid}>
             {shown.map((c) => (
-              <GridCard key={c.vehicle.id} card={c} pinned={current.pinned === c.vehicle.id} onPress={() => openCard(c)} />
+              <GridCard key={c.vehicle.id} card={c} pinned={current.pinned === c.vehicle.id} onPress={() => openCard(c)} onLongPress={() => setQuick(c)} />
             ))}
           </View>
         ) : null}
@@ -331,6 +342,11 @@ export default function GarajeScreen() {
           </View>
         ) : null}
       </ScrollView>
+      <Sheet visible={quick != null} onClose={() => setQuick(null)} title={quick ? title(quick.vehicle) : ''}>
+        <GhostButton label={t.garage.quickMod} onPress={() => quickGo('mod')} />
+        <GhostButton label={t.garage.quickFuel} onPress={() => quickGo('fuel')} />
+        <GhostButton label={t.garage.quickCheck} onPress={() => quickGo('check')} />
+      </Sheet>
     </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -436,7 +452,7 @@ function GalleryPill({ n }: { n: number }) {
 }
 
 /** Portadas: one card per car, the cover full-bleed. */
-const CoverCard = memo(function CoverCard({ card, pinned, onPress }: { card: Card; pinned: boolean; onPress: () => void }) {
+const CoverCard = memo(function CoverCard({ card, pinned, onPress, onLongPress }: { card: Card; pinned: boolean; onPress: () => void; onLongPress?: () => void }) {
   const { theme } = useTheme();
   const { vehicle, facts } = card;
   const badges = vehicleBadges(vehicle, facts);
@@ -447,13 +463,14 @@ const CoverCard = memo(function CoverCard({ card, pinned, onPress }: { card: Car
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       accessibilityRole="button"
       accessibilityLabel={`${title(vehicle)}, ${line.text}`}
       style={[styles.hero, { backgroundColor: theme.bg.surface, borderColor: pinned ? theme.accent : theme.lineStrong }]}>
       <Cover card={card} height={180} full>
         <View style={styles.badgeRow}>
-          {badges.slice(0, 2).map((b) => (
-            <Badge key={b.label} label={b.label} tone={b.tone} />
+          {heroBadges(badges).map((b) => (
+            <Badge key={b.label} label={b.label} tone={b.tone} onPhoto />
           ))}
         </View>
         {pinned ? <PinMark /> : null}
@@ -496,7 +513,7 @@ const CoverCard = memo(function CoverCard({ card, pinned, onPress }: { card: Car
 });
 
 /** Cuadrícula: two-up, each with its cover thumb and one badge. */
-const GridCard = memo(function GridCard({ card, pinned, onPress }: { card: Card; pinned: boolean; onPress: () => void }) {
+const GridCard = memo(function GridCard({ card, pinned, onPress, onLongPress }: { card: Card; pinned: boolean; onPress: () => void; onLongPress?: () => void }) {
   const { theme } = useTheme();
   const { vehicle, facts } = card;
   const badge = vehicleBadges(vehicle, facts).at(-1);
@@ -506,13 +523,14 @@ const GridCard = memo(function GridCard({ card, pinned, onPress }: { card: Card;
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       accessibilityRole="button"
       accessibilityLabel={`${title(vehicle)}, ${line.text}`}
       style={[styles.small, { backgroundColor: theme.bg.surface, borderColor: pinned ? theme.accent : theme.lineStrong }]}>
       <Cover card={card} height={110}>
         {badge ? (
           <View style={styles.badgeRowSmall}>
-            <Badge label={badge.label} tone={badge.tone} />
+            <Badge label={badge.label} tone={badge.tone} onPhoto />
           </View>
         ) : null}
         {pinned ? <PinMark /> : null}
@@ -534,7 +552,7 @@ const GridCard = memo(function GridCard({ card, pinned, onPress }: { card: Card;
 });
 
 /** Lista: a row per car — thumb, name, line, km and what is overdue. */
-const ListRow = memo(function ListRow({ card, pinned, onPress }: { card: Card; pinned: boolean; onPress: () => void }) {
+const ListRow = memo(function ListRow({ card, pinned, onPress, onLongPress }: { card: Card; pinned: boolean; onPress: () => void; onLongPress?: () => void }) {
   const { theme } = useTheme();
   const { vehicle, facts } = card;
   const badge = vehicleBadges(vehicle, facts).at(-1);
@@ -544,6 +562,7 @@ const ListRow = memo(function ListRow({ card, pinned, onPress }: { card: Card; p
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       accessibilityRole="button"
       accessibilityLabel={`${title(vehicle)}, ${line.text}`}
       style={[styles.row, { backgroundColor: theme.bg.surface, borderColor: pinned ? theme.accent : theme.lineStrong }]}>
@@ -680,6 +699,15 @@ function SortRow({
   );
 }
 
+/**
+ * The hero card shows two badges at most. With engine, discipline and status all present the status wins the
+ * second place — it says what the car *is* (PROYECTO, ACCIDENTADO…), and slice(0, 2) used to drop it.
+ */
+function heroBadges<B extends { tone: string }>(badges: B[]): B[] {
+  if (badges.length <= 2) return badges;
+  return [badges[0], badges[badges.length - 1]];
+}
+
 const ExCard = memo(function ExCard({ card, onPress }: { card: Card; onPress: () => void }) {
   const { theme } = useTheme();
   const { vehicle, facts } = card;
@@ -695,19 +723,20 @@ const ExCard = memo(function ExCard({ card, onPress }: { card: Card; onPress: ()
       <View style={styles.exThumb}>
         <Cover card={card} height={64} />
       </View>
-      <View style={{ flex: 1 }}>
-        <T face="title" numberOfLines={1} style={{ color: theme.text.primary, fontSize: 15, letterSpacing: 0.5 }}>
+      <View style={{ flex: 1, paddingRight: space.lg }}>
+        {/* Two lines: at 360 px "VOLKSWAGEN JETTA 1.8T · 2003" lost its year to the ellipsis. */}
+        <T face="title" numberOfLines={2} style={{ color: theme.text.primary, fontSize: 15, letterSpacing: 0.5 }}>
           {[title(vehicle), vehicle.engineCode].filter(Boolean).join(' ')}
           {vehicle.year ? ` · ${vehicle.year}` : ''}
         </T>
-        <T face="mono" style={{ color: theme.text.secondary, fontSize: 12, marginTop: 2 }}>
+        <T face="mono" numberOfLines={1} style={{ color: theme.text.secondary, fontSize: 12, marginTop: 2 }}>
           {line}
         </T>
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
           {t.garage.exCaption}
         </T>
       </View>
-      <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
+      <T face="kana" style={[styles.exSeal, { color: theme.text.muted }]}>
         記憶
       </T>
     </Pressable>
@@ -764,4 +793,6 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   exThumb: { width: 88, borderRadius: radius.input, overflow: 'hidden' },
+  // In the corner, out of the text's way (it used to take a column of its own at 360 px).
+  exSeal: { position: 'absolute', top: space.xs, right: space.sm, fontSize: 10 },
 });

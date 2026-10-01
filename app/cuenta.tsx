@@ -27,7 +27,7 @@ import { recentErrors } from '@/lib/diagnostics';
 import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { FEATURE_ALBUM, FEATURE_SYNC } from '@/lib/flags';
 import { StorageMeter } from '@/components/album/StorageMeter';
-import { dateLabel } from '@/lib/format';
+import { dateLabel, dateTimeLabel } from '@/lib/format';
 import { recordAcceptance } from '@/lib/legal/acceptance';
 import { t } from '@/lib/i18n';
 import { newerSchemaCount } from '@/lib/sync/engine';
@@ -196,7 +196,7 @@ export default function CuentaScreen() {
 
               <KeyValueRow
                 label={t.account.lastSync}
-                value={lastSyncAt ? dateLabel(lastSyncAt) : t.sync.never}
+                value={lastSyncAt ? dateTimeLabel(lastSyncAt) : t.sync.never}
               />
               <KeyValueRow
                 label={t.sync.pendingLabel}

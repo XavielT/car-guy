@@ -14,6 +14,7 @@
  * No React, no expo-location: the callers own the GPS and the service.
  */
 import { getDb } from '../db/client';
+import { recordNote } from '../diagnostics';
 import { settings as settingsRepo } from '../db/repos';
 import { trips } from '../db/tripOps';
 import type { Trip } from '../db/types';
@@ -21,6 +22,7 @@ import { applyStep, loadState, type Applied } from './finalize';
 import { displayKmh, effectiveSpeed, haversine, isJump, type Fix } from './geo';
 import { resolveTripCfg, stepAll, type TripCfg, type TripInput, type TripMachineState } from './machine';
 import { getLiveTrip, reduceLive, setLiveTrip, type LiveTrip } from './liveStore';
+import { startableFixes } from './freshness';
 import { tripsMode } from './settings';
 
 /** Who a trip opened by this feed belongs to. Auto trips: the active vehicle, as driver. */
@@ -77,8 +79,11 @@ async function defaultVehicleId(): Promise<string | null> {
  */
 export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}, opts: { liveFixes?: boolean } = {}): Promise<FeedResult> {
   return serial(async () => {
-    const inputs = Array.isArray(input) ? input : [input];
     const [state, cfg] = await Promise.all([loadState(), currentTripCfg()]);
+    // ADR-49: an idle machine never starts a trip on a cached fix (a last-known position from hours ago);
+    // a deferred background batch (≤ 60 s) still counts. A recording trip keeps every fix it is given.
+    const given = Array.isArray(input) ? input : [input];
+    const inputs = state.phase === 'idle' ? dropStaleFixes(given, Date.now()) : given;
     const out: FeedResult = { state, applied: [] };
     if (!inputs.length) return out;
 
@@ -97,6 +102,15 @@ export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}, opts: { 
     await syncLive(out.state, out.applied, opts.liveFixes === false ? [] : inputs.filter(isFix), ctx);
     return out;
   });
+}
+
+function dropStaleFixes(inputs: TripInput[], now: number): TripInput[] {
+  const fixes = inputs.filter(isFix);
+  if (!fixes.length) return inputs;
+  const keep = new Set(startableFixes(fixes, now));
+  const dropped = fixes.length - keep.size;
+  if (dropped) recordNote('trip-fresh', `${dropped} stale fix(es) ignored while idle`);
+  return inputs.filter((i) => !isFix(i) || keep.has(i));
 }
 
 /** "Now", without a fix: lets an automatic trip notice it has been parked long enough. */

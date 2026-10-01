@@ -36,4 +36,12 @@ export type LiveMapProps = {
    */
   insets?: { top?: number; bottom?: number };
   onUnavailable?: () => void;
+  /**
+   * The user's own position (lib/trips/myPosition.ts, ADR-49). `fresh` = a fix ≤ 15 s and ≤ 50 m: the dot is
+   * solid and the camera follows it; otherwise the last good position is drawn greyed and never followed.
+   * Without `me` the native map shows nothing for the user (no SDK puck: it cannot be filtered).
+   */
+  me?: { lat: number; lng: number; heading: number | null; fresh: boolean } | null;
+  /** Who is driving — the dot shows their avatar. */
+  avatar?: { photoUri?: string | null; avatarId?: string | null; name?: string | null };
 };

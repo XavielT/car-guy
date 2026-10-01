@@ -310,6 +310,21 @@ export const es = {
     miuiAutostartOn: '✓ Activado en este teléfono',
     miuiAutostartOff: '✗ Desactivado: Automático se detendrá cuando cierres la app',
     miuiOpenAutostart: 'Abrir inicio automático',
+    batteryOn: '✓ Sin restricciones de batería',
+    batteryOff: '✗ Con ahorro de batería: Android puede pausar Automático',
+    batteryOpen: 'Permitir en segundo plano',
+    /** IMP 01102026 Phase 1 (Phase 0 finding): Automático chosen but not able to record — said where it is seen. */
+    autoBlockedTitle: 'Automático no está grabando',
+    autoBlocked: {
+      foreground: 'Car Guy no tiene permiso de ubicación.',
+      background: 'Falta la ubicación «todo el tiempo».',
+      approximate: 'Solo tiene ubicación aproximada; necesita la precisa.',
+      unavailable: 'Este teléfono no permite tareas en segundo plano.',
+      autostart: 'El inicio automático de MIUI está desactivado.',
+      battery: 'El ahorro de batería puede pausarlo.',
+    },
+    autoBlockedFix: 'Arreglarlo',
+    lastFixAt: (ago: string | null) => (ago ? `Último punto GPS recibido: hace ${ago}` : 'Todavía no ha llegado ningún punto GPS'),
     miuiIntro: 'MIUI cierra las apps en segundo plano. Para que Automático no se detenga:',
     miuiSteps: [
       'Ajustes › Apps › Car Guy › Inicio automático: activado.',
@@ -403,6 +418,7 @@ export const es = {
   transmissions: { manual: 'Manual', automatica: 'Automática', cvt: 'CVT', otro: 'Otra' },
   origins: { jdm: 'JDM', usdm: 'USDM', eudm: 'EUDM', local: 'Local', otro: 'Otro' },
   hub: {
+    addMod: '+ Mod',
     tabs: { resumen: 'Resumen', album: 'Álbum', eventos: 'Eventos', build: 'Build', ficha: 'Ficha', pista: 'Pista', viajes: 'Viajes', docs: 'Docs' },
     soon: (tab: string) => `${tab}: próximamente. Lo estamos armando.`,
     story: 'La historia',
@@ -441,6 +457,10 @@ export const es = {
     expired: 'Vencido',
   },
   garage: {
+    /** Long-press on a garage card (IMP 01102026 note 17). */
+    quickMod: 'Agregar mod',
+    quickFuel: 'Nueva echada',
+    quickCheck: 'Chequeo',
     /** Vehicle hub ownership line: "Desde jun 2019 · 3 años contigo", "2018 → vendido 2021". */
     ownership: {
       since: (when: string, tenure: string) => `Desde ${when} · ${tenure}`,
@@ -687,6 +707,11 @@ export const es = {
   },
 
   service: {
+    /** IMP 01102026 note 18. */
+    bodyGroup: 'Carrocería y pintura',
+    paintEventAsk: '¿También lo guardas como evento en la historia del carro?',
+    paintEventYes: 'Guardar como evento',
+    paintEventNo: 'Solo el servicio',
     newTitle: 'Nuevo registro',
     editTitle: 'Editar registro',
     kind: 'Tipo',
@@ -1242,7 +1267,7 @@ export const es = {
     brand: 'CAR GUY',
     lockedTitle: 'Tus datos están ocupados',
     lockedBody:
-      'Otra pestaña o la app anterior todavía tiene la base de datos abierta. Cierra las demás pestañas de Car Guy y vuelve a intentar. Nada se perdió.',
+      'Otra pestaña o la app anterior todavía tiene la base de datos abierta. Cierra las demás pestañas de Car Guy (en iPhone: también Car Guy abierto en Safari, si usas el ícono de la pantalla de inicio) y vuelve a intentar. Nada se perdió.',
     crashTitle: 'Algo se rompió al abrir',
     crashBody:
       'Tus datos siguen guardados en este dispositivo. Intenta de nuevo; si sigue pasando, cierra la app y ábrela otra vez.',
@@ -1767,6 +1792,18 @@ export const es = {
     reset: 'Volver a precios semilla',
   },
 
+  /** IMP 01102026 ADR-48: what the iPhone web app cannot do, said plainly. */
+  platform: {
+    iosTitle: 'En iPhone (web) Car Guy solo graba viajes manuales con la pantalla abierta.',
+    iosBody: 'La detección automática existe en la app de Android.',
+    iosWhy: '¿Por qué?',
+    iosWhyTitle: 'Car Guy en iPhone',
+    iosWhyBody: [
+      'En iPhone, Car Guy es una app web (el ícono de la pantalla de inicio). Safari no deja que una app web use la ubicación en segundo plano: cuando bloqueas la pantalla o cambias de app, el GPS se pausa.',
+      'Por eso en iPhone un viaje se graba solo mientras Car Guy está abierto y con la pantalla encendida, y la detección automática no existe. Es una regla de Apple, no un fallo de la app.',
+      'Todo lo demás funciona igual: echadas, mantenimiento, chequeos, fotos y la sincronización con tu cuenta.',
+    ],
+  },
   common: {
     cancel: 'Cancelar',
     continue: 'Continuar',
@@ -2283,6 +2320,8 @@ export const es = {
   },
   /** IMP 28092026 Phase 4 — build log. */
   build: {
+    /** IMP 01102026 note 9: the 改 seal moved here from Inicio, where it was not understood. */
+    seal: 'Modificado',
     eyebrow: (name: string) => `${name} · BUILD`,
     tabs: { mods: 'MODS', specs: 'SPECS', wishlist: 'WISHLIST', inventario: 'INVENTARIO' },
     invested: 'invertido',
@@ -2318,6 +2357,12 @@ export const es = {
     wishStatuses: { idea: 'IDEA', ahorrando: 'AHORRANDO', pedido: 'PEDIDO', convertido: 'INSTALADO', descartado: 'DESCARTADO' },
   },
   modForm: {
+    /** IMP 01102026 note 17: one tap fills the name — the mods a daily gets. */
+    presetsTitle: 'Rápido',
+    presets: {
+      accesorios: ['Tapones de válvula', 'Radio / pantalla', 'Alfombras', 'Cubre volante', 'Bocina', 'Cargador / porta celular'],
+      estetica: ['Polarizado', 'Emblemas', 'Luces LED', 'Spoiler', 'Calcomanías', 'Wrap / vinil'],
+    } as Record<string, string[]>,
     newTitle: 'Nuevo mod',
     editTitle: 'Editar mod',
     fromWishlist: 'De tu wishlist: revisa lo que costó de verdad.',
@@ -3207,6 +3252,10 @@ export const es = {
 
   /** Modo conducir and the centre button (IMP 30092026 Phase 4, ADR-43, 03-screens.md). */
   drive: {
+    /** ADR-49: no dot until a fresh fix; an old one is greyed and says how old. */
+    gpsSearching: 'Buscando GPS…',
+    gpsDenied: 'Sin permiso de ubicación: el mapa no sabe dónde estás.',
+    lastPosition: (ms: number) => `Última posición: hace ${ms < 60_000 ? `${Math.round(ms / 1000)} s` : ms < 3_600_000 ? `${Math.round(ms / 60_000)} min` : `${Math.round(ms / 3_600_000)} h`}`,
     eyebrow: 'Modo conducir',
     open: 'Abrir modo conducir',
     openRecording: 'Abrir modo conducir · grabando un viaje',
@@ -3367,6 +3416,14 @@ export const es = {
       formTitle: 'Tu primer carro',
       backToSlides: 'Volver a la bienvenida',
     },
+    /** IMP 01102026 note 10: how the home odometer rises. */
+    odometer: {
+      eyebrow: 'Tu odómetro',
+      title: 'Cómo sube el kilometraje',
+      body: 'El odómetro de Inicio sube con lo que registras, no con el carro:',
+      ways: ['Echadas de combustible con su kilometraje', 'Servicios y chequeos', 'Viajes con el GPS (es un estimado)'],
+      fix: 'Hasta que escribas el real, es un aproximado. Toca el número en Inicio para corregirlo cuando quieras.',
+    },
     features: {
       eyebrow: 'Lo que hace',
       title: 'Qué puedes hacer',
@@ -3405,6 +3462,7 @@ export const es = {
       album: 'Importa varias fotos de una vez con el botón de arriba; cambia entre línea de tiempo y cuadrícula.',
       events: 'Un evento es lo que le pasó al carro: un golpe, un viaje, un premio. Marca "Pendiente" lo que falta arreglar.',
       drive: 'Mira la pantalla de reojo o déjasela al pasajero. El viaje sigue grabando si cierras esta pantalla.',
+      odometer: 'El odómetro sube con lo que registras: echadas, servicios, chequeos y viajes (≈ hasta que escribes el real). Toca el número para corregirlo.',
     },
     help: {
       title: 'Ayuda',
