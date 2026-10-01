@@ -35,6 +35,29 @@ export async function listMembers(vehicleId: string): Promise<VehicleMember[]> {
   return all.filter((m) => !m.deletedAt).sort((a, b) => order[a.role] - order[b.role] || (a.displayName ?? '').localeCompare(b.displayName ?? ''));
 }
 
+export type MemberAvatar = { avatarId: string | null; displayName: string | null };
+
+/**
+ * Other members' drawings and current names (sql/031 member_avatars; only a member of the car may ask).
+ * Best effort: signed out, offline, or a cloud without 031 → {} and the list keeps its initials.
+ * Never a photo — a custom photo stays private to its owner.
+ */
+export async function memberAvatars(vehicleId: string): Promise<Record<string, MemberAvatar>> {
+  const call = rpc();
+  if (!call || !(await myUserId())) return {};
+  try {
+    const { data, error } = await call('member_avatars', { p_vehicle: vehicleId });
+    if (error || !Array.isArray(data)) return {};
+    const out: Record<string, MemberAvatar> = {};
+    for (const r of data as { user_id: string; display_name: string | null; avatar_id: string | null }[]) {
+      out[r.user_id] = { avatarId: r.avatar_id ?? null, displayName: r.display_name ?? null };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export type InviteResult = { ok: true; code: string } | { ok: false; reason: 'signed-out' | 'not-owner' | 'offline' };
 
 /** Invites need the vehicle in the cloud: a sync first, so a brand-new car is there. */

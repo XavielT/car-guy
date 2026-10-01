@@ -16,7 +16,7 @@ import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import type { Vehicle, VehicleMember } from '@/lib/db/types';
 import { t } from '@/lib/i18n';
 import { useProfile } from '@/lib/profile';
-import { createInvite, inviteLink, listMembers, removeMember, setMemberRole } from '@/lib/share/members';
+import { createInvite, inviteLink, listMembers, memberAvatars, removeMember, setMemberRole, type MemberAvatar } from '@/lib/share/members';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -35,6 +35,7 @@ export default function MembersScreen() {
   const me = session?.user.id ?? null;
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [members, setMembers] = useState<VehicleMember[]>([]);
+  const [avatars, setAvatars] = useState<Record<string, MemberAvatar>>({});
   const [role, setRole] = useState<'editor' | 'viewer'>('editor');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState<string | null>(null);
@@ -50,6 +51,12 @@ export default function MembersScreen() {
       if (cancelled) return;
       setVehicle(v);
       setMembers(m);
+      // Others' drawings come from the cloud (sql/031); the list shows initials until (or unless) they do.
+      if (m.some((x) => x.userId !== me)) {
+        void memberAvatars(vehicleId).then((a) => {
+          if (!cancelled) setAvatars(a);
+        });
+      }
     })
       .catch(() => {})
       .finally(() => {
@@ -58,7 +65,7 @@ export default function MembersScreen() {
     return () => {
       cancelled = true;
     };
-  }, [vehicleId]);
+  }, [vehicleId, me]);
   useFocusEffect(load);
 
   if (showSkeleton) return <GarageMembersSkeleton />;
@@ -137,11 +144,11 @@ export default function MembersScreen() {
       {members.map((m) => (
         <View key={m.id} style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
           <View style={styles.top}>
-            {/* My own row shows my profile; others' drawings and photos are not readable here (lib/profile.ts), so initials. */}
+            {/* My own row shows my profile (photo included); others show their drawing (sql/031) or initials — never their photo. */}
             {m.userId === me ? (
               <Avatar size={32} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName ?? m.displayName} decorative />
             ) : (
-              <Avatar size={32} name={m.displayName} decorative />
+              <Avatar size={32} avatarId={avatars[m.userId]?.avatarId} name={avatars[m.userId]?.displayName ?? m.displayName} decorative />
             )}
             <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }} numberOfLines={1}>
               {m.displayName ?? '—'}
