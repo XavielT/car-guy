@@ -524,6 +524,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fuel_price_ref: {
+        Row: {
+          fuel_type: string
+          imported_at: string
+          pdf_url: string | null
+          price: number
+          raw_text: string | null
+          source: string
+          stale: boolean
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          fuel_type: string
+          imported_at?: string
+          pdf_url?: string | null
+          price: number
+          raw_text?: string | null
+          source?: string
+          stale?: boolean
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          fuel_type?: string
+          imported_at?: string
+          pdf_url?: string | null
+          price?: number
+          raw_text?: string | null
+          source?: string
+          stale?: boolean
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       inspection: {
         Row: {
           created_at: string
@@ -1297,6 +1333,8 @@ export type Database = {
           avatar_id: string | null
           avatar_path: string | null
           created_at: string
+          deletion_objects: Json | null
+          deletion_requested_at: string | null
           display_name: string | null
           locale: string | null
           media_quota_bytes: number
@@ -1308,6 +1346,8 @@ export type Database = {
           avatar_id?: string | null
           avatar_path?: string | null
           created_at?: string
+          deletion_objects?: Json | null
+          deletion_requested_at?: string | null
           display_name?: string | null
           locale?: string | null
           media_quota_bytes?: number
@@ -1319,6 +1359,8 @@ export type Database = {
           avatar_id?: string | null
           avatar_path?: string | null
           created_at?: string
+          deletion_objects?: Json | null
+          deletion_requested_at?: string | null
           display_name?: string | null
           locale?: string | null
           media_quota_bytes?: number
@@ -3232,6 +3274,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_pending_deletions: {
+        Args: never
+        Returns: {
+          email: string
+          last_sign_in_at: string
+          objects: number
+          requested_at: string
+          user_id: string
+        }[]
+      }
       admin_set_role: {
         Args: { p_role: string; p_user: string }
         Returns: string
@@ -3240,7 +3292,9 @@ export type Database = {
       admin_users: {
         Args: { p_limit?: number }
         Returns: {
+          avatar_id: string
           created_at: string
+          display_name: string
           email: string
           fuel_logs: number
           last_activity: string
@@ -3263,6 +3317,7 @@ export type Database = {
         Args: { p_email?: string; p_role?: string; p_vehicle: string }
         Returns: string
       }
+      delete_my_account: { Args: never; Returns: Json }
       feedback_upload_allowed: {
         Args: { object_name: string }
         Returns: boolean
@@ -3270,6 +3325,14 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_app_user: { Args: never; Returns: boolean }
       is_member: { Args: { min_role?: string; v: string }; Returns: boolean }
+      member_avatars: {
+        Args: { p_vehicle: string }
+        Returns: {
+          avatar_id: string
+          display_name: string
+          user_id: string
+        }[]
+      }
       public_dossier: { Args: { p_slug: string }; Returns: Json }
       redeem_invite: { Args: { p_code: string }; Returns: Json }
       remove_member: {
@@ -3282,6 +3345,7 @@ export type Database = {
       }
       storage_usage_bytes: { Args: never; Returns: number }
       submit_feedback: { Args: { p: Json }; Returns: string }
+      upsert_fuel_price_ref: { Args: { rows: Json }; Returns: number }
       vehicle_of: { Args: { row_id: string; tbl: string }; Returns: string }
       vehicle_role: { Args: { v: string }; Returns: string }
     }

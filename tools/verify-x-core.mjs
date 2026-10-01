@@ -39,6 +39,8 @@
  *  (The importer RPC writing as carguy_importer: local-rls 27a–27l — the JWT is Vercel's only.)
  *  35. anon cannot execute delete_my_account.                 (sql/028)
  *  36. a Music Hub-only login is refused by it (optional creds). (sql/028)
+ *  37. the owner reads member_avatars of its car; no photo path. (sql/031)
+ *  38. anon and an outsider are refused by member_avatars.      (sql/031)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -586,6 +588,27 @@ async function main() {
     } else {
       console.log('SKIP  36. Music Hub-only refusal — set CARGUY_VERIFY_MUSICHUB_EMAIL / _PASSWORD in .env.local (local-rls 28b covers it)');
     }
+  }
+
+  // 37–38 — Others' avatars (sql/031). A owns `vehicleId` (test 4), so A is its owner member.
+  {
+    const uidA = a.body?.user?.id;
+    const mine = await call('/rest/v1/rpc/member_avatars', { method: 'POST', headers: { ...authA, 'Content-Profile': 'carguy' }, body: JSON.stringify({ p_vehicle: vehicleId }) });
+    const rows = Array.isArray(mine.body) ? mine.body : [];
+    record(
+      '37. the owner reads member_avatars of its car — user_id, display_name, avatar_id only (sql/031)',
+      mine.status === 200 && rows.some((r) => r.user_id === uidA) && rows.every((r) => Object.keys(r).sort().join() === 'avatar_id,display_name,user_id'),
+      `status ${mine.status} · ${rows.length} row(s)${mine.status !== 200 ? ` · ${JSON.stringify(mine.body)}` : ''}`,
+    );
+    const anonCall = await call('/rest/v1/rpc/member_avatars', { method: 'POST', body: JSON.stringify({ p_vehicle: vehicleId }) });
+    const outsider = tokenB
+      ? await call('/rest/v1/rpc/member_avatars', { method: 'POST', headers: { Authorization: `Bearer ${tokenB}`, 'Content-Profile': 'carguy' }, body: JSON.stringify({ p_vehicle: vehicleId }) })
+      : null;
+    record(
+      '38. anon and an outsider are refused by member_avatars (sql/031)',
+      anonCall.status >= 400 && Boolean(outsider) && outsider.status >= 400,
+      `anon ${anonCall.status} · outsider ${outsider?.status ?? 'no token'} ${JSON.stringify(outsider?.body?.message ?? '')}`,
+    );
   }
 
   // 24–28 — Enviar comentario (sql/021 + 021_feedback_storage.shared). No
