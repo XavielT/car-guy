@@ -14,7 +14,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
 | 4 | Updates · Apoyar · Uso | ✅ | `imp-01102026/phase-4-updates` | notes 4, 6; OTA + APK proven on the Redmi; FEATURE_OTA, FEATURE_SUPPORT on |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ✅ | `imp-01102026/phase-5-social` | notes 11, 12, 14, 16; sql/037 applied; two-account web check 12/12 |
-| 6 | Juntes · chat (off) · release 2.5.0 | ⬜ | | |
+| 6 | Juntes · chat (off) · release 2.5.0 | 🟨 | `imp-01102026/phase-6-juntes-release` | juntes built + verified on web (7/7); live dots wait for sql/036; 2.5.0 ready, publishing waits for Xaviel's go |
 
 ## Notes from the brief
 
@@ -32,7 +32,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 10 | Welcome explains the odometer | 1 | ✅ |
 | 11 | Influencer public profile | 5 | ✅ |
 | 12 | Friends | 5 | ✅ |
-| 13 | Routes with friends (juntes, live, chat later) | 6 | ⬜ |
+| 13 | Routes with friends (juntes, live, chat later) | 6 | 🟨 built; live test after sql/036 |
 | 14 | Choose what is public | 5 | ✅ |
 | 15 | Garage label UI issues | 1 | ✅ |
 | 16 | Me on the map (avatar), public photo | 1 + 5 | 🟡 dot ✅ (1); public photo in 5 |
@@ -155,6 +155,15 @@ or Viajes, and nothing is recorded.
   a recompute carries it over.
 - Phase 3: amounts show in **the car's unit** (gal for his cars), not always L as the spec's examples read.
 - Phase 3: a new **fuel lamp** joins Inicio's telltale row (there was none); tapping it opens Nueva carga.
+- Phase 6: positions carry the member's **@handle and no speed** (research §3.3's sample had a user id and `spd`);
+  presence is keyed by handle.
+- Phase 6: background publishing rides the **existing trip task** (only while a trip records), via REST broadcast —
+  no second location service.
+- Phase 6: **sql/038** (not in the package): `junte_invite_card(code)` for the invite screen and web /j/<code>, and
+  `junte_detail.meet_label` (a place named without a pin).
+- Phase 6: no junte **photo grid** (members' photos are private) and the summary is **text**, not an image.
+- Phase 6: chat is built but reads `junte_message` directly ("mine" vs "a member"); before switching it on it needs a
+  handle-naming RPC (NEXT).
 - Phase 5: **public photo = a ≤60 KB 128 px JPEG data URI on the profile row** (`photo_public_jpeg`, sql/037), not a
   storage object: others' files in carguy-media are private and the private path carries the user id (ADR-54);
   a public-bucket copy would need new policies on the shared storage.objects. get_public_profile / junte_detail
@@ -205,6 +214,42 @@ or Viajes, and nothing is recorded.
 ---
 
 ## Phase reports
+
+## Phase 6 — Juntes · chat (off) · release 2.5.0   (branch `imp-01102026/phase-6-juntes-release`)
+
+**Status:** built and verified on the web; the live map waits for **sql/036**; 2.5.0 is prepared (versions,
+CHANGELOG, NEXT) and **not published** — merging to main, pushing (production) and the GitHub release need Xaviel's go.
+
+### Changed
+- **Live, pure** (`lib/junte/live.ts`, 15 tests): window (start − 30 min → end / +6 h), publish gate (T = max(4 s,
+  n²/60), ≥ 20 m or 15 s heartbeat, accuracy ≤ 50 m, no stale/future fixes), payload `{h, lat, lng, hdg, ts}` (no id,
+  no speed), peers (newest per handle, greyed at 45 s, dropped at 5 min or when no longer a member).
+- **Channel** (`lib/junte/channel.ts`): private `carguy:junte:<id>`, setAuth + on TOKEN_REFRESHED, Presence keyed by
+  handle (`live` flag), Broadcast `pos` and `kick`; background publish from the trip task over REST (`httpSend`).
+- **Screens**: Más → Juntes (live / upcoming / past, join by code, junte_cache), Nuevo junte, the junte (code + invite
+  link, members with online dots, Voy, owner kick + end, "En vivo" switch with the explanation, iPhone note, JunteMap,
+  time left), after-view (linked trimmed routes in member colours, link/unlink my share, Guardar como evento, summary),
+  `carguy://junte/<code>` invite card. Chat (`JunteChat`) behind `FEATURE_JUNTE_CHAT = false`.
+- **Map** `JunteMap` native + web: avatar dots with @handle, meeting flag, fit-all; web container sized (maplibre
+  forces position: relative).
+- **Web** `/j/<code>` (`api/j/[code].ts`): invite card, OG, noindex, open in app / install.
+- **sql/038** applied; local-rls 217/217.
+- **Release prep**: 2.5.0 "Nakama" in app.json/package.json, CHANGELOG, NEXT carried items; `withGradleMemory` config
+  plugin (Metaspace 1.5 GB for every native build — the expo-updates OOM).
+
+### Acceptance
+- [x] tsc, lint (0 errors), jest **2,159**, `npm run build`, check:api 6/6, local-rls 217/217.
+- [x] Two accounts (web UI + API): create a junte (code, time left, place), anon invite card, B joins by code, both
+  members by @handle, A ends it, A links the trimmed route, B sees it on the after-view, never an id. 7/7.
+  `docs/qa/imp-01102026-phase-6-web-*.png`.
+- [x] Without sql/036 the live channel is refused (Realtime: "You do not have permissions to read from this Channel
+  topic") and the app says so — the guard works; the dots need 036.
+- [ ] **Xaviel: apply sql/036** → live test with two devices (his Redmi + the iPhone PWA or a second account).
+- [ ] **Release** (on his go): merge the branch chain into main + push (web: /u, /j, juntes) →
+  `bash tools/release-apk.sh --publish` (2.5.0 APK; records the fingerprint) → install over his real app after a
+  backup (garage intact, DS3 gauge, OTA channel "production", profile with handle) → a visible copy fix as **2.5.1
+  with `--ota`** → his phone shows "Actualización lista · Reiniciar" (note 6's acceptance).
+- [ ] Clean up the throwaway QA accounts (sql/999 on his "run the test user cleanup").
 
 ## Phase 5 — Perfiles · seguir · privacidad · compartir viajes   (branch `imp-01102026/phase-5-social`)
 
