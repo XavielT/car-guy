@@ -84,7 +84,8 @@ export const JunteMap = memo(function JunteMap({ peers, me, avatar, meet, routes
 
   return (
     <View style={[styles.box, { height }]}>
-      <View ref={box} style={StyleSheet.absoluteFill} />
+      {/* maplibre-gl forces position: relative on its container, so it needs a real size (absoluteFill collapses to 0). */}
+      <View ref={box} style={{ width: '100%', height }} />
       {meet && meetXY ? (
         <View pointerEvents="none" style={[styles.abs, { left: meetXY.x - 40, top: meetXY.y - 28 }]}>
           <View style={styles.flag}>

@@ -57,7 +57,8 @@ export default function NuevoJunteScreen() {
       title: title.trim().slice(0, 60),
       startsAt: start.toISOString(),
       endsAt: end.toISOString(),
-      meet: meet ? { ...meet, label: meetLabel.trim() || null } : null,
+      meet,
+      meetLabel: meetLabel.trim() || null,
       visibility,
     });
     setBusy(false);

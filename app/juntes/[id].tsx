@@ -159,7 +159,7 @@ export default function JunteScreen() {
       </T>
       <T face="mono" style={{ color: theme.text.secondary, fontSize: 13 }}>
         {ended ? t.juntes.ended : left != null ? t.juntes.timeLeft(left) : t.juntes.starts(dateTimeLabel(j.starts_at))}
-        {j.meet?.label ? ` · ${j.meet.label}` : ''}
+        {(j.meet_label ?? j.meet?.label) ? ` · ${j.meet_label ?? j.meet?.label}` : ''}
       </T>
       {j.code && !ended ? (
         <View style={styles.row}>

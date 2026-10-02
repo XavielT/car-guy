@@ -17,6 +17,8 @@ export type JunteDetail = {
   starts_at: string;
   ends_at: string | null;
   meet: { lat: number; lng: number; label: string | null } | null;
+  /** sql/038: the place's name, also without a pin. */
+  meet_label?: string | null;
   visibility: JunteVisibility;
   status: JunteStatus;
   is_owner: boolean;
@@ -52,7 +54,9 @@ export type NewJunte = {
   title: string;
   startsAt: string;
   endsAt?: string | null;
-  meet?: { lat: number; lng: number; label?: string | null } | null;
+  meet?: { lat: number; lng: number } | null;
+  /** The place's name — saved even without a pin. */
+  meetLabel?: string | null;
   visibility?: JunteVisibility;
 };
 
@@ -66,7 +70,7 @@ export const createJunte = (j: NewJunte) =>
     p_ends_at: j.endsAt ?? null,
     p_meet_lat: j.meet?.lat ?? null,
     p_meet_lng: j.meet?.lng ?? null,
-    p_meet_label: j.meet?.label ?? null,
+    p_meet_label: j.meetLabel ?? null,
     p_visibility: j.visibility ?? 'invite',
   });
 export const joinJunte = (code: string) => rpc<string>('join_junte', { p_code: code.trim().toLowerCase() });
