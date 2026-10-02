@@ -3770,6 +3770,7 @@ export type Database = {
       join_junte: { Args: { p_code: string }; Returns: string }
       junte_blocked_author: { Args: { author: string }; Returns: boolean }
       junte_detail: { Args: { p_junte: string }; Returns: Json }
+      junte_invite_card: { Args: { p_code: string }; Returns: Json }
       junte_is_member: { Args: { j: string; u: string }; Returns: boolean }
       junte_live_window: {
         Args: { j: Database["carguy"]["Tables"]["junte"]["Row"] }

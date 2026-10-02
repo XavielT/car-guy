@@ -53,7 +53,7 @@ $P -f sql/032_public_memory.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/028_delete_account.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 $P -f sql/028_delete_account.sql 2>&1 | grep -E 'ERROR' && exit 1 || true
 # IMP 01102026 Phase 2 (after 028: 034 reads profiles.deletion_requested_at): gauge + app_config, profiles/social, juntes, then the --shared realtime policies; each twice (re-runnable).
-for f in 033_gauge_app_config 034_profiles_social 035_juntes 036_realtime_policies.shared 037_social_lists; do
+for f in 033_gauge_app_config 034_profiles_social 035_juntes 036_realtime_policies.shared 037_social_lists 038_junte_invite_card; do
   $P -f "sql/$f.sql" 2>&1 | grep -E 'ERROR' && exit 1 || true
   $P -f "sql/$f.sql" 2>&1 | grep -E 'ERROR' && exit 1 || true
 done

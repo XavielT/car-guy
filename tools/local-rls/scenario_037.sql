@@ -67,3 +67,19 @@ select carguy.admin_set_report_status((select (r->>'id')::uuid from jsonb_array_
 select t_ok('37l. … and marks it done',
   exists (select 1 from jsonb_array_elements(carguy.admin_reports()) r where r->>'reason' = 'spam de prueba' and r->>'status' = 'done'));
 reset role;
+
+-- sql/038: the invite card behind a code
+reset role;
+create temp table jc (code text);
+grant all on jc to anon, authenticated;
+select t_as('a');
+insert into jc select carguy.create_junte('Invitación de prueba', now() + interval '1 day')->>'code';
+select t_as('anon');
+select t_ok('38a. anon reads the invite card by code: title, owner handle, going — no ids, no coordinates',
+  (carguy.junte_invite_card((select code from jc))->>'title') = 'Invitación de prueba'
+  and (carguy.junte_invite_card((select code from jc))->>'owner_handle') = 'trueno_ae85'
+  and (carguy.junte_invite_card((select code from jc))->>'going')::int = 1
+  and carguy.junte_invite_card((select code from jc))::text not like '%00000000-0000-0000-0000-0000000000%'
+  and carguy.junte_invite_card((select code from jc))::text not like '%meet_lat%');
+select t_ok('38b. an unknown or malformed code is null', carguy.junte_invite_card('zzzzzzzz') is null and carguy.junte_invite_card('x'' or 1=1') is null);
+reset role;
