@@ -38,7 +38,7 @@ export const FEATURE_SHARE = true;
  * in the phase that ships its screens.
  */
 /**
- * "Car Guy (prueba)" (APP_VARIANT=test, app.config.js) switches on the features
+ * "TEST Car Guy" (APP_VARIANT=test, app.config.js) switches on the features
  * still being verified, so a phase can be tried on a real phone next to the
  * real app. Every release build has variant null and keeps them off.
  */

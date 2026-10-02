@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds "Car Guy (prueba)" — package com.xaviel.carguy.test, arm64 only — from
+# Builds "TEST Car Guy" — package com.xaviel.carguy.test, arm64 only — from
 # the current checkout, for trying a phase on a real phone next to the real app
 # (separate data, separate package; signed with the debug key, never released).
 #

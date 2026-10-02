@@ -14,5 +14,5 @@ export const FEATURE_SUPPORT = true;
 export const FEATURE_SOCIAL = true;
 /** Juntes with the live map (ADR-57) — PROMPT-06. On: Más → Juntes, /juntes/*, carguy://junte/<code>, web /j/<code>. */
 export const FEATURE_JUNTES = true;
-/** Junte chat: built in PROMPT-06 but stays off until push notifications exist. */
-export const FEATURE_JUNTE_CHAT = false;
+/** Junte chat (sql/039): authors by @handle; push via api/junte-push.ts (Android, Firebase car-guy-7052a). */
+export const FEATURE_JUNTE_CHAT = true;

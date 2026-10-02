@@ -61,7 +61,7 @@ function applyVariant(config) {
     // TEST_APP_VERSION=2.4.0: the test app claims an older version so the real /api/apk offers the update
     // (IMP 01102026 Phase 4 — trying the APK updater without publishing a fake release).
     version: process.env.TEST_APP_VERSION || config.version,
-    name: 'Car Guy (prueba)',
+    name: 'TEST Car Guy',
     scheme: 'carguytest',
     android: { ...config.android, package: 'com.xaviel.carguy.test' },
     ios: config.ios ? { ...config.ios, bundleIdentifier: 'com.xaviel.carguy.test' } : config.ios,
