@@ -2,7 +2,7 @@
 
 Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 
-**Started:** 2026-10-01 · **Status:** Phase 1 released (2.4.3)
+**Started:** 2026-10-01 · **Status:** 2.5.0 released (2026-10-02); 2.5.1 OTA pending
 
 ## Phase status
 
@@ -14,7 +14,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
 | 4 | Updates · Apoyar · Uso | ✅ | `imp-01102026/phase-4-updates` | notes 4, 6; OTA + APK proven on the Redmi; FEATURE_OTA, FEATURE_SUPPORT on |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ✅ | `imp-01102026/phase-5-social` | notes 11, 12, 14, 16; sql/037 applied; two-account web check 12/12 |
-| 6 | Juntes · chat (off) · release 2.5.0 | 🟨 | `imp-01102026/phase-6-juntes-release` | juntes built + verified on web (7/7); live dots wait for sql/036; 2.5.0 ready, publishing waits for Xaviel's go |
+| 6 | Juntes · chat (off) · release 2.5.0 | 🟨 | `imp-01102026/phase-6-juntes-release` | **v2.5.0 released** + on his phone; 036 live check 8/8; 2.5.1 OTA waits for his go; two-device live test open |
 
 ## Notes from the brief
 
@@ -248,10 +248,17 @@ CHANGELOG, NEXT) and **not published** — merging to main, pushing (production)
   subscribe to the private channel, the member receives the owner's `pos`, an outsider is refused ("You do not have
   permissions…") and receives nothing, a subscribe after `end_junte` is refused.
 - [ ] Live test with two devices (his Redmi + the iPhone PWA or a second account).
-- [ ] **Release** (on his go): merge the branch chain into main + push (web: /u, /j, juntes) →
-  `bash tools/release-apk.sh --publish` (2.5.0 APK; records the fingerprint) → install over his real app after a
-  backup (garage intact, DS3 gauge, OTA channel "production", profile with handle) → a visible copy fix as **2.5.1
-  with `--ota`** → his phone shows "Actualización lista · Reiniciar" (note 6's acceptance).
+- [x] **2.5.0 released** (2026-10-02, his "release 2.5.0"): v2.5.0 on GitHub (versionCode 21, EAS key a16450a0…, bundle
+  carries the cloud), fingerprint `1232e32…` recorded in `releases/fingerprint.json`. The first build failed with
+  "Runtime version calculated on local machine not equal…": a local test build's Gradle had stripped `package=` from
+  masked-view's AndroidManifest in node_modules (found by fingerprinting a clean `git archive` + `npm ci` copy and
+  diffing sources); restored, and `tools/build-test-apk.sh` now restores node_modules after Gradle. Installed with
+  `install -r` over his real 2.4.2 after a JSON backup (`~/car-guy-backups/car-guy-pre-2.5.0.json`): v9 → v10 on device,
+  "Novedades de la 2.5.0" sheet, garage intact (DS3 052380), "Todo subido", Novedades y versiones = "Canal production ·
+  Compilación 21", no FATAL.
+- [ ] **2.5.1 OTA** (juntes "1 conectado" / "1 carro"): merged and pushed (`38e45c1`, web on 2.5.1), gate says `ota (same
+  runtime as 2.5.0)`; `bash tools/release-apk.sh --ota --publish` waits for his "release 2.5.1" (the session's safety
+  check treats it as a separate production deploy). Then his phone should show "Actualización lista · Reiniciar".
 - [ ] Clean up the throwaway QA accounts (sql/999 on his "run the test user cleanup").
 
 ## Phase 5 — Perfiles · seguir · privacidad · compartir viajes   (branch `imp-01102026/phase-5-social`)
