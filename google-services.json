@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "47956539722",
+    "project_id": "car-guy-7052a",
+    "storage_bucket": "car-guy-7052a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:47956539722:android:4f5696c82e4cd855c829b3",
+        "android_client_info": {
+          "package_name": "com.xaviel.carguy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwv7DbA7k6B_I9JxqGG7tp8tpUbgScsPc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:47956539722:android:6e2dd13b31bc48f4c829b3",
+        "android_client_info": {
+          "package_name": "com.xaviel.carguy.test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwv7DbA7k6B_I9JxqGG7tp8tpUbgScsPc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

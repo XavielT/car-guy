@@ -32,10 +32,12 @@ trips ask for the precise GPS (`lib/trips/webGeo.ts` + `patches/expo-location+57
   `junte_push_claim` (author only, ≤ 5 min, once, 15 s burst fold) used by `api/junte-push.ts`, which sends through
   Expo's push service with the Vercel `SUPABASE_SERVICE_ROLE_KEY`. local-rls 236/236. The iPhone web app gets no
   push (ADR-48) and the chat says so. **Waiting on Xaviel:**
-  1. Firebase console → a project with two Android apps, `com.xaviel.carguy` and `com.xaviel.carguy.test` →
-     download `google-services.json` into the repo root (`app.config.js` picks it up; committed, not a secret).
-  2. Firebase → Project settings → Service accounts → *Generate new private key*, then expo.dev → car-guy →
-     Credentials → Android → *FCM V1 service account key* → upload it. Keep the JSON off the repo.
+  1. ~~Firebase project + google-services.json~~ done 2026-10-02: project `car-guy-7052a` (Analytics and Gemini
+     off), apps `com.xaviel.carguy` + `com.xaviel.carguy.test`; the file is committed. Runtime fingerprint is now
+     `ff2d7e1…` — the next native release must be an APK.
+  2. **Still his:** Firebase → car-guy-7052a → Project settings → Service accounts → *Generate new private key*,
+     then expo.dev → car-guy → Credentials → Android → *FCM V1 service account key* → upload it, and delete the
+     downloaded JSON. (Claude was refused generating/handling the key by the auto-mode check, 2026-10-02.)
   3. ~~"apply sql/039"~~ done 2026-10-02.
   Then: `types:gen`, merge, `FEATURE_JUNTE_CHAT = true`, two-account check, and an **APK** (2.6.0) — Firebase
   changes the runtime fingerprint, so this cannot go out as an OTA.
