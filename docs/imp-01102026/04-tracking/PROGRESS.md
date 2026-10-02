@@ -10,7 +10,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 |---|---|---|---|---|
 | 0 | Kickoff + Redmi diagnostics | ✅ | `imp-01102026/phase-0-kickoff` | baseline green; audit (11 items, 4 corrections); **Redmi: Car Guy has no location permission at all** + MIUI kills it → Phase 1 list |
 | 1 | Fix pack 2.4.3 | ✅ | `fix/2.4.3-fixpack` | v2.4.3; notes 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18 closed; 7 waits for his drive (permissions first) |
-| 2 | Schema v10 + cloud 033–036 | 🟨 | `imp-01102026/phase-2-schema-v10` | 033–035 applied to x-core, verifiers green; **036 (`--shared`) left for Xaviel** |
+| 2 | Schema v10 + cloud 033–036 | ✅ | `imp-01102026/phase-2-schema-v10` | 033–036 applied to x-core (036 on 2026-10-02), verifiers green |
 | 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
 | 4 | Updates · Apoyar · Uso | ✅ | `imp-01102026/phase-4-updates` | notes 4, 6; OTA + APK proven on the Redmi; FEATURE_OTA, FEATURE_SUPPORT on |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ✅ | `imp-01102026/phase-5-social` | notes 11, 12, 14, 16; sql/037 applied; two-account web check 12/12 |
@@ -208,7 +208,7 @@ or Viajes, and nothing is recorded.
 |---|---|---|---|
 | 0 | Folder rename | Xaviel | open |
 | 1 | Grant location (todo el tiempo), autostart, battery "sin restricciones" in the app, then the drive | Xaviel | open — after the Phase 1 build |
-| 2 | Apply sql/036 with `--shared` (realtime.messages policies) + delete the verifier test users | Xaviel | open — needed before Phase 6 |
+| 2 | Apply sql/036 with `--shared` (realtime.messages policies) + delete the verifier test users | Xaviel | 036 ✅ applied 2026-10-02 on his "apply 036 and release"; test users still open |
 | 4 | PayPal.me test payment (DR account) | Xaviel | open |
 
 ---
@@ -244,7 +244,10 @@ CHANGELOG, NEXT) and **not published** — merging to main, pushing (production)
   `docs/qa/imp-01102026-phase-6-web-*.png`.
 - [x] Without sql/036 the live channel is refused (Realtime: "You do not have permissions to read from this Channel
   topic") and the app says so — the guard works; the dots need 036.
-- [ ] **Xaviel: apply sql/036** → live test with two devices (his Redmi + the iPhone PWA or a second account).
+- [x] **sql/036 applied** (2026-10-02, HTTP 201). `node tools/verify-junte-live.mjs` on x-core **8/8**: owner and member
+  subscribe to the private channel, the member receives the owner's `pos`, an outsider is refused ("You do not have
+  permissions…") and receives nothing, a subscribe after `end_junte` is refused.
+- [ ] Live test with two devices (his Redmi + the iPhone PWA or a second account).
 - [ ] **Release** (on his go): merge the branch chain into main + push (web: /u, /j, juntes) →
   `bash tools/release-apk.sh --publish` (2.5.0 APK; records the fingerprint) → install over his real app after a
   backup (garage intact, DS3 gauge, OTA channel "production", profile with handle) → a visible copy fix as **2.5.1
