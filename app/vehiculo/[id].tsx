@@ -41,6 +41,7 @@ import { sellVehicle, setVehicleStatus } from '@/lib/db/vehicleOps';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
 import { isEx, ownershipLine, toKatakana, vehicleBadges } from '@/lib/domain/garage';
 import { vidaUtil, vidaUtilTone } from '@/lib/domain/legal-dr';
+import { TankLine } from '@/components/fuel/TankLine';
 import { parseDecimal } from '@/lib/domain/economy';
 import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_SHARE, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { dateLabel, isoFromDateInput, km as fmtKm, money, todayIsoDate } from '@/lib/format';
@@ -55,6 +56,7 @@ import { TrackSummaryLine, TrackTab } from '@/components/track/TrackPieces';
 import { TripsHubTab } from '@/components/trips/TripPieces';
 import { investedTotal } from '@/lib/domain/build';
 import { Alert } from '@/lib/alert';
+import { FEATURE_GAUGE_SEGMENTS } from '@/lib/flagsV10';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -302,6 +304,8 @@ export default function VehicleHubScreen() {
             </Pressable>
           ) : null}
           </View>
+          {/* IMP 01102026 Phase 3: what is in the tank now, from the last reading. */}
+          {FEATURE_GAUGE_SEGMENTS ? <TankLine vehicle={vehicle} fillups={data.fillups.filter((f) => f.vehicleId === vehicle.id)} odometerKm={odometerKm} /> : null}
         </View>
 
         {/* 1 — the page tabs (sticky) */}

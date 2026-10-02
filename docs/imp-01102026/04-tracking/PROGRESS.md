@@ -10,30 +10,30 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 |---|---|---|---|---|
 | 0 | Kickoff + Redmi diagnostics | ✅ | `imp-01102026/phase-0-kickoff` | baseline green; audit (11 items, 4 corrections); **Redmi: Car Guy has no location permission at all** + MIUI kills it → Phase 1 list |
 | 1 | Fix pack 2.4.3 | ✅ | `fix/2.4.3-fixpack` | v2.4.3; notes 2, 5, 8, 9, 10, 15, 16 (dot), 17, 18 closed; 7 waits for his drive (permissions first) |
-| 2 | Schema v10 + cloud 033–036 | ⬜ | | |
-| 3 | Medidor por cuadros + calibración | ⬜ | | |
-| 4 | Updates · Apoyar · Uso | ⬜ | | |
-| 5 | Perfiles · seguir · privacidad · compartir viajes | ⬜ | | |
-| 6 | Juntes · chat (off) · release 2.5.0 | ⬜ | | |
+| 2 | Schema v10 + cloud 033–036 | ✅ | `imp-01102026/phase-2-schema-v10` | 033–036 applied to x-core (036 on 2026-10-02), verifiers green |
+| 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
+| 4 | Updates · Apoyar · Uso | ✅ | `imp-01102026/phase-4-updates` | notes 4, 6; OTA + APK proven on the Redmi; FEATURE_OTA, FEATURE_SUPPORT on |
+| 5 | Perfiles · seguir · privacidad · compartir viajes | ✅ | `imp-01102026/phase-5-social` | notes 11, 12, 14, 16; sql/037 applied; two-account web check 12/12 |
+| 6 | Juntes · chat (off) · release 2.5.0 | 🟨 | `imp-01102026/phase-6-juntes-release` | juntes built + verified on web (7/7); live dots wait for sql/036; 2.5.0 ready, publishing waits for Xaviel's go |
 
 ## Notes from the brief
 
 | # | Note | Closed in | Status |
 |---|---|---|---|
-| 1 | Gauge by squares, per vehicle | 3 | ⬜ |
+| 1 | Gauge by squares, per vehicle | 3 | ✅ |
 | 2 | iPhone PWA did not open once | 1 | ✅ |
-| 3 | Learn squares → liters, estimate remaining | 3 | ⬜ |
-| 4 | Ads / money / Supabase Pro | 4 | ⬜ |
+| 3 | Learn squares → liters, estimate remaining | 3 | ✅ |
+| 4 | Ads / money / Supabase Pro | 4 | ✅ |
 | 5 | Last sync with time | 1 | ✅ |
-| 6 | Self-updating app | 4 (+ 6 OTA proof) | ⬜ |
+| 6 | Self-updating app | 4 (+ 6 OTA proof) | ✅ (production OTA proof in 6) |
 | 7 | Drive not recorded automatically | 0 + 1 | 🟡 iPhone: platform limit, said (banner). Android: diagnosed (0) + blocked card / battery / last-fix (1); **closes with his drive** after he grants the permissions |
 | 8 | Stale/far location | 1 | ✅ |
 | 9 | Home top-right logo unclear | 1 | ✅ |
 | 10 | Welcome explains the odometer | 1 | ✅ |
-| 11 | Influencer public profile | 5 | ⬜ |
-| 12 | Friends | 5 | ⬜ |
-| 13 | Routes with friends (juntes, live, chat later) | 6 | ⬜ |
-| 14 | Choose what is public | 5 | ⬜ |
+| 11 | Influencer public profile | 5 | ✅ |
+| 12 | Friends | 5 | ✅ |
+| 13 | Routes with friends (juntes, live, chat later) | 6 | 🟨 built; live test after sql/036 |
+| 14 | Choose what is public | 5 | ✅ |
 | 15 | Garage label UI issues | 1 | ✅ |
 | 16 | Me on the map (avatar), public photo | 1 + 5 | 🟡 dot ✅ (1); public photo in 5 |
 | 17 | Clear path to add mods; dailies; accessories; DOP | 1 | ✅ |
@@ -140,6 +140,50 @@ or Viajes, and nothing is recorded.
 - Package path is under `october 2026`, not `september 2026`.
 - The 2-minute background walk was not run (no permission → no fixes possible); see diagnostics.
 - `apply-sql.mjs` has no inspect mode; (k) used the generated types.
+- Phase 2: **history_feed v7** (junte rows) moves to Phase 6 — there is no local junte table to list until then.
+- Phase 2: **036 has only the realtime policies.** No `pg_trgm`/`unaccent` and no `carguy_private` schema: search
+  folds accents with `translate()` (enough for Spanish at this size) and the helpers live in `carguy` with
+  explicit revokes — fewer project-wide objects on a project shared with Music Hub.
+- Phase 2: the DS3 keeps its **real 50 L tank**; research 03 §3.4 assumed 45 L. The four readings and liters are
+  the example's, so Phase 3's learned table will differ slightly from the research's numbers (same shape).
+- Phase 3: a reading taken on another grid **keeps its raw text** ("3/8" stays "3/8") and counts at weight 0.5
+  (research §7.4) instead of the prompt's "saving converts existing readings' raw labels" — the raw is what he saw.
+- Phase 3: the fuel lamp is **red on the best estimate** (≤ reserve, or ≤ reserve_at squares), not on the band's top
+  (research §4): after a long drive the band is wide and "hi ≤ reserve" would light only when the car is dry.
+- Phase 3: the hub's tank line hides after **30 days** (02-screens) rather than research §4's 14.
+- Phase 3: "Reiniciar calibración" stores its date **inside `gauge_calibration`** (`reset_at`), not a new column;
+  a recompute carries it over.
+- Phase 3: amounts show in **the car's unit** (gal for his cars), not always L as the spec's examples read.
+- Phase 3: a new **fuel lamp** joins Inicio's telltale row (there was none); tapping it opens Nueva carga.
+- Phase 6: positions carry the member's **@handle and no speed** (research §3.3's sample had a user id and `spd`);
+  presence is keyed by handle.
+- Phase 6: background publishing rides the **existing trip task** (only while a trip records), via REST broadcast —
+  no second location service.
+- Phase 6: **sql/038** (not in the package): `junte_invite_card(code)` for the invite screen and web /j/<code>, and
+  `junte_detail.meet_label` (a place named without a pin).
+- Phase 6: no junte **photo grid** (members' photos are private) and the summary is **text**, not an image.
+- Phase 6: chat is built but reads `junte_message` directly ("mine" vs "a member"); before switching it on it needs a
+  handle-naming RPC (NEXT).
+- Phase 5: **public photo = a ≤60 KB 128 px JPEG data URI on the profile row** (`photo_public_jpeg`, sql/037), not a
+  storage object: others' files in carguy-media are private and the private path carries the user id (ADR-54);
+  a public-bucket copy would need new policies on the shared storage.objects. get_public_profile / junte_detail
+  now return `photo` and never `avatar_path`.
+- Phase 5: **privacy zones are added from "mi ubicación ahora"** (a fresh fix ≤ 100 m), with a label and a radius
+  100/300/500/1000 m; no map-pin picker this phase.
+- Phase 5: `trip_share.polyline_trimmed` is a **JSON array of encoded pieces** (a zone splits a route; pieces are never
+  joined).
+- Phase 5: the web page `/u/<handle>` shows the card, bio, IG, cars (linked to their public page) and stats — **no
+  routes** (shared trips are in the app). `show_fichas` is stored but has no block yet: a car's ficha is reached
+  through its public page.
+- Phase 5: handle availability is `is_handle_free()` (sql/037), not search_profiles.
+- Phase 4: the "Gracias" list is **names the admin types** (`app_config.support_thanks`) after a supporter agrees,
+  not a profile opt-in column — same consent, no schema change.
+- Phase 4: **no new web toast**: Phase 1's service worker already reloads the PWA once on a new version (ADR-48).
+- Phase 4: the APK check compares **semver** (`nativeApplicationVersion` vs the release tag), as the prompt says;
+  research §3b suggested versionCode, which /api/apk does not expose.
+- Phase 4: `fingerprint.config.js` skips the app version, `extra` (gitSha) and npm scripts — without it every commit
+  was a new runtime and no OTA would ever have reached an APK.
+- Phase 2: verify-x-core checks are **40–47** (39 was taken by sql/032); verify-sync gains 24–25.
 
 ## Observed, deferred
 
@@ -148,6 +192,15 @@ or Viajes, and nothing is recorded.
 | 0 | Disk 95 % (6.5 GB free) | medium | clear old local APKs in `releases/` with Xaviel's OK before the next universal build |
 | 0 | SW caches navigation responses without an `ok` check (`public/sw.js:93-96`) — a 5xx page could be served offline later | low | Phase 1's SW pass (ADR-48) |
 | 0 | Hero card `slice(0,2)` drops the status badge when engine + discipline badges exist | low | Phase 1 garage labels |
+| 2 | Realtime "Allow public access" stays on (shared project): Car Guy's junte channels must be opened with `private: true` or the 036 policies are not consulted | high for Phase 6 | `lib/junte` live client |
+| 4 | **v2.4.3 APK was never published on GitHub** (latest release is v2.4.2; web is on 2.4.3) — Phase 1's report said released | medium | ship with 2.5.0 (Phase 6) or `release-apk.sh --publish` from main |
+| 4 | Release builds may need more Gradle Metaspace with expo-updates (the test build did: 512 MB → OOM) | medium | add a config plugin / gradle.properties before `release-apk.sh` |
+| 4 | Web: a brand-new browser profile sometimes boots into "not a database" (OPFS first open), seen 3× headless under load | low | 2026-10-02: **not reproduced** — 80/80 fresh profiles booted clean (16 concurrent, dev server). Found expo-sqlite's worker `maybeInitAsync` is not guarded against concurrent opens, but boot's two opens do not overlap (32/32 with and without a patch), so no patch shipped; reopen if it is seen again |
+| 4 | The `preview` channel carries the test OTA ("Novedades y versiones · OTA"); a fresh test build gets it until the next preview update | low | next preview publish replaces it |
+| 5 | /u/<handle> is not deployed (needs the merge/push); `node tools/smoke-profile.mjs <handle>` after it | medium | the handler passed locally against x-core |
+| 5 | Verifier/QA accounts to clean up: `carguy-test-1790896956029-*` (+ Phase 2's verify runs) | low | sql/999 on Xaviel's "run the test user cleanup" |
+| 5 | Header titles are upper-cased by the theme, so `@qa_x` shows as `@QA_X` | low | fixed 2026-10-02: a title starting with `@` keeps its case (`app/_layout.tsx`) |
+| 2 | `lib/db/shareQueries.ts` imports `../i18n/es` directly (lint rule ADR-39) when linted on its own; `npm run lint` passes | low | |
 
 ## Blockers
 
@@ -155,11 +208,209 @@ or Viajes, and nothing is recorded.
 |---|---|---|---|
 | 0 | Folder rename | Xaviel | open |
 | 1 | Grant location (todo el tiempo), autostart, battery "sin restricciones" in the app, then the drive | Xaviel | open — after the Phase 1 build |
+| 2 | Apply sql/036 with `--shared` (realtime.messages policies) + delete the verifier test users | Xaviel | 036 ✅ applied 2026-10-02 on his "apply 036 and release"; test users still open |
 | 4 | PayPal.me test payment (DR account) | Xaviel | open |
 
 ---
 
 ## Phase reports
+
+## Phase 6 — Juntes · chat (off) · release 2.5.0   (branch `imp-01102026/phase-6-juntes-release`)
+
+**Status:** built and verified on the web; the live map waits for **sql/036**; 2.5.0 is prepared (versions,
+CHANGELOG, NEXT) and **not published** — merging to main, pushing (production) and the GitHub release need Xaviel's go.
+
+### Changed
+- **Live, pure** (`lib/junte/live.ts`, 15 tests): window (start − 30 min → end / +6 h), publish gate (T = max(4 s,
+  n²/60), ≥ 20 m or 15 s heartbeat, accuracy ≤ 50 m, no stale/future fixes), payload `{h, lat, lng, hdg, ts}` (no id,
+  no speed), peers (newest per handle, greyed at 45 s, dropped at 5 min or when no longer a member).
+- **Channel** (`lib/junte/channel.ts`): private `carguy:junte:<id>`, setAuth + on TOKEN_REFRESHED, Presence keyed by
+  handle (`live` flag), Broadcast `pos` and `kick`; background publish from the trip task over REST (`httpSend`).
+- **Screens**: Más → Juntes (live / upcoming / past, join by code, junte_cache), Nuevo junte, the junte (code + invite
+  link, members with online dots, Voy, owner kick + end, "En vivo" switch with the explanation, iPhone note, JunteMap,
+  time left), after-view (linked trimmed routes in member colours, link/unlink my share, Guardar como evento, summary),
+  `carguy://junte/<code>` invite card. Chat (`JunteChat`) behind `FEATURE_JUNTE_CHAT = false`.
+- **Map** `JunteMap` native + web: avatar dots with @handle, meeting flag, fit-all; web container sized (maplibre
+  forces position: relative).
+- **Web** `/j/<code>` (`api/j/[code].ts`): invite card, OG, noindex, open in app / install.
+- **sql/038** applied; local-rls 217/217.
+- **Release prep**: 2.5.0 "Nakama" in app.json/package.json, CHANGELOG, NEXT carried items; `withGradleMemory` config
+  plugin (Metaspace 1.5 GB for every native build — the expo-updates OOM).
+
+### Acceptance
+- [x] tsc, lint (0 errors), jest **2,159**, `npm run build`, check:api 6/6, local-rls 217/217.
+- [x] Two accounts (web UI + API): create a junte (code, time left, place), anon invite card, B joins by code, both
+  members by @handle, A ends it, A links the trimmed route, B sees it on the after-view, never an id. 7/7.
+  `docs/qa/imp-01102026-phase-6-web-*.png`.
+- [x] Without sql/036 the live channel is refused (Realtime: "You do not have permissions to read from this Channel
+  topic") and the app says so — the guard works; the dots need 036.
+- [x] **sql/036 applied** (2026-10-02, HTTP 201). `node tools/verify-junte-live.mjs` on x-core **8/8**: owner and member
+  subscribe to the private channel, the member receives the owner's `pos`, an outsider is refused ("You do not have
+  permissions…") and receives nothing, a subscribe after `end_junte` is refused.
+- [ ] Live test with two devices (his Redmi + the iPhone PWA or a second account).
+- [ ] **Release** (on his go): merge the branch chain into main + push (web: /u, /j, juntes) →
+  `bash tools/release-apk.sh --publish` (2.5.0 APK; records the fingerprint) → install over his real app after a
+  backup (garage intact, DS3 gauge, OTA channel "production", profile with handle) → a visible copy fix as **2.5.1
+  with `--ota`** → his phone shows "Actualización lista · Reiniciar" (note 6's acceptance).
+- [ ] Clean up the throwaway QA accounts (sql/999 on his "run the test user cleanup").
+
+## Phase 5 — Perfiles · seguir · privacidad · compartir viajes   (branch `imp-01102026/phase-5-social`)
+
+**Status:** done; `FEATURE_SOCIAL = true`. **Notes closed: 11, 12, 14, 16.**
+
+### Changed
+- **sql/037** (applied to x-core, local-rls 215/215): `photo_public_jpeg` + `photo` in get_public_profile/junte_detail,
+  `is_handle_free`, `list_follows(followers|following|friends|requests_sent)`, `admin_reports` /
+  `admin_set_report_status`.
+- **Perfil → Perfil público** (`components/social/PublicProfileEditor.tsx`): @handle normalised as typed + live check
+  (Disponible / Es el tuyo / Ya lo usa alguien / Reservado / formato / cooldown 30 d), bio 160, Instagram, switches
+  (cuenta pública, foto pública, carros, stats, fichas), "Qué ven los demás" → /u/<me>. Privacy zones
+  (`PrivacyZonesEditor`, local-first, synced).
+- **Perfil público** `app/u/[handle].tsx` (native + web, deep link carguy://u/<handle>): only get_public_profile +
+  list_trip_shares; Seguir / Solicitar / Solicitado / Siguiendo / Amigos / Seguir también; counts; bio, IG, cars,
+  stats, shared trips drawn from the trimmed pieces (`RouteThumb`, no map tiles); "…" → Reportar · Bloquear.
+- **Más → Comunidad** (`app/comunidad.tsx`): search (accent-folded in the RPC), Solicitudes (aceptar/rechazar), Amigos,
+  Seguidores (quitar), Siguiendo (+ enviadas), Bloqueados (desbloquear); `lib/social/store.ts` with the
+  `social_cache` table, optimistic reducer (`lib/social/cache.ts`), "sin conexión" offline; cleared on sign-out.
+- **Compartir viaje** (`app/viaje/compartir/[id].tsx`): trimmed on the phone (`trimForSharing`, seeded 300–500 m ends,
+  zones cut), preview over the full route (owner's phone only), Seguidores / Solo amigos / Público, title,
+  Dejar de compartir; `trip_share` row synced — the cloud gets only the trimmed pieces.
+- **Web** `/u/<handle>` (`api/u/[handle].ts`, `lib/share/profileHtml.ts`, vercel.json): OG tags, og:image = public
+  photo (`?photo=1` serves the bytes) or the drawn avatar PNG (`public/avatars/*.png`, `tools/render-avatars.mjs`) or
+  the app icon; noindex unless public. `tools/smoke-profile.mjs`.
+- **Admin → Reportes**; Términos §6: one paragraph on @usuario (version unchanged; FEATURE_LEGAL is off).
+
+### Acceptance
+- [x] tsc, lint (0 errors), jest **2,146** (handle rules, visibility resolver, cache reducer, web renderer, base64).
+- [x] **Two accounts** (web UI for A, API for B and stranger C — throwaway, never Xaviel's): A signs in, handle
+  "Disponible", saved; A → private B = "Solicitado"; B accepts + follows back → Amigos lists B; A shares the DS3 trip
+  "solo amigos" → B sees it, C and anon do not; the shared route starts 451 m / ends 408 m from the real ends; A blocks
+  B → neither sees the other and B loses the share; others never get A's id or a photo with photo_public off.
+  Screens `docs/qa/imp-01102026-phase-5-web-*.png`.
+- [x] `/u/<handle>` handler run locally against x-core: 200 + og + bio for the public profile, 404 noindex for unknown
+  and malformed handles, no uuid in the HTML.
+- [ ] Deployed `/u/<handle>` + smoke-profile (after merge).
+- [x] Android test APK on the Redmi: deep links `carguytest://u/<handle>` and `carguytest://comunidad` open the profile and Comunidad (read-only — the test app is signed into Xaviel's account); no FATAL. `…-android-comunidad.png`.
+- [ ] Xaviel: his @handle, switches and zones on his own phone; a second real person for a real follow.
+
+## Phase 4 — Updates · Apoyar · Uso y costos   (branch `imp-01102026/phase-4-updates`)
+
+**Status:** done; `FEATURE_OTA`, `FEATURE_SUPPORT` on. **Notes closed: 4, 6** (the production OTA 2.5.1 proof is
+Phase 6's).
+
+### Changed
+- **EAS Update** (ADR-52): `expo-updates` + `expo-intent-launcher`; `runtimeVersion: fingerprint`, `updates.url`,
+  ON_LOAD, fallback 0; channels in eas.json (preview / production / release-apk) and the request header written by
+  app.config.js per variant (test → `preview`, real → `production`) so every build path is right.
+  `fingerprint.config.js` (see deviations). `lib/updates/ota.ts` (check → fetch → otaReady; "Reiniciar" refuses
+  during a trip), `useUpdateChecks` (launch + back after 30 min), `UpdateBanner` on Inicio, Novedades shows
+  "Canal … · Actualización …" and "Buscar actualización" runs OTA + APK. After an OTA, "Tienes" shows the JS version.
+- **APK updater**: `lib/updates/apk.ts` — /api/apk (or `EXPO_PUBLIC_APK_FEED` for tests) once per launch, semver
+  compare, `File.createDownloadTask` with progress, size check, `contentUri` → ACTION_VIEW with the APK MIME
+  (`REQUEST_INSTALL_PACKAGES` in app.json), "¿Por qué pide permiso?", old downloads cleaned.
+- **Release gate**: `tools/ota-gate.cjs` (`check` / `record`), `release-apk.sh --ota` → `eas update --channel
+  production --environment production` when the fingerprint equals `releases/fingerprint.json` (now tracked), a
+  GitHub release with notes and no APK not marked latest; else refuses and builds the APK; every APK release records.
+- **Apoyar Car Guy** (ADR-53): Más → last row → why, this month's cost and the Pro ETA (published by the admin),
+  links / bank text / thanks from `app_config`, "Pronto" when nothing is set, "apoyar no cambia nada". No ads.
+- **Uso y costos** (admin): `admin_usage()` → bars vs Free limits (amber 70 %, red 90 %), daily history in
+  `app_config.usage_history`, least-squares slope → "Pro necesario ≈ <mes>", "Publicar en Apoyar", editor for links,
+  bank text and the thanks list. `lib/domain/usage.ts` pure + tests.
+- Test tooling: `TEST_APP_VERSION` (test variant claims an older version to exercise the real /api/apk), Gradle
+  Metaspace raised in `build-test-apk.sh`.
+
+### Acceptance
+- [x] tsc, lint (0 errors), jest **2,128** (semver, gate, usage slope/ETA among them).
+- [x] Redmi, test APK (preview channel): Novedades "Canal preview · Sin actualizaciones desde la instalación" →
+  published a JS-only update to `preview` (title "Novedades y versiones · OTA", runtime `47d83c9d…` = the APK's) →
+  reopen → expo-updates downloaded it → Inicio "ACTUALIZACIÓN LISTA · REINICIAR" → title changed, "Actualización
+  01a0f971". Screens `docs/qa/imp-01102026-phase-4-android-{novedades-canal,ota-banner,ota-applied}.png`.
+- [x] Redmi, test APK claiming 2.4.0: "NUEVA VERSIÓN 2.4.2 · 161 MB" from the real /api/apk → "Descargando… 7 %" →
+  size check → Android's installer chooser (cancelled; nothing installed). `…-android-apk-{banner,progress,installer}.png`.
+- [x] Native change gate: + one permission → runtime `8353…` → `c9e7…` (→ `--ota` refused); reverted → `8353…`.
+- [x] Web: Apoyar signed out shows the text and "Pronto" (`…-web-apoyar.png`).
+- [ ] Admin Uso y costos with real numbers — needs Xaviel's admin login (the RPC refuses anyone else; 40 in
+  verify-x-core proves the refusal). Then "Publicar en Apoyar".
+- [ ] PayPal.me test payment (checklist) → then add the link in Uso y costos → Formas de apoyar.
+
+## Phase 3 — Medidor por cuadros + calibración   (branch `imp-01102026/phase-3-gauge`)
+
+**Status:** done; `FEATURE_GAUGE_SEGMENTS = true`. **Notes closed: 1, 3.**
+
+### Changed
+- **Economy on fractions** (`lib/domain/partialEconomy.ts`): levels read `gauge_*_frac` (eighths as fallback) on the
+  car's grid; linear ± C/(2G) + nonlinK·C — needle numbers identical (test); learned grid ± band when the status is
+  not linear; the learned reserve; "F without full" generalised to C·(1 − 1/(2G)). `fuelCfgFor` carries the gauge
+  and the parsed calibration, so Inicio, Cifras, the fill-up detail, Nueva carga and the CSV all follow.
+- **Vehicle gauge** (`lib/domain/gaugeVehicle.ts`): observations (other-grid readings ×0.5), `calibrateVehicle`
+  (reset kept), `tankNow` (last after-level − km since at the recent km/L, band √(b² + (used·rel)²), 30-day cutoff,
+  telltale), `formatFrac`, `stepForLiters`. `lib/db/gaugeOps.ts` `recalibrateVehicle` writes only on change; the
+  store runs it after every fill-up save/delete, vehicle save after a gauge/tank change, the seed after the DS3.
+- **Pickers** (`components/fuel/GaugePicker.tsx`): one fraction API over the needle arc, `SegmentsPicker` (N squares,
+  lowest red, tap / tap-again −1 / drag, haptic tick, adjustable a11y "4 de 9 cuadros") and `PercentPicker` (5 %
+  track + LCD); "Solo la luz de reserva" on all. The form keeps an untouched reading's original fraction/raw.
+- **Fill-up form:** after Antes, "≈ 3.3 gal en el tanque (2.4–4.2)" (learned) or the linear caption; "quedaría ≈ …
+  de …" on a partial.
+- **Vehicle form** (`components/vehicle/GaugeTypeSection.tsx`): "¿Cómo marca la gasolina tu carro?" — Aguja ·
+  Cuadritos · Porcentaje cards, stepper 3–20 with live preview, "¿Cuándo se prende la luz de reserva?"; editing the
+  tank by > 2 L with a learned gauge offers "¿Reiniciar el aprendizaje del medidor?".
+- **Hub** `TankLine`: "Tanque: 9/9 ≈ 13.2 gal · ≈ 900 km (740–1050) · hace 4 d". **Inicio:** fuel lamp (amber ≤ 2
+  squares / 2/8 / 20 %, red at the reserve). **Ficha → Medidor:** the table F…E with ± bands, status, n tanks,
+  "Reiniciar calibración". The fill-up detail shows readings as seen ("2/9").
+- Strings es/en; tests `__tests__/domain/gaugeVehicle.test.ts` (14) on top of Phase 2's gauge/calibration tests.
+
+### Acceptance
+- [x] tsc, lint (0 errors; 1 old warning in `app/cuenta.tsx`), jest **2,115**.
+- [x] Web (headless, es-DO, 390 px): seed → "DS3: medidor de 9 cuadros, aprendido (3 tanques llenos)"; hub tank line;
+  Ficha table monotone with bands; DS3 Nueva carga shows 9 squares, 2 → 6 gives "2 de 9 · ≈ 3.3 gal (2.4–4.2)" and
+  "6 de 9"; Trueno → Porcentaje shows the % track, → Aguja shows the arc again; no page errors.
+  Screens: `docs/qa/imp-01102026-phase-3-*.png`.
+- [x] Android test APK on the Redmi: new vehicle → Bars, stepper to 9 (live preview, lowest red), "1 bar left",
+  saved; Nueva carga → 9 squares, tap → "2 of 9 · ≈ 2.9 gal in the tank (linear…)" (13.2 gal × 2/9); no FATAL.
+  Screens: `docs/qa/imp-01102026-phase-3-android-*.png`.
+- [ ] His DS3 for real: Editar → Cuadritos, 9, reserva; then mark the squares on the next fills (checklist).
+
+## Phase 2 — Schema v10 + cloud 033–036   (branch `imp-01102026/phase-2-schema-v10`)
+
+**Status:** complete except 036 (`--shared`, realtime policies), which the session's safety check would not let Claude apply — Xaviel runs it (Blockers). Resumed after the laptop crash: the two domain
+commits (gauge, tripShare/interval) were already on the branch; the migration, types and SQL were uncommitted
+and finished here. Stale agent worktrees removed (their commits are identical to the branch's).
+
+### Changed
+- **Migration v10** (`lib/db/migrationV10.ts`): vehicle `gauge_type` (default `needle8`) / `gauge_segments` /
+  `gauge_reserve_at` / `gauge_calibration`; fuel_log `gauge_{before,after}_{frac,raw}` backfilled from the eighths
+  (`n/8`, eighths kept for 2.4.x phones); `trip_share`, `privacy_zone` (synced, in backups and `ALL_TABLES`);
+  `social_cache`, `junte_cache` (cloud caches, cleared by reset). Tests `__tests__/db/migrate-v10.test.ts`: 0 → 10,
+  v9 fixture → v10 backfill, seed, backup round-trip, reset clears caches.
+- **Domain** (already committed): `lib/domain/gauge.ts`, `gaugeCalibration.ts` (PAV, worked example),
+  `tripShare.ts`, `lib/junte/interval.ts` (T = max(4, n²/60)), with tests.
+- **Client stubs:** `lib/social/rpc.ts` (one door, SQL error codes → reasons), `lib/social/api.ts`,
+  `lib/junte/api.ts` (`junteTopic`). Loosely typed until `types:gen` runs against a cloud with 033–036.
+- **Cloud SQL:** 033 app_config + admin_usage; 034 handle/bio/switches, reserved handles, follow/block/report,
+  profile/search/follow RPCs, trip_share + privacy_zone; 035 juntes + RPCs; 036 (`--shared`) realtime.messages
+  policies for `carguy:junte:` topics. Fixed here: `end_junte` on a junte that had not started violated
+  `ends_at > starts_at` (now `ends_at = starts_at` for a cancel; `create_junte` refuses an empty window), and the
+  036 restrictive guard returned NULL — a denial for **every** app — on access with no topic (now coalesced).
+- **Tools:** local-rls runs 033–036 twice each + scenarios 034/035 (35l2 new, junte order made deterministic);
+  `verify-x-core.mjs` 40–47; `verify-sync.mjs` 24–25 (trip_share, privacy_zone); `apply-sql.mjs` now treats
+  policies on `realtime.`/`public.`/`auth.` tables and `create extension` as shared (it waved 036 through).
+- **Sync:** `SYNC_TABLES` + trip_share, privacy_zone; parity test reads 033–034; the boolean map is compared on
+  synced tables only (profiles' switches and app_config are RPC-only).
+- **Seed:** the DS3 reads 9 squares, reserve at 1, with research 03 §3.4's four readings on four of its 12 fill-ups.
+- **Flags** (`lib/flagsV10.ts`): GAUGE_SEGMENTS, OTA, SUPPORT, SOCIAL, JUNTES, JUNTE_CHAT — all false.
+
+### Acceptance
+- [x] tsc, `npm run lint` (0 errors), jest **2,101** (117 suites), `npm run build` green.
+- [x] local-rls **203/203**, three runs in a row.
+- [x] Web (headless, dev server): seed, Inicio and Nueva carga render as 2.4.3; no page errors; no screen reads v10.
+- [x] Android test APK (`releases/car-guy-test.apk`, after clearing the crash-corrupted Gradle transforms cache): installed over the previous test build on the Redmi → migrated 9 → 10 on device, opens (2.4.3 notes sheet, gauge), no FATAL in logcat.
+- [x] Applied **033, 034, 035** to x-core (HTTP 201 each); `types:gen` (+487 lines; `rpc()` names now checked).
+- [x] verify-x-core **46/46** (40–47 new; 36 skipped as before); verify-sync **26/26** (24–25 new). Check 46 calls
+  `junte_topic_allowed` directly, so it does not depend on 036. Test users: cleanup SQL printed by both tools.
+- [ ] 036 `--shared` — `node tools/apply-sql.mjs sql/036_realtime_policies.shared.sql --shared` (Xaviel). Needed
+  before Phase 6's live map, not before Phases 3–5.
+
+**Notes closed:** none (groundwork).
 
 ## Phase 1 — Fix pack 2.4.3   (branch `fix/2.4.3-fixpack`, merged `2afff29`)
 

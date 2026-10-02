@@ -58,6 +58,9 @@ function applyVariant(config) {
   if (process.env.APP_VARIANT !== 'test') return config;
   return {
     ...config,
+    // TEST_APP_VERSION=2.4.0: the test app claims an older version so the real /api/apk offers the update
+    // (IMP 01102026 Phase 4 — trying the APK updater without publishing a fake release).
+    version: process.env.TEST_APP_VERSION || config.version,
     name: 'Car Guy (prueba)',
     scheme: 'carguytest',
     android: { ...config.android, package: 'com.xaviel.carguy.test' },
@@ -65,9 +68,32 @@ function applyVariant(config) {
   };
 }
 
+/**
+ * IMP 01102026 ADR-52: the EAS Update channel, written into the binary as the request header, so a local
+ * gradle/EAS build asks for the right updates whatever the build path (research 01 §3a: "verify once").
+ * The test app listens to `preview`; every real build to `production`.
+ */
+function withChannel(config) {
+  const channel = process.env.APP_VARIANT === 'test' ? 'preview' : 'production';
+  return { ...config, updates: { ...config.updates, requestHeaders: { ...config.updates?.requestHeaders, 'expo-channel-name': channel } } };
+}
+
+/**
+ * IMP 01102026 Phase 6: Gradle's JVM limits for every native build path (local gradle, `eas build --local`).
+ * expo-updates pushed the build past the generated 512 MB Metaspace (an OOM on 2026-10-01).
+ */
+function withGradleMemory(config) {
+  const { withGradleProperties } = require('expo/config-plugins');
+  return withGradleProperties(config, (c) => {
+    c.modResults = c.modResults.filter((p) => !(p.type === 'property' && p.key === 'org.gradle.jvmargs'));
+    c.modResults.push({ type: 'property', key: 'org.gradle.jvmargs', value: '-Xmx4096m -XX:MaxMetaspaceSize=1536m' });
+    return c;
+  });
+}
+
 module.exports = ({ config }) => {
   assertReleaseEnv();
-  const base = applyVariant(config);
+  const base = withGradleMemory(withChannel(applyVariant(config)));
   return {
     ...base,
     extra: { ...base.extra, gitSha: gitSha(), variant: process.env.APP_VARIANT ?? null },

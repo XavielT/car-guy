@@ -61,6 +61,15 @@ export type Vehicle = Syncable & {
   economyUnit: EconomyUnit;
   /** null → 10 % of the tank. */
   reserveVolumeL: number | null;
+  // v10 (IMP 01102026 ADR-51): how the gauge reads, and what the app learned about it.
+  /** 'needle8' (the arc in eighths) · 'segments' (squares, like the DS3) · 'percent'. */
+  gaugeType: 'needle8' | 'segments' | 'percent';
+  /** Squares on the gauge (3..20) when gaugeType = 'segments'. */
+  gaugeSegments: number | null;
+  /** Squares still lit when the reserve light comes on (0/1); null unknown. */
+  gaugeReserveAt: number | null;
+  /** lib/domain/gaugeCalibration.ts output, JSON; null until computed. */
+  gaugeCalibration: string | null;
   /** The tank as typed, in `volumeUnit`. */
   tankVolumeEntered: number | null;
   /** "esperando piezas" — shown after the status. */
@@ -130,6 +139,11 @@ export type FuelLog = Syncable & {
   // v6: `volume` is liters and `pricePerUnit` RD$ per liter (m³ for GNV).
   gaugeBeforeEighths: number | null;
   gaugeAfterEighths: number | null;
+  /** v10: the readings as a fraction 0..1 and as seen ("4/9", "3/8", "45%"); eighths stay for older clients. */
+  gaugeBeforeFrac: number | null;
+  gaugeAfterFrac: number | null;
+  gaugeBeforeRaw: string | null;
+  gaugeAfterRaw: string | null;
   /** The before reading was on reserve. */
   inReserve: boolean;
   /** The volume as typed, in `volumeEnteredUnit`. */
@@ -850,6 +864,25 @@ export type ConsumableUsage = Syncable & {
   padThicknessMm: number | null;
   treadMm: number | null;
   notes: string;
+};
+
+/** v10 (ADR-56): a trip its owner published — the trimmed route only, never the raw points. */
+export type TripShare = Syncable & {
+  tripId: string;
+  visibility: 'followers' | 'friends' | 'public';
+  polylineTrimmed: string;
+  distanceM: number | null;
+  durationS: number | null;
+  startedDay: string | null;
+  title: string | null;
+};
+
+/** v10 (ADR-56): a place (home, work) a shared route never shows — cut out, not reconnected. */
+export type PrivacyZone = Syncable & {
+  label: string | null;
+  lat: number;
+  lng: number;
+  radiusM: number;
 };
 
 export type VehicleShare = Syncable & {

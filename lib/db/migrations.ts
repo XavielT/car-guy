@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 import { historyFeedV3, historyFeedV4, migrationV2 } from './migrationV2';
 import { migrationV6 } from './migrationV6';
+import { migrationV10 } from './migrationV10';
 import { migrateV8Data, migrationV8 } from './migrationV8';
 
 /**
@@ -295,6 +296,8 @@ export const MIGRATIONS: Migration[] = [
       `ALTER TABLE vehicle_share ADD COLUMN memory_summary TEXT`,
     ],
   },
+  // v10 (2.5, IMP 01102026): gauge by segments + calibration, trip_share, privacy_zone, social/junte caches — ./migrationV10.ts.
+  { version: 10, up: migrationV10() },
 ];
 
 export const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

@@ -28,6 +28,7 @@ import { exportBackup, importBackup } from '@/lib/backup';
 import { useInstallOffer } from '@/lib/release/useInstallOffer';
 import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_I18N, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { FEATURE_ONBOARDING_V2 } from '@/lib/flagsV8';
+import { FEATURE_JUNTES, FEATURE_SOCIAL, FEATURE_SUPPORT } from '@/lib/flagsV10';
 import { resetTips } from '@/lib/onboarding/tips';
 import { FEEDBACK_ROUTE } from '@/lib/feedback';
 import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
@@ -235,6 +236,10 @@ export default function MasScreen() {
           }
         />
 
+        {/* IMP 01102026 Phase 5: people. */}
+        {FEATURE_SOCIAL ? <NavRow label={t.social.more} caption={t.social.moreCaption} onPress={() => router.push('/comunidad')} /> : null}
+        {FEATURE_JUNTES ? <NavRow label={t.juntes.more} caption={t.juntes.moreCaption} onPress={() => router.push('/juntes')} /> : null}
+
         <MoreSection
           title={t.more.data}
           caption={
@@ -338,6 +343,8 @@ export default function MasScreen() {
           />
         ) : null}
         {isAdmin ? <NavRow label={t.admin.more} caption={t.admin.moreCaption} onPress={() => router.push('/admin')} /> : null}
+        {/* ADR-53: the last row, no badge, never a popup. */}
+        {FEATURE_SUPPORT ? <NavRow label={t.support.more} caption={t.support.moreCaption} onPress={() => router.push('/apoyar')} /> : null}
         <Surface>
           <Pressable onPress={tapVersion} accessibilityRole="text">
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>

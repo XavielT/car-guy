@@ -119,13 +119,13 @@ export default function CargaDetail() {
           />
         </Surface>
 
-        {fill.inReserve || fill.gaugeBefore8 != null || fill.gaugeAfter8 != null ? (
+        {fill.inReserve || fill.gaugeBefore8 != null || fill.gaugeAfter8 != null || fill.gaugeBeforeRaw || fill.gaugeAfterRaw ? (
           <Surface padded style={{ marginTop: space.md }}>
             <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
               {t.gauge.title.toUpperCase()}
             </T>
-            <KeyValueRow label={t.gauge.before} value={fill.inReserve ? t.gauge.reserveOnly : gauge(fill.gaugeBefore8)} />
-            <KeyValueRow label={t.gauge.after} value={gauge(fill.gaugeAfter8)} />
+            <KeyValueRow label={t.gauge.before} value={fill.inReserve ? t.gauge.reserveOnly : (fill.gaugeBeforeRaw ?? gauge(fill.gaugeBefore8))} />
+            <KeyValueRow label={t.gauge.after} value={fill.gaugeAfterRaw ?? gauge(fill.gaugeAfter8)} />
           </Surface>
         ) : null}
 

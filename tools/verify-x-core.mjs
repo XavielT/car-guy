@@ -42,6 +42,14 @@
  *  37. the owner reads member_avatars of its car; no photo path. (sql/031)
  *  38. anon and an outsider are refused by member_avatars.      (sql/031)
  *  39. public dossier `memory`: only with show_memory, spec-sheet rows only. (sql/032)
+ *  40. app_config public keys only; set_app_config / admin_usage admin only. (sql/033)
+ *  41. a private profile: anon gets the card only, no profiles rows.  (sql/034)
+ *  42. follow a private account → requested; no direct follow writes.  (sql/034)
+ *  43. accept → the follower sees the bio.                         (sql/034)
+ *  44. trip_share: own write; anon none; follower via RPC only.     (sql/034)
+ *  45. juntes: non-member nothing; member by code, no ids/positions. (sql/035)
+ *  46. topic guard: member true; garbage/other app false, no error. (sql/035–036)
+ *  47. end closes the topic; block hides the profile.              (sql/034–035)
  *
  * It creates two throwaway users named `carguy-test-<timestamp>-<a|b>@example.com`
  * and CANNOT delete them — that needs the service-role key, which must never be
@@ -632,6 +640,107 @@ async function main() {
       anonCall.status >= 400 && Boolean(outsider) && outsider.status >= 400,
       `anon ${anonCall.status} · outsider ${outsider?.status ?? 'no token'} ${JSON.stringify(outsider?.body?.message ?? '')}`,
     );
+  }
+
+  // 40–47 — IMP 01102026: app_config, profiles/follows/trip_share, juntes, the realtime topic guard (sql/033–036).
+  // The scenario in depth is local-rls 34*/35*; here only what proves the cloud has the files and their grants.
+  if (tokenB) {
+    const authB = { Authorization: `Bearer ${tokenB}` };
+    const uidA = a.body?.user?.id;
+    const rpc = (auth, fn, args = {}) => call(`/rest/v1/rpc/${fn}`, { method: 'POST', headers: { ...auth, 'Content-Profile': 'carguy' }, body: JSON.stringify(args) });
+    const handleA = `vt_${stamp.toString(36)}_a`;
+
+    const cfgRead = await call('/rest/v1/app_config?select=key,public', { headers: authA });
+    const cfgWrite = await rpc(authA, 'set_app_config', { p_key: `verify_${stamp}`, p_value: { x: 1 }, p_public: true });
+    const usage = await rpc(authA, 'admin_usage');
+    record(
+      '40. app_config: A reads only public keys; a non-admin cannot set_app_config nor read admin_usage (sql/033)',
+      cfgRead.status === 200 && Array.isArray(cfgRead.body) && cfgRead.body.every((r) => r.public === true) &&
+        cfgWrite.status >= 400 && /forbidden/.test(JSON.stringify(cfgWrite.body)) && usage.status >= 400,
+      `read ${cfgRead.status} (${Array.isArray(cfgRead.body) ? cfgRead.body.length : '?'} rows) · set ${cfgWrite.status} · usage ${usage.status}`,
+    );
+
+    const setHandle = await call(`/rest/v1/profiles?user_id=eq.${uidA}`, {
+      method: 'PATCH', headers: { ...authA, Prefer: 'return=minimal' }, body: JSON.stringify({ handle: handleA, is_public: false, bio: 'privada' }),
+    });
+    const anonCard = await rpc({}, 'get_public_profile', { p_handle: handleA });
+    const anonRows = await call('/rest/v1/profiles?select=user_id&limit=1');
+    record(
+      '41. a private profile: anon gets the card only (no bio, no id), and cannot read profiles rows (sql/034)',
+      setHandle.status < 300 && anonCard.status === 200 && anonCard.body?.handle === handleA && anonCard.body?.can_see === false &&
+        !('bio' in (anonCard.body ?? {})) && !JSON.stringify(anonCard.body).includes(uidA) &&
+        (anonRows.status >= 400 || (Array.isArray(anonRows.body) && anonRows.body.length === 0)),
+      `patch ${setHandle.status} · card ${anonCard.status} ${JSON.stringify(anonCard.body)} · anon rows ${anonRows.status}`,
+    );
+
+    const follow = await rpc(authB, 'follow_user', { p_handle: handleA });
+    const directFollow = await call('/rest/v1/follow', { method: 'POST', headers: authB, body: JSON.stringify({ follower_id: b.body?.user?.id, followee_id: uidA, status: 'accepted' }) });
+    record(
+      '42. B → private A is a request, and B cannot write follow rows directly (sql/034)',
+      follow.status === 200 && follow.body === 'requested' && directFollow.status >= 400,
+      `follow ${follow.status} ${JSON.stringify(follow.body)} · direct ${directFollow.status}`,
+    );
+
+    // B learns its own handle only by setting one (a fresh account has none).
+    const handleB = `vt_${stamp.toString(36)}_b`;
+    await call(`/rest/v1/profiles?user_id=eq.${b.body?.user?.id}`, { method: 'PATCH', headers: { ...authB, Prefer: 'return=minimal' }, body: JSON.stringify({ handle: handleB }) });
+    const accept = await rpc(authA, 'accept_follow', { p_handle: handleB });
+    const bSees = await rpc(authB, 'get_public_profile', { p_handle: handleA });
+    record(
+      '43. A accepts B; now B sees A\'s bio (sql/034)',
+      accept.status === 200 && bSees.body?.can_see === true && bSees.body?.bio === 'privada',
+      `accept ${accept.status} ${JSON.stringify(accept.body)} · can_see ${bSees.body?.can_see}`,
+    );
+
+    const shareId = `ts_test_${stamp}`;
+    const share = await call('/rest/v1/trip_share', {
+      method: 'POST', headers: { ...authA, Prefer: 'return=minimal' },
+      body: JSON.stringify({ id: shareId, trip_id: `trip_test_${stamp}`, visibility: 'followers', polyline_trimmed: '_p~iF~ps|U', created_at: now, updated_at: now }),
+    });
+    const anonShares = await rpc({}, 'list_trip_shares', { p_handle: handleA });
+    const bShares = await rpc(authB, 'list_trip_shares', { p_handle: handleA });
+    const bDirect = await call(`/rest/v1/trip_share?id=eq.${shareId}&select=id`, { headers: authB });
+    record(
+      '44. trip_share: A writes its own; anon sees none, follower B sees it via the RPC only (sql/034)',
+      share.status < 300 && Array.isArray(anonShares.body) && anonShares.body.length === 0 &&
+        Array.isArray(bShares.body) && bShares.body.some((x) => x.id === shareId) && Array.isArray(bDirect.body) && bDirect.body.length === 0,
+      `insert ${share.status} · anon ${JSON.stringify(anonShares.body)} · B rpc ${Array.isArray(bShares.body) ? bShares.body.length : bShares.status} · B direct ${JSON.stringify(bDirect.body)}`,
+    );
+
+    const junte = await rpc(authA, 'create_junte', { p_title: `Verificación ${stamp}`, p_starts_at: new Date(Date.now() + 5 * 60_000).toISOString() });
+    const jid = junte.body?.id;
+    const before = await rpc(authB, 'junte_detail', { p_junte: jid });
+    const join = await rpc(authB, 'join_junte', { p_code: junte.body?.code });
+    const after = await rpc(authB, 'junte_detail', { p_junte: jid });
+    const text = JSON.stringify(after.body ?? {});
+    record(
+      '45. juntes: a non-member reads nothing; after joining by code B reads members by handle, no ids, no positions (sql/035)',
+      junte.status === 200 && before.body === null && join.status === 200 && after.body?.members?.length === 2 &&
+        !text.includes(uidA) && !/"lat"|"lng"/.test(JSON.stringify(after.body?.members ?? [])),
+      `create ${junte.status} · before ${JSON.stringify(before.body)} · join ${join.status} · members ${after.body?.members?.length}`,
+    );
+
+    const topic = `carguy:junte:${jid}`;
+    const inWindow = await rpc(authB, 'junte_topic_allowed', { p_topic: topic });
+    const garbage = await rpc(authB, 'junte_topic_allowed', { p_topic: 'carguy:junte:not-a-uuid' });
+    const other = await rpc(authB, 'junte_topic_allowed', { p_topic: 'musichub:room:1' });
+    record(
+      '46. topic guard: a member in the window → true; garbage and another app\'s topic → false, no cast error (sql/035–036)',
+      inWindow.body === true && garbage.status === 200 && garbage.body === false && other.status === 200 && other.body === false,
+      `member ${JSON.stringify(inWindow.body)} · garbage ${garbage.status} ${JSON.stringify(garbage.body)} · other ${other.status} ${JSON.stringify(other.body)}`,
+    );
+
+    const end = await rpc(authA, 'end_junte', { p_junte: jid });
+    const afterEnd = await rpc(authB, 'junte_topic_allowed', { p_topic: topic });
+    const block = await rpc(authA, 'block_user', { p_handle: handleB });
+    const blockedView = await rpc(authB, 'get_public_profile', { p_handle: handleA });
+    record(
+      '47. ended → the topic closes (even before its start); A blocks B → B sees no profile (sql/034–035)',
+      end.status < 300 && afterEnd.body === false && block.status < 300 && blockedView.body === null,
+      `end ${end.status} ${JSON.stringify(end.body ?? '')} · topic ${JSON.stringify(afterEnd.body)} · block ${block.status} · view ${JSON.stringify(blockedView.body)}`,
+    );
+  } else {
+    console.log('SKIP  40–47. no second user');
   }
 
   // 24–28 — Enviar comentario (sql/021 + 021_feedback_storage.shared). No

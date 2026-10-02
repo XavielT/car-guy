@@ -54,7 +54,7 @@ footer b{font-family:'Saira Condensed',sans-serif;letter-spacing:.12em;color:var
 @media (max-width:420px){h1{font-size:36px}.facts{grid-template-columns:1fr 1fr}}
 `;
 
-function head(opts: { title: string; description: string; url: string; image: string | null; indexable: boolean }): string {
+export function head(opts: { title: string; description: string; url: string; image: string | null; indexable: boolean }): string {
   const t = esc(opts.title);
   const d = esc(opts.description);
   return `<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

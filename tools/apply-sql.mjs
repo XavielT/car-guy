@@ -87,6 +87,12 @@ const SHARED_PATTERNS = [
   /\bupdate\s+(public|auth|storage)\./i,
   /\binsert\s+into\s+(public|auth)\./i,
   /\btruncate\s+(table\s+)?(public|auth|storage)\./i,
+  // Policies on tables every app shares (IMP 01102026 sql/036: realtime.messages carries Music Hub's channels
+  // too). This guard first called 036 "carguy/storage only".
+  /\b(create|drop|alter)\s+policy\s+(if\s+exists\s+)?\w+\s+on\s+(public|auth|realtime)\./i,
+  /\b(delete\s+from|update|insert\s+into|truncate\s+(table\s+)?)\s*realtime\./i,
+  // Extensions are project-wide.
+  /\bcreate\s+extension\b/i,
 ];
 const foreignTrigger = [...executable.matchAll(/create\s+trigger\s+(\w+)[\s\S]{0,120}?on\s+auth\.users/gi)]
   .map((m) => m[1])

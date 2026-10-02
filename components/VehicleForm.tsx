@@ -10,7 +10,10 @@ import { T } from '@/components/T';
 import { Chip, PrimaryButton, Segmented } from '@/components/ui';
 import { IdentitySection, type IdentityValue } from '@/components/vehicle/IdentitySection';
 import { MakeModelYear, type MakeModelValue } from '@/components/vehicle/MakeModelYear';
+import { DEFAULT_SEGMENTS, GaugeTypeSection, type GaugeTypeValue } from '@/components/vehicle/GaugeTypeSection';
 import { PhotosSection } from '@/components/vehicle/PhotosSection';
+import type { GaugeType } from '@/lib/domain/gauge';
+import { FEATURE_GAUGE_SEGMENTS } from '@/lib/flagsV10';
 import { parseDecimal } from '@/lib/domain/economy';
 import { normalizeGallery, type Gallery } from '@/lib/domain/gallery';
 import { bodyTypeFromLegacy, bodyTypes, colors, legacyTypeFor } from '@/lib/domain/refdata';
@@ -72,6 +75,10 @@ export type VehicleDraft = {
   statusSince?: string | null;
   /** The gallery in order (album items with role 'vehicle'). */
   galleryIds?: string[];
+  // v10 (IMP 01102026 Phase 3, ADR-51): how the dash shows the fuel. Optional: `undefined` leaves them alone.
+  gaugeType?: GaugeType;
+  gaugeSegments?: number | null;
+  gaugeReserveAt?: number | null;
 };
 
 /** vendido and perdido are not picked here: the sale sheet closes the ownership period. */
@@ -121,6 +128,12 @@ export function VehicleForm({
   const [tank, setTank] = useState(initial?.tankVolume ? String(initial.tankVolume) : '');
   const [reserve, setReserve] = useState(initial?.reserveVolume ? String(initial.reserveVolume) : '');
   const [odometer, setOdometer] = useState(initial?.odometerKm ? String(initial.odometerKm) : '');
+  // v10 (ADR-51): how the dash shows the fuel.
+  const [gauge, setGauge] = useState<GaugeTypeValue>({
+    type: initial?.gaugeType ?? 'needle8',
+    segments: initial?.gaugeSegments ?? DEFAULT_SEGMENTS,
+    reserveAt: initial?.gaugeReserveAt ?? null,
+  });
   const [synthetic, setSynthetic] = useState(initial?.synthetic ?? false);
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? '');
   const [purchasePrice, setPurchasePrice] = useState(initial?.purchasePrice ? String(initial.purchasePrice) : '');
@@ -219,6 +232,9 @@ export function VehicleForm({
       economyUnit: perHundred ? 'l_100km' : unit === 'l' ? 'km_l' : 'km_gal',
       tankVolume: tankValue,
       reserveVolume: liquid ? reserveValue : null,
+      ...(FEATURE_GAUGE_SEGMENTS && liquid
+        ? { gaugeType: gauge.type, gaugeSegments: gauge.type === 'segments' ? gauge.segments : null, gaugeReserveAt: gauge.type === 'segments' ? gauge.reserveAt : null }
+        : {}),
       odometerKm: parsedOdometer,
       synthetic,
       purchaseDate: purchaseDate || null,
@@ -338,6 +354,8 @@ export function VehicleForm({
           hint={t.vehicleForm.reserveHint(tankValue != null && tankValue > 0 ? `${Math.round(tankValue * 10) / 100} ${unitLabel(unit)}` : null)}
         />
       ) : null}
+
+      {FEATURE_GAUGE_SEGMENTS && liquid ? <GaugeTypeSection value={gauge} onChange={setGauge} /> : null}
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
         {t.vehicleForm.economyUnit}

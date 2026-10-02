@@ -23,6 +23,8 @@
  * maths runs in liters and km/unit comes back in the display unit.
  */
 import { computeEconomy, roundMoney, roundVolume, sortFillUps } from './economy';
+import { stepsFor, validateGaugeCfg, type GaugeCfg } from './gauge';
+import { parseCalibration, type GaugeCalibration } from './gaugeCalibration';
 import { GAL_L } from './units';
 import type { EconomyPoint, FillUp } from '../types';
 
@@ -31,14 +33,7 @@ export type EconomyReason = 'missing_gauge' | 'missed_fill' | 'odometer' | 'nonp
 export type EconomyWarning = 'gauge_pump_mismatch' | 'over_capacity';
 
 /** A fill-up with its gauge readings (v6 columns; all optional). */
-export type GaugeFillUp = FillUp & {
-  /** 0 = E … 8 = F, before pumping. */
-  gaugeBefore8?: number | null;
-  /** 0 = E … 8 = F, after pumping. */
-  gaugeAfter8?: number | null;
-  /** The reserve light was on before pumping; overrides gaugeBefore8. */
-  inReserve?: boolean;
-};
+export type GaugeFillUp = FillUp;
 
 export type FuelCfg = {
   /** Tank capacity in liters; without it no gauge estimate is possible. */
@@ -53,6 +48,10 @@ export type FuelCfg = {
   fullHalfL?: number;
   /** Above this relative uncertainty an estimate is `unknown`. */
   maxRelUnc?: number;
+  /** v10 (ADR-51): how the dash reads; default a needle in eighths (today's maths, unchanged). */
+  gauge?: GaugeCfg | null;
+  /** The learned map; used only when its status is not `linear` and it fits the gauge's grid. */
+  calibration?: GaugeCalibration | null;
 };
 
 export type SeriesPoint = EconomyPoint & {
@@ -70,14 +69,51 @@ type Level = { value: number; sigma: number };
 
 const DEFAULTS = { nonlinK: 0.03, fullHalfL: 0.5, maxRelUnc: 0.25 };
 const rss = (...xs: number[]) => Math.sqrt(xs.reduce((s, x) => s + x * x, 0));
+const NEEDLE: GaugeCfg = { type: 'needle8' };
 
-function levelBefore(log: GaugeFillUp, C: number, cfg: Required<Pick<FuelCfg, 'nonlinK'>> & FuelCfg): Level | null {
+type Conf = Required<Pick<FuelCfg, 'nonlinK' | 'fullHalfL'>> & FuelCfg;
+
+/** The reading as a fraction: the v10 column, else the v6 eighths (a row synced from a 2.4.x phone). */
+export function readingFrac(frac: number | null | undefined, eighths: number | null | undefined): number | null {
+  if (frac != null && Number.isFinite(frac) && frac >= 0 && frac <= 1) return frac;
+  return eighths != null && eighths >= 0 && eighths <= 8 ? eighths / 8 : null;
+}
+
+/** The gauge grid and the learned map that fits it (null map → linear). */
+function gridOf(cfg: FuelCfg): { G: number; learned: GaugeCalibration | null } {
+  const gauge = validateGaugeCfg(cfg.gauge ?? NEEDLE) ?? NEEDLE;
+  const G = stepsFor(gauge) ?? 8;
+  const c = cfg.calibration;
+  const learned = c && c.status !== 'linear' && c.grid.length === G + 1 && c.band.length === G + 1 ? c : null;
+  return { G, learned };
+}
+
+/**
+ * Liters at a reading (research 03 §6). Linear: C·frac ± (C/(2G) + nonlinK·C) — for eighths exactly the
+ * pre-v10 C·n/8 ± (C/16 + nonlinK·C). Learned: the grid interpolated, ± its band (nonlinK dropped: the
+ * residuals already hold the non-linearity).
+ */
+function levelAt(frac: number, C: number, cfg: Conf): Level {
+  const { G, learned } = gridOf(cfg);
+  if (!learned) return { value: frac * C, sigma: C / (2 * G) + cfg.nonlinK * C };
+  const x = frac * G;
+  const k0 = Math.min(G - 1, Math.floor(x));
+  const t = x - k0;
+  return {
+    value: learned.grid[k0] + (learned.grid[k0 + 1] - learned.grid[k0]) * t,
+    sigma: learned.band[k0] + (learned.band[k0 + 1] - learned.band[k0]) * t,
+  };
+}
+
+function levelBefore(log: GaugeFillUp, C: number, cfg: Conf): Level | null {
   if (log.inReserve) {
-    const reserve = cfg.reserveL ?? 0.1 * C;
+    // The learned reserve (median of "solo la luz" fills, ≥ 2 samples) before the configured one.
+    const learnedReserve = cfg.calibration?.reserve_l;
+    const reserve = learnedReserve != null && learnedReserve > 0 ? learnedReserve : (cfg.reserveL ?? 0.1 * C);
     return { value: reserve, sigma: reserve / 2 };
   }
-  if (log.gaugeBefore8 == null) return null;
-  return { value: (log.gaugeBefore8 / 8) * C, sigma: C / 16 + cfg.nonlinK * C };
+  const frac = readingFrac(log.gaugeBeforeFrac, log.gaugeBefore8);
+  return frac == null ? null : levelAt(frac, C, cfg);
 }
 
 /** levelAfter as the gauge and the pump each see it, combined by inverse variance (§1.2, §1.8 step 3). */
@@ -86,16 +122,17 @@ function levelAfter(
   before: Level | null,
   addedL: number,
   C: number,
-  cfg: Required<Pick<FuelCfg, 'nonlinK' | 'fullHalfL'>> & FuelCfg,
+  cfg: Conf,
 ): { level: Level | null; warnings: EconomyWarning[] } {
   const warnings: EconomyWarning[] = [];
   if (before && before.value + addedL > C * 1.1) warnings.push('over_capacity');
   if (log.isFullTank) return { level: { value: C, sigma: cfg.fullHalfL }, warnings };
 
-  const reading = C / 16 + cfg.nonlinK * C;
-  // F without the full toggle: "somewhere between 7/8 and full" (§1.4).
+  const frac = readingFrac(log.gaugeAfterFrac, log.gaugeAfter8);
+  const { G } = gridOf(cfg);
+  // F without the full toggle: "somewhere in the top step" — C·(1 − 1/(2G)) ± C/(2G) (15/16·C for eighths, §1.4).
   const gauge: Level | null =
-    log.gaugeAfter8 == null ? null : log.gaugeAfter8 === 8 ? { value: (15 / 16) * C, sigma: C / 16 + cfg.nonlinK * C } : { value: (log.gaugeAfter8 / 8) * C, sigma: reading };
+    frac == null ? null : frac >= 1 ? { value: C * (1 - 1 / (2 * G)), sigma: C / (2 * G) + cfg.nonlinK * C } : levelAt(frac, C, cfg);
   const pump: Level | null = before ? { value: before.value + addedL, sigma: before.sigma } : null;
   if (!gauge || !pump) return { level: gauge ?? pump, warnings };
 
@@ -283,14 +320,29 @@ export function latestKnown(series: SeriesPoint[]): SeriesPoint | null {
  * liters in the database (v6); the logs the screens hold are in `volumeUnit`.
  */
 export function fuelCfgFor(
-  vehicle: { tankVolume: number | null; reserveVolumeL?: number | null; volumeUnit?: 'gal' | 'l'; defaultFuelType?: string } | null | undefined,
+  vehicle:
+    | {
+        tankVolume: number | null;
+        reserveVolumeL?: number | null;
+        volumeUnit?: 'gal' | 'l';
+        defaultFuelType?: string;
+        gaugeType?: GaugeCfg['type'] | null;
+        gaugeSegments?: number | null;
+        gaugeReserveAt?: number | null;
+        gaugeCalibration?: string | null;
+      }
+    | null
+    | undefined,
 ): FuelCfg {
   const liquid = vehicle?.defaultFuelType !== 'gnv';
+  const gauge = validateGaugeCfg({ type: vehicle?.gaugeType ?? 'needle8', segments: vehicle?.gaugeSegments, reserveAt: vehicle?.gaugeReserveAt });
   return {
     // GNV's tank is m³ and its gauge is a pressure dial: no estimates.
     capacityL: liquid ? (vehicle?.tankVolume ?? null) : null,
     reserveL: vehicle?.reserveVolumeL ?? null,
     unitL: vehicle?.volumeUnit === 'l' ? 1 : GAL_L,
+    gauge: gauge ?? NEEDLE,
+    calibration: liquid ? parseCalibration(vehicle?.gaugeCalibration) : null,
   };
 }
 

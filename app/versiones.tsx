@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ChangelogEntryView } from '@/components/changelog/ChangelogEntryView';
@@ -13,7 +13,11 @@ import { FEATURE_FEEDBACK } from '@/lib/flags';
 import { openFeedback } from '@/lib/feedback';
 import { dateLabel } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { FEATURE_OTA } from '@/lib/flagsV10';
 import { useTheme } from '@/lib/theme/useTheme';
+import { checkApk } from '@/lib/updates/apk';
+import { checkOta, otaInfo } from '@/lib/updates/ota';
+import { useUpdateState } from '@/lib/updates/store';
 
 /**
  * Más → Novedades y versiones (IMP 29092026, note 5): what is installed, where
@@ -31,6 +35,22 @@ export default function VersionesScreen() {
   }, [loaded, unseen]);
 
   const web = Platform.OS === 'web';
+  // IMP 01102026 Phase 4: which channel and update this binary runs, and a check that tries both paths.
+  const [ota, setOta] = useState<Awaited<ReturnType<typeof otaInfo>>>(null);
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const updates = useUpdateState();
+  useEffect(() => {
+    if (FEATURE_OTA && !web) void otaInfo().then(setOta);
+  }, [web]);
+  const check = async () => {
+    setChecking(true);
+    setResult(null);
+    const [otaNew, apk] = await Promise.all([checkOta(), checkApk(true)]);
+    setChecking(false);
+    // A found update shows as the banner on Inicio; here a plain answer.
+    setResult(otaNew || apk ? null : t.updates.upToDate);
+  };
 
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
@@ -63,12 +83,37 @@ export default function VersionesScreen() {
           </>
         ) : (
           <>
-            <T face="body" style={[styles.caption, { color: theme.text.secondary }]}>
-              {t.versions.checkCaption}
-            </T>
-            <View style={{ marginTop: space.md }}>
-              <PrimaryButton label={t.versions.check} onPress={() => void Linking.openURL(UPDATE_URL)} />
-            </View>
+            {FEATURE_OTA && ota ? (
+              <T face="mono" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
+                {[ota.channel ? t.updates.channel(ota.channel) : null, ota.embedded || !ota.updateId ? t.updates.embedded : t.updates.update(ota.updateId.slice(0, 8))]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </T>
+            ) : null}
+            {FEATURE_OTA ? (
+              <View style={{ marginTop: space.md, gap: space.xs }}>
+                <PrimaryButton label={checking ? t.updates.checking : t.updates.check} disabled={checking} onPress={() => void check()} />
+                {updates.otaReady || updates.apk ? (
+                  <T face="body" style={{ color: theme.accent, fontSize: 13 }}>
+                    {updates.apk ? t.updates.apkAvailable(updates.apk.version, null) : t.updates.otaReady}
+                  </T>
+                ) : result ? (
+                  <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
+                    {result}
+                  </T>
+                ) : null}
+                <GhostButton label={t.versions.releasesLink} onPress={() => void Linking.openURL(UPDATE_URL)} />
+              </View>
+            ) : (
+              <>
+                <T face="body" style={[styles.caption, { color: theme.text.secondary }]}>
+                  {t.versions.checkCaption}
+                </T>
+                <View style={{ marginTop: space.md }}>
+                  <PrimaryButton label={t.versions.check} onPress={() => void Linking.openURL(UPDATE_URL)} />
+                </View>
+              </>
+            )}
           </>
         )}
       </Surface>

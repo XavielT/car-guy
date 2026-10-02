@@ -17,6 +17,8 @@ import { odometer as odometerRepo } from '@/lib/db/repos';
 import { tripPoints, trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
 import { FEATURE_MAP_V2 } from '@/lib/flagsV8';
+import { FEATURE_SOCIAL } from '@/lib/flagsV10';
+import { useSession } from '@/lib/cloud/auth';
 import { t } from '@/lib/i18n';
 import { ATTRIBUTION_URL, mapAttribution } from '@/lib/map/config';
 import { shareTripGeojson } from '@/lib/trips/shareGeojson';
@@ -42,6 +44,7 @@ import { durationLabel, kmhLabel, mapsUrl, parseBuckets, routePointsForDrawing }
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { session } = useSession();
   const { theme } = useTheme();
   const { data } = useStore();
   const { width: winW } = useWindowDimensions();
@@ -261,6 +264,10 @@ export default function TripScreen() {
           <T face="body" style={{ color: theme.accent, fontSize: 13 }}>
             {notice}
           </T>
+        ) : null}
+        {/* IMP 01102026 Phase 5: a trimmed copy on my profile (ADR-56). */}
+        {FEATURE_SOCIAL && session ? (
+          <GhostButton label={t.social.shareTrip} onPress={() => router.push({ pathname: '/viaje/compartir/[id]', params: { id: trip.id } })} />
         ) : null}
 
         {vehicles.length > 1 ? (

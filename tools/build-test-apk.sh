@@ -12,6 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export ANDROID_HOME="$HOME/Android/Sdk" ANDROID_SDK_ROOT="$HOME/Android/Sdk" APP_VARIANT=test
 npx expo prebuild --platform android --clean --no-install >/dev/null
+# Gradle's Metaspace is raised by app.config.js (withGradleMemory) for every build path.
 ARCH="${ARCH:-arm64-v8a}"
 OUT=releases/car-guy-test.apk
 [ "$ARCH" = arm64-v8a ] || OUT="releases/car-guy-test-${ARCH}.apk"

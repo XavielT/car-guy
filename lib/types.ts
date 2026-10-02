@@ -62,6 +62,14 @@ export type FillUp = {
   /** v6 (note 4): the fuel gauge before / after pumping, 0 = E … 8 = F. Optional like missedPrevious. */
   gaugeBefore8?: number | null;
   gaugeAfter8?: number | null;
+  /**
+   * v10 (ADR-51): the readings as a fraction 0..1 and as the owner saw them ("4/9", "3/8", "45%"). The maths
+   * reads the fraction; a row from before v10 has only the eighths (the migration backfilled both).
+   */
+  gaugeBeforeFrac?: number | null;
+  gaugeAfterFrac?: number | null;
+  gaugeBeforeRaw?: string | null;
+  gaugeAfterRaw?: string | null;
   /** The reserve light was on before pumping. */
   inReserve?: boolean;
 };

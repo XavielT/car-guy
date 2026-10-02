@@ -25,7 +25,7 @@ const SQL_PATH = join(__dirname, '../../sql/002_schema_carguy.sql');
 const SQL_V2_PATH = join(__dirname, '../../sql/009_schema_v2.sql');
 // Later files only add columns (`alter table … add column if not exists`), and
 // the parser below reads those the same way it reads 009's.
-const LATER = ['013_members.sql', '017_track_layout.sql', '019_schema_v3.sql', '022_dossier_status_costs.sql', '023_inventory_used_in_mod.sql', '025_schema_v4.sql', '032_public_memory.sql'].map((f) => readFileSync(join(__dirname, '../../sql', f), 'utf8'));
+const LATER = ['013_members.sql', '017_track_layout.sql', '019_schema_v3.sql', '022_dossier_status_costs.sql', '023_inventory_used_in_mod.sql', '025_schema_v4.sql', '032_public_memory.sql', '033_gauge_app_config.sql', '034_profiles_social.sql'].map((f) => readFileSync(join(__dirname, '../../sql', f), 'utf8'));
 const cloudSql = [readFileSync(SQL_PATH, 'utf8'), readFileSync(SQL_V2_PATH, 'utf8'), ...LATER].join('\n');
 
 /** Column names out of `CREATE TABLE <name> ( … )`, as they appear. */
@@ -187,7 +187,10 @@ describe('the boolean map matches the cloud schema exactly', () => {
     return out;
   }
 
-  const fromSql = booleansFromSql();
+  // Only synced tables travel through the map; cloud-only tables (profiles' switches, app_config, sql/033–034)
+  // are read through RPCs, never pulled into SQLite.
+  const synced = new Set(SYNC_TABLES.map((t) => t.name));
+  const fromSql = Object.fromEntries(Object.entries(booleansFromSql()).filter(([t]) => synced.has(t)));
 
   it('found the boolean columns — an empty parse would pass vacuously', () => {
     expect(Object.keys(fromSql).length).toBeGreaterThan(3);

@@ -5,6 +5,13 @@
 #   bash tools/release-apk.sh              # build + checks only
 #   bash tools/release-apk.sh --publish    # … then gh release create vX.Y.Z
 #   bash tools/release-apk.sh --skip-build --publish   # reuse releases/car-guy-vX.Y.Z.apk
+#   bash tools/release-apk.sh --ota [--publish]        # JS-only: EAS Update to production (ADR-52)
+#
+# --ota (IMP 01102026 Phase 4): when the native fingerprint equals the last APK release's
+# (releases/fingerprint.json, tools/ota-gate.cjs) the release goes out as an EAS Update on the
+# `production` channel and, with --publish, a GitHub release with the notes and no APK (not marked
+# latest, so /api/apk and the web's download button keep the last APK). Otherwise --ota is refused
+# and the APK path below runs. Every APK release records its fingerprint for the next --ota.
 #
 # Every release carries two assets with the same bytes:
 #   car-guy.apk          stable name: …/releases/latest/download/car-guy.apk always
@@ -16,15 +23,37 @@ cd "$(dirname "$0")/.."
 
 PUBLISH=0
 BUILD=1
+OTA=0
 for arg in "$@"; do
   case "$arg" in
     --publish) PUBLISH=1 ;;
     --skip-build) BUILD=0 ;;
+    --ota) OTA=1 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
 VERSION=$(node -p "require('./app.json').expo.version")
+
+release_notes() {
+  awk -v v="## ${VERSION} " 'index($0, v) == 1 {on=1; next} /^## / {if (on) exit} on' CHANGELOG.md
+}
+
+if [ "$OTA" = 1 ]; then
+  if GATE=$(node tools/ota-gate.cjs check); then
+    echo "✓ $GATE — publishing v${VERSION} as an EAS Update"
+    set -a; . ./.env.expo.local; set +a
+    npx eas-cli@24.8.0 update --channel production --environment production --platform android --message "v${VERSION}" --non-interactive
+    if [ "$PUBLISH" = 1 ]; then
+      NOTES=$(mktemp)
+      release_notes > "$NOTES"
+      printf '\nActualización automática: la app la baja sola y pide reiniciar (sin APK nuevo).\n' >> "$NOTES"
+      gh release create "v${VERSION}" --target main --title "Car Guy v${VERSION}" --notes-file "$NOTES" --latest=false
+    fi
+    exit 0
+  fi
+  echo "✗ --ota refused: $GATE — building an APK instead" >&2
+fi
 APK="releases/car-guy-v${VERSION}.apk"
 STABLE="releases/car-guy.apk"
 # The EAS-managed keystore's certificate (created 2026-09-25). An APK signed
@@ -65,7 +94,7 @@ echo "✓ $APK  sha256 $SHA"
 
 # Notes: the CHANGELOG section for this version, then install lines.
 NOTES=$(mktemp)
-awk -v v="## ${VERSION} " 'index($0, v) == 1 {on=1; next} /^## / {if (on) exit} on' CHANGELOG.md > "$NOTES"
+release_notes > "$NOTES"
 cat >> "$NOTES" <<EOF
 
 Se instala encima de cualquier versión anterior de Car Guy; tus datos se quedan.
@@ -82,3 +111,7 @@ rm -f "$NOTES"
 
 LOCATION=$(curl -sIL "https://github.com/XavielT/car-guy/releases/latest/download/car-guy.apk" | grep -i '^location' | tail -1)
 echo "latest/download/car-guy.apk → ${LOCATION}"
+
+# IMP 01102026 Phase 4: this APK's native runtime is what the next --ota must match. Commit the file.
+node tools/ota-gate.cjs record "$VERSION"
+echo "→ commit releases/fingerprint.json (the next --ota compares against it)"

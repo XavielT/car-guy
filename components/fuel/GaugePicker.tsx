@@ -1,9 +1,11 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import Svg, { Line, Path } from 'react-native-svg';
 
 import { T } from '@/components/T';
 import { Chip } from '@/components/ui';
-import { space } from '@/constants/theme';
+import { radius, space } from '@/constants/theme';
+import { hitTestSegment, PERCENT_STEP, snapPercent, stepsFor, type GaugeCfg } from '@/lib/domain/gauge';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -27,14 +29,271 @@ function stop(i: number, r = R) {
   return { x: CX + r * Math.cos(a), y: CY - r * Math.sin(a) };
 }
 
+/** One haptic tick per step (native only — the web build must not reach for haptics). */
+function tick() {
+  if (Platform.OS === 'web') return;
+  void import('expo-haptics')
+    .then((H) => H.selectionAsync())
+    .catch(() => {});
+}
+
+type ReserveToggle = { on: boolean; onToggle: (on: boolean) => void };
+
 /**
- * A fuel gauge you tap (note 4): nine stops from E to F on an arc, the needle
+ * The fill-up form's gauge (IMP 01102026 Phase 3, research 03 §5): the car's own dash — a needle in eighths,
+ * N squares, or a percent — over one value, the reading as a fraction 0..1 (null = not read). "Solo la luz
+ * de reserva" is there for every type.
+ */
+export function GaugePicker({
+  label,
+  cfg,
+  value,
+  onChange,
+  reserve,
+}: {
+  label: string;
+  cfg: GaugeCfg;
+  value: number | null;
+  onChange: (frac: number | null) => void;
+  reserve?: ReserveToggle;
+}) {
+  if (cfg.type === 'segments' && cfg.segments) {
+    return <SegmentsPicker label={label} n={cfg.segments} value={value} onChange={onChange} reserve={reserve} />;
+  }
+  if (cfg.type === 'percent') return <PercentPicker label={label} value={value} onChange={onChange} reserve={reserve} />;
+  return (
+    <NeedlePicker
+      label={label}
+      value={value == null ? null : Math.round(value * 8)}
+      onChange={(n) => onChange(n == null ? null : n / 8)}
+      reserve={reserve}
+    />
+  );
+}
+
+function Head({ label, reserve }: { label: string; reserve?: ReserveToggle }) {
+  const { theme } = useTheme();
+  return (
+    <>
+      <View style={styles.head}>
+        <T face="eyebrow" style={{ color: theme.text.secondary, fontSize: 12 }}>
+          {label}
+        </T>
+        {reserve ? <Chip label={t.gauge.reserveOnly} selected={reserve.on} onPress={() => reserve.onToggle(!reserve.on)} /> : null}
+      </View>
+      {reserve?.on ? (
+        <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginBottom: space.xs }}>
+          {t.gauge.reserveOnlyHint}
+        </T>
+      ) : null}
+    </>
+  );
+}
+
+const GAP = 4;
+const MAX_SQUARE = 28;
+
+/** The squares row alone (also the vehicle form's live preview). Lowest square always red, like the dash. */
+export function SegmentsRow({ n, lit, dim, width }: { n: number; lit: number | null; dim?: boolean; width: number }) {
+  const { theme } = useTheme();
+  const size = Math.max(6, Math.min(MAX_SQUARE, (width - GAP * (n - 1)) / n));
+  return (
+    <View style={{ flexDirection: 'row', gap: GAP, opacity: dim ? 0.4 : 1 }} pointerEvents="none">
+      {Array.from({ length: n }, (_, i) => {
+        const on = lit != null && i < lit;
+        // Filled: the dash's amber (accentFill — `accent` is the darker text-safe tone in light theme).
+        const color = i === 0 ? theme.danger : theme.accentFill;
+        return (
+          <View
+            key={i}
+            style={{ width: size, height: Math.max(18, size * 1.25), borderRadius: 4, borderWidth: 2, borderColor: i === 0 ? theme.danger : theme.accent, backgroundColor: on ? color : 'transparent' }}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * N squares you tap or drag (research §5): tap square i → i lit; tapping the top lit one again → i − 1 (so 0
+ * is reachable); a drag sets k = round(x/W·N). The whole row is the hit area, so 20 squares stay usable.
+ */
+export function SegmentsPicker({
+  label,
+  n,
+  value,
+  onChange,
+  reserve,
+}: {
+  label: string;
+  n: number;
+  value: number | null;
+  onChange: (frac: number | null) => void;
+  reserve?: ReserveToggle;
+}) {
+  const { theme } = useTheme();
+  const [width, setWidth] = useState(0);
+  const disabled = Boolean(reserve?.on);
+  const k = value == null ? null : Math.round(value * n);
+  const startX = useRef(0);
+  const moved = useRef(false);
+  const lastK = useRef<number | null>(k);
+
+  const rowWidth = Math.min(width, n * MAX_SQUARE + GAP * (n - 1));
+  const set = (next: number) => {
+    if (next !== lastK.current) tick();
+    lastK.current = next;
+    onChange(next / n);
+  };
+  const xOf = (e: GestureResponderEvent) => e.nativeEvent.locationX;
+  const caption = disabled ? t.gauge.reserveShort : k == null ? t.gauge.unset : t.gauge.ofSegments(k, n);
+
+  return (
+    <View style={styles.wrap}>
+      <Head label={label} reserve={reserve} />
+      <View
+        onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
+        style={styles.segmentsWrap}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
+        accessibilityValue={{ min: 0, max: n, now: k ?? 0, text: k == null ? t.gauge.unset : t.gauge.ofSegmentsA11y(k, n) }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => {
+          if (disabled) return;
+          const cur = k ?? 0;
+          if (e.nativeEvent.actionName === 'increment') set(Math.min(n, cur + 1));
+          if (e.nativeEvent.actionName === 'decrement') set(Math.max(0, cur - 1));
+        }}>
+        <View
+          style={{ width: rowWidth || undefined, paddingVertical: space.sm }}
+          onStartShouldSetResponder={() => !disabled}
+          onMoveShouldSetResponder={() => !disabled}
+          onResponderGrant={(e) => {
+            startX.current = xOf(e);
+            moved.current = false;
+            lastK.current = k;
+          }}
+          onResponderMove={(e) => {
+            if (Math.abs(xOf(e) - startX.current) < 6 && !moved.current) return;
+            moved.current = true;
+            const next = hitTestSegment(xOf(e), rowWidth, n);
+            if (next != null && next !== lastK.current) set(next);
+          }}
+          onResponderRelease={(e) => {
+            if (moved.current || !(rowWidth > 0)) return;
+            const square = Math.min(n, Math.max(1, Math.floor((xOf(e) / rowWidth) * n) + 1));
+            set(square === k ? square - 1 : square);
+          }}>
+          {rowWidth > 0 ? <SegmentsRow n={n} lit={disabled ? 0 : k} dim={disabled} width={rowWidth} /> : null}
+        </View>
+        <View style={styles.segmentsEnds} pointerEvents="none">
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+            E
+          </T>
+          <T face="mono" style={{ color: k == null && !disabled ? theme.text.muted : theme.text.primary, fontSize: 18 }}>
+            {caption}
+          </T>
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+            F
+          </T>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** A 0–100 % track in 5 % steps with an LCD readout (research §5); tap or drag anywhere on it. */
+export function PercentPicker({
+  label,
+  value,
+  onChange,
+  reserve,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (frac: number | null) => void;
+  reserve?: ReserveToggle;
+}) {
+  const { theme } = useTheme();
+  const [width, setWidth] = useState(0);
+  const disabled = Boolean(reserve?.on);
+  const pct = value == null ? null : snapPercent(value * 100);
+  const last = useRef<number | null>(pct);
+  const at = (e: GestureResponderEvent) => {
+    if (!(width > 0)) return;
+    const p = snapPercent((e.nativeEvent.locationX / width) * 100);
+    if (p == null || p === last.current) return;
+    tick();
+    last.current = p;
+    onChange(p / 100);
+  };
+  const step = (d: number) => {
+    const p = snapPercent((pct ?? 0) + d * PERCENT_STEP);
+    if (p != null) onChange(p / 100);
+  };
+
+  return (
+    <View style={styles.wrap}>
+      <Head label={label} reserve={reserve} />
+      <View
+        style={{ opacity: disabled ? 0.4 : 1 }}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
+        accessibilityValue={{ min: 0, max: 100, now: pct ?? 0, text: pct == null ? t.gauge.unset : t.gauge.percentA11y(pct) }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => !disabled && step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
+        <View style={[styles.lcd, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
+          <T face="mono" style={{ color: pct == null && !disabled ? theme.text.muted : theme.accent, fontSize: 22 }}>
+            {disabled ? t.gauge.reserveShort : pct == null ? t.gauge.unset : `${pct} %`}
+          </T>
+        </View>
+        <View
+          onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+          style={styles.track}
+          onStartShouldSetResponder={() => !disabled}
+          onMoveShouldSetResponder={() => !disabled}
+          onResponderGrant={(e) => {
+            last.current = pct;
+            at(e);
+          }}
+          onResponderMove={at}>
+          <View style={[styles.rail, { backgroundColor: theme.line }]} pointerEvents="none">
+            <View style={{ width: `${pct ?? 0}%`, height: '100%', backgroundColor: (pct ?? 0) <= 20 ? theme.danger : theme.accent, borderRadius: 3 }} />
+          </View>
+          {pct != null && !disabled ? (
+            <View pointerEvents="none" style={[styles.thumb, { left: `${pct}%`, backgroundColor: theme.accent, borderColor: theme.bg.base }]} />
+          ) : null}
+        </View>
+        <View style={styles.segmentsEnds} pointerEvents="none">
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+            0 %
+          </T>
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+            100 %
+          </T>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** The number of steps on this car's gauge (the needle's 8 when unset or invalid). */
+export function gaugeSteps(cfg: GaugeCfg): number {
+  return stepsFor(cfg) ?? 8;
+}
+
+/**
+ * The needle (note 4): nine stops from E to F on an arc, the needle
  * on the chosen one, its reading under it. Tapping the chosen stop clears it —
  * both readings are optional. With `reserve`, the "En reserva" chip replaces
  * the reading: the arc greys out and the label says RESERVA (in_reserve wins
  * over gauge_before, research 02 §1.7).
  */
-export function GaugePicker({
+function NeedlePicker({
   label,
   value,
   onChange,
@@ -43,7 +302,7 @@ export function GaugePicker({
   label: string;
   value: number | null;
   onChange: (next: number | null) => void;
-  reserve?: { on: boolean; onToggle: (on: boolean) => void };
+  reserve?: ReserveToggle;
 }) {
   const { theme } = useTheme();
   const disabled = Boolean(reserve?.on);
@@ -122,5 +381,11 @@ const styles = StyleSheet.create({
   hit: { position: 'absolute', width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2 },
   readout: { position: 'absolute', left: 0, right: 0, top: CY - 34, alignItems: 'center' },
+  segmentsWrap: { alignItems: 'center', paddingVertical: space.xs },
+  segmentsEnds: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', alignSelf: 'stretch', marginTop: 2 },
+  lcd: { alignSelf: 'center', minWidth: 120, alignItems: 'center', paddingVertical: space.xs, paddingHorizontal: space.md, borderRadius: radius.input, borderWidth: 1, marginBottom: space.sm },
+  track: { height: 44, justifyContent: 'center' },
+  rail: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  thumb: { position: 'absolute', width: 22, height: 22, marginLeft: -11, borderRadius: 11, borderWidth: 3 },
   end: { position: 'absolute', top: CY - 6, fontSize: 11 },
 });

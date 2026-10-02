@@ -65,6 +65,48 @@ export type Database = {
         }
         Relationships: []
       }
+      app_config: {
+        Row: {
+          key: string
+          public: boolean
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          public?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          public?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      block: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       consumable_usage: {
         Row: {
           created_at: string
@@ -386,13 +428,41 @@ export type Database = {
         }
         Relationships: []
       }
+      follow: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          followee_id: string
+          follower_id: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          followee_id: string
+          follower_id: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          followee_id?: string
+          follower_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       fuel_log: {
         Row: {
           created_at: string
           deleted_at: string | null
           fuel_type: string
           gauge_after_eighths: number | null
+          gauge_after_frac: number | null
+          gauge_after_raw: string | null
           gauge_before_eighths: number | null
+          gauge_before_frac: number | null
+          gauge_before_raw: string | null
           id: string
           in_reserve: boolean
           is_full_tank: boolean
@@ -420,7 +490,11 @@ export type Database = {
           deleted_at?: string | null
           fuel_type: string
           gauge_after_eighths?: number | null
+          gauge_after_frac?: number | null
+          gauge_after_raw?: string | null
           gauge_before_eighths?: number | null
+          gauge_before_frac?: number | null
+          gauge_before_raw?: string | null
           id: string
           in_reserve?: boolean
           is_full_tank?: boolean
@@ -448,7 +522,11 @@ export type Database = {
           deleted_at?: string | null
           fuel_type?: string
           gauge_after_eighths?: number | null
+          gauge_after_frac?: number | null
+          gauge_after_raw?: string | null
           gauge_before_eighths?: number | null
+          gauge_before_frac?: number | null
+          gauge_before_raw?: string | null
           id?: string
           in_reserve?: boolean
           is_full_tank?: boolean
@@ -832,6 +910,156 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      junte: {
+        Row: {
+          code: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          meet_label: string | null
+          meet_lat: number | null
+          meet_lng: number | null
+          owner_id: string
+          starts_at: string
+          status: string
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          meet_label?: string | null
+          meet_lat?: number | null
+          meet_lng?: number | null
+          owner_id: string
+          starts_at: string
+          status?: string
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          meet_label?: string | null
+          meet_lat?: number | null
+          meet_lng?: number | null
+          owner_id?: string
+          starts_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
+      junte_member: {
+        Row: {
+          joined_at: string
+          junte_id: string
+          role: string
+          status: string
+          trip_share_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          junte_id: string
+          role?: string
+          status?: string
+          trip_share_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          junte_id?: string
+          role?: string
+          status?: string
+          trip_share_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "junte_member_junte_id_fkey"
+            columns: ["junte_id"]
+            isOneToOne: false
+            referencedRelation: "junte"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      junte_message: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          junte_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          junte_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          junte_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "junte_message_junte_id_fkey"
+            columns: ["junte_id"]
+            isOneToOne: false
+            referencedRelation: "junte"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      junte_photo: {
+        Row: {
+          created_at: string
+          junte_id: string
+          media_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          junte_id: string
+          media_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          junte_id?: string
+          media_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "junte_photo_junte_id_fkey"
+            columns: ["junte_id"]
+            isOneToOne: false
+            referencedRelation: "junte"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       legal_acceptance: {
         Row: {
@@ -1328,43 +1556,118 @@ export type Database = {
         }
         Relationships: []
       }
+      privacy_zone: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string | null
+          lat: number
+          lng: number
+          radius_m: number
+          schema_hint: string | null
+          server_updated_at: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          label?: string | null
+          lat: number
+          lng: number
+          radius_m?: number
+          schema_hint?: string | null
+          server_updated_at?: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label?: string | null
+          lat?: number
+          lng?: number
+          radius_m?: number
+          schema_hint?: string | null
+          server_updated_at?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_id: string | null
           avatar_path: string | null
+          bio: string | null
           created_at: string
           deletion_objects: Json | null
           deletion_requested_at: string | null
           display_name: string | null
+          handle: string | null
+          handle_changed_at: string | null
+          instagram: string | null
+          is_public: boolean
           locale: string | null
           media_quota_bytes: number
+          photo_public: boolean
+          photo_public_jpeg: string | null
           role: string
+          show_cars: boolean
+          show_fichas: boolean
+          show_stats: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_id?: string | null
           avatar_path?: string | null
+          bio?: string | null
           created_at?: string
           deletion_objects?: Json | null
           deletion_requested_at?: string | null
           display_name?: string | null
+          handle?: string | null
+          handle_changed_at?: string | null
+          instagram?: string | null
+          is_public?: boolean
           locale?: string | null
           media_quota_bytes?: number
+          photo_public?: boolean
+          photo_public_jpeg?: string | null
           role?: string
+          show_cars?: boolean
+          show_fichas?: boolean
+          show_stats?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_id?: string | null
           avatar_path?: string | null
+          bio?: string | null
           created_at?: string
           deletion_objects?: Json | null
           deletion_requested_at?: string | null
           display_name?: string | null
+          handle?: string | null
+          handle_changed_at?: string | null
+          instagram?: string | null
+          is_public?: boolean
           locale?: string | null
           media_quota_bytes?: number
+          photo_public?: boolean
+          photo_public_jpeg?: string | null
           role?: string
+          show_cars?: boolean
+          show_fichas?: boolean
+          show_stats?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -1457,6 +1760,48 @@ export type Database = {
           updated_by?: string | null
           user_id?: string
           vehicle_id?: string
+        }
+        Relationships: []
+      }
+      report: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          status: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id: string
+          status?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          status?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
+      reserved_handles: {
+        Row: {
+          handle: string
+        }
+        Insert: {
+          handle: string
+        }
+        Update: {
+          handle?: string
         }
         Relationships: []
       }
@@ -2366,6 +2711,60 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_share: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          distance_m: number | null
+          duration_s: number | null
+          id: string
+          polyline_trimmed: string
+          schema_hint: string | null
+          server_updated_at: string
+          started_day: string | null
+          title: string | null
+          trip_id: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          distance_m?: number | null
+          duration_s?: number | null
+          id: string
+          polyline_trimmed: string
+          schema_hint?: string | null
+          server_updated_at?: string
+          started_day?: string | null
+          title?: string | null
+          trip_id: string
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+          visibility: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          distance_m?: number | null
+          duration_s?: number | null
+          id?: string
+          polyline_trimmed?: string
+          schema_hint?: string | null
+          server_updated_at?: string
+          started_day?: string | null
+          title?: string | null
+          trip_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       vehicle: {
         Row: {
           body_type: string | null
@@ -2379,6 +2778,10 @@ export type Database = {
           drivetrain: string | null
           economy_unit: string
           engine_code: string | null
+          gauge_calibration: string | null
+          gauge_reserve_at: number | null
+          gauge_segments: number | null
+          gauge_type: string
           hero_media_id: string | null
           id: string
           imported_year: number | null
@@ -2435,6 +2838,10 @@ export type Database = {
           drivetrain?: string | null
           economy_unit?: string
           engine_code?: string | null
+          gauge_calibration?: string | null
+          gauge_reserve_at?: number | null
+          gauge_segments?: number | null
+          gauge_type?: string
           hero_media_id?: string | null
           id: string
           imported_year?: number | null
@@ -2491,6 +2898,10 @@ export type Database = {
           drivetrain?: string | null
           economy_unit?: string
           engine_code?: string | null
+          gauge_calibration?: string | null
+          gauge_reserve_at?: number | null
+          gauge_segments?: number | null
+          gauge_type?: string
           hero_media_id?: string | null
           id?: string
           imported_year?: number | null
@@ -3280,6 +3691,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_follow: { Args: { p_handle: string }; Returns: boolean }
       admin_pending_deletions: {
         Args: never
         Returns: {
@@ -3290,11 +3702,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_reports: { Args: { p_limit?: number }; Returns: Json }
+      admin_set_report_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
       admin_set_role: {
         Args: { p_role: string; p_user: string }
         Returns: string
       }
       admin_stats: { Args: never; Returns: Json }
+      admin_usage: { Args: never; Returns: Json }
       admin_users: {
         Args: { p_limit?: number }
         Returns: {
@@ -3315,6 +3733,7 @@ export type Database = {
         Args: { p_device_id: string; p_id: string }
         Returns: boolean
       }
+      block_user: { Args: { p_handle: string }; Returns: undefined }
       can_edit: { Args: { row_user: string; v: string }; Returns: boolean }
       can_own: { Args: { row_user: string; v: string }; Returns: boolean }
       can_read_media_object: { Args: { object_name: string }; Returns: boolean }
@@ -3323,14 +3742,55 @@ export type Database = {
         Args: { p_email?: string; p_role?: string; p_vehicle: string }
         Returns: string
       }
+      create_junte: {
+        Args: {
+          p_ends_at?: string
+          p_meet_label?: string
+          p_meet_lat?: number
+          p_meet_lng?: number
+          p_starts_at: string
+          p_title: string
+          p_visibility?: string
+        }
+        Returns: Json
+      }
+      delete_junte_message: { Args: { p_message: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: Json }
+      end_junte: { Args: { p_junte: string }; Returns: undefined }
       feedback_upload_allowed: {
         Args: { object_name: string }
         Returns: boolean
       }
+      follow_user: { Args: { p_handle: string }; Returns: string }
+      get_public_profile: { Args: { p_handle: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_app_user: { Args: never; Returns: boolean }
+      is_handle_free: { Args: { p_handle: string }; Returns: string }
       is_member: { Args: { min_role?: string; v: string }; Returns: boolean }
+      join_junte: { Args: { p_code: string }; Returns: string }
+      junte_blocked_author: { Args: { author: string }; Returns: boolean }
+      junte_detail: { Args: { p_junte: string }; Returns: Json }
+      junte_invite_card: { Args: { p_code: string }; Returns: Json }
+      junte_is_member: { Args: { j: string; u: string }; Returns: boolean }
+      junte_live_window: {
+        Args: { j: Database["carguy"]["Tables"]["junte"]["Row"] }
+        Returns: boolean
+      }
+      junte_mine: { Args: { j: string }; Returns: boolean }
+      junte_topic_allowed: { Args: { p_topic: string }; Returns: boolean }
+      kick_junte_member: {
+        Args: { p_handle: string; p_junte: string }
+        Returns: undefined
+      }
+      link_junte_trip: {
+        Args: { p_junte: string; p_trip_share: string }
+        Returns: undefined
+      }
+      list_follows: { Args: { p_kind: string }; Returns: Json }
+      list_trip_shares: {
+        Args: { lim?: number; p_handle: string }
+        Returns: Json
+      }
       member_avatars: {
         Args: { p_vehicle: string }
         Returns: {
@@ -3339,18 +3799,56 @@ export type Database = {
           user_id: string
         }[]
       }
+      my_juntes: { Args: never; Returns: Json }
+      my_social: { Args: never; Returns: Json }
       public_dossier: { Args: { p_slug: string }; Returns: Json }
       redeem_invite: { Args: { p_code: string }; Returns: Json }
+      remove_follower: { Args: { p_handle: string }; Returns: undefined }
       remove_member: {
         Args: { p_user: string; p_vehicle: string }
         Returns: boolean
+      }
+      report_target: {
+        Args: { p_reason?: string; p_target: string; p_type: string }
+        Returns: string
+      }
+      search_profiles: {
+        Args: { lim?: number; q: string }
+        Returns: {
+          avatar_id: string
+          display_name: string
+          handle: string
+          is_public: boolean
+          my_follow: string
+        }[]
+      }
+      send_junte_message: {
+        Args: { p_body: string; p_junte: string }
+        Returns: string
+      }
+      set_app_config: {
+        Args: { p_key: string; p_public?: boolean; p_value: Json }
+        Returns: undefined
+      }
+      set_junte_status: {
+        Args: { p_junte: string; p_status: string }
+        Returns: undefined
       }
       set_member_role: {
         Args: { p_role: string; p_user: string; p_vehicle: string }
         Returns: boolean
       }
+      social_blocked: { Args: { a: string; b: string }; Returns: boolean }
+      social_follows: {
+        Args: { followee: string; follower: string }
+        Returns: boolean
+      }
+      social_friends: { Args: { a: string; b: string }; Returns: boolean }
+      social_uid: { Args: { p_handle: string }; Returns: string }
       storage_usage_bytes: { Args: never; Returns: number }
       submit_feedback: { Args: { p: Json }; Returns: string }
+      unblock_user: { Args: { p_handle: string }; Returns: undefined }
+      unfollow_user: { Args: { p_handle: string }; Returns: undefined }
       upsert_fuel_price_ref: { Args: { rows: Json }; Returns: number }
       vehicle_of: { Args: { row_id: string; tbl: string }; Returns: string }
       vehicle_role: { Args: { v: string }; Returns: string }

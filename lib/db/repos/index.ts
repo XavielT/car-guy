@@ -52,6 +52,8 @@ import type {
   Vehicle,
   VehicleDocument,
   VehicleSpec,
+  TripShare,
+  PrivacyZone,
 } from '../types';
 import { makeRepo } from './base';
 
@@ -125,6 +127,9 @@ export const vehicleShares = makeRepo<VehicleShare>({
   ],
 });
 export const vehicleMembers = makeRepo<VehicleMember>({ table: 'vehicle_member' });
+// v10 (IMP 01102026): synced, owner-only.
+export const tripShares = makeRepo<TripShare>({ table: 'trip_share' });
+export const privacyZones = makeRepo<PrivacyZone>({ table: 'privacy_zone' });
 // v8
 export const fuelPrices = makeRepo<FuelPrice>({ table: 'fuel_price' });
 export const vehicleFacts = makeRepo<VehicleFact>({ table: 'vehicle_fact' });
@@ -529,4 +534,7 @@ export const ALL_TABLES = [
   'fuel_price',
   'vehicle_fact',
   'legal_acceptance',
+  // schema v10. social_cache and junte_cache are caches of cloud-only rows — not here (lib/db/reset.ts clears them).
+  'trip_share',
+  'privacy_zone',
 ] as const;

@@ -45,3 +45,27 @@ export type LiveMapProps = {
   /** Who is driving — the dot shows their avatar. */
   avatar?: { photoUri?: string | null; avatarId?: string | null; name?: string | null };
 };
+
+/** IMP 01102026 Phase 6: a junte's map — everyone live, the meeting point, and after it the shared routes. */
+export type JunteMapPeer = {
+  handle: string;
+  lat: number;
+  lng: number;
+  heading: number | null;
+  /** Older than 45 s: drawn greyed (research §3.3). */
+  stale: boolean;
+  avatarId?: string | null;
+  photo?: string | null;
+  name?: string | null;
+};
+
+export type JunteMapProps = {
+  peers: JunteMapPeer[];
+  me?: { lat: number; lng: number; heading: number | null; fresh: boolean } | null;
+  avatar?: { photoUri?: string | null; avatarId?: string | null; name?: string | null };
+  meet?: { lat: number; lng: number; label?: string | null } | null;
+  /** After the junte: each member's trimmed route (already cut pieces), in its own colour. */
+  routes?: { handle: string; color: string; pieces: { lat: number; lng: number }[][] }[];
+  height?: number;
+  onUnavailable?: () => void;
+};

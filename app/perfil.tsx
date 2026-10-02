@@ -21,7 +21,9 @@ import {
   useProfile,
   type PushResult,
 } from '@/lib/profile';
+import { FEATURE_SOCIAL } from '@/lib/flagsV10';
 import { useTheme } from '@/lib/theme/useTheme';
+import { PublicProfileEditor } from '@/components/social/PublicProfileEditor';
 
 const COLUMNS = 4;
 const GAP = space.md;
@@ -170,6 +172,17 @@ export default function PerfilScreen() {
       <T face="body" style={[styles.caption, { color: theme.text.muted, marginTop: space.lg }]}>
         {session ? t.profileUi.cloud : t.profileUi.localOnly}
       </T>
+
+      {/* IMP 01102026 Phase 5: @handle, bio, switches, privacy zones (signed-in: the row is in the cloud). */}
+      {FEATURE_SOCIAL ? (
+        session ? (
+          <PublicProfileEditor hasPhoto={Boolean(profile.photoRelPath)} />
+        ) : (
+          <T face="body" style={[styles.caption, { color: theme.text.secondary }]}>
+            {t.social.signedOut}
+          </T>
+        )
+      ) : null}
     </ScrollView>
   );
 }
