@@ -78,9 +78,22 @@ function withChannel(config) {
   return { ...config, updates: { ...config.updates, requestHeaders: { ...config.updates?.requestHeaders, 'expo-channel-name': channel } } };
 }
 
+/**
+ * IMP 01102026 Phase 6: Gradle's JVM limits for every native build path (local gradle, `eas build --local`).
+ * expo-updates pushed the build past the generated 512 MB Metaspace (an OOM on 2026-10-01).
+ */
+function withGradleMemory(config) {
+  const { withGradleProperties } = require('expo/config-plugins');
+  return withGradleProperties(config, (c) => {
+    c.modResults = c.modResults.filter((p) => !(p.type === 'property' && p.key === 'org.gradle.jvmargs'));
+    c.modResults.push({ type: 'property', key: 'org.gradle.jvmargs', value: '-Xmx4096m -XX:MaxMetaspaceSize=1536m' });
+    return c;
+  });
+}
+
 module.exports = ({ config }) => {
   assertReleaseEnv();
-  const base = withChannel(applyVariant(config));
+  const base = withGradleMemory(withChannel(applyVariant(config)));
   return {
     ...base,
     extra: { ...base.extra, gitSha: gitSha(), variant: process.env.APP_VARIANT ?? null },

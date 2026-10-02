@@ -14,6 +14,22 @@ everywhere, paint jobs), schema v10, the gauge by squares with learned liters, O
 Car Guy" + a usage meter, public profiles / follows / privacy, juntes with a live map → 2.5.0. Package:
 [`imp-01102026/`](imp-01102026/README.md), log: [`imp-01102026/04-tracking/PROGRESS.md`](imp-01102026/04-tracking/PROGRESS.md).
 
+### Carried to the next cycle (from 2.5)
+- **Junte chat + push notifications**: the chat is built and **off** (`FEATURE_JUNTE_CHAT`); nobody reads a chat
+  they are not told about. Needs FCM credentials (EAS) + expo-notifications push tokens, and a `junte_messages`
+  RPC that names authors by @handle (the screen's direct table read must not keep others' user ids).
+- **Native iOS app**: the iPhone stays a PWA (ADR-48): no background location → no automatic trips, the junte dot
+  only while Car Guy is open on screen. A native app needs an Apple Developer account (US$99/yr).
+- **Service-role key rotation** (carried since cycle 4) — Supabase dashboard → API → roll the key, then update
+  Vercel's `SUPABASE_SERVICE_ROLE_KEY`.
+- **Play Store checklist** (only when Xaviel decides): Data safety now also declares follows/profile (account
+  data), live location shared with junte members (not stored), shared trimmed routes; account deletion already
+  exists. ADR: still not on Play by his choice.
+- **MapTiler key** (prettier tiles) and the **MICM importer** key in Vercel — unchanged.
+- **Profiles**: privacy zones from a map pin (today: "mi ubicación ahora"); a "Fichas" block on the public profile
+  (`show_fichas` is stored); the junte photo grid (members' photos are private — needs public copies).
+- **Realtime "Allow public access"** stays on for Music Hub; Car Guy's channels are private and guarded by sql/036.
+
 ## Cycle 4 — IMP 30092026 (Car Guy 2.4 "Tōge") — released 2026-10-01
 
 Seventeen notes from Xaviel's use of 2.2/2.3 → fix pack 2.3.1 (fill-up detail + no duplicates, stations,

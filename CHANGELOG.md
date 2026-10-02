@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.5.0 "Nakama" (2026-10-02)
+
+- **Comunidad**: ponte un @usuario en Perfil, con bio, Instagram y lo que quieres que se vea (cuenta pública o
+  privada, foto pública, carros, estadísticas). Busca gente en Más → Comunidad, sigue, acepta solicitudes y
+  mira tus amigos (los que se siguen mutuamente). Reportar y bloquear están en el perfil de cada quien. Tu
+  perfil también tiene página web: car-guy.vercel.app/u/tu_usuario.
+- **Compartir viajes**: en un viaje, "Compartir en mi perfil" con seguidores, solo amigos o público. Se recortan
+  300–500 m al inicio y al final y tus zonas privadas (casa, trabajo); el recorrido completo nunca sale del
+  teléfono.
+- **Juntes**: crea una salida con amigos (Más → Juntes), invita con un código o un link, y durante el junte
+  activa "En vivo" para verse todos en el mapa (sin velocidades, y no se guarda). Después, cada quien vincula su
+  viaje y se ven todas las rutas juntas; se puede guardar como evento en tu carro.
+- **Medidor por cuadros**: dile a la app cómo marca tu carro (aguja, cuadritos o porcentaje). Con cada echada
+  aprende cuántos litros vale cada cuadro y te dice cuánto queda: "≈ 6.6 gal · ≈ 390 km". Inicio tiene un
+  testigo de gasolina, y la Ficha la tabla aprendida.
+- **Actualizaciones**: la app se actualiza sola — los arreglos llegan sin APK nuevo ("Actualización lista ·
+  Reiniciar"), y cuando hace falta un APK te lo ofrece y lo baja desde la app.
+- **Apoyar Car Guy**: sin anuncios, nunca. En Más → Apoyar ves lo que cuesta mantenerla y cómo apoyar si
+  quieres.
+- **Arreglos**: el nombre del punto de encuentro se guarda aunque no pongas el pin; varios detalles de la web.
+
 ## 2.4.3 (2026-10-01)
 
 - **Automático, de verdad**: si elegiste Automático pero falta algo (el permiso de ubicación, el inicio
