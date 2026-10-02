@@ -81,3 +81,7 @@ modules/*/android/build/
 
 # copied from node_modules on postinstall (tools/copy-maplibre-worker.mjs)
 public/maplibre/
+
+# Service-account keys (FCM v1 etc.): local only, never committed, never packed by EAS (it follows .gitignore).
+credentials/
+*-firebase-adminsdk-*.json
