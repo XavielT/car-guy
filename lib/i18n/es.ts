@@ -2952,6 +2952,13 @@ export const es = {
     chatEmpty: 'Sin mensajes.',
     deleteMessage: 'Borrar',
     reportMessage: 'Reportar',
+    reported: 'Reportado. Gracias.',
+    sendFailed: 'No se envió. Revisa la conexión.',
+    rateLimited: 'Demasiados mensajes seguidos. Espera un minuto.',
+    mute: 'Silenciar este chat',
+    unmute: 'Avisarme de mensajes',
+    pushOffWeb: 'En el iPhone (web) los mensajes llegan con Car Guy abierto.',
+    pushChannel: 'Mensajes de juntes',
   },
   admin: {
     more: 'Panel de administración',

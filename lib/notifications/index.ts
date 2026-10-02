@@ -78,6 +78,12 @@ export async function configure(): Promise<void> {
       // DEFAULT, not MAX: this is a reminder to check the coolant, not an alarm.
       importance: N.AndroidImportance.DEFAULT,
     });
+    // sql/039: junte chat pushes (api/junte-push.ts sends channelId 'juntes'). HIGH: a message from the group
+    // you are about to drive with should show as a heads-up, unlike a coolant reminder.
+    await N.setNotificationChannelAsync('juntes', {
+      name: t.juntes.pushChannel,
+      importance: N.AndroidImportance.HIGH,
+    });
   }
 }
 

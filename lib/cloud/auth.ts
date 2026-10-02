@@ -154,6 +154,8 @@ export async function signOut(): Promise<AuthResult> {
   const supabase = getSupabase();
   if (!supabase) return notConfigured();
 
+  // sql/039: this phone stops getting the account's junte pushes (needs the session, so before signOut).
+  await import('../notifications/push').then((m) => m.unregisterPush()).catch(() => undefined);
   const { error } = await supabase.auth.signOut();
   if (error) return { ok: false, message: translateAuthError(error.message) };
   // IMP 01102026 Phase 5: the next account must not see this one's follows (the table is cleared with the data).

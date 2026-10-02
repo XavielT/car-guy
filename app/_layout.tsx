@@ -194,7 +194,8 @@ function useNotifications() {
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    void configureNotifications();
+    // A junte push token follows the signed-in account (sql/039); never asks here — the chat does.
+    void configureNotifications().then(() => import('@/lib/notifications/push').then((m) => m.registerPush()));
 
     let cancelled = false;
     let subscription: { remove: () => void } | null = null;

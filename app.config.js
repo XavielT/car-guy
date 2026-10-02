@@ -91,9 +91,21 @@ function withGradleMemory(config) {
   });
 }
 
+/**
+ * Junte chat push (sql/039): Android needs Firebase (FCM v1) for an Expo push token. google-services.json comes
+ * from the Firebase console (Android apps com.xaviel.carguy AND com.xaviel.carguy.test in one project) and is
+ * committed — it is a client config, not a secret. Until it exists nothing changes: same native config, same
+ * runtime fingerprint, and lib/notifications/push.ts just gets no token.
+ */
+function withFirebase(config) {
+  const file = require('node:path').join(__dirname, 'google-services.json');
+  if (!require('node:fs').existsSync(file)) return config;
+  return { ...config, android: { ...config.android, googleServicesFile: './google-services.json' } };
+}
+
 module.exports = ({ config }) => {
   assertReleaseEnv();
-  const base = withGradleMemory(withChannel(applyVariant(config)));
+  const base = withGradleMemory(withFirebase(withChannel(applyVariant(config))));
   return {
     ...base,
     extra: { ...base.extra, gitSha: gitSha(), variant: process.env.APP_VARIANT ?? null },

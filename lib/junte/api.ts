@@ -1,3 +1,6 @@
+import { Platform } from 'react-native';
+
+import { getSupabase } from '../cloud/supabase';
 import { rpc } from '../social/rpc';
 
 /**
@@ -82,9 +85,47 @@ export const linkJunteTrip = (id: string, tripShareId: string | null) =>
   rpc<null>('link_junte_trip', { p_junte: id, p_trip_share: tripShareId });
 export const junteDetail = (id: string) => rpc<JunteDetail | null>('junte_detail', { p_junte: id });
 export const myJuntes = () => rpc<JunteSummary[]>('my_juntes');
-/** FEATURE_JUNTE_CHAT is off; the RPC exists so Phase 6 can build the screen. */
 export const sendJunteMessage = (id: string, body: string) => rpc<string>('send_junte_message', { p_junte: id, p_body: body });
 export const deleteJunteMessage = (messageId: string) => rpc<null>('delete_junte_message', { p_message: messageId });
+
+/** junte_messages (sql/039): authors by @handle, never a user id; `muted` is the caller's own switch. */
+export type JunteMessage = {
+  id: string;
+  body: string;
+  created_at: string;
+  mine: boolean;
+  can_delete: boolean;
+  author: { handle: string | null; display_name: string | null; avatar_id: string | null };
+};
+export type JunteChatPage = { muted: boolean; messages: JunteMessage[] };
+export const junteMessages = (id: string, after?: string | null) =>
+  rpc<JunteChatPage | null>('junte_messages', after ? { p_junte: id, p_after: after } : { p_junte: id });
+export const setJunteMuted = (id: string, muted: boolean) => rpc<null>('set_junte_muted', { p_junte: id, p_muted: muted });
+
+const SITE = 'https://car-guy.vercel.app';
+/** Same origin on the deployed web app; the production URL from native and from localhost. */
+export function juntePushUrl(platform: string = Platform.OS, host: string | null = typeof location !== 'undefined' ? location.hostname : null): string {
+  if (platform === 'web' && host && host !== 'localhost' && host !== '127.0.0.1') return '/api/junte-push';
+  return `${SITE}/api/junte-push`;
+}
+
+/**
+ * After a send: asks api/junte-push.ts to tell the other members. Fire and forget — the message is already in the
+ * chat; a push that fails (no key, offline, Expo down) only means nobody's phone buzzed.
+ */
+export async function notifyJunteMessage(messageId: string): Promise<void> {
+  try {
+    const token = (await getSupabase()?.auth.getSession())?.data.session?.access_token;
+    if (!token) return;
+    await fetch(juntePushUrl(), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ message_id: messageId }),
+    });
+  } catch {
+    // nobody is told; the chat still has it
+  }
+}
 
 /** junte_invite_card (sql/038): what an invite shows before joining — no ids, no coordinates. */
 export type JunteInviteCard = {

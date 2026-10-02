@@ -3826,6 +3826,23 @@ export type Database = {
         Args: { p_body: string; p_junte: string }
         Returns: string
       }
+      // sql/039 — hand-added until `npm run types:gen` after the apply.
+      junte_messages: {
+        Args: { p_after?: string; p_junte: string }
+        Returns: Json
+      }
+      register_push_token: {
+        Args: { p_platform: string; p_token: string }
+        Returns: undefined
+      }
+      unregister_push_token: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
+      set_junte_muted: {
+        Args: { p_junte: string; p_muted: boolean }
+        Returns: undefined
+      }
       set_app_config: {
         Args: { p_key: string; p_public?: boolean; p_value: Json }
         Returns: undefined
