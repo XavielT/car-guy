@@ -514,6 +514,13 @@ export const enPart5: Pick<
     chatEmpty: 'No messages.',
     deleteMessage: 'Delete',
     reportMessage: 'Report',
+    reported: 'Reported. Thanks.',
+    sendFailed: 'Not sent. Check the connection.',
+    rateLimited: 'Too many messages in a row. Wait a minute.',
+    mute: 'Mute this chat',
+    unmute: 'Notify me of messages',
+    pushOffWeb: 'On iPhone (web) messages arrive while Car Guy is open.',
+    pushChannel: 'Junte messages',
   },
   admin: {
     more: 'Admin panel',

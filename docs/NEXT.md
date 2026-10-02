@@ -26,9 +26,21 @@ trips ask for the precise GPS (`lib/trips/webGeo.ts` + `patches/expo-location+57
   not end "muy corto (0 m)".
 
 ### Carried to the next cycle (from 2.5)
-- **Junte chat + push notifications**: the chat is built and **off** (`FEATURE_JUNTE_CHAT`); nobody reads a chat
-  they are not told about. Needs FCM credentials (EAS) + expo-notifications push tokens, and a `junte_messages`
-  RPC that names authors by @handle (the screen's direct table read must not keep others' user ids).
+- **Junte chat + push notifications** — **built on branch `junte-chat-push`**, **sql/039 applied 2026-10-02** (verify-x-core 46/46; not merged; chat still
+  behind `FEATURE_JUNTE_CHAT = false`). sql/039: `junte_messages` (authors by @handle, no user ids; the direct
+  `junte_message` SELECT is revoked), `push_token` + register/unregister, per-junte mute, and the service_role-only
+  `junte_push_claim` (author only, ≤ 5 min, once, 15 s burst fold) used by `api/junte-push.ts`, which sends through
+  Expo's push service with the Vercel `SUPABASE_SERVICE_ROLE_KEY`. local-rls 236/236. The iPhone web app gets no
+  push (ADR-48) and the chat says so. **Waiting on Xaviel:**
+  1. ~~Firebase project + google-services.json~~ done 2026-10-02: project `car-guy-7052a` (Analytics and Gemini
+     off), apps `com.xaviel.carguy` + `com.xaviel.carguy.test`; the file is committed. Runtime fingerprint is now
+     `ff2d7e1…` — the next native release must be an APK.
+  2. **Still his:** Firebase → car-guy-7052a → Project settings → Service accounts → *Generate new private key*,
+     then expo.dev → car-guy → Credentials → Android → *FCM V1 service account key* → upload it, and delete the
+     downloaded JSON. (Claude was refused generating/handling the key by the auto-mode check, 2026-10-02.)
+  3. ~~"apply sql/039"~~ done 2026-10-02.
+  Then: `types:gen`, merge, `FEATURE_JUNTE_CHAT = true`, two-account check, and an **APK** (2.6.0) — Firebase
+  changes the runtime fingerprint, so this cannot go out as an OTA.
 - **Native iOS app**: the iPhone stays a PWA (ADR-48): no background location → no automatic trips, the junte dot
   only while Car Guy is open on screen. A native app needs an Apple Developer account (US$99/yr).
 - **Service-role key rotation** (carried since cycle 4) — Supabase dashboard → API → roll the key, then update
