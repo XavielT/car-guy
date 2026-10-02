@@ -1,18 +1,29 @@
 # Next up — Car Guy
 
-Written 2026-09-18, at the end of the IMP 17092026 cycle. What Tu Combustible RD's version of this
+Written 2026-09-18, at the end of the IMP 17092026 cycle; refreshed 2026-10-02 (2.5.1 + the iPhone GPS fix). What Tu Combustible RD's version of this
 file used to say is done and gone; its release recipe is kept below because the local Android build
 still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
-## Cycle 5 — IMP 01102026 (Car Guy 2.5 "Nakama") — in progress
+## Cycle 5 — IMP 01102026 (Car Guy 2.5 "Nakama") — released 2026-10-02, two checks open
 
 Eighteen notes from Xaviel's use of 2.4.x on the Redmi (APK) and his iPhone (Safari Home-Screen PWA) → fix pack
 2.4.3 (iPhone PWA truth, fresh-location rule, Android auto-trip fix, header avatar, garage labels, mods
 everywhere, paint jobs), schema v10, the gauge by squares with learned liters, OTA updates + in-app APK, "Apoyar
 Car Guy" + a usage meter, public profiles / follows / privacy, juntes with a live map → 2.5.0. Package:
 [`imp-01102026/`](imp-01102026/README.md), log: [`imp-01102026/04-tracking/PROGRESS.md`](imp-01102026/04-tracking/PROGRESS.md).
+
+**Released:** v2.5.0 APK (versionCode 21, runtime fingerprint `1232e32…` in `releases/fingerprint.json`) and v2.5.1
+as an OTA on channel `production` — both proven on his Redmi. **After 2.5.1, web only** (`17b743f`): iPhone web
+trips ask for the precise GPS (`lib/trips/webGeo.ts` + `patches/expo-location+57.0.20.patch`, which
+`fingerprint.config.js` ignores because it touches only the browser shim — so OTAs still reach 2.5.0).
+
+**Still open (both need Xaviel):**
+- **Two-device live junte** — his Redmi + the iPhone PWA or a second account.
+- **His real drive.** Android: the real app first needs its location permission (fg + bg), MIUI autostart and no
+  battery optimisation (note 7). iPhone: the drive also checks the GPS fix — the trip must keep a route and speed,
+  not end "muy corto (0 m)".
 
 ### Carried to the next cycle (from 2.5)
 - **Junte chat + push notifications**: the chat is built and **off** (`FEATURE_JUNTE_CHAT`); nobody reads a chat
@@ -92,10 +103,11 @@ the tank-capacity hint were already in 2.2.0.
 | Web app | <https://car-guy.vercel.app> — live, installable PWA, Vercel project `car-guy` |
 | Old web app | <https://tu-combustible-rd.vercel.app> — still up, still git-connected to this repo, so it also serves Car Guy. Delete the project when you are ready |
 | Repo | <https://github.com/XavielT/car-guy> (renamed from `tu-combustible-rd`; GitHub keeps redirects) |
-| Android | **2.3.0 released** (2026-09-30) — GitHub release `v2.3.0` with `car-guy.apk` (stable name, always the latest: `…/releases/latest/download/car-guy.apk`) and `car-guy-v2.3.0.apk`; the web page car-guy.vercel.app/instalar offers it on Android (`/api/apk`); EAS project `@xavieldev/car-guy`, EAS-managed keystore. Release with `bash tools/release-apk.sh --publish` |
+| Android | **2.5.0 released** (2026-10-02, versionCode 21) + **2.5.1 OTA** (channel `production`) — GitHub release `v2.5.0` with `car-guy.apk` (stable name, always the latest: `…/releases/latest/download/car-guy.apk`) and `car-guy-v2.5.0.apk`; the web page car-guy.vercel.app/instalar offers it on Android (`/api/apk`); EAS project `@xavieldev/car-guy`, EAS-managed keystore. Release with `bash tools/release-apk.sh --publish` (APK) or `--ota --publish` (JS-only, same fingerprint), from the main folder — never a worktree |
 | Cloud in the APK | Until 2.1.2 the APKs had **no** Supabase values (EAS packs by .gitignore, so `.env.local` never reached a build) — Cuenta said "no configurada". Since 2.1.3: `eas.json` `build.base.env` carries the two public values (URL + anon key — public by design, RLS protects the data; no service-role key anywhere), the EAS environments `preview`/`production` carry them too (`eas env:list production`), `app.config.js` refuses an EAS release build without them, and `tools/check-bundle-env.mjs` refuses an APK whose bundle lacks the project URL (the release script runs it) |
 | Distribution | **Xaviel's own channels only:** the portfolio card (links `releases/latest`, so every release reaches it with no change there), the web app and the direct APK link. **No Play Store for now** — Xaviel's call (2026-09-29): the app is not ready for it yet; it is a future step |
-| Cloud | Supabase `x-core`, schema `carguy`: v1 tables (19, incl. cloud-only `profiles`) + **schema v2** (`sql/009`–`010`, 23 more, applied 2026-09-28), private `carguy-media` bucket. **A 2.0.0 install signed in to sync cannot pull `vehicle`/`media`/`service_record` any more** (new columns) — ship 2.1 before anyone syncs on 2.0.0 |
+| Cloud | Supabase `x-core`, schema `carguy`: v1 tables (19, incl. cloud-only `profiles`) + **schema v2** (`sql/009`–`010`, 23 more, applied 2026-09-28), private `carguy-media` bucket. **A 2.0.0 install signed in to sync cannot pull `vehicle`/`media`/`service_record` any more** (new columns) — ship 2.1 before anyone syncs on 2.0.0. Today: up to sql/038 (see "Cloud schema") |
+| Cloud schema | x-core `carguy` up to **sql/038** (junte invite card); local SQLite schema **v10** |
 | Local folder | `~/dev2/car-guy`. **Rename pending** (2026-09-28): on this laptop it is still `~/dev2/tu-gasolina-rd` — run `mv ~/dev2/tu-gasolina-rd ~/dev2/car-guy` with no Claude session open there |
 
 ## 1. Done for 2.0.0 (2026-09-25)
@@ -208,12 +220,15 @@ bump of those two packages.
 
 ```bash
 npm start                # dev
-npm test                 # 820 tests
+npm test                 # ~2160 tests
 npx tsc --noEmit
 npx expo lint
 npm run build            # static web export to dist/
-node tools/verify-x-core.mjs        # cloud schema, RLS, public page, shared garage — 23 checks
-node tools/verify-sync.mjs          # sync protocol against the live schema, 17 checks
+npm run check:api        # every api/ function loads in plain Node
+bash tools/local-rls/run.sh         # cloud SQL on a throwaway local PostgreSQL 16 — run before any x-core apply
+node tools/verify-x-core.mjs        # cloud schema, RLS, public page, shared garage — 38 checks
+node tools/verify-sync.mjs          # sync protocol against the live schema, 24 checks
+node tools/verify-junte-live.mjs    # junte Realtime policies (sql/036) — 8 checks
 node tools/cleanup-probe-media.mjs  # sweep test objects from the Storage bucket
 ```
 
