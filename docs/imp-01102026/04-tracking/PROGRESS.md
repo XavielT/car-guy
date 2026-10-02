@@ -2,7 +2,7 @@
 
 Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 
-**Started:** 2026-10-01 · **Status:** 2.5.0 released (2026-10-02); 2.5.1 OTA pending
+**Started:** 2026-10-01 · **Status:** 2.5.0 + 2.5.1 (OTA) released 2026-10-02; open: two-device live junte, his drive
 
 ## Phase status
 
@@ -14,7 +14,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 3 | Medidor por cuadros + calibración | ✅ | `imp-01102026/phase-3-gauge` | notes 1, 3; FEATURE_GAUGE_SEGMENTS on |
 | 4 | Updates · Apoyar · Uso | ✅ | `imp-01102026/phase-4-updates` | notes 4, 6; OTA + APK proven on the Redmi; FEATURE_OTA, FEATURE_SUPPORT on |
 | 5 | Perfiles · seguir · privacidad · compartir viajes | ✅ | `imp-01102026/phase-5-social` | notes 11, 12, 14, 16; sql/037 applied; two-account web check 12/12 |
-| 6 | Juntes · chat (off) · release 2.5.0 | 🟨 | `imp-01102026/phase-6-juntes-release` | **v2.5.0 released** + on his phone; 036 live check 8/8; 2.5.1 OTA waits for his go; two-device live test open |
+| 6 | Juntes · chat (off) · release 2.5.0 | 🟨 | `imp-01102026/phase-6-juntes-release` | **v2.5.0 released** + on his phone; 036 live check 8/8; 2.5.1 OTA proven on his phone; two-device live test open |
 
 ## Notes from the brief
 
@@ -25,7 +25,7 @@ Claude Code appends a report per phase (`00-context/04-conventions.md` §8).
 | 3 | Learn squares → liters, estimate remaining | 3 | ✅ |
 | 4 | Ads / money / Supabase Pro | 4 | ✅ |
 | 5 | Last sync with time | 1 | ✅ |
-| 6 | Self-updating app | 4 (+ 6 OTA proof) | ✅ (production OTA proof in 6) |
+| 6 | Self-updating app | 4 + 6 | ✅ production OTA 2.5.1 reached his Redmi (2026-10-02) |
 | 7 | Drive not recorded automatically | 0 + 1 | 🟡 iPhone: platform limit, said (banner). Android: diagnosed (0) + blocked card / battery / last-fix (1); **closes with his drive** after he grants the permissions |
 | 8 | Stale/far location | 1 | ✅ |
 | 9 | Home top-right logo unclear | 1 | ✅ |
@@ -198,7 +198,7 @@ or Viajes, and nothing is recorded.
 | 4 | Web: a brand-new browser profile sometimes boots into "not a database" (OPFS first open), seen 3× headless under load | low | 2026-10-02: **not reproduced** — 80/80 fresh profiles booted clean (16 concurrent, dev server). Found expo-sqlite's worker `maybeInitAsync` is not guarded against concurrent opens, but boot's two opens do not overlap (32/32 with and without a patch), so no patch shipped; reopen if it is seen again |
 | 4 | The `preview` channel carries the test OTA ("Novedades y versiones · OTA"); a fresh test build gets it until the next preview update | low | next preview publish replaces it |
 | 5 | /u/<handle> is not deployed (needs the merge/push); `node tools/smoke-profile.mjs <handle>` after it | medium | the handler passed locally against x-core |
-| 5 | Verifier/QA accounts to clean up: `carguy-test-1790896956029-*` (+ Phase 2's verify runs) | low | sql/999 on Xaviel's "run the test user cleanup" |
+| 5 | Verifier/QA accounts to clean up | low | ✅ done 2026-10-02 (sql/999) |
 | 5 | Header titles are upper-cased by the theme, so `@qa_x` shows as `@QA_X` | low | fixed 2026-10-02: a title starting with `@` keeps its case (`app/_layout.tsx`) |
 | 2 | `lib/db/shareQueries.ts` imports `../i18n/es` directly (lint rule ADR-39) when linted on its own; `npm run lint` passes | low | |
 
@@ -208,7 +208,7 @@ or Viajes, and nothing is recorded.
 |---|---|---|---|
 | 0 | Folder rename | Xaviel | open |
 | 1 | Grant location (todo el tiempo), autostart, battery "sin restricciones" in the app, then the drive | Xaviel | open — after the Phase 1 build |
-| 2 | Apply sql/036 with `--shared` (realtime.messages policies) + delete the verifier test users | Xaviel | 036 ✅ applied 2026-10-02 on his "apply 036 and release"; test users still open |
+| 2 | Apply sql/036 with `--shared` (realtime.messages policies) + delete the verifier test users | Xaviel | ✅ both done 2026-10-02 |
 | 4 | PayPal.me test payment (DR account) | Xaviel | open |
 
 ---
@@ -256,10 +256,12 @@ CHANGELOG, NEXT) and **not published** — merging to main, pushing (production)
   `install -r` over his real 2.4.2 after a JSON backup (`~/car-guy-backups/car-guy-pre-2.5.0.json`): v9 → v10 on device,
   "Novedades de la 2.5.0" sheet, garage intact (DS3 052380), "Todo subido", Novedades y versiones = "Canal production ·
   Compilación 21", no FATAL.
-- [ ] **2.5.1 OTA** (juntes "1 conectado" / "1 carro"): merged and pushed (`38e45c1`, web on 2.5.1), gate says `ota (same
-  runtime as 2.5.0)`; `bash tools/release-apk.sh --ota --publish` waits for his "release 2.5.1" (the session's safety
-  check treats it as a separate production deploy). Then his phone should show "Actualización lista · Reiniciar".
-- [ ] Clean up the throwaway QA accounts (sql/999 on his "run the test user cleanup").
+- [x] **2.5.1 OTA** (juntes "1 conectado" / "1 carro"), on his "release 2.5.1": `release-apk.sh --ota --publish` → EAS Update
+  group `8fc03139…` on `production`, runtime `1232e32…`, GitHub v2.5.1 (notes only, not latest — /api/apk keeps 2.5.0's
+  APK). On his Redmi: relaunch → Inicio showed **"Actualización lista · Reiniciar"** by itself → Reiniciar → Más reads
+  "Versión 2.5.1 · Build 64527b5", no FATAL. **Note 6 closed.** Web smokes after the push: public page 6/6, legal 6/6, apk 3/3.
+- [x] Test users cleaned (his "run the test user cleanup"): sql/999 `--shared` HTTP 201, leftover_profiles 0; 1 verifier
+  feedback screenshot removed from carguy-feedback.
 
 ## Phase 5 — Perfiles · seguir · privacidad · compartir viajes   (branch `imp-01102026/phase-5-social`)
 
