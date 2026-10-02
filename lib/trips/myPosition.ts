@@ -6,8 +6,8 @@
  * becomes `fix` (the solid dot, the camera follows it); a coarse one is `approx`; a stale one is ignored, so
  * a cached position from this morning never lands on the map as if it were now.
  *
- * - Web (iPhone PWA included): `enableHighAccuracy`, `maximumAge: 0`, `timeout: 20 s` — the expo-location web
- *   shim hands the options object to `navigator.geolocation.watchPosition` as is.
+ * - Web (iPhone PWA included): `WEB_PRECISE_GPS` (./webGeo) — the expo-location web shim hands the options object
+ *   to `navigator.geolocation.watchPosition` as is.
  * - Android: a fresh `getCurrentPositionAsync` on start, never the last-known one as the truth.
  * - Coming back to the foreground restarts the watch: the first fix after waking is the suspicious one.
  *
@@ -19,6 +19,7 @@ import { AppState, Platform } from 'react-native';
 
 import { recordError } from '../diagnostics';
 import { classifyFix } from './freshness';
+import { WEB_PRECISE_GPS } from './webGeo';
 
 export type MyFix = { lat: number; lng: number; acc: number | null; heading: number | null; t: number };
 
@@ -82,10 +83,7 @@ async function start(): Promise<void> {
       accuracy: Location.Accuracy.High,
       timeInterval: 1000,
       distanceInterval: 2,
-      // Web only (ignored natively): never a cached position, wait up to 20 s for a real one.
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 20_000,
+      ...WEB_PRECISE_GPS,
     } as Location.LocationOptions;
     const s = await Location.watchPositionAsync(options, (loc) => mine === generation && acceptLocation(loc), (reason) => {
       recordError('my-position', reason);
