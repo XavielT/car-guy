@@ -22,6 +22,8 @@ const SAME_OK = new Set([
   'SPECS', 'IDEA', 'Idea', 'DYNO', 'STOCK', 'stock', 'SNAPSHOTS', 'CORE', 'Treadwear', 'TRACK', 'SWAP', 'ECU',
   'ADMIN · 管理', 'Admin', 'Premium', 'ANDROID · インストール', 'Commit', 'github.com/XavielT/car-guy/releases',
   'Español', 'English', 'MICM', 'App', 'Stock', 'Interior', 'Legal',
+  // Phase 6: "junte" is the Dominican word, kept in English like "Build"; "Chat" is the same word.
+  'Juntes', 'Chat',
 ]);
 
 /** Proper nouns that contain Spanish words; removed before the leftover check. */

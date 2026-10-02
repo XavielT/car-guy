@@ -81,3 +81,19 @@ export const myJuntes = () => rpc<JunteSummary[]>('my_juntes');
 /** FEATURE_JUNTE_CHAT is off; the RPC exists so Phase 6 can build the screen. */
 export const sendJunteMessage = (id: string, body: string) => rpc<string>('send_junte_message', { p_junte: id, p_body: body });
 export const deleteJunteMessage = (messageId: string) => rpc<null>('delete_junte_message', { p_message: messageId });
+
+/** junte_invite_card (sql/038): what an invite shows before joining — no ids, no coordinates. */
+export type JunteInviteCard = {
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  meet_label: string | null;
+  status: JunteStatus;
+  owner_handle: string | null;
+  owner_name: string | null;
+  going: number;
+};
+export const junteInviteCard = (code: string) => rpc<JunteInviteCard | null>('junte_invite_card', { p_code: code.trim().toLowerCase() });
+
+/** The web invite link (api/j/[code].ts) — opens the app when installed. */
+export const junteInviteUrl = (code: string) => `https://car-guy.vercel.app/j/${code}`;

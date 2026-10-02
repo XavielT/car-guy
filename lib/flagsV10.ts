@@ -12,7 +12,7 @@ export const FEATURE_OTA = true;
 export const FEATURE_SUPPORT = true;
 /** @handle, public profiles, follows, privacy, shared trips (ADR-54…56) — PROMPT-05. On: Perfil público, /u/<handle>, Comunidad, Compartir viaje, Admin → Reportes. */
 export const FEATURE_SOCIAL = true;
-/** Juntes with the live map (ADR-57) — PROMPT-06. */
-export const FEATURE_JUNTES = false;
+/** Juntes with the live map (ADR-57) — PROMPT-06. On: Más → Juntes, /juntes/*, carguy://junte/<code>, web /j/<code>. */
+export const FEATURE_JUNTES = true;
 /** Junte chat: built in PROMPT-06 but stays off until push notifications exist. */
 export const FEATURE_JUNTE_CHAT = false;

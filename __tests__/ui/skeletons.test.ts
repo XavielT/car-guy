@@ -19,6 +19,8 @@ const NO_SKELETON: Record<string, string> = {
   'app/versiones.tsx': 'static (bundled changelog)',
   'app/apoyar.tsx': 'static text first; the published figures and links fill in',
   'app/comunidad.tsx': 'cache-backed (social_cache): shown at once, refreshed on focus',
+  'app/juntes/index.tsx': 'cache-backed (junte_cache): shown at once, refreshed on focus',
+  'app/juntes/nuevo.tsx': 'create form',
   'app/instalar.tsx': 'static',
   'app/notificaciones.tsx': 'settings, instant',
   'app/invitacion/[code].tsx': 'auth flow with its own states',

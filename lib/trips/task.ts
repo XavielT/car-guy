@@ -41,10 +41,14 @@ export async function handleTripTask({ data, error }: { data?: TripTaskData | nu
     recordError('trip-task', e);
   }
   // IMP 01102026 Phase 6: a member sharing "En vivo" in a junte keeps publishing while the app is behind (REST).
-  const { publishFromBackground } = await import('../junte/channel');
-  await publishFromBackground(
-    locations.map((l) => ({ lat: l.coords.latitude, lng: l.coords.longitude, heading: l.coords.heading ?? null, accuracy: l.coords.accuracy ?? null, t: l.timestamp })),
-  ).catch((e) => recordError('junte-bg', e));
+  try {
+    const { publishFromBackground } = await import('../junte/channel');
+    await publishFromBackground(
+      locations.map((l) => ({ lat: l.coords.latitude, lng: l.coords.longitude, heading: l.coords.heading ?? null, accuracy: l.coords.accuracy ?? null, t: l.timestamp })),
+    );
+  } catch (e) {
+    recordError('junte-bg', e);
+  }
 }
 
 if (!TaskManager.isTaskDefined(TRIP_TASK)) {
