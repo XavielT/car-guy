@@ -11,6 +11,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export ANDROID_HOME="$HOME/Android/Sdk" ANDROID_SDK_ROOT="$HOME/Android/Sdk" APP_VARIANT=test
+# React Native's Gradle plugin rewrites library manifests inside node_modules (it drops `package=`) and leaves
+# android/build dirs there. Both change the expo-updates fingerprint, and the next release-apk.sh then fails with
+# "Runtime version calculated on local machine not equal…" (2026-10-02). Put node_modules back as npm left it.
+SNAP=$(mktemp)
+find node_modules -path '*/android/src/main/AndroidManifest.xml' -print0 | tar -cf "$SNAP" --null -T -
+restore_node_modules() {
+  tar -xf "$SNAP" && rm -f "$SNAP"
+  find node_modules -mindepth 2 -maxdepth 4 -type d -path '*/android/build' -prune -exec rm -rf {} +
+}
+trap restore_node_modules EXIT
 npx expo prebuild --platform android --clean --no-install >/dev/null
 # Gradle's Metaspace is raised by app.config.js (withGradleMemory) for every build path.
 ARCH="${ARCH:-arm64-v8a}"

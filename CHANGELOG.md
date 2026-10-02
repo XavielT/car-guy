@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.1 (2026-10-02)
+
+- **Juntes**: con una sola persona dice "1 conectado" y el resumen "1 carro" (antes "1 conectados", "1 carros").
+- Primera actualización que llega sola, sin APK: la app la baja y pide "Reiniciar".
+
 ## 2.5.0 "Nakama" (2026-10-02)
 
 - **Comunidad**: ponte un @usuario en Perfil, con bio, Instagram y lo que quieres que se vea (cuenta pública o

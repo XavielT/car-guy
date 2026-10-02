@@ -507,7 +507,7 @@ export const enPart5: Pick<
     saveEvent: 'Save as an event on my car',
     eventSaved: 'Saved as an event.',
     shareSummary: 'Share summary',
-    summaryText: (title: string, people: number, km: string) => `Junte "${title}" · ${people} cars · ${km} km together · Car Guy`,
+    summaryText: (title: string, people: number, km: string) => `Junte "${title}" · ${people === 1 ? '1 car' : `${people} cars`} · ${km} km together · Car Guy`,
     chat: 'Chat',
     chatPlaceholder: 'Write…',
     send: 'Send',
