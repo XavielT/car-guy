@@ -26,6 +26,7 @@ import { feed, machineState, pushLiveFix, type FeedResult } from './engine';
 import type { Fix } from './geo';
 import { getLiveTrip } from './liveStore';
 import { fixFromLocation } from './machine';
+import { WEB_PRECISE_GPS } from './webGeo';
 
 /** A parked phone sends no fixes (distanceInterval): a tick keeps the clock honest. */
 const TICK_MS = 20_000;
@@ -71,7 +72,7 @@ async function startWatcher(): Promise<void> {
   const w: Watcher = { sub: null, tickTimer: null, flushTimer: null, buffer: [] };
   watcher = w;
   w.sub = await Location.watchPositionAsync(
-    { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 3 },
+    { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 3, ...WEB_PRECISE_GPS } as Location.LocationOptions,
     (loc) => {
       const fix = fixFromLocation(loc);
       pushLiveFix(fix);
