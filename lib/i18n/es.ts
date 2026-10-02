@@ -2929,7 +2929,7 @@ export const es = {
       'Mientras "En vivo" está prendido, los del junte ven tu punto en el mapa (sin velocidad), y solo durante el junte. No se guarda en ningún lado. En Android sigue con la app en segundo plano mientras grabas un viaje; en iPhone deja Car Guy abierto en pantalla.',
     liveRefused: 'No se pudo abrir el mapa en vivo (¿fuera de horario o ya no eres miembro?).',
     liveConnecting: 'Conectando…',
-    online: (n: number) => `${n} conectados`,
+    online: (n: number) => (n === 1 ? '1 conectado' : `${n} conectados`),
     kicked: 'Te sacaron de este junte.',
     iphone: 'En iPhone, deja Car Guy abierto en pantalla para que vean tu punto.',
     fit: 'Ver a todos',
@@ -2944,7 +2944,7 @@ export const es = {
     saveEvent: 'Guardar como evento en mi carro',
     eventSaved: 'Guardado como evento.',
     shareSummary: 'Compartir resumen',
-    summaryText: (title: string, people: number, km: string) => `Junte "${title}" · ${people} carros · ${km} km juntos · Car Guy`,
+    summaryText: (title: string, people: number, km: string) => `Junte "${title}" · ${people === 1 ? '1 carro' : `${people} carros`} · ${km} km juntos · Car Guy`,
     // Chat (FEATURE_JUNTE_CHAT)
     chat: 'Chat',
     chatPlaceholder: 'Escribe…',
