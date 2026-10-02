@@ -294,8 +294,9 @@ function Shell() {
           headerTitleStyle: { fontFamily: fonts.title, fontSize: 18 },
           // Titles are Saira uppercase (05-design-jdm.md). Drawn here rather than
           // by uppercasing `title`, which is also the browser tab's text.
+          // An @handle keeps its case: handles are what people type to find you.
           headerTitle: ({ children, tintColor }) => (
-            <T face="title" numberOfLines={1} style={{ color: tintColor ?? theme.text.primary, fontSize: 18, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+            <T face="title" numberOfLines={1} style={{ color: tintColor ?? theme.text.primary, fontSize: 18, letterSpacing: 0.8, textTransform: typeof children === 'string' && children.startsWith('@') ? 'none' : 'uppercase' }}>
               {children}
             </T>
           ),

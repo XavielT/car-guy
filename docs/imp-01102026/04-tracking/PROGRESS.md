@@ -195,11 +195,11 @@ or Viajes, and nothing is recorded.
 | 2 | Realtime "Allow public access" stays on (shared project): Car Guy's junte channels must be opened with `private: true` or the 036 policies are not consulted | high for Phase 6 | `lib/junte` live client |
 | 4 | **v2.4.3 APK was never published on GitHub** (latest release is v2.4.2; web is on 2.4.3) — Phase 1's report said released | medium | ship with 2.5.0 (Phase 6) or `release-apk.sh --publish` from main |
 | 4 | Release builds may need more Gradle Metaspace with expo-updates (the test build did: 512 MB → OOM) | medium | add a config plugin / gradle.properties before `release-apk.sh` |
-| 4 | Web: a brand-new browser profile sometimes boots into "not a database" (OPFS first open), seen 3× headless under load | medium | look at the SQLite worker open race |
+| 4 | Web: a brand-new browser profile sometimes boots into "not a database" (OPFS first open), seen 3× headless under load | low | 2026-10-02: **not reproduced** — 80/80 fresh profiles booted clean (16 concurrent, dev server). Found expo-sqlite's worker `maybeInitAsync` is not guarded against concurrent opens, but boot's two opens do not overlap (32/32 with and without a patch), so no patch shipped; reopen if it is seen again |
 | 4 | The `preview` channel carries the test OTA ("Novedades y versiones · OTA"); a fresh test build gets it until the next preview update | low | next preview publish replaces it |
 | 5 | /u/<handle> is not deployed (needs the merge/push); `node tools/smoke-profile.mjs <handle>` after it | medium | the handler passed locally against x-core |
 | 5 | Verifier/QA accounts to clean up: `carguy-test-1790896956029-*` (+ Phase 2's verify runs) | low | sql/999 on Xaviel's "run the test user cleanup" |
-| 5 | Header titles are upper-cased by the theme, so `@qa_x` shows as `@QA_X` | low | handles are case-sensitive in meaning; consider a no-transform title for /u |
+| 5 | Header titles are upper-cased by the theme, so `@qa_x` shows as `@QA_X` | low | fixed 2026-10-02: a title starting with `@` keeps its case (`app/_layout.tsx`) |
 | 2 | `lib/db/shareQueries.ts` imports `../i18n/es` directly (lint rule ADR-39) when linted on its own; `npm run lint` passes | low | |
 
 ## Blockers
