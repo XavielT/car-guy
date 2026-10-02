@@ -26,7 +26,7 @@ trips ask for the precise GPS (`lib/trips/webGeo.ts` + `patches/expo-location+57
   not end "muy corto (0 m)".
 
 ### Carried to the next cycle (from 2.5)
-- **Junte chat + push notifications** — **built on branch `junte-chat-push`** (2026-10-02, not merged; chat still
+- **Junte chat + push notifications** — **built on branch `junte-chat-push`**, **sql/039 applied 2026-10-02** (verify-x-core 46/46; not merged; chat still
   behind `FEATURE_JUNTE_CHAT = false`). sql/039: `junte_messages` (authors by @handle, no user ids; the direct
   `junte_message` SELECT is revoked), `push_token` + register/unregister, per-junte mute, and the service_role-only
   `junte_push_claim` (author only, ≤ 5 min, once, 15 s burst fold) used by `api/junte-push.ts`, which sends through
@@ -36,7 +36,7 @@ trips ask for the precise GPS (`lib/trips/webGeo.ts` + `patches/expo-location+57
      download `google-services.json` into the repo root (`app.config.js` picks it up; committed, not a secret).
   2. Firebase → Project settings → Service accounts → *Generate new private key*, then expo.dev → car-guy →
      Credentials → Android → *FCM V1 service account key* → upload it. Keep the JSON off the repo.
-  3. "apply sql/039".
+  3. ~~"apply sql/039"~~ done 2026-10-02.
   Then: `types:gen`, merge, `FEATURE_JUNTE_CHAT = true`, two-account check, and an **APK** (2.6.0) — Firebase
   changes the runtime fingerprint, so this cannot go out as an OTA.
 - **Native iOS app**: the iPhone stays a PWA (ADR-48): no background location → no automatic trips, the junte dot

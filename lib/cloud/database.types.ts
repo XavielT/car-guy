@@ -963,6 +963,7 @@ export type Database = {
         Row: {
           joined_at: string
           junte_id: string
+          muted: boolean
           role: string
           status: string
           trip_share_id: string | null
@@ -972,6 +973,7 @@ export type Database = {
         Insert: {
           joined_at?: string
           junte_id: string
+          muted?: boolean
           role?: string
           status?: string
           trip_share_id?: string | null
@@ -981,6 +983,7 @@ export type Database = {
         Update: {
           joined_at?: string
           junte_id?: string
+          muted?: boolean
           role?: string
           status?: string
           trip_share_id?: string | null
@@ -1004,6 +1007,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           junte_id: string
+          pushed_at: string | null
           user_id: string
         }
         Insert: {
@@ -1012,6 +1016,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           junte_id: string
+          pushed_at?: string | null
           user_id: string
         }
         Update: {
@@ -1020,6 +1025,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           junte_id?: string
+          pushed_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1668,6 +1674,30 @@ export type Database = {
           show_cars?: boolean
           show_fichas?: boolean
           show_stats?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_token: {
+        Row: {
+          created_at: string
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          platform?: string
+          token?: string
           updated_at?: string
           user_id?: string
         }
@@ -3756,6 +3786,7 @@ export type Database = {
       }
       delete_junte_message: { Args: { p_message: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: Json }
+      drop_push_tokens: { Args: { p_tokens: string[] }; Returns: number }
       end_junte: { Args: { p_junte: string }; Returns: undefined }
       feedback_upload_allowed: {
         Args: { object_name: string }
@@ -3776,7 +3807,15 @@ export type Database = {
         Args: { j: Database["carguy"]["Tables"]["junte"]["Row"] }
         Returns: boolean
       }
+      junte_messages: {
+        Args: { p_after?: string; p_junte: string }
+        Returns: Json
+      }
       junte_mine: { Args: { j: string }; Returns: boolean }
+      junte_push_claim: {
+        Args: { p_caller: string; p_message: string }
+        Returns: Json
+      }
       junte_topic_allowed: { Args: { p_topic: string }; Returns: boolean }
       kick_junte_member: {
         Args: { p_handle: string; p_junte: string }
@@ -3803,6 +3842,10 @@ export type Database = {
       my_social: { Args: never; Returns: Json }
       public_dossier: { Args: { p_slug: string }; Returns: Json }
       redeem_invite: { Args: { p_code: string }; Returns: Json }
+      register_push_token: {
+        Args: { p_platform: string; p_token: string }
+        Returns: undefined
+      }
       remove_follower: { Args: { p_handle: string }; Returns: undefined }
       remove_member: {
         Args: { p_user: string; p_vehicle: string }
@@ -3826,25 +3869,12 @@ export type Database = {
         Args: { p_body: string; p_junte: string }
         Returns: string
       }
-      // sql/039 — hand-added until `npm run types:gen` after the apply.
-      junte_messages: {
-        Args: { p_after?: string; p_junte: string }
-        Returns: Json
-      }
-      register_push_token: {
-        Args: { p_platform: string; p_token: string }
-        Returns: undefined
-      }
-      unregister_push_token: {
-        Args: { p_token: string }
+      set_app_config: {
+        Args: { p_key: string; p_public?: boolean; p_value: Json }
         Returns: undefined
       }
       set_junte_muted: {
         Args: { p_junte: string; p_muted: boolean }
-        Returns: undefined
-      }
-      set_app_config: {
-        Args: { p_key: string; p_public?: boolean; p_value: Json }
         Returns: undefined
       }
       set_junte_status: {
@@ -3866,6 +3896,7 @@ export type Database = {
       submit_feedback: { Args: { p: Json }; Returns: string }
       unblock_user: { Args: { p_handle: string }; Returns: undefined }
       unfollow_user: { Args: { p_handle: string }; Returns: undefined }
+      unregister_push_token: { Args: { p_token: string }; Returns: undefined }
       upsert_fuel_price_ref: { Args: { rows: Json }; Returns: number }
       vehicle_of: { Args: { row_id: string; tbl: string }; Returns: string }
       vehicle_role: { Args: { v: string }; Returns: string }
