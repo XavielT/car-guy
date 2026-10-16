@@ -13,24 +13,35 @@ import { useTheme } from '@/lib/theme/useTheme';
  * background — Safari's rule — so it says so where trips are set up (Conducir, Viajes → Ajustes, the welcome's
  * permissions slide). Nothing anywhere else; `dark` for the always-dark drive screen.
  */
-export function IosWebBanner({ dark }: { dark?: boolean }) {
+export function IosWebBanner({ dark, compact }: { dark?: boolean; /** One line + "¿Por qué?": the body lives in the sheet (Modo conducir, where the map needs the room — X6). */ compact?: boolean }) {
   const { theme } = useTheme();
   const [why, setWhy] = useState(false);
   if (!isIosWeb(currentPlatform())) return null;
   const fg = dark ? '#F2F2F2' : theme.text.primary;
   const sub = dark ? 'rgba(242,242,242,0.75)' : theme.text.secondary;
   return (
-    <Surface padded style={[styles.box, dark && { backgroundColor: 'rgba(18,18,18,0.92)' }]}>
-      <T face="semibold" style={{ color: fg, fontSize: 14, lineHeight: 20 }}>
-        {t.platform.iosTitle}
-      </T>
-      <T face="body" style={{ color: sub, fontSize: 13, lineHeight: 19 }}>
-        {t.platform.iosBody}
-      </T>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <GhostButton label={t.platform.iosWhy} onPress={() => setWhy(true)} />
+    <Surface padded style={[styles.box, dark && { backgroundColor: 'rgba(18,18,18,0.92)' }, compact && styles.compactBox]}>
+      <View style={compact ? styles.compactRow : undefined}>
+        <View style={compact ? { flex: 1, minWidth: 0 } : undefined}>
+          <T face="semibold" style={{ color: fg, fontSize: 14, lineHeight: 20 }}>
+            {t.platform.iosTitle}
+          </T>
+          {compact ? null : (
+            <T face="body" style={{ color: sub, fontSize: 13, lineHeight: 19 }}>
+              {t.platform.iosBody}
+            </T>
+          )}
+        </View>
+        <View style={{ alignSelf: compact ? 'center' : 'flex-start' }}>
+          <GhostButton label={t.platform.iosWhy} onPress={() => setWhy(true)} />
+        </View>
       </View>
       <Sheet visible={why} onClose={() => setWhy(false)} title={t.platform.iosWhyTitle}>
+        {compact ? (
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 21, marginBottom: space.sm }}>
+            {t.platform.iosBody}
+          </T>
+        ) : null}
         {t.platform.iosWhyBody.map((p) => (
           <T key={p} face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 21, marginBottom: space.sm }}>
             {p}
@@ -44,4 +55,6 @@ export function IosWebBanner({ dark }: { dark?: boolean }) {
 
 const styles = StyleSheet.create({
   box: { gap: space.xs, marginBottom: space.md },
+  compactBox: { marginBottom: 0, paddingVertical: space.xs },
+  compactRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

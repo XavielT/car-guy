@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
   toggle: { paddingVertical: space.md },
   partRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 6 },
   pair: { flexDirection: 'row', gap: space.md },
-  half: { flex: 1 },
+  half: { flex: 1, minWidth: 0 },
   warning: { fontSize: 13, lineHeight: 19, marginBottom: space.md },
   error: { fontSize: 13, marginBottom: space.md },
 });

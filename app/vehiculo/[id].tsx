@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: space.md },
   suggestion: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.sm, paddingVertical: 4 },
   pair: { flexDirection: 'row', gap: space.md },
-  half: { flex: 1 },
+  half: { flex: 1, minWidth: 0 },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: 1, borderRadius: radius.input, padding: space.md },
   option: { borderWidth: 1, borderRadius: radius.input, padding: space.md, marginBottom: space.sm, minHeight: 56 },
 });

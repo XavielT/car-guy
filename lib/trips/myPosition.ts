@@ -23,15 +23,25 @@ import { WEB_PRECISE_GPS } from './webGeo';
 
 export type MyFix = { lat: number; lng: number; acc: number | null; heading: number | null; t: number };
 
+/**
+ * What the system says about the foreground location permission (IMP 16102026 M-1, M-6):
+ * `undetermined` = never asked (the browser's "prompt") — not the same as a refusal; `denied` = refused but the
+ * system will ask again; `blocked` = only the settings can change it (on the web a refusal always is: a page cannot
+ * ask twice). Phase 2's permission registry replaces this with its own states.
+ */
+export type LocationPermissionState = 'granted' | 'undetermined' | 'denied' | 'blocked';
+
 export type MyPosition = {
   status: 'idle' | 'searching' | 'ok' | 'denied' | 'error';
+  /** null until the first read. */
+  permission: LocationPermissionState | null;
   /** The last fresh, precise fix (solid dot). */
   fix: MyFix | null;
   /** The newest recent-but-imprecise fix (grey halo, no re-centre). */
   approx: MyFix | null;
 };
 
-let state: MyPosition = { status: 'idle', fix: null, approx: null };
+let state: MyPosition = { status: 'idle', permission: null, fix: null, approx: null };
 const listeners = new Set<() => void>();
 let users = 0;
 let sub: Location.LocationSubscription | null = null;
@@ -55,6 +65,16 @@ function toFix(loc: Location.LocationObject): MyFix {
   };
 }
 
+/** The permission response, as the app's four states. */
+export function permissionState(perm: { granted: boolean; status?: string; canAskAgain?: boolean }): LocationPermissionState {
+  // The web shim answers {status: granted, granted: false} to a position error (code 2/3): the permission is there.
+  if (perm.granted || perm.status === 'granted') return 'granted';
+  if (perm.status === 'undetermined') return 'undetermined';
+  // The expo-location web shim answers canAskAgain: true to a refusal; a page cannot ask twice.
+  if (Platform.OS === 'web') return 'blocked';
+  return perm.canAskAgain === false ? 'blocked' : 'denied';
+}
+
 /** One location in, through the freshness rule. Exported for tests. */
 export function acceptLocation(loc: Location.LocationObject, now: number = Date.now()): void {
   const f = toFix(loc);
@@ -70,9 +90,11 @@ async function start(): Promise<void> {
   try {
     const perm = await Location.getForegroundPermissionsAsync();
     if (!perm.granted) {
-      if (mine === generation) set({ status: 'denied' });
+      // "Never asked" is not "refused" (M-1): the screen offers to ask instead of saying there is no permission.
+      if (mine === generation) set({ status: 'denied', permission: permissionState(perm) });
       return;
     }
+    if (mine === generation) set({ permission: 'granted' });
     if (Platform.OS === 'android') {
       // A fresh one-shot fix first; it may take seconds, the watch below runs meanwhile.
       void Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
@@ -82,7 +104,8 @@ async function start(): Promise<void> {
     const options = {
       accuracy: Location.Accuracy.High,
       timeInterval: 1000,
-      distanceInterval: 2,
+      // Not 2 m: a car stopped at a light sends no fix, the dot aged past 15 s and went grey with "Última posición".
+      distanceInterval: 0,
       ...WEB_PRECISE_GPS,
     } as Location.LocationOptions;
     const s = await Location.watchPositionAsync(options, (loc) => mine === generation && acceptLocation(loc), (reason) => {
@@ -95,6 +118,33 @@ async function start(): Promise<void> {
     recordError('my-position', error);
     if (mine === generation) set({ status: 'error' });
   }
+}
+
+/**
+ * Asks for the location from a tap (a user gesture, which the web needs) and, if it is granted, starts the watch
+ * right away — the dot appears without leaving the screen (M-3). Returns the permission afterwards.
+ */
+export async function askMyLocation(): Promise<LocationPermissionState> {
+  try {
+    const perm = await Location.requestForegroundPermissionsAsync();
+    const next = permissionState(perm);
+    set({ permission: next });
+    if (next === 'granted') {
+      stop();
+      await start();
+    }
+    return next;
+  } catch (error) {
+    recordError('my-position-ask', error);
+    set({ status: 'error' });
+    return state.permission ?? 'denied';
+  }
+}
+
+/** Reads the permission again and restarts the watch (coming back from the settings, "Reintentar"). */
+export async function refreshMyPosition(): Promise<void> {
+  stop();
+  await start();
 }
 
 function stop(): void {
@@ -149,5 +199,5 @@ export function __resetMyPosition(): void {
   users = 0;
   appSub?.remove();
   appSub = null;
-  state = { status: 'idle', fix: null, approx: null };
+  state = { status: 'idle', permission: null, fix: null, approx: null };
 }

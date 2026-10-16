@@ -1,5 +1,5 @@
 /** Phase 0's Redmi: Automático chosen, no permission, nothing said. Now the first blocker is named. */
-import { agoShort, autoBlocker, lastFixTime } from '../../lib/trips/autoStatus';
+import { autoBlocker, lastFixTime } from '../../lib/trips/autoStatus';
 
 const ok = { mode: 'auto' as const, readiness: 'ready' as const, autostart: 'enabled' as const, battery: 'unrestricted' as const };
 
@@ -22,8 +22,7 @@ it('nothing to say: all green, unknown states, manual/off mode, the web, not rea
   expect(autoBlocker({ ...ok, readiness: 'web' })).toBeNull();
   expect(autoBlocker({ ...ok, readiness: null })).toBeNull();
 });
-it('agoShort and lastFixTime', () => {
-  expect([agoShort(12_000), agoShort(300_000), agoShort(3 * 3_600_000), agoShort(3 * 86_400_000)]).toEqual(['12 s', '5 min', '3 h', '3 d']);
+it('lastFixTime', () => {
   expect(lastFixTime(null)).toBeNull();
   expect(lastFixTime({ recent: [{ t: 5 }], trip: null })).toBe(5);
   expect(lastFixTime({ recent: [{ t: 5 }], trip: { last: { t: 9 } } })).toBe(9);

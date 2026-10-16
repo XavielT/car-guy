@@ -117,5 +117,5 @@ export function MakeModelYear({ value, onChange }: { value: MakeModelValue; onCh
 
 const styles = StyleSheet.create({
   pair: { flexDirection: 'row', gap: space.md },
-  half: { flex: 1 },
+  half: { flex: 1, minWidth: 0 },
 });

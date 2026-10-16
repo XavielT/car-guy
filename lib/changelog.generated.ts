@@ -4,6 +4,26 @@ import type { ChangelogEntry } from './changelog/parse';
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "2.5.2",
+    "name": null,
+    "date": "2026-10-16",
+    "unreleased": false,
+    "intro": [],
+    "sections": [
+      {
+        "title": null,
+        "intro": [],
+        "items": [
+          "**Aceite sintético**: la casilla ahora se queda marcada. Al guardar, el recordatorio del aceite pasa a 10,000 km / 12 meses; si la desmarcas, vuelve al intervalo normal sin perder cuándo hiciste el último cambio.",
+          "**Fecha de compra**: ya no se corre un día hacia atrás cada vez que abres y guardas el vehículo, y la fila de precio y fecha cabe en pantallas angostas.",
+          "**Mapa de Modo conducir**: si nunca te habían pedido la ubicación, ya no dice \"Sin permiso\": te ofrece **Activar mi ubicación** (y, si está bloqueada, te muestra cómo activarla). Si el GPS solo da una posición aproximada, el mapa se mueve igual y lo dice. Sin mapa en línea ves tus coordenadas y un botón para reintentar; con el carro parado el punto ya no se pone gris; los nombres de las calles se leen mejor y el mapa ya no se inclina sin necesidad.",
+          "**Modo conducir**: INICIAR VIAJE queda siempre a la vista, abajo; el aviso de iPhone ocupa una línea; y el selector de modo se ve también con el tema claro.",
+          "**Detalles**: el color Negro se ve en los selectores de color; \"hace 0 s\" ahora dice \"ahora\" y no se parte en dos líneas; el precio de compra de ejemplo se ve como ejemplo (\"Ej.: 875,000\")."
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.5.1",
     "name": null,
     "date": "2026-10-02",

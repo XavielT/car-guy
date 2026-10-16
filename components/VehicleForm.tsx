@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -125,9 +126,9 @@ export function VehicleForm({
   const [fuel, setFuel] = useState<FuelType>(initial?.defaultFuelType ?? 'regular');
   const [unit, setUnit] = useState<VolumeUnit>(initial?.volumeUnit ?? 'gal');
   const [perHundred, setPerHundred] = useState(initial?.economyUnit === 'l_100km');
-  const [tank, setTank] = useState(initial?.tankVolume ? String(initial.tankVolume) : '');
-  const [reserve, setReserve] = useState(initial?.reserveVolume ? String(initial.reserveVolume) : '');
-  const [odometer, setOdometer] = useState(initial?.odometerKm ? String(initial.odometerKm) : '');
+  const [tank, setTank] = useState(initial?.tankVolume != null ? String(initial.tankVolume) : '');
+  const [reserve, setReserve] = useState(initial?.reserveVolume != null ? String(initial.reserveVolume) : '');
+  const [odometer, setOdometer] = useState(initial?.odometerKm != null ? String(initial.odometerKm) : '');
   // v10 (ADR-51): how the dash shows the fuel.
   const [gauge, setGauge] = useState<GaugeTypeValue>({
     type: initial?.gaugeType ?? 'needle8',
@@ -136,7 +137,7 @@ export function VehicleForm({
   });
   const [synthetic, setSynthetic] = useState(initial?.synthetic ?? false);
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? '');
-  const [purchasePrice, setPurchasePrice] = useState(initial?.purchasePrice ? String(initial.purchasePrice) : '');
+  const [purchasePrice, setPurchasePrice] = useState(initial?.purchasePrice != null ? String(initial.purchasePrice) : '');
   const [gallery, setGallery] = useState<Gallery>(() =>
     normalizeGallery(
       [...(initial?.galleryIds ?? []), ...(initial?.photoMediaId ? [initial.photoMediaId] : [])],
@@ -375,13 +376,15 @@ export function VehicleForm({
         accessibilityRole="checkbox"
         accessibilityState={{ checked: synthetic }}
         accessibilityLabel={t.vehicle.synthetic}
+        hitSlop={{ top: 4, bottom: 4 }}
         style={styles.toggle}>
         <View
           style={[
             styles.checkbox,
-            { borderColor: synthetic ? theme.accent : theme.line, backgroundColor: synthetic ? theme.accent : theme.bg.raised },
-          ]}
-        />
+            { borderColor: synthetic ? theme.accent : theme.text.muted, backgroundColor: synthetic ? theme.accent : theme.bg.raised },
+          ]}>
+          {synthetic ? <Ionicons name="checkmark" size={16} color={theme.accentFillInk} /> : null}
+        </View>
         <View style={{ flex: 1 }}>
           <T face="semibold" style={[styles.toggleLabel, { color: theme.text.primary }]}>
             {t.vehicle.synthetic}
@@ -397,7 +400,7 @@ export function VehicleForm({
         <View style={styles.half}>
           <Field
             label={t.vehicleForm.purchasePrice}
-            placeholder="875,000"
+            placeholder={t.vehicleForm.purchasePriceExample}
             keyboardType="decimal-pad"
             value={purchasePrice}
             onChangeText={setPurchasePrice}
@@ -472,11 +475,11 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
   pair: { flexDirection: 'row', gap: space.md },
-  half: { flex: 1 },
+  half: { flex: 1, minWidth: 0 },
   unit: { marginTop: -space.sm, marginBottom: space.md },
   caption: { fontSize: 12, marginTop: -space.sm, marginBottom: space.lg, lineHeight: 17 },
   toggle: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start', marginBottom: space.lg, minHeight: 44 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1, marginTop: 2 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, marginTop: 2, alignItems: 'center', justifyContent: 'center' },
   toggleLabel: { fontSize: 15 },
   hint: { fontSize: 12, marginTop: 2, lineHeight: 17 },
   sectionToggle: { paddingVertical: space.md, minHeight: 44, justifyContent: 'center' },

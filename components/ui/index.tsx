@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
-import { radius, space } from '@/constants/theme';
+import { palette, radius, space } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
@@ -222,13 +222,17 @@ export function Segmented<K extends string>({
   value,
   onChange,
   style,
+  dark,
 }: {
   options: { key: K; label: string; color?: string }[];
   value: K;
   onChange: (next: K) => void;
   style?: StyleProp<ViewStyle>;
+  /** On an always-dark surface (Modo conducir): the dark palette, whatever the app theme (IMP 16102026 M-9). */
+  dark?: boolean;
 }) {
-  const { theme } = useTheme();
+  const { theme: appTheme } = useTheme();
+  const theme = dark ? palette.dark : appTheme;
 
   return (
     <View

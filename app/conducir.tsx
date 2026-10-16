@@ -8,12 +8,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CompactSpeed } from '@/components/drive/CompactSpeed';
 import { LiveMap, type RoutePoint } from '@/components/map';
+import { GpsNoticeButton } from '@/components/map/GpsNoticeButton';
 import { IosWebBanner } from '@/components/IosWebBanner';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, useAutoReadiness } from '@/components/trips/TripPieces';
 import { Segmented } from '@/components/ui';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { palette, radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { trips as tripRepo } from '@/lib/db/tripOps';
@@ -26,7 +26,7 @@ import { appendTrail, trailSince } from '@/lib/trips/driveTrail';
 import { startManualTrip, stopTrip } from '@/lib/trips/live';
 import { getLiveTrip, gpsNow, setLiveTrip, useLiveTrip } from '@/lib/trips/liveStore';
 import { setTripsMode, tripsMode, type TripsMode } from '@/lib/trips/settings';
-import { isFreshFix } from '@/lib/trips/freshness';
+import { gpsNotice, mapPosition } from '@/lib/trips/gpsNotice';
 import { useMyPosition } from '@/lib/trips/myPosition';
 import { useProfile } from '@/lib/profile';
 
@@ -105,7 +105,8 @@ export default function ConducirScreen() {
       cancelled = true;
     };
   }, [live, vehicleId]);
-  const lastTrip: Trip | null | undefined = lastTripOf && lastTripOf.vehicleId === vehicleId ? lastTripOf.trip : undefined;
+  // No vehicle = no trips to wait for (it used to stay "loading" forever).
+  const lastTrip: Trip | null | undefined = !vehicleId ? null : lastTripOf && lastTripOf.vehicleId === vehicleId ? lastTripOf.trip : undefined;
 
   // The growing trail: the open trip's points, read incrementally while focused.
   const tripId = live?.tripId ?? null;
@@ -138,10 +139,9 @@ export default function ConducirScreen() {
     return () => clearInterval(id);
   }, [live, focused]);
 
-  const meFresh = pos.fix ? isFreshFix(pos.fix, now) : false;
-  const me = pos.fix ? { lat: pos.fix.lat, lng: pos.fix.lng, heading: pos.fix.heading, fresh: meFresh } : null;
-  const gpsLine =
-    pos.status === 'denied' ? t.drive.gpsDenied : !pos.fix ? (pos.status === 'idle' ? null : t.drive.gpsSearching) : meFresh ? null : t.drive.lastPosition(now - pos.fix.t);
+  // The precise fix is the dot; with only an approximate one the map still moves (greyed) instead of staying put (M-4).
+  const me = mapPosition(pos, now);
+  const posNotice = gpsNotice(pos, now);
 
   const notify = (text: string) => {
     setNotice(text);
@@ -217,8 +217,10 @@ export default function ConducirScreen() {
   const avgKmh = live && live.movingS > 0 ? live.distanceM / 1000 / (live.movingS / 3600) : 0;
   const native = Platform.OS !== 'web';
 
+  // The sheet is a column: what scrolls (tips, chips, the last trip, the mode) and, fixed below it, the one thing
+  // you came for — INICIAR / TERMINAR. It used to be one scrolling list, with the button below the fold on a phone (M-10).
   const sheet = (
-    <ScrollView
+    <View
       onLayout={(e) => setSheetH(e.nativeEvent.layout.height)}
       style={[
         styles.sheet,
@@ -226,11 +228,13 @@ export default function ConducirScreen() {
           ? { top: insets.top + space.md, right: insets.right + space.md, bottom: insets.bottom + space.md, width: 380, borderRadius: 22 }
           : { left: 0, right: 0, bottom: 0, maxHeight: height * 0.62, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
         { backgroundColor: ink.bg.surface, borderColor: ink.lineStrong },
-      ]}
-      contentContainerStyle={{ padding: space.lg, paddingBottom: (landscape ? 0 : insets.bottom) + space.lg, gap: space.md }}>
+      ]}>
+    <ScrollView
+      style={styles.sheetScroll}
+      contentContainerStyle={{ padding: space.lg, paddingBottom: space.sm, gap: space.md }}>
       {!landscape ? <View style={[styles.grabber, { backgroundColor: ink.lineStrong }]} /> : null}
       {live ? null : <TipCard id="drive" dark style={{ marginBottom: 0 }} />}
-      {live ? null : <IosWebBanner dark />}
+      {live ? null : <IosWebBanner dark compact />}
 
       <View style={styles.chips}>
         <Chip
@@ -261,9 +265,8 @@ export default function ConducirScreen() {
       ) : (
         <>
           {lastTrip === undefined ? (
-            <Skeleton padded={false} style={{ flex: 0, backgroundColor: 'transparent' }}>
-              <Skeleton.Rect h={64} />
-            </Skeleton>
+            // A dark placeholder: the shared skeleton follows the app theme and was a white slab on this always-dark sheet.
+            <View style={[styles.lastCard, { backgroundColor: ink.bg.raised, borderColor: ink.lineStrong, minHeight: 64 }]} />
           ) : (
             <Pressable
               onPress={() => (lastTrip ? router.push({ pathname: '/viaje/[id]', params: { id: lastTrip.id } }) : undefined)}
@@ -293,6 +296,7 @@ export default function ConducirScreen() {
           </Pressable>
           {mode ? (
             <Segmented<TripsMode>
+              dark
               options={MODES.map((key) => ({ key, label: t.trips.modes[key] }))}
               value={shownMode}
               onChange={chooseMode}
@@ -317,38 +321,41 @@ export default function ConducirScreen() {
         </T>
       ) : null}
 
-      {live ? (
-        <Pressable
-          onPress={() => void finish()}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel={t.drive.stop}
-          style={({ pressed }) => [styles.primary, { backgroundColor: ink.redline, opacity: busy ? 0.6 : pressed ? 0.85 : 1 }]}>
-          <T face="display" style={styles.primaryLabel}>
-            {t.drive.stop}
-          </T>
-        </Pressable>
-      ) : (
-        <Pressable
-          onPress={() => void begin()}
-          disabled={busy || shownMode === 'off' || !tripVehicle}
-          accessibilityRole="button"
-          accessibilityLabel={t.drive.start}
-          accessibilityState={{ disabled: busy || shownMode === 'off' }}
-          style={({ pressed }) => [
-            styles.primary,
-            { backgroundColor: ink.accent, opacity: busy || shownMode === 'off' ? 0.45 : pressed ? 0.85 : 1 },
-          ]}>
-          <T face="display" style={[styles.primaryLabel, { color: '#121212' }]}>
-            {t.drive.start}
-          </T>
-        </Pressable>
-      )}
-
-      <T face="body" style={{ color: ink.text.disabled, fontSize: 11, textAlign: 'center' }}>
-        {t.drive.disclaimer}
-      </T>
     </ScrollView>
+    <View style={[styles.sheetFooter, { paddingBottom: (landscape ? 0 : insets.bottom) + space.lg, borderTopColor: ink.lineStrong }]}>
+        {live ? (
+          <Pressable
+            onPress={() => void finish()}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={t.drive.stop}
+            style={({ pressed }) => [styles.primary, { backgroundColor: ink.redline, opacity: busy ? 0.6 : pressed ? 0.85 : 1 }]}>
+            <T face="display" style={styles.primaryLabel}>
+              {t.drive.stop}
+            </T>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => void begin()}
+            disabled={busy || shownMode === 'off' || !tripVehicle}
+            accessibilityRole="button"
+            accessibilityLabel={t.drive.start}
+            accessibilityState={{ disabled: busy || shownMode === 'off' }}
+            style={({ pressed }) => [
+              styles.primary,
+              { backgroundColor: ink.accent, opacity: busy || shownMode === 'off' ? 0.45 : pressed ? 0.85 : 1 },
+            ]}>
+            <T face="display" style={[styles.primaryLabel, { color: '#121212' }]}>
+              {t.drive.start}
+            </T>
+          </Pressable>
+        )}
+
+        <T face="body" style={{ color: ink.text.disabled, fontSize: 11, textAlign: 'center' }}>
+          {t.drive.disclaimer}
+        </T>
+    </View>
+    </View>
   );
 
   return (
@@ -361,6 +368,7 @@ export default function ConducirScreen() {
           follow
           insets={{ top: insets.top + 120, bottom: landscape ? 0 : sheetH }}
           onUnavailable={() => setMapOff(true)}
+          onAvailable={() => setMapOff(false)}
           me={me}
           avatar={{ photoUri: profile.photoUri, avatarId: profile.avatarId, name: profile.displayName }}
         />
@@ -396,13 +404,7 @@ export default function ConducirScreen() {
         </View>
       </View>
 
-      {gpsLine && !mapOff ? (
-        <View style={[styles.mapOff, { top: insets.top + 170, borderColor: ink.lineStrong }]} accessibilityLiveRegion="polite">
-          <T face="body" style={{ color: ink.text.secondary, fontSize: 12 }}>
-            {gpsLine}
-          </T>
-        </View>
-      ) : null}
+      {posNotice && !mapOff ? <GpsNoticeButton key={posNotice.kind} notice={posNotice} top={insets.top + 170} /> : null}
 
       {mapOff ? (
         <View style={[styles.mapOff, { top: insets.top + 170, borderColor: ink.lineStrong }]}>
@@ -534,7 +536,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs,
     backgroundColor: 'rgba(11,15,20,0.85)',
   },
-  sheet: { position: 'absolute', borderWidth: 1, flexGrow: 0 },
+  sheet: { position: 'absolute', borderWidth: 1, flexGrow: 0, overflow: 'hidden' },
+  sheetScroll: { flexGrow: 0, flexShrink: 1 },
+  sheetFooter: { paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm, borderTopWidth: StyleSheet.hairlineWidth },
   grabber: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, minHeight: 30, justifyContent: 'center' },

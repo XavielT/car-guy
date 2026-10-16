@@ -127,10 +127,10 @@ export function WishlistForm({ vehicleId, itemId, onDone, skeleton }: { vehicleI
         ))}
       </View>
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.brand} value={brand} onChangeText={setBrand} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.partNumber} value={partNumber} onChangeText={setPartNumber} />
         </View>
       </View>
@@ -147,10 +147,10 @@ export function WishlistForm({ vehicleId, itemId, onDone, skeleton }: { vehicleI
         ))}
       </View>
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.wishlist.shipping} keyboardType="decimal-pad" value={shipping} onChangeText={setShipping} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.wishlist.customs} keyboardType="decimal-pad" value={customs} onChangeText={setCustoms} />
         </View>
       </View>

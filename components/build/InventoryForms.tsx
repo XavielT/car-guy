@@ -111,18 +111,18 @@ export function InventoryItemForm({ vehicleId, itemId, onDone, skeleton }: { veh
       </View>
       <Field label={t.inventory.item.name} value={name} onChangeText={setName} />
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.item.brand} value={brand} onChangeText={setBrand} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.item.partNumber} value={partNumber} onChangeText={setPartNumber} />
         </View>
       </View>
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.item.qty} keyboardType="decimal-pad" value={qty} onChangeText={setQty} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.item.unit} value={unit} onChangeText={setUnit} />
         </View>
       </View>
@@ -225,18 +225,18 @@ export function WheelSetForm({ vehicleId, setId, onDone, skeleton }: { vehicleId
         hint={parsed.widthIn || parsed.diamIn ? [parsed.diamIn && `${parsed.diamIn}"`, parsed.widthIn && `${parsed.widthIn}J`, parsed.offsetMm != null && `ET${parsed.offsetMm}`].filter(Boolean).join(' · ') : undefined}
       />
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.wheel.boltPattern} value={bolt} onChangeText={setBolt} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.wheel.centerBore} keyboardType="decimal-pad" value={bore} onChangeText={setBore} />
         </View>
       </View>
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.wheel.brand} value={brand} onChangeText={setBrand} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.wheel.model} value={model} onChangeText={setModel} />
         </View>
       </View>
@@ -374,27 +374,27 @@ export function TireForm({
         hint={parsed.width && parsed.aspect && parsed.rim ? t.inventory.tire.sizeParsed(String(parsed.width), `${parsed.aspect}${parsed.aspectAssumed ? '*' : ''}`, String(parsed.rim)) : undefined}
       />
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.tire.brand} value={brand} onChangeText={setBrand} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.tire.model} value={model} onChangeText={setModel} />
         </View>
       </View>
       <Field label={t.inventory.tire.dot} keyboardType="number-pad" value={dot} onChangeText={setDot} hint={ageText ?? undefined} error={age?.flag && ageText ? `${ageText} — más de 6 años` : undefined} />
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.tire.compound} value={compound} onChangeText={setCompound} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.tire.treadwear} keyboardType="number-pad" value={treadwear} onChangeText={setTreadwear} />
         </View>
       </View>
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.tire.treadNew} keyboardType="decimal-pad" value={treadNew} onChangeText={setTreadNew} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.inventory.tire.treadNow} keyboardType="decimal-pad" value={treadNow} onChangeText={setTreadNow} />
         </View>
       </View>

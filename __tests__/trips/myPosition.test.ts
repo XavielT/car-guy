@@ -1,7 +1,13 @@
 /** The user dot's source: only fresh, precise fixes become the dot (ADR-49). */
 import { __resetMyPosition, acceptLocation, getMyPosition } from '../../lib/trips/myPosition';
 
-jest.mock('expo-location', () => ({ Accuracy: { High: 4 } }));
+jest.mock('expo-location', () => ({
+  Accuracy: { High: 4 },
+  getForegroundPermissionsAsync: jest.fn(),
+  requestForegroundPermissionsAsync: jest.fn(),
+  watchPositionAsync: jest.fn(),
+  getCurrentPositionAsync: jest.fn(),
+}));
 jest.mock('../../lib/diagnostics', () => ({ recordError: jest.fn() }));
 
 const NOW = 1_790_000_000_000;
@@ -37,4 +43,55 @@ it('a coarse fix is a halo, never the dot', () => {
 it('an invalid heading (−1) hides the arrow', () => {
   acceptLocation(loc(1, 8, -1), NOW);
   expect(getMyPosition().fix?.heading).toBeNull();
+});
+
+// ---- IMP 16102026 (M-1, M-3, M-6, M-11): "never asked" is not "refused" ------------------------------------
+import { askMyLocation, permissionState, refreshMyPosition } from '../../lib/trips/myPosition';
+
+const mockLoc = jest.requireMock('expo-location') as Record<string, jest.Mock>;
+
+describe('permission states', () => {
+  beforeEach(() => {
+    __resetMyPosition();
+    for (const fn of Object.values(mockLoc)) if (typeof fn?.mockReset === 'function') fn.mockReset();
+    mockLoc.watchPositionAsync.mockResolvedValue({ remove: jest.fn() });
+    mockLoc.getCurrentPositionAsync.mockRejectedValue(new Error('no fix'));
+  });
+
+  it('the browser\'s "prompt" (never asked) is undetermined, and nothing is watched yet', async () => {
+    mockLoc.getForegroundPermissionsAsync.mockResolvedValue({ granted: false, status: 'undetermined', canAskAgain: true });
+    await refreshMyPosition();
+    expect(getMyPosition()).toMatchObject({ status: 'denied', permission: 'undetermined' });
+    expect(mockLoc.watchPositionAsync).not.toHaveBeenCalled();
+  });
+
+  it('a refusal on a phone that can still ask is "denied"; one that cannot is "blocked"', () => {
+    expect(permissionState({ granted: false, status: 'denied', canAskAgain: true })).toBe('denied');
+    expect(permissionState({ granted: false, status: 'denied', canAskAgain: false })).toBe('blocked');
+  });
+
+  it('a position error that the web shim reports as {status: granted, granted: false} is still a granted permission', () => {
+    expect(permissionState({ granted: false, status: 'granted', canAskAgain: true })).toBe('granted');
+  });
+
+  it('granted starts the watch with no distance filter, so a stopped car keeps sending fixes', async () => {
+    mockLoc.getForegroundPermissionsAsync.mockResolvedValue({ granted: true, status: 'granted', canAskAgain: true });
+    await refreshMyPosition();
+    expect(getMyPosition().permission).toBe('granted');
+    expect(mockLoc.watchPositionAsync).toHaveBeenCalledWith(expect.objectContaining({ timeInterval: 1000, distanceInterval: 0 }), expect.any(Function), expect.any(Function));
+  });
+
+  it('asking from a tap, when it is granted, starts the watch at once (the dot appears without leaving the screen)', async () => {
+    mockLoc.requestForegroundPermissionsAsync.mockResolvedValue({ granted: true, status: 'granted', canAskAgain: true });
+    mockLoc.getForegroundPermissionsAsync.mockResolvedValue({ granted: true, status: 'granted', canAskAgain: true });
+    await expect(askMyLocation()).resolves.toBe('granted');
+    expect(mockLoc.watchPositionAsync).toHaveBeenCalledTimes(1);
+    expect(getMyPosition().permission).toBe('granted');
+  });
+
+  it('asking and being refused leaves the screen on "denied", not on an error', async () => {
+    mockLoc.requestForegroundPermissionsAsync.mockResolvedValue({ granted: false, status: 'denied', canAskAgain: true });
+    await expect(askMyLocation()).resolves.toBe('denied');
+    expect(mockLoc.watchPositionAsync).not.toHaveBeenCalled();
+  });
 });

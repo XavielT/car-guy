@@ -2,8 +2,9 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { VehicleDraft } from '@/components/VehicleForm';
 
-import { addMonths, todayIso } from '../domain/dates';
+import { todayIso } from '../domain/dates';
 import { isArchivedFor } from '../domain/garage';
+import { oilReminderPatch } from '../domain/oilInterval';
 import { statusLabel } from '../domain/vehicleStatus';
 import { isLiquid, tankForStorage, toLiters } from '../domain/units';
 import { t } from '../i18n';
@@ -20,10 +21,6 @@ import {
   vehicles as vehicleRepo,
 } from './repos';
 import { seedVehicleDefaults } from './seed';
-
-/** Synthetic oil stretches the interval; the catalog default assumes mineral. */
-const SYNTHETIC_KM = 10_000;
-const SYNTHETIC_MONTHS = 12;
 
 /**
  * Saves a vehicle from the form, in the order the data depends on.
@@ -77,6 +74,8 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
         status: draft.status,
         // Status and is_archived say the same thing until a later schema drops the flag.
         isArchived: isArchivedFor(draft.status),
+        // v11 (N5): the oil switch is a column now, so the editor can read it back.
+        oilSynthetic: draft.synthetic,
         chassisCode: draft.chassisCode,
         chassisNumber: draft.chassisNumber,
         engineCode: draft.engineCode,
@@ -167,8 +166,9 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
 
   if (isNew) {
     await seedVehicleDefaults(saved.id);
-    if (draft.synthetic) await applySyntheticOil(saved.id);
   }
+  // Both ways, new or edit: marking stretches the oil reminder, unmarking returns it to the catalog interval.
+  if (isNew ? draft.synthetic : draft.synthetic !== existing?.oilSynthetic) await applyOilInterval(saved.id, draft.synthetic);
   // ADR-51: another grid or another tank changes what the fill-ups say about the gauge.
   const gaugeChanged =
     existing != null &&
@@ -183,25 +183,15 @@ export async function saveVehicleDraft(draft: VehicleDraft): Promise<string> {
 }
 
 /**
- * Pushes the seeded oil reminder out to the synthetic interval.
+ * Moves the vehicle's oil reminder to the synthetic interval, or back to the catalog's.
  *
- * Done by editing the reminder rather than the catalog: the catalog is shared by
- * every vehicle, and only this one runs synthetic.
+ * Done by editing the reminder rather than the catalog: the catalog is shared by every vehicle, and only this one
+ * runs synthetic. The next due is counted from the last change (lib/domain/oilInterval.ts), which is never touched.
  */
-async function applySyntheticOil(vehicleId: string): Promise<void> {
-  const rows = await reminderRepo.listWhere({ vehicleId, serviceTypeId: 'aceite_motor' });
-  const reminder = rows[0];
+async function applyOilInterval(vehicleId: string, synthetic: boolean): Promise<void> {
+  const reminder = (await reminderRepo.listWhere({ vehicleId, serviceTypeId: 'aceite_motor' }))[0];
   if (!reminder) return;
-
-  const baseKm = (reminder.dueKm ?? 0) - (reminder.intervalKm ?? 0);
-  await reminderRepo.upsert({
-    id: reminder.id,
-    intervalKm: SYNTHETIC_KM,
-    intervalMonths: SYNTHETIC_MONTHS,
-    dueKm: reminder.dueKm != null ? baseKm + SYNTHETIC_KM : null,
-    dueDate: reminder.dueDate ? addMonths(todayIso(), SYNTHETIC_MONTHS) : null,
-    notes: t.oil.syntheticNote,
-  });
+  await reminderRepo.upsert({ id: reminder.id, ...oilReminderPatch(reminder, synthetic, t.oil.syntheticNote) });
 }
 
 /**

@@ -61,7 +61,7 @@ export default function JuntesScreen() {
       {header}
       <PrimaryButton label={t.juntes.create} onPress={() => router.push('/juntes/nuevo')} />
       <View style={styles.joinRow}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.juntes.joinCode} placeholder={t.juntes.codePlaceholder} value={code} onChangeText={(v) => setCode(v.replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 8))} autoCapitalize="none" autoCorrect={false} />
         </View>
         <GhostButton label={t.juntes.join} disabled={code.length !== 8} onPress={() => void join()} />

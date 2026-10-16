@@ -1,34 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { cachedMapStyle, markMapStyleFailed, resolveMapStyle } from '@/lib/map/config';
+import { cachedMapStyle, markMapStyleFailed, resetMapStyleCache, resolveMapStyle } from '@/lib/map/config';
 
 /**
  * The style URL once the health check answered (lib/map/config.ts): a URL, or
  * null when no style loads (the component calls onUnavailable). `checking`
  * while the first check runs — the component shows a plain dark box.
+ * `retry` forgets a remembered failure and checks again (the "Reintentar" of the
+ * offline map, IMP 16102026 M-8).
  */
-export function useMapStyle(onUnavailable?: () => void): { url: string | null; checking: boolean; fail: () => void } {
+export function useMapStyle(onUnavailable?: () => void, onAvailable?: () => void): { url: string | null; checking: boolean; fail: () => void; retry: () => void } {
   const [state, setState] = useState<{ url: string | null; checking: boolean }>(() => {
     const hit = cachedMapStyle();
     return hit === undefined ? { url: null, checking: true } : { url: hit, checking: false };
   });
+  const alive = useRef(true);
+  const unavailable = useRef(onUnavailable);
+  const available = useRef(onAvailable);
   useEffect(() => {
-    let alive = true;
+    unavailable.current = onUnavailable;
+    available.current = onAvailable;
+  });
+
+  const check = useCallback(() => {
     void resolveMapStyle().then((url) => {
-      if (!alive) return;
+      if (!alive.current) return;
       setState({ url, checking: false });
-      if (!url) onUnavailable?.();
+      if (url) available.current?.();
+      else unavailable.current?.();
     });
-    return () => {
-      alive = false;
-    };
-    // The check runs once per mount; onUnavailable is the screen's callback of the moment.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    alive.current = true;
+    // The check runs once per mount; a later "Reintentar" runs it again.
+    check();
+    return () => {
+      alive.current = false;
+    };
+  }, [check]);
+
   const fail = () => {
     markMapStyleFailed();
     setState({ url: null, checking: false });
     onUnavailable?.();
   };
-  return { ...state, fail };
+  const retry = () => {
+    resetMapStyleCache();
+    setState({ url: null, checking: true });
+    check();
+  };
+  return { ...state, fail, retry };
 }

@@ -316,5 +316,5 @@ const styles = StyleSheet.create({
   hint: { fontSize: 12, lineHeight: 17, marginBottom: space.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
   pair: { flexDirection: 'row', gap: space.md },
-  half: { flex: 1 },
+  half: { flex: 1, minWidth: 0 },
 });

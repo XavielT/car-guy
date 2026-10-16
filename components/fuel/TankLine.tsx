@@ -6,9 +6,9 @@ import { space } from '@/constants/theme';
 import type { Vehicle } from '@/lib/db/types';
 import { gaugeCfgOf, formatFrac, tankNow } from '@/lib/domain/gaugeVehicle';
 import { fromLiters } from '@/lib/domain/units';
+import { agoText, noBreak } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
-import { agoShort } from '@/lib/trips/autoStatus';
 import type { FillUp } from '@/lib/types';
 
 /**
@@ -32,8 +32,10 @@ export function TankLine({ vehicle, fillups, odometerKm }: { vehicle: Vehicle; f
   const parts = [
     `${t.gauge.tank}: ${reading} ${t.gauge.tankLiters(shown(tank.liters), unit === 'l' ? 'L' : 'gal')}`,
     tank.km != null && tank.kmBand ? t.gauge.tankKm(String(tank.km), String(tank.kmBand[0]), String(tank.kmBand[1])) : null,
-    t.gauge.tankAgo(agoShort(now - new Date(tank.at).getTime())),
-  ].filter(Boolean);
+    agoText(now - new Date(tank.at).getTime()),
+  ]
+    .filter((p): p is string => Boolean(p))
+    .map(noBreak);
   const color = tank.telltale === 'red' ? theme.dangerText : tank.telltale === 'amber' ? theme.accent : theme.text.secondary;
   return (
     <View style={{ marginTop: space.sm }} accessible accessibilityLabel={parts.join(', ')}>

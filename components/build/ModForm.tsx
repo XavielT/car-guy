@@ -276,10 +276,10 @@ export function ModForm({
 
       <Field label={t.modForm.name} placeholder={t.modForm.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.brand} value={brand} onChangeText={setBrand} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.partNumber} value={partNumber} onChangeText={setPartNumber} />
         </View>
       </View>
@@ -315,10 +315,10 @@ export function ModForm({
 
       {eyebrow(t.modForm.costs)}
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.foreign} keyboardType="decimal-pad" value={foreign} onChangeText={setForeign} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.rate} keyboardType="decimal-pad" value={rate} onChangeText={setRate} />
         </View>
       </View>
@@ -336,18 +336,18 @@ export function ModForm({
         </View>
       ) : null}
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.costPart} keyboardType="decimal-pad" value={part} onChangeText={setPart} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.costLabor} keyboardType="decimal-pad" value={labor} onChangeText={setLabor} />
         </View>
       </View>
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.costShipping} keyboardType="decimal-pad" value={shipping} onChangeText={setShipping} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.costCustoms} keyboardType="decimal-pad" value={customs} onChangeText={setCustoms} />
         </View>
       </View>

@@ -53,7 +53,7 @@ function upgrade(db: DatabaseSync) {
 
 describe('fresh install: 0 → 10', () => {
   it('is the latest version and has every v10 table and column', () => {
-    expect(LATEST_VERSION).toBe(10);
+    expect(LATEST_VERSION).toBe(11);
     const tables = (appDb.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'`).all() as Row[]).map((r) => r.name);
     for (const t of ['trip_share', 'privacy_zone', 'social_cache', 'junte_cache']) expect(tables).toContain(t);
     const cols = (t: string) => (appDb.sqlite.prepare(`PRAGMA table_info(${t})`).all() as Row[]).map((r) => r.name);
@@ -141,7 +141,7 @@ describe('the app on v10 (seed, reset, backup)', () => {
     await vehicles.upsertRaw({ id: GARAGE_IDS.ds3, gaugeCalibration: '{"status":"aprendido"}' });
 
     const backup = JSON.parse(JSON.stringify(await buildBackup())) as BackupV2;
-    expect(backup.schemaVersion).toBe(10);
+    expect(backup.schemaVersion).toBe(11);
     expect(backup.tables.trip_share).toHaveLength(1);
     expect(backup.tables.privacy_zone).toHaveLength(1);
 

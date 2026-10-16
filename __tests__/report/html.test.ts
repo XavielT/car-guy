@@ -25,6 +25,7 @@ function vehicle(over: Partial<Vehicle> = {}): Vehicle {
     photoMediaId: null,
     notes: '',
     isArchived: false,
+    oilSynthetic: false,
     sortOrder: 0,
     nickname: null,
     status: 'activo',

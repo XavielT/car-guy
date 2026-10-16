@@ -57,6 +57,10 @@ export function DateField({
           // field in light mode, and vice versa.
           colorScheme: scheme,
           width: '100%',
+          // Safari on iPhone gives a date input an intrinsic width wider than a half-width column: without these a
+          // flex child cannot shrink below it and the row runs off the screen (IMP 16102026 X1).
+          minWidth: 0,
+          maxWidth: '100%',
           boxSizing: 'border-box',
         }}
       />
@@ -70,7 +74,7 @@ export function DateField({
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: space.md + 2 },
+  wrap: { marginBottom: space.md + 2, minWidth: 0 },
   label: { fontSize: 12, marginBottom: 6 },
   hint: { fontSize: 13, marginTop: 6, lineHeight: 17 },
 });

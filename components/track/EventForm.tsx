@@ -496,10 +496,10 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
         {t.track.consumables.pads}
       </T>
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.track.consumables.padsF} keyboardType="decimal-pad" value={padF} onChangeText={setPadF} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.track.consumables.padsR} keyboardType="decimal-pad" value={padR} onChangeText={setPadR} />
         </View>
       </View>

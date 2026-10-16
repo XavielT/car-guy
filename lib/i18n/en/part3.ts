@@ -684,6 +684,14 @@ export const enPart3: Pick<
     ],
   },
   common: {
+    ago: {
+      now: 'now',
+      seconds: (n: number) => `${n}\u00A0s\u00A0ago`,
+      minutes: (n: number) => `${n}\u00A0min\u00A0ago`,
+      hours: (n: number) => `${n}\u00A0h\u00A0ago`,
+      yesterday: 'yesterday',
+      days: (n: number) => `${n}\u00A0d\u00A0ago`,
+    },
     cancel: 'Cancel',
     continue: 'Continue',
     save: 'Save',

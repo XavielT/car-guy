@@ -13,12 +13,13 @@ import { odometer as odometerRepo } from '@/lib/db/repos';
 import { trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip, TripRole } from '@/lib/db/types';
 import { Alert } from '@/lib/alert';
+import { agoText } from '@/lib/format';
 import { localeTag, t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
 import { getAutostartState, getBatteryState, openAutostartSettings, openBatterySettings, type AutostartState, type BatteryState } from '@/modules/miui-autostart';
-import { agoShort, autoBlocker, lastFixTime } from '@/lib/trips/autoStatus';
+import { autoBlocker, lastFixTime } from '@/lib/trips/autoStatus';
 import { machineState } from '@/lib/trips/engine';
 import { tripsMode, type TripsMode } from '@/lib/trips/settings';
 import type { Fix, LatLng } from '@/lib/trips/geo';
@@ -305,7 +306,7 @@ export function LastFixLine() {
   }, []);
   return (
     <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
-      {t.trips.lastFixAt(at == null ? null : agoShort(now - at))}
+      {t.trips.lastFixAt(at == null ? null : agoText(now - at))}
     </T>
   );
 }

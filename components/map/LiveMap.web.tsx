@@ -5,9 +5,12 @@ import { StyleSheet, View } from 'react-native';
 
 import { committedLength, pointFeature, ROUTE_CASING_PAINT, ROUTE_LINE_LAYOUT, ROUTE_LINE_WIDTH, routeSegments, speedColorExpression, tailStart } from '@/lib/trips/geojson';
 
+import { OfflineMap } from './OfflineMap';
 import { Recenter } from './Recenter';
 import { USER_DOT_SIZE, UserDot } from './UserDot';
 import type { LiveMapProps } from './types';
+import { labelPatches } from '@/lib/map/labelStyle';
+import { createTileHealth } from '@/lib/map/tileHealth';
 import { useMapStyle } from './useMapStyle';
 import { createMap, setSourceData, type GLMap } from './webMap';
 
@@ -18,16 +21,16 @@ const HOME: [number, number] = [-69.93, 18.47];
  * `map.project()` (IMP 01102026 ADR-49) — the camera follows it only on a fresh
  * fix; without `me`, the newest trail point (a white dot) as before. A drag
  * stops the follow; the re-centre button brings it back. Same two-source trail
- * as native.
+ * as native. Flat and north-up: the web map has no course, and a 45° tilt only skewed the street names (M-12).
  */
-export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, me, avatar }: LiveMapProps) {
+export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, onAvailable, me, avatar }: LiveMapProps) {
   const top = insets?.top ?? 0;
   const bottom = insets?.bottom ?? 0;
   const box = useRef<View>(null);
   const mapRef = useRef<GLMap | null>(null);
   const [ready, setReady] = useState(false);
   const [tracking, setTracking] = useState(follow);
-  const style = useMapStyle(onUnavailable);
+  const style = useMapStyle(onUnavailable, onAvailable);
   const fail = useRef(style.fail);
   useEffect(() => {
     fail.current = style.fail;
@@ -41,8 +44,10 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
   const last = trail.length ? trail[trail.length - 1] : null;
   const [screen, setScreen] = useState<{ x: number; y: number; bearing: number } | null>(null);
   const meRef = useRef(me);
+  const callbacks = useRef({ onUnavailable, onAvailable });
   useEffect(() => {
     meRef.current = me;
+    callbacks.current = { onUnavailable, onAvailable };
   });
 
   useEffect(() => {
@@ -50,12 +55,20 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
     if (!style.url || !el) return;
     let cancelled = false;
     let map: GLMap | null = null;
-    void createMap(el, style.url, { center: HOME, zoom: 16, pitch: 45 }, () => fail.current(), () => cancelled).then((m) => {
+    void createMap(el, style.url, { center: HOME, zoom: 16, pitch: 0 }, () => fail.current(), () => cancelled).then((m) => {
       if (!m) return;
       map = m;
       mapRef.current = m;
       // A drag by the person (not our easeTo) stops the follow.
       m.on('dragstart', () => setTracking(false));
+      // Tiles that stop arriving after the map loaded (a dead zone) say so, and say when they are back (M-8).
+      const health = createTileHealth();
+      m.on('error', () => {
+        if (health.error(Date.now())) callbacks.current.onUnavailable?.();
+      });
+      m.on('idle', () => {
+        if (health.idle()) callbacks.current.onAvailable?.();
+      });
       // The overlay dot follows every camera move.
       m.on('move', () => {
         const p = meRef.current;
@@ -65,6 +78,10 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
       });
       m.on('load', () => {
         if (cancelled) return;
+        // Readable names on the dark map (M-12).
+        for (const { id, paint } of labelPatches(m.getStyle().layers as never)) {
+          for (const [prop, value] of Object.entries(paint)) m.setPaintProperty(id, prop as never, value as never);
+        }
         for (const id of ['trail-committed', 'trail-tail']) {
           m.addSource(id, { type: 'geojson', data: routeSegments([]) as any });
           m.addLayer({ id: `${id}-casing`, type: 'line', source: id, layout: ROUTE_LINE_LAYOUT as any, paint: ROUTE_CASING_PAINT as any });
@@ -116,8 +133,11 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
     const pt = m.project([me.lng, me.lat]);
     setScreen({ x: pt.x, y: pt.y, bearing: m.getBearing() });
     // Only a fresh fix moves the camera (ADR-49): a stale one is drawn greyed where it was.
-    if (follow && tracking && me.fresh) m.easeTo({ center: [me.lng, me.lat], zoom: Math.max(m.getZoom(), 15), duration: 800 });
+    if (follow && tracking && (me.fresh || me.approx)) m.easeTo({ center: [me.lng, me.lat], zoom: Math.max(m.getZoom(), me.approx ? 14 : 15), duration: 800 });
   }, [ready, me, follow, tracking]);
+
+  // No style (offline, provider down): the screen's own offline map, not a black box (M-8).
+  if (!style.url && !style.checking) return <OfflineMap me={me} onRetry={style.retry} />;
 
   return (
     <View style={styles.fill}>

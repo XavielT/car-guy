@@ -41,6 +41,8 @@ export type Vehicle = Syncable & {
   photoMediaId: string | null;
   notes: string;
   isArchived: boolean;
+  /** v11 (IMP 16102026 N5): the oil reminder follows the synthetic interval (10,000 km / 12 months). */
+  oilSynthetic: boolean;
   sortOrder: number;
   // v2 (IMP 28092026)
   nickname: string | null;

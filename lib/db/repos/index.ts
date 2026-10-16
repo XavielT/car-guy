@@ -188,7 +188,7 @@ function toDtc(row: Record<string, unknown>): DtcCode {
   };
 }
 
-const vehiclesBase = makeRepo<Vehicle>({ table: 'vehicle', booleans: ['isArchived'] });
+const vehiclesBase = makeRepo<Vehicle>({ table: 'vehicle', booleans: ['isArchived', 'oilSynthetic'] });
 const fuelBase = makeRepo<FuelLog>({
   table: 'fuel_log',
   booleans: ['isFullTank', 'missedPrevious'],

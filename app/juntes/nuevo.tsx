@@ -71,10 +71,10 @@ export default function NuevoJunteScreen() {
       <Stack.Screen options={{ headerShown: true, title: t.juntes.newTitle }} />
       <Field label={t.juntes.titleField} placeholder={t.juntes.titlePlaceholder} value={title} onChangeText={(v) => setTitle(v.slice(0, 60))} />
       <View style={styles.pair}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <DateField label={t.juntes.date} value={day} onChange={setDay} />
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.juntes.time} value={time} onChangeText={setTime} keyboardType="numbers-and-punctuation" placeholder="15:30" />
         </View>
       </View>

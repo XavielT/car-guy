@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { committedLength, ROUTE_CASING_PAINT, ROUTE_LINE_LAYOUT, ROUTE_LINE_WIDTH, routeSegments, speedColorExpression, tailStart } from '@/lib/trips/geojson';
 
+import { OfflineMap } from './OfflineMap';
 import { Recenter } from './Recenter';
 import { UserDot } from './UserDot';
 import type { LiveMapProps } from './types';
@@ -20,10 +21,10 @@ const HOME: [number, number] = [-69.93, 18.47];
  * the tail (every update) — so a long drive does not re-send the whole line
  * each second. Panning stops the follow; the re-centre button brings it back.
  */
-export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, me, avatar }: LiveMapProps) {
+export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, onAvailable, me, avatar }: LiveMapProps) {
   const top = insets?.top ?? 0;
   const bottom = insets?.bottom ?? 0;
-  const style = useMapStyle(onUnavailable);
+  const style = useMapStyle(onUnavailable, onAvailable);
   const [tracking, setTracking] = useState(follow);
   const k = committedLength(trail.length);
   const first = trail.length ? `${trail[0].lat},${trail[0].lng}` : '';
@@ -32,16 +33,16 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
   const committed = useMemo(() => routeSegments(trail.slice(0, k)), [k, first]);
   const tail = useMemo(() => routeSegments(trail.slice(tailStart(k))), [trail, k]);
   const last = trail[trail.length - 1];
-  const [initial] = useState(() => ({
-    center: me ? ([me.lng, me.lat] as [number, number]) : last ? ([last.lng, last.lat] as [number, number]) : HOME,
-    zoom: 16,
-    pitch: 45,
-  }));
+  // Tilted course-up only once there is a position to follow; until then a flat city view, not a skewed corner (M-12).
+  const [initial] = useState(() => {
+    const at = me ? ([me.lng, me.lat] as [number, number]) : last ? ([last.lng, last.lat] as [number, number]) : null;
+    return { center: at ?? HOME, zoom: at ? 16 : 13, pitch: at ? 45 : 0 };
+  });
   // Only a fresh fix moves the camera; a stale one stays where it was drawn, greyed.
-  const followMe = follow && tracking && me?.fresh ? me : null;
+  const followMe = follow && tracking && (me?.fresh || me?.approx) ? me : null;
   const paint = useMemo(() => ({ 'line-color': speedColorExpression() as any, 'line-width': ROUTE_LINE_WIDTH + 1 }), []);
 
-  if (!style.url) return <View style={styles.fill} />;
+  if (!style.url) return style.checking ? <View style={styles.fill} /> : <OfflineMap me={me} onRetry={style.retry} />;
   return (
     <View style={styles.fill}>
       <MLMap

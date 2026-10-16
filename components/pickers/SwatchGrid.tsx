@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
+import { luminance, needsOutline } from '@/lib/domain/contrast';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
@@ -44,6 +45,8 @@ export function SwatchGrid({
           .filter((s) => s.hex)
           .map((s) => {
             const on = s.id === value;
+            // Every dot reads against the screen (≥ 3:1): a black one on the dark theme, a white one on the light.
+            const outline = needsOutline(s.hex ?? '', [theme.bg.base, theme.bg.surface, theme.bg.raised]);
             return (
               <Pressable
                 key={s.id}
@@ -58,12 +61,12 @@ export function SwatchGrid({
                 <View
                   style={[
                     styles.dot,
-                    { backgroundColor: s.hex ?? 'transparent', borderColor: on ? theme.accent : s.light ? theme.line : 'transparent' },
+                    { backgroundColor: s.hex ?? 'transparent', borderColor: on ? theme.accent : outline ? theme.text.muted : 'transparent' },
                     on && styles.dotOn,
                   ]}>
-                  {on ? <Ionicons name="checkmark" size={18} color={s.light ? '#111' : '#fff'} /> : null}
+                  {on ? <Ionicons name="checkmark" size={18} color={(luminance(s.hex ?? '') ?? 0) > 0.4 ? '#111' : '#fff'} /> : null}
                 </View>
-                <T face="body" numberOfLines={1} style={[styles.name, { color: on ? theme.text.primary : theme.text.muted }]}>
+                <T face="body" numberOfLines={2} style={[styles.name, { color: on ? theme.text.primary : theme.text.muted }]}>
                   {s.label}
                 </T>
               </Pressable>
@@ -104,7 +107,7 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: space.md + 2 },
   label: { fontSize: 12, marginBottom: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  cell: { width: 60, alignItems: 'center', minHeight: 64 },
+  cell: { width: 60, alignItems: 'center', minHeight: 76 },
   dot: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   dotOn: { transform: [{ scale: 1.08 }] },
   otherDot: { borderStyle: 'dashed' },

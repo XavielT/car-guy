@@ -21,15 +21,6 @@ export function autoBlocker(input: {
   return null;
 }
 
-/** "12 s", "5 min", "3 h", "2 d" — the same in both languages. */
-export function agoShort(ms: number): string {
-  const s = Math.max(0, Math.round(ms / 1000));
-  if (s < 60) return `${s} s`;
-  if (s < 3600) return `${Math.round(s / 60)} min`;
-  if (s < 172_800) return `${Math.round(s / 3600)} h`;
-  return `${Math.round(s / 86_400)} d`;
-}
-
 /** The newest fix the machine has seen — idle (start window) or recording (the open trip's last). */
 export function lastFixTime(state: { recent: { t: number }[]; trip: { last: { t: number } | null } | null } | null): number | null {
   if (!state) return null;

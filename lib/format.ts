@@ -1,6 +1,6 @@
 import { displayUnitLabel, economyFromKmPerLiter, economyUnitLabel, GAL_L, type EconomyUnit, type VolumeUnit } from './domain/units';
 import type { FuelType } from './types';
-import { localeTag } from './i18n';
+import { localeTag, t } from './i18n';
 
 // Numbers and money read the same in es-DO and en-US (1,234.50) and RD$ stays RD$ in
 // English too, so these stay es-DO; dates follow the language (ADR-39).
@@ -109,7 +109,33 @@ export function isoFromDateInput(date: string): string {
   return new Date(y, m - 1, day, 12, 0, 0).toISOString();
 }
 
+/** Spaces that never wrap: a line may only break where the text says so (the " · " between the parts of a status line). */
+export function noBreak(text: string): string {
+  return text.replace(/ /g, '\u00A0');
+}
+
+/**
+ * "ahora" · "hace 12 s" · "hace 5 min" · "hace 2 h" · "ayer" · "hace 3 d" (en: "now" … "3 d ago") — never "0 s" (IMP 16102026 X2).
+ * The spaces inside are non-breaking, so a phrase is never split across two lines.
+ */
+export function agoText(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  const a = t.common.ago;
+  if (s < 10) return a.now;
+  if (s < 60) return a.seconds(s);
+  if (s < 3600) return a.minutes(Math.floor(s / 60));
+  if (s < 86_400) return a.hours(Math.floor(s / 3600));
+  if (s < 172_800) return a.yesterday;
+  return a.days(Math.floor(s / 86_400));
+}
+
+/**
+ * The `YYYY-MM-DD` a date input shows for a stored date. A date-only value (what the vehicle form stores for the
+ * purchase date and "desde") is already that day: parsed as an instant it is UTC midnight — the evening before in
+ * Santo Domingo — and every open-and-save of the editor moved the date back one more day (IMP 16102026, ADR-63).
+ */
 export function dateInputFromIso(iso: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

@@ -93,5 +93,5 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, marginBottom: 6 },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
   pair: { flexDirection: 'row', gap: space.md },
-  half: { flex: 1 },
+  half: { flex: 1, minWidth: 0 },
 });

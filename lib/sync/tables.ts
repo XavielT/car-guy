@@ -162,7 +162,7 @@ export const SYNCED_SETTING_KEYS = ['reference_prices', 'price_week_label', 'gar
  * one entry.
  */
 export const BOOLEAN_COLUMNS: Record<string, string[]> = {
-  vehicle: ['is_archived'],
+  vehicle: ['is_archived', 'oil_synthetic'],
   fuel_log: ['is_full_tank', 'missed_previous', 'in_reserve'],
   service_type: ['is_seeded'],
   reminder: ['is_recurring', 'fixed_interval', 'is_enabled'],
