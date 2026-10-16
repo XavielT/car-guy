@@ -138,3 +138,24 @@ X4 (pestañas cortadas) y X6 (hueco de "¿Por qué?") ya están anotados: X4 en 
 - **Redmi/Android:** sin dispositivo en adb no se hizo `adb logcat` ni `adb shell dumpsys package com.xaviel.carguy | grep -i permission`. Pendiente: matriz fg/bg, MIUI autoarranque, optimización de batería (cruza con fase 2).
 - **X1** en WebKit real (ver arriba).
 - **Docs de Expo v57** (expo-location/notifications): no se leyeron en esta fase (no se escribió código); las fases con permisos deben leerlos primero.
+
+---
+
+## Estado tras la fase 1 (2026-10-16)
+
+| Id | Estado | Cómo se probó |
+|----|--------|---------------|
+| N5 aceite sintético | **corregido** (columna `oil_synthetic`, v11, `sql/040`; el editor la lee; marcar/desmarcar mueve el recordatorio en ambos sentidos) | `__tests__/db/vehicle-roundtrip.test.ts` (falló antes: `synthetic` volvía `undefined`), `domain/oilInterval.test.ts`, `db/migrate-v11.test.ts` |
+| ADR-63 (otros campos) | **un campo más fallaba: la fecha de compra** (y "desde" del estado) retrocedía **un día en cada apertura+guardado** del editor en Santo Domingo (UTC-4): el formulario guarda `YYYY-MM-DD` y `dateInputFromIso` lo leía como instante UTC | `__tests__/domain/dateInput.test.ts` (TZ America/Santo_Domingo) y el round-trip de todos los campos (nativo/SQLite, push y pull) |
+| X1 | **defensivo**: `minWidth: 0` en las 6 columnas `half` y en 31 columnas inline de dos campos (Inventario, Mod, Wishlist, Pista, Juntes) + `minWidth/maxWidth` en el `<input type=date>` web. Chromium a 320/360/390 no desbordaba antes ni después (script de medición sobre 15 formularios); la causa en Safari sigue sin verificar | `04-tracking/screens/f1_purchase_row_320.png` / `_390.png`; **verificar en el iPhone** |
+| X2 | **corregido** (`agoText`: "ahora", "hace 12 s", "hace 5 min", "hace 2 h", "ayer", "hace 3 d", es/en; espacios de no separación; la línea del tanque solo parte en ` · `) | `__tests__/domain/relativeTime.test.ts` |
+| X3 | **corregido** (contorno ≥ 3:1 en todo swatch que no contraste; etiquetas a dos líneas) | `__tests__/domain/contrast.test.ts` (todos los colores, dos temas) + `f1_swatch_after.png` |
+| X5 | **corregido** (placeholder "Ej.: 875,000"; un `0` guardado ya no reaparece vacío) | round-trip + revisión |
+| M-2 | **corregido (versión F1)**: el aviso es un botón (`GpsNoticeButton`): pide la ubicación con un toque, o muestra los pasos / abre ajustes | `__tests__/trips/gpsNotice.test.ts`, `myPosition.test.ts`, capturas `f1-after_prompt*.png`, `f1-after_blocked*.png` |
+| M-4 | **corregido** (un fix aproximado mueve el mapa, gris, con "±N m") | `gpsNotice.test.ts` (`mapPosition`), `f1-after_approx.png` |
+| M-8 | **corregido** (mapa sin estilo = coordenadas + "Reintentar el mapa"; tiles que dejan de llegar avisan y se recuperan) | `__tests__/trips/tile-health.test.ts`, `f1-after_no_tiles.png` |
+| M-9 | **re-diagnosticado y corregido**: la "losa blanca" de las capturas era el *skeleton* de la última tarjeta (se quedaba "cargando" para siempre sin vehículo y seguía el tema claro); el `Segmented` también seguía el tema claro. Ahora ambos son oscuros (`Segmented dark`, placeholder propio) | `f1-final_light_scrolled.png` (tema claro, hoja entera legible) |
+| M-10 | **corregido**: INICIAR/TERMINAR queda fijo abajo (antes vivía al final de una lista que se desplazaba, fuera de pantalla en el iPhone: y 749 de 844 px); el aviso de iPhone ocupa una línea (X6) | misma captura; medición del botón |
+| M-11 | **cambio aplicado, sin verificar en el Redmi**: el watch de posición ya no filtra por 2 m (`distanceInterval: 0`) | `myPosition.test.ts` (opciones del watch) + checklist manual |
+| M-12 | **corregido en web** (plano y norte arriba; nombres de calles claros con halo oscuro); nativo: plano hasta tener posición, 45° al seguir | `__tests__/trips/label-style.test.ts`, capturas. El contraste de etiquetas nativo (MapLibre RN) queda para la fase 2 |
+| M-1, M-3, M-5, M-6, M-7, M-13 | **F2** (el botón de F1 ya distingue "nunca preguntado" de "bloqueado" y reacciona al conceder, pero el registro central es de la fase 2) | — |

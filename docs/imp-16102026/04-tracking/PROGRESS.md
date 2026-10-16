@@ -6,7 +6,7 @@ Claude Code actualiza este archivo al terminar cada fase. Aquí no se espera nin
 | Fase | Estado | Versión / commit | Fecha |
 |------|--------|------------------|-------|
 | 0 Kickoff y diagnóstico | **✔ hecha** (solo documentación; ningún cambio de producto) | rama `imp-16102026`, commit de la fase 0 | 2026-10-16 |
-| 1 Fix pack | pendiente | | |
+| 1 Fix pack | **✔ código y pruebas** · pendiente: aplicar `sql/040` y publicar 2.5.2 (sin credenciales en esta máquina) | rama `imp-16102026-phase-1` | 2026-10-16 |
 | 2 Permisos y mapa | pendiente | | |
 | 3 SelectField | pendiente | | |
 | 4 Herramientas | pendiente | | |
@@ -51,3 +51,23 @@ Línea base (antes de tocar nada): `tsc` 4 errores TS2882 (CSS de maplibre, pree
 - Web Push en la PWA instalada.
 - Declarar `*.css` para `maplibre-gl` (cierra los 4 TS2882) y hacer que `tools/ota-gate.cjs` funcione en Windows (`npx.cmd`).
 - Registro del token push en la app (hoy solo existe `register_push_token` en SQL/API) junto con "junte chat on".
+
+## Fase 1 — fix pack 2.5.2 (2026-10-16)
+
+**Hecho:** N5 (aceite sintético: columna `oil_synthetic`, schema v11, `sql/040`), X1, X2, X3, X5 y los defectos de mapa de fase 1 (M-2, M-4, M-8, M-9, M-10, M-11, M-12); estado detallado y pruebas en `findings.md` → "Estado tras la fase 1". Versión 2.5.2 (`app.json`, `package.json`, `CHANGELOG.md`, `lib/changelog.generated.ts`). Pruebas: 2 163 verdes de 2 174; los 11 rojos son **exactamente** los de entorno de la línea base (CRLF, rutas de Windows, `node:sqlite`). `tsc` solo los 4 TS2882 de siempre; lint 0 errores.
+
+**Pendiente (necesita credenciales que no hay aquí):**
+1. `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql` — **antes** de publicar (la app 2.5.2 empuja `oil_synthetic`; sin la columna el push de `vehicle` falla). Aditivo, con rollback al final del archivo. Después `npm run types:gen` y `node tools/verify-x-core.mjs`.
+2. Release 2.5.2: `tools/release-apk.sh`. La migración v11 es JS, pero la huella nativa ya cambió con Firebase (`releases/fingerprint.json` sigue en 2.5.0) → el gate debe decir "apk"; `tools/ota-gate.cjs` no corre en Windows (`npx` sin shell) — correrlo desde Git Bash con `npx.cmd` o donde publicas. No hay `.env.expo.local`, ni `gh`, ni `.env.supabase`.
+
+### Decisiones tomadas (fase 1)
+10. **Rama `imp-16102026-phase-1`** (no `imp-16102026/phase-1…`: git no permite una rama con ese prefijo mientras exista `imp-16102026`).
+11. **`dateInputFromIso` respeta las fechas sin hora** — bug real encontrado por el test de ida y vuelta: la fecha de compra retrocedía un día en cada guardado.
+12. **Novedades solo en español**: `CHANGELOG.md` no tiene versión en inglés en ningún release anterior (la pantalla de versiones lee ese archivo tal cual); no se creó infraestructura nueva. Los textos nuevos de la app (aviso de ubicación, pasos, "ahora") sí van en es y en.
+13. **`distanceInterval: 0`** en el watch de `myPosition` (M-11): un fix por segundo aunque estés quieto, a cambio de algo más de batería con Modo conducir abierto. Verificar en el Redmi.
+14. **Pasos de ubicación del iPhone** escritos de memoria (Ajustes › Privacidad y seguridad › Localización › Sitios web de Safari): marcados *no verificados* hasta probarlos en el teléfono; si el texto real difiere, se corrige en `lib/i18n` (`drive.gpsStepsIphone`).
+15. **M-9 se re-diagnosticó** (ver `findings.md`); el skeleton de la última tarjeta de Modo conducir se cambió por un placeholder oscuro propio (la regla de "skeleton gemelo" sigue valiendo para pantallas completas).
+16. **El Segmented de modo** quedó con `dark`; el resto de `Segmented`/`Chip` se migran a `SelectField` en la fase 3.
+
+### No verificado (fase 1)
+- X1 en Safari real; M-11 (punto estático) en el Redmi; que el aviso de iPhone y los pasos se lean bien en el teléfono; la contrastación de etiquetas del mapa nativo.
