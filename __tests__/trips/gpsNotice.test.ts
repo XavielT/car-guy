@@ -7,25 +7,26 @@ import type { MyPosition } from '../../lib/trips/myPosition';
 
 const NOW = 1_790_000_000_000;
 const fix = (ageS: number, acc = 8) => ({ lat: 18.4861, lng: -69.9312, acc, heading: 90, t: NOW - ageS * 1000 });
-const pos = (over: Partial<MyPosition>): MyPosition => ({ status: 'searching', permission: 'granted', fix: null, approx: null, ...over });
+const pos = (over: Partial<MyPosition>): MyPosition => ({ status: 'searching', permission: 'granted', error: null, fix: null, approx: null, ...over });
 
 describe('gpsNotice', () => {
   it('idle: nothing', () => expect(gpsNotice(pos({ status: 'idle', permission: null }), NOW)).toBeNull());
 
-  it('never asked → a button that asks, not "sin permiso"', () => {
-    expect(gpsNotice(pos({ status: 'denied', permission: 'undetermined' }), NOW)).toEqual({ kind: 'ask' });
+  it.each(['undetermined', 'denied_can_ask', 'denied_blocked', 'services_off', 'unavailable'] as const)(
+    'permission %s → the registry chip, never "sin permiso" text',
+    (status) => {
+      expect(gpsNotice(pos({ status: 'denied', permission: status }), NOW)).toEqual({ kind: 'permission', status });
+    },
+  );
+
+  it('"unknown" (the browser cannot say) lets the watch try and speaks only if it fails', () => {
+    expect(gpsNotice(pos({ permission: 'unknown' }), NOW)).toEqual({ kind: 'searching' });
   });
 
-  it('refused but askable → the same button', () => {
-    expect(gpsNotice(pos({ status: 'denied', permission: 'denied' }), NOW)).toEqual({ kind: 'ask' });
-  });
-
-  it('blocked → shows how to turn it on', () => {
-    expect(gpsNotice(pos({ status: 'denied', permission: 'blocked' }), NOW)).toEqual({ kind: 'blocked' });
-  });
-
-  it('permission fine but the read failed → "Reintentar", not "Buscando GPS…" forever (M-5)', () => {
-    expect(gpsNotice(pos({ status: 'error' }), NOW)).toEqual({ kind: 'error' });
+  it('permission fine but the read failed → why, with "Reintentar", not "Buscando GPS…" forever (M-5)', () => {
+    expect(gpsNotice(pos({ status: 'error', error: 'timeout' }), NOW)).toEqual({ kind: 'error', reason: 'timeout' });
+    expect(gpsNotice(pos({ status: 'error', error: 'unavailable' }), NOW)).toEqual({ kind: 'error', reason: 'unavailable' });
+    expect(gpsNotice(pos({ status: 'error' }), NOW)).toEqual({ kind: 'error', reason: 'unknown' });
   });
 
   it('only a coarse fix → approximate, with its accuracy (M-4)', () => {

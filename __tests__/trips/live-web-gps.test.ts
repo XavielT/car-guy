@@ -7,10 +7,13 @@ const mockWatchPositionAsync = jest.fn(async () => ({ remove: jest.fn() }));
 
 jest.mock('expo-location', () => ({
   Accuracy: { High: 4, BestForNavigation: 6 },
-  getForegroundPermissionsAsync: jest.fn(async () => ({ granted: true, canAskAgain: true })),
-  requestForegroundPermissionsAsync: jest.fn(),
-  hasServicesEnabledAsync: jest.fn(async () => true),
   watchPositionAsync: (...args: unknown[]) => mockWatchPositionAsync(...(args as [])),
+}));
+// The registry owns the permission (ADR-59): a granted one.
+jest.mock('../../lib/permissions/impl', () => ({
+  impl: { location_foreground: { check: jest.fn(async () => ({ status: 'granted' })), request: jest.fn() } },
+  openAppSettings: jest.fn(),
+  rawLocationPermissions: jest.fn(),
 }));
 jest.mock('../../lib/diagnostics', () => ({ recordError: jest.fn() }));
 jest.mock('../../lib/trips/auto', () => ({ isAutoArmed: jest.fn(async () => false), switchIntensity: jest.fn() }));

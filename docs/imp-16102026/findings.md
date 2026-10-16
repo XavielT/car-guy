@@ -159,3 +159,23 @@ X4 (pestañas cortadas) y X6 (hueco de "¿Por qué?") ya están anotados: X4 en 
 | M-11 | **cambio aplicado, sin verificar en el Redmi**: el watch de posición ya no filtra por 2 m (`distanceInterval: 0`) | `myPosition.test.ts` (opciones del watch) + checklist manual |
 | M-12 | **corregido en web** (plano y norte arriba; nombres de calles claros con halo oscuro); nativo: plano hasta tener posición, 45° al seguir | `__tests__/trips/label-style.test.ts`, capturas. El contraste de etiquetas nativo (MapLibre RN) queda para la fase 2 |
 | M-1, M-3, M-5, M-6, M-7, M-13 | **F2** (el botón de F1 ya distingue "nunca preguntado" de "bloqueado" y reacciona al conceder, pero el registro central es de la fase 2) | — |
+
+---
+
+## Estado tras la fase 2 (2026-10-16)
+
+| Id | Estado | Cómo se probó |
+|----|--------|---------------|
+| M-1 "nunca preguntado" mostrado como "Sin permiso" | **corregido**: el estado `undetermined` es otro estado; el mapa ofrece "Activar mi ubicación" (primer → diálogo) | `permissions/map.test.ts`, `trips/gpsNotice.test.ts`, `permissions/components.test.tsx`; Playwright `f2-1_prompt/1_primer/1_allowed.png` (el navegador no fue consultado hasta pulsar "Permitir ubicación") |
+| M-3 permiso pedido al iniciar viaje; la UI no se entera | **corregido**: INICIAR VIAJE pasa por el primer (`ensure()`), y el watch de posición sigue al registro (arranca solo al conceder, se detiene al quitarlo) | `trips/myPosition.test.ts` ("granted from a chip while the screen is open starts the watch by itself"), `f2-1_allowed.png` |
+| M-5 errores 1/2/3 sin distinguir | **corregido**: `geoErrorKind` lee códigos y mensajes del shim; el aviso dice "Sin señal de GPS" / "El GPS tardó demasiado" / "No se pudo leer…" + Reintentar; el shim web que colapsa 2 y 3 en "denegado" ya no decide: el registro vuelve a leer el permiso | `permissions/map.test.ts`, `myPosition.test.ts` |
+| M-6 web: `canAskAgain` siempre `true` | **corregido** (toda negación en web es `denied_blocked`, con los pasos y "Ya la activé") | `map.test.ts`, `f2-3_blocked/3_steps/3_back.png` (volver desde ajustes corrige solo) |
+| M-7 cámara de respaldo fija | **corregido** (`last_fix` → mediana de salidas de viajes → Santo Domingo, con "Mostrando tu última ubicación · hace X") | `trips/fallback-camera.test.ts`, `f2-5_fallback_last.png` / `f2-5_fallback_default.png` |
+| M-13 "Centrar en mí" | **corregido** (siempre visible; desactivado sin posición; ámbar mientras te sigue; recentra al tocar) | revisión + capturas de la fase 2 |
+| X6 hueco / permisos en Modo conducir | **corregido**: el estado del permiso es un chip en la fila de chips (toca → Permisos y acceso); la tarjeta de iPhone es de una línea (fase 1) | `f2-4_fix.png` |
+| N2 / N3 | **cerrados** (primer antes de cada diálogo; botón en cada lugar donde falla; pantalla Permisos y acceso con "Revisar de nuevo"; bienvenida con "Activa lo que necesitas") | `components.test.tsx` (16 casos + `visibilitychange`), `architecture.test.ts` (0 llamadas directas fuera del registro), `f2-6_permisos_*.png` |
+
+### No verificado tras la fase 2
+- iPhone real: si "No permitir" se puede volver a preguntar desde la PWA, si la PWA vuelve a preguntar en cada apertura, y el **texto exacto** de Ajustes › Privacidad y seguridad › Localización › Sitios web de Safari (`t.permissions.steps.iphone`). `permissions.query` en Safari < 16 no existe: el estado queda `unknown` y el primer intento lo resuelve.
+- `storage.persist` en iOS: la fila "Guardar tus datos" aparece como "Falta" hasta que se pide; si no aporta en iOS, se puede quitar de `DEFS` (una línea).
+- Android/Redmi: flujo de dos pasos de "Permitir todo el tiempo" (Android 11+: la página de ajustes, y que `requestBackgroundPermissionsAsync` resuelva al volver), el estado `services_off`, `READ_MEDIA_VISUAL_USER_SELECTED` ("algunas fotos"), la cámara denegada con "no volver a preguntar". Todo cubierto por pruebas con el sistema simulado, nada probado en un teléfono (no hay dispositivo en adb).

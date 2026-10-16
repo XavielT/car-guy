@@ -88,6 +88,7 @@ export const es = {
     trip: 'Viaje',
     tripSettings: 'Ajustes de viajes',
     tripPermissions: 'Ubicación',
+    permissions: 'Permisos y acceso',
   },
 
   web: {
@@ -1315,6 +1316,8 @@ export const es = {
     checksCaption: 'Diario, semanal y mensual. Edita qué revisas.',
     checkGuide: 'Guía de chequeo',
     checkGuideCaption: 'Cómo revisar cada cosa, paso a paso.',
+    permissions: 'Permisos y acceso',
+    permissionsCaption: 'Ubicación, avisos, cámara y fotos: qué falta y cómo activarlo.',
     title: 'Más',
     subtitle: 'Tu garaje, tus papeles y los datos que viven en este teléfono.',
 
@@ -3540,32 +3543,159 @@ export const es = {
     },
   },
 
+  /** IMP 16102026 ADR-59: the permission registry's texts. Every permission is explained before it is asked. */
+  permissions: {
+    eyebrow: 'Ajustes',
+    title: 'Permisos y acceso',
+    intro: 'Lo que Car Guy necesita para cada función. Nada se pide sin explicarte antes, y si falta algo, aquí lo activas.',
+    recheck: 'Revisar de nuevo',
+    allMissing: (n: number) => (n === 1 ? 'Falta 1 permiso' : `Faltan ${n} permisos`),
+    allGood: 'Todo en orden',
+    states: {
+      granted: 'Permitido',
+      undetermined: 'Falta',
+      denied_can_ask: 'Falta',
+      denied_blocked: 'Bloqueado',
+      services_off: 'Servicios apagados',
+      unavailable: 'No disponible aquí',
+      unknown: 'No verificable',
+    },
+    details: { approximate: 'Solo ubicación aproximada', limited: 'Solo algunas fotos', needs_foreground: 'Primero la ubicación normal' },
+    actions: {
+      allow: 'Dar permiso',
+      primerAllow: 'Permitir',
+      notNow: 'Ahora no',
+      openSettings: 'Abrir ajustes',
+      how: 'Cómo activarla',
+      done: 'Ya la activé',
+      close: 'Cerrar',
+      continue: 'Continuar',
+    },
+    chip: {
+      location: 'Activar mi ubicación',
+      locationA11y: 'Activar la ubicación para ver dónde estás en el mapa',
+      blocked: 'Ubicación bloqueada · Cómo activarla',
+      servicesOff: 'Activa la ubicación del teléfono',
+      unavailable: 'Este navegador no puede dar la ubicación (¿sin HTTPS o sin GPS?)',
+      generic: (name: string) => `Activar: ${name}`,
+      genericBlocked: (name: string) => `${name} bloqueado · Cómo activarlo`,
+    },
+    banner: {
+      title: (n: number) => (n === 1 ? 'Falta un permiso' : `Faltan ${n} permisos`),
+      open: 'Ver permisos',
+    },
+    steps: {
+      title: 'Cómo activarlo',
+      intro: 'Car Guy no puede abrir esos ajustes por ti. Sigue estos pasos y vuelve aquí:',
+      /** Not verified on a real iPhone yet (PROGRESS → No verificado): Safari / Home-Screen app. */
+      iphone: [
+        'Abre Ajustes del iPhone.',
+        'Entra en Privacidad y seguridad › Localización.',
+        'Mira que Localización esté activada; entra en Sitios web de Safari (o en Car Guy, si la agregaste al inicio) y elige «Preguntar» o «Al usar la app».',
+        'Vuelve a Car Guy y toca «Ya la activé».',
+      ],
+      web: [
+        'Toca el candado (o el ícono de ubicación) junto a la dirección de la página.',
+        'Entra en Permisos › Ubicación y elige «Permitir».',
+        'Vuelve a esta pantalla y toca «Ya la activé».',
+      ],
+      androidSettings: (name: string) => `En los ajustes de Car Guy entra en Permisos › ${name} y elige «Permitir».`,
+      servicesOff: ['Abre los ajustes del teléfono.', 'Activa «Ubicación» (el interruptor de arriba).', 'Vuelve a Car Guy.'],
+    },
+    /** Android 11+: "todo el tiempo" is a settings page, not a dialog. */
+    backgroundSteps: [
+      'Toca «Continuar»: Android abre los ajustes de Car Guy.',
+      'Entra en Permisos › Ubicación.',
+      'Elige «Permitir todo el tiempo».',
+      'Vuelve a Car Guy.',
+    ],
+    batteryNote: 'Android no deja a las apps pedir esto: te llevo a la pantalla de batería para que lo quites tú.',
+    foregroundFirst: 'Primero activa la ubicación normal.',
+    items: {
+      location_foreground: {
+        title: 'Ubicación',
+        why: 'Para mostrarte en el mapa y grabar tus viajes.',
+        usedBy: 'Modo conducir · Viajes · Juntes · Zonas privadas',
+        primerTitle: 'Tu ubicación',
+        primerBody: 'Para mostrarte en el mapa y grabar tus viajes, Car Guy necesita tu ubicación mientras la app está abierta.',
+        primerAllow: 'Permitir ubicación',
+      },
+      location_background: {
+        title: 'Ubicación todo el tiempo',
+        why: 'Para detectar tus viajes solos, aunque la app esté cerrada.',
+        usedBy: 'Viajes en modo Automático',
+        primerTitle: 'Detectar tus viajes solos',
+        // Play's prominent disclosure: what is collected, why, and that it also happens with the app closed.
+        primerBody:
+          'Car Guy recopila datos de ubicación para detectar y registrar tus viajes automáticamente, incluso cuando la app está cerrada o no se está usando. No compartimos tu ubicación con terceros. Puedes desactivarlo en cualquier momento en Ajustes. Sin esto, solo graba viajes manuales.',
+        primerAllow: 'Continuar',
+      },
+      notifications: {
+        title: 'Notificaciones',
+        why: 'Para recordarte el aceite, el marbete y los chequeos, y para el aviso fijo del modo Automático.',
+        usedBy: 'Recordatorios · Modo Automático',
+        primerTitle: 'Avisos a su hora',
+        primerBody: 'Car Guy te avisa cuando toca cambiar el aceite, renovar el marbete o hacer el chequeo, y muestra un aviso fijo mientras vigila tus viajes en Automático.',
+        primerAllow: 'Permitir avisos',
+      },
+      camera: {
+        title: 'Cámara',
+        why: 'Para fotografiar tu carro, una falla o una factura desde la app.',
+        usedBy: 'Fotos del carro · Fallas · Reparaciones · Tu foto de perfil',
+        primerTitle: 'Tomar fotos',
+        primerBody: 'Car Guy usa la cámara para fotografiar tu carro, una falla o una factura. Si prefieres, puedes elegir fotos de la galería sin darle este permiso.',
+        primerAllow: 'Permitir cámara',
+      },
+      photos: {
+        title: 'Fotos',
+        why: 'Para explorar tu galería por mes y traer las fotos viejas de tu carro con su fecha real.',
+        usedBy: 'Importar fotos al álbum',
+        primerTitle: 'Traer tus fotos viejas',
+        primerBody: 'Para explorar tu galería por mes y traer las fotos de tu carro con su fecha real, Car Guy necesita ver tus fotos. Elegir fotos de una en una no necesita este permiso.',
+        primerAllow: 'Permitir fotos',
+      },
+      battery_unrestricted: {
+        title: 'Batería sin límites',
+        why: 'Algunos teléfonos cierran las apps en segundo plano y cortan la detección automática.',
+        usedBy: 'Viajes en modo Automático (Xiaomi, Redmi, POCO)',
+        primerTitle: 'Que no te la cierren',
+        primerBody: 'Xiaomi, Redmi y POCO cierran las apps en segundo plano para ahorrar batería, y eso corta la detección automática de viajes. Quítale el límite a Car Guy en la pantalla de batería.',
+        primerAllow: 'Abrir batería',
+      },
+      install_unknown_apps: {
+        title: 'Instalar actualizaciones',
+        why: 'Para instalar una versión nueva que bajas desde la app.',
+        usedBy: 'Actualizar Car Guy',
+        primerTitle: 'Instalar la actualización',
+        primerBody: 'Para instalar una versión nueva descargada desde la app, Android pide permiso para instalar apps de esta fuente.',
+        primerAllow: 'Abrir ajustes',
+      },
+      storage_persist: {
+        title: 'Guardar tus datos',
+        why: 'Pide al navegador que no borre los datos de Car Guy si el teléfono se queda sin espacio.',
+        usedBy: 'Tus datos en este teléfono',
+        primerTitle: 'Guardar tus datos',
+        primerBody: 'Car Guy guarda tu garaje en este teléfono. Esto le pide al navegador que no lo borre si se queda sin espacio.',
+        primerAllow: 'Permitir',
+      },
+    },
+    welcome: { title: 'Activa lo que necesitas', body: 'Puedes hacerlo ahora o más tarde en Más → Permisos y acceso. Nada es obligatorio.' },
+  },
+
   /** Modo conducir and the centre button (IMP 30092026 Phase 4, ADR-43, 03-screens.md). */
   drive: {
     /** ADR-49: no dot until a fresh fix; an old one is greyed and says how old. */
     gpsSearching: 'Buscando GPS…',
-    /** IMP 16102026 M-1/M-2: the position notice is a button, and "never asked" is not "refused". */
-    gpsAsk: 'Activar mi ubicación',
-    gpsAskA11y: 'Activar la ubicación para ver dónde estás en el mapa',
-    gpsBlocked: 'Ubicación bloqueada · Cómo activarla',
+    /** The permission part of the position notice is the registry's chip (t.permissions.chip). */
     gpsError: 'No se pudo leer tu ubicación · Reintentar',
+    gpsErrorUnavailable: 'Sin señal de GPS · Reintentar',
+    gpsErrorTimeout: 'El GPS tardó demasiado · Reintentar',
     gpsRetry: 'Reintentar',
-    gpsApprox: (m: number | null) => (m == null ? 'Ubicación aproximada' : `Ubicación aproximada (±${m}\u00A0m)`),
-    gpsStepsTitle: 'Activar la ubicación',
-    gpsStepsIntro: 'Car Guy no puede abrir esos ajustes por ti. Sigue estos pasos y vuelve aquí:',
-    gpsStepsIphone: [
-      'Abre Ajustes del iPhone.',
-      'Entra en Privacidad y seguridad › Localización.',
-      'Mira que Localización esté activada; entra en Sitios web de Safari (o en Car Guy, si la agregaste al inicio) y elige «Preguntar» o «Al usar la app».',
-      'Vuelve a Car Guy y toca «Ya la activé».',
-    ],
-    gpsStepsWeb: [
-      'Toca el candado (o el ícono de ubicación) junto a la dirección de la página.',
-      'Entra en Permisos › Ubicación y elige «Permitir».',
-      'Vuelve a esta pantalla y toca «Ya la activé».',
-    ],
-    gpsOpenSettings: 'Abrir ajustes',
-    gpsDone: 'Ya la activé',
+    gpsApprox: (m: number | null) => (m == null ? 'Ubicación aproximada' : `Ubicación aproximada (±${m} m)`),
+    /** What the map is showing while it does not know where you are (ADR-64). */
+    fallbackLast: (ago: string) => `Mostrando tu última ubicación · ${ago}`,
+    fallbackTrips: 'Mostrando la zona de tus viajes recientes',
+    fallbackDefault: 'Mostrando Santo Domingo',
     offlineHere: (lat: string, lng: string) => `Estás en ${lat}, ${lng}`,
     offlineRetry: 'Reintentar el mapa',
     lastPosition: (ago: string) => `Última posición: ${ago}`,
@@ -3748,7 +3878,7 @@ export const es = {
     perms: {
       eyebrow: 'Permisos',
       title: 'Qué te vamos a pedir',
-      body: 'Ahora no te pedimos nada. Cada permiso se pide en el momento en que usas lo que lo necesita.',
+      body: 'Cada permiso se pide en el momento en que usas lo que lo necesita, y siempre te explicamos antes. Si prefieres, puedes activarlos en el último paso.',
       photosTitle: 'Fotos y cámara',
       photosBody: 'Para el álbum, los recibos y los documentos. Se quedan en tu teléfono; con cuenta, en tu nube privada.',
       locationTitle: 'Ubicación al grabar un viaje',

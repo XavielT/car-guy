@@ -1,12 +1,13 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TabsClusterSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { SyncPill } from '@/components/SyncPill';
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { T } from '@/components/T';
 import {
   Badge,
@@ -24,7 +25,6 @@ import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
 import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { SpeedCluster } from '@/components/ui/SpeedCluster';
-import { Alert } from '@/lib/alert';
 import { startManualTrip, stopTrip } from '@/lib/trips/live';
 import { useLiveTrip } from '@/lib/trips/liveStore';
 import { useProfile } from '@/lib/profile';
@@ -88,6 +88,7 @@ export default function HomeScreen() {
   const [keepAwake, setKeepAwake] = useState(true);
   const [tripNotice, setTripNotice] = useState<string | null>(null);
   const [tripBusy, setTripBusy] = useState(false);
+  const location = usePermissionRequest('location_foreground');
   const focused = useIsFocused();
   useEffect(() => {
     if (!FEATURE_TRIPS) return;
@@ -271,16 +272,13 @@ export default function HomeScreen() {
     setTimeout(() => setTripNotice(null), 4000);
   };
   const beginTrip = async () => {
+    // Explain first, then ask (or show how, if it is blocked): never the system dialog in cold (ADR-59).
+    if (!(await location.ensure())) return;
     setTripBusy(true);
     const result = await startManualTrip(activeVehicle.id);
     setTripBusy(false);
     if (result.ok) return;
-    if (result.reason === 'permission') {
-      Alert.alert(t.trips.title, t.trips.permissionDenied, [
-        { text: t.common.cancel, style: 'cancel' },
-        { text: t.trips.openSettings, onPress: () => void Linking.openSettings() },
-      ]);
-    } else if (result.reason !== 'busy') notify(t.trips.needPermission);
+    if (result.reason !== 'busy') notify(t.trips.needPermission);
   };
   const finishTrip = async () => {
     const result = await stopTrip();
@@ -620,6 +618,7 @@ export default function HomeScreen() {
         </Surface>
         </Pressable>
       </ScrollView>
+      {location.sheet}
     </SafeAreaView>
   );
 }

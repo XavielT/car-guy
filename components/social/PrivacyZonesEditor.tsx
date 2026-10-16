@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { T } from '@/components/T';
 import { Chip, GhostButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
@@ -26,6 +27,7 @@ export function PrivacyZonesEditor() {
   const [radius, setRadius] = useState<number>(300);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const location = usePermissionRequest('location_foreground');
 
   const load = useCallback(() => void privacyZones.list().then(setZones), []);
   useEffect(load, [load]);
@@ -34,9 +36,12 @@ export function PrivacyZonesEditor() {
     setBusy(true);
     setNote(null);
     try {
+      // Primer first, then the system dialog; "Ahora no" or blocked → the steps, no error (ADR-59).
+      if (!(await location.ensure())) {
+        setBusy(false);
+        return;
+      }
       const Location = await import('expo-location');
-      const perm = await Location.requestForegroundPermissionsAsync();
-      if (!perm.granted) throw new Error('permission');
       const fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const fresh = Date.now() - fix.timestamp < 60_000 && (fix.coords.accuracy ?? 999) <= 100;
       if (!fresh) throw new Error('stale');
@@ -50,7 +55,7 @@ export function PrivacyZonesEditor() {
       setLabel('');
       load();
     } catch (e) {
-      if (!(e instanceof Error && (e.message === 'permission' || e.message === 'stale'))) recordError('privacy-zone', e);
+      if (!(e instanceof Error && e.message === 'stale')) recordError('privacy-zone', e);
       setNote(t.social.zoneNoFix);
     } finally {
       setBusy(false);
@@ -97,6 +102,7 @@ export function PrivacyZonesEditor() {
         </T>
       ) : null}
       <GhostButton label={t.social.zoneHere} disabled={busy} onPress={() => void addHere()} />
+      {location.sheet}
     </View>
   );
 }

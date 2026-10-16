@@ -20,6 +20,7 @@ import * as TaskManager from 'expo-task-manager';
 import { AppState, Platform } from 'react-native';
 
 import { recordError, recordNote } from '../diagnostics';
+import { checkPermission } from '../permissions/store';
 import { t } from '../i18n';
 import { feed, machineState } from './engine';
 import { setTripsSingleConfig, tripsMode, tripsSingleConfig } from './settings';
@@ -87,11 +88,12 @@ export type AutoReadiness = 'ready' | 'web' | 'unavailable' | 'foreground' | 'ba
 export async function autoReadiness(): Promise<AutoReadiness> {
   if (Platform.OS === 'web') return 'web';
   if (!(await TaskManager.isAvailableAsync().catch(() => false))) return 'unavailable';
-  const fg = await Location.getForegroundPermissionsAsync();
-  if (!fg.granted) return 'foreground';
-  if (fg.android?.accuracy === 'coarse') return 'approximate';
-  const bg = await Location.getBackgroundPermissionsAsync();
-  return bg.granted ? 'ready' : 'background';
+  // The registry's states (ADR-59). The phone's location switch being off is not a missing permission here.
+  const fg = await checkPermission('location_foreground');
+  if (fg.status !== 'granted' && fg.status !== 'services_off') return 'foreground';
+  if (fg.detail === 'approximate') return 'approximate';
+  const bg = await checkPermission('location_background');
+  return bg.status === 'granted' ? 'ready' : 'background';
 }
 
 export async function isAutoArmed(): Promise<boolean> {

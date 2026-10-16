@@ -358,6 +358,7 @@ function Shell() {
         <Stack.Screen name="viajes/index" options={{ headerShown: true, title: t.routes.trips }} />
         <Stack.Screen name="viajes/ajustes" options={{ headerShown: true, title: t.routes.tripSettings }} />
         <Stack.Screen name="viajes/permisos" options={{ headerShown: true, title: t.routes.tripPermissions }} />
+        <Stack.Screen name="permisos" options={{ headerShown: true, title: t.routes.permissions }} />
         <Stack.Screen name="viaje/[id]" options={{ headerShown: true, title: t.routes.trip }} />
         <Stack.Screen
           name="odometro"

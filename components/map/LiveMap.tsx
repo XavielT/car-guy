@@ -21,7 +21,7 @@ const HOME: [number, number] = [-69.93, 18.47];
  * the tail (every update) — so a long drive does not re-send the whole line
  * each second. Panning stops the follow; the re-centre button brings it back.
  */
-export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, onAvailable, me, avatar }: LiveMapProps) {
+export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, onAvailable, me, avatar, fallback }: LiveMapProps) {
   const top = insets?.top ?? 0;
   const bottom = insets?.bottom ?? 0;
   const style = useMapStyle(onUnavailable, onAvailable);
@@ -36,7 +36,7 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
   // Tilted course-up only once there is a position to follow; until then a flat city view, not a skewed corner (M-12).
   const [initial] = useState(() => {
     const at = me ? ([me.lng, me.lat] as [number, number]) : last ? ([last.lng, last.lat] as [number, number]) : null;
-    return { center: at ?? HOME, zoom: at ? 16 : 13, pitch: at ? 45 : 0 };
+    return { center: at ?? (fallback ? ([fallback.lng, fallback.lat] as [number, number]) : HOME), zoom: at ? 16 : (fallback?.zoom ?? 13), pitch: at ? 45 : 0 };
   });
   // Only a fresh fix moves the camera; a stale one stays where it was drawn, greyed.
   const followMe = follow && tracking && (me?.fresh || me?.approx) ? me : null;
@@ -64,7 +64,9 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
           padding={{ top, bottom }}
           {...(followMe
             ? { center: [followMe.lng, followMe.lat] as [number, number], zoom: 16, pitch: 45, duration: 900, ...(followMe.heading != null ? { bearing: followMe.heading } : {}) }
-            : {})}
+            : !me && !last && fallback
+              ? { center: [fallback.lng, fallback.lat] as [number, number], zoom: fallback.zoom, pitch: 0, duration: 600 }
+              : {})}
         />
         <GeoJSONSource id="trail-committed" data={committed}>
           <Layer id="trail-committed-casing" type="line" layout={ROUTE_LINE_LAYOUT as any} paint={ROUTE_CASING_PAINT as any} />
@@ -81,7 +83,7 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
           </Marker>
         ) : null}
       </MLMap>
-      {follow && !tracking ? <Recenter bottom={bottom} onPress={() => setTracking(true)} /> : null}
+      {follow ? <Recenter bottom={bottom} disabled={!me} active={tracking && Boolean(me)} onPress={() => setTracking(true)} /> : null}
     </View>
   );
 });

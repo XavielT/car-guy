@@ -32,6 +32,7 @@ const NO_SKELETON: Record<string, string> = {
   'app/vehiculo/[id]/editar.tsx': 'store-backed form (vehicle detail in memory)',
   'app/viajes/ajustes.tsx': 'settings, instant',
   'app/viajes/permisos.tsx': 'permission states',
+  'app/permisos.tsx': 'permission states (no data to load: the registry answers in milliseconds)',
   'app/chequeo/guia.tsx': 'static text',
   'app/album/importar.tsx': 'picker flow',
   'app/gasto/nuevo.tsx': 'create form',

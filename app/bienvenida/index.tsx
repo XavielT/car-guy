@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field } from '@/components/Field';
+import { PermissionRow } from '@/components/permissions/PermissionRow';
 import { T } from '@/components/T';
 import { CarbonFrame, ClusterHero, GaugeRing, GhostButton, Hanko, LcdDigits, PrimaryButton, Segmented, Surface, TelltaleRow } from '@/components/ui';
 import { VehicleForm } from '@/components/VehicleForm';
@@ -28,11 +29,12 @@ import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
 import { describeCounts } from '@/lib/import/tucombustible';
 import { markOnboarded } from '@/lib/onboarding/welcome';
 import { IosWebBanner } from '@/components/IosWebBanner';
+import { appliesHere } from '@/lib/permissions/defs';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
-type SlideId = 'lang' | 'profile' | 'car' | 'odometer' | 'features' | 'perms' | 'account';
-const SLIDES: SlideId[] = ['lang', 'profile', 'car', 'odometer', 'features', 'perms', 'account'];
+type SlideId = 'lang' | 'profile' | 'car' | 'odometer' | 'features' | 'perms' | 'account' | 'activate';
+const SLIDES: SlideId[] = ['lang', 'profile', 'car', 'odometer', 'features', 'perms', 'account', 'activate'];
 /** The setting the profile screen (app/perfil.tsx) reads; written here so the name is not typed twice. */
 const NAME_KEY = 'profile_display_name';
 
@@ -170,6 +172,7 @@ export default function BienvenidaScreen() {
                 {item === 'features' ? <FeaturesSlide /> : null}
                 {item === 'perms' ? <PermsSlide /> : null}
                 {item === 'account' ? <AccountSlide onOpen={() => router.push('/cuenta')} /> : null}
+                {item === 'activate' ? <ActivateSlide /> : null}
               </ScrollView>
             )}
           />
@@ -402,6 +405,27 @@ function PermsSlide() {
             {p.askLater}
           </T>
         </View>
+      </View>
+    </>
+  );
+}
+
+/**
+ * "Activa lo que necesitas" (IMP 16102026 ADR-59): the last step. The same rows as Más → Permisos y acceso, only the
+ * ones that matter on day one; each button explains first and then asks. Nothing is required: "Terminar" is right there.
+ */
+function ActivateSlide() {
+  const ids = (['location_foreground', 'notifications', 'camera'] as const).filter((id) => appliesHere(id));
+  return (
+    <>
+      <Art>
+        <GaugeRing progress={1} size={120} value="OK" label="開" />
+      </Art>
+      <Heading eyebrow={t.permissions.eyebrow} title={t.permissions.welcome.title} body={t.permissions.welcome.body} />
+      <View style={{ gap: space.sm }}>
+        {ids.map((id) => (
+          <PermissionRow key={id} id={id} />
+        ))}
       </View>
     </>
   );

@@ -299,6 +299,7 @@ export default function MasScreen() {
           caption={t.more.notificationsCaption}
           onPress={() => router.push('/notificaciones')}
         />
+        <NavRow label={t.more.permissions} caption={t.more.permissionsCaption} onPress={() => router.push('/permisos' as never)} />
 
         {FEATURE_ONBOARDING_V2 ? (
           <>

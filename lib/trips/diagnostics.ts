@@ -10,6 +10,7 @@
 import { Platform } from 'react-native';
 
 import { recentErrors, type DiagnosticEntry } from '../diagnostics';
+import { rawLocationPermissions } from '../permissions/impl';
 import type { TripMachineState } from './machine';
 
 export type PermissionSnapshot = {
@@ -123,18 +124,19 @@ export async function gatherTripDiagnostics(): Promise<ReturnType<typeof buildTr
     }
   };
   const native = Platform.OS !== 'web';
-  const [mode, singleConfig, readiness, fg, bg, tmAvailable, registered, started, state, rows] = await Promise.all([
+  const [mode, singleConfig, readiness, perms, tmAvailable, registered, started, state, rows] = await Promise.all([
     settings.tripsMode(),
     settings.tripsSingleConfig(),
     safe(autoReadiness),
-    safe(() => Location.getForegroundPermissionsAsync()),
-    native ? safe(() => Location.getBackgroundPermissionsAsync()) : Promise.resolve(null),
+    safe(() => rawLocationPermissions()),
     native ? safe(() => TaskManager.isAvailableAsync()) : Promise.resolve(false),
     native ? safe(() => TaskManager.isTaskRegisteredAsync(TRIP_TASK)) : Promise.resolve(false),
     native ? safe(() => Location.hasStartedLocationUpdatesAsync(TRIP_TASK)) : Promise.resolve(false),
     safe(machineState),
     safe(async () => (await getDb()).getAllAsync<FixTiming>('SELECT t, acc, speed FROM trip_point ORDER BY t DESC LIMIT 20')),
   ]);
+  const fg = perms?.foreground ?? null;
+  const bg = perms?.background ?? null;
   return buildTripDiagnostics({
     now: Date.now(),
     platform: `${Platform.OS} ${String(Platform.Version ?? '')}`.trim(),

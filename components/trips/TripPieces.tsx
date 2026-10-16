@@ -2,7 +2,6 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import * as Location from 'expo-location';
 import { AppState, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
@@ -18,6 +17,7 @@ import { localeTag, t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { autoReadiness, type AutoReadiness } from '@/lib/trips/auto';
+import { openAppSettings } from '@/lib/permissions/store';
 import { getAutostartState, getBatteryState, openAutostartSettings, openBatterySettings, type AutostartState, type BatteryState } from '@/modules/miui-autostart';
 import { autoBlocker, lastFixTime } from '@/lib/trips/autoStatus';
 import { machineState } from '@/lib/trips/engine';
@@ -120,47 +120,6 @@ export function tripActions(trip: Trip, onChanged?: () => void) {
   ]);
 }
 
-export type LocationPermission = 'granted' | 'denied' | 'undetermined' | 'unknown';
-
-/**
- * The foreground location permission (Part A needs only this one): its state,
- * and `ask()` — the system prompt while it can still be asked, else the app's
- * system settings (native) since Android/iOS stop showing the prompt.
- */
-export function useLocationPermission() {
-  const [state, setState] = useState<LocationPermission>('unknown');
-  const [canAsk, setCanAsk] = useState(true);
-
-  const apply = (r: Location.LocationPermissionResponse) => {
-    setState(r.granted ? 'granted' : r.status === 'denied' ? 'denied' : 'undetermined');
-    setCanAsk(r.canAskAgain);
-  };
-  const fail = () => setState('unknown');
-  const check = () => Location.getForegroundPermissionsAsync().then(apply, fail);
-
-  useEffect(() => {
-    void Location.getForegroundPermissionsAsync().then(apply, fail);
-    // Coming back from the system settings: read it again.
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && void Location.getForegroundPermissionsAsync().then(apply, fail));
-    return () => sub.remove();
-  }, []);
-
-  const ask = async () => {
-    if (state === 'denied' && !canAsk && Platform.OS !== 'web') {
-      await Linking.openSettings();
-      return;
-    }
-    try {
-      await Location.requestForegroundPermissionsAsync();
-    } catch {
-      // Web without geolocation, or dismissed.
-    }
-    await check();
-  };
-
-  return { state, canAsk, ask, check };
-}
-
 /**
  * Whether Automático can run on this phone (Part B), re-read on return from
  * the system settings — where Android 11+ sends the user for "todo el tiempo".
@@ -242,10 +201,10 @@ export function MiuiChecklist() {
         </View>
       ))}
       {autostart !== 'enabled' ? (
-        <GhostButton label={t.trips.miuiOpenAutostart} onPress={() => void (openAutostartSettings() || Linking.openSettings())} />
+        <GhostButton label={t.trips.miuiOpenAutostart} onPress={() => void (openAutostartSettings() || openAppSettings())} />
       ) : null}
-      {battery === 'optimized' ? <GhostButton label={t.trips.batteryOpen} onPress={() => void (openBatterySettings() || Linking.openSettings())} /> : null}
-      <GhostButton label={t.trips.openSettings} onPress={() => void Linking.openSettings()} />
+      {battery === 'optimized' ? <GhostButton label={t.trips.batteryOpen} onPress={() => void (openBatterySettings() || openAppSettings())} /> : null}
+      <GhostButton label={t.trips.openSettings} onPress={() => void openAppSettings()} />
     </Surface>
   );
 }

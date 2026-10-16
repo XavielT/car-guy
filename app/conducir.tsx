@@ -3,22 +3,23 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useIsFocused, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CompactSpeed } from '@/components/drive/CompactSpeed';
 import { LiveMap, type RoutePoint } from '@/components/map';
 import { GpsNoticeButton } from '@/components/map/GpsNoticeButton';
+import { useFallbackCamera } from '@/components/map/useFallbackCamera';
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { IosWebBanner } from '@/components/IosWebBanner';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, useAutoReadiness } from '@/components/trips/TripPieces';
 import { Segmented } from '@/components/ui';
 import { palette, radius, space } from '@/constants/theme';
-import { Alert } from '@/lib/alert';
 import { trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip } from '@/lib/db/types';
-import { dateLabel } from '@/lib/format';
+import { agoText, dateLabel } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { armAuto } from '@/lib/trips/auto';
@@ -62,6 +63,9 @@ export default function ConducirScreen() {
   const { activeVehicle, data, setActiveVehicle } = useStore();
   const live = useLiveTrip();
   const auto = useAutoReadiness();
+  const location = usePermissionRequest('location_foreground');
+  // Where the map looks until it knows where you are (last position → recent trips → Santo Domingo).
+  const fallback = useFallbackCamera();
 
   const [mode, setMode] = useState<TripsMode | null>(null);
   const [passenger, setPassenger] = useState(false);
@@ -150,16 +154,13 @@ export default function ConducirScreen() {
 
   const begin = async () => {
     if (!tripVehicle) return;
+    // Explain first, then ask (or show how, if it is blocked): never the system dialog in cold (ADR-59, M-3).
+    if (!(await location.ensure())) return;
     setBusy(true);
     const result = await startManualTrip(tripVehicle.id, passenger ? 'pasajero' : 'conductor');
     setBusy(false);
     if (result.ok) return;
-    if (result.reason === 'permission') {
-      Alert.alert(t.trips.title, t.trips.permissionDenied, [
-        { text: t.common.cancel, style: 'cancel' },
-        { text: t.trips.openSettings, onPress: () => void Linking.openSettings() },
-      ]);
-    } else if (result.reason !== 'busy') notify(t.trips.needPermission);
+    if (result.reason !== 'busy') notify(t.trips.needPermission);
   };
 
   const finish = async () => {
@@ -249,6 +250,13 @@ export default function ConducirScreen() {
           color={shownPassenger ? ink.accent : ink.text.disabled}
           selected={shownPassenger}
           onPress={() => void togglePassenger()}
+        />
+        {/* The permission shares the chips' row (X6) instead of a card of its own: tap → Permisos y acceso. */}
+        <Chip
+          label={`${t.permissions.items.location_foreground.title} · ${t.permissions.states[location.status]}`.toUpperCase()}
+          a11y={`${t.permissions.items.location_foreground.title}: ${t.permissions.states[location.status]}`}
+          color={location.status === 'granted' ? ink.statusText.ok : ink.statusText.proximo}
+          onPress={() => router.push('/permisos' as never)}
         />
         {native && focused ? (
           <Chip label={`☀ ${t.drive.keepAwake}`} a11y={t.drive.keepAwake} color={ink.accent} />
@@ -370,6 +378,7 @@ export default function ConducirScreen() {
           onUnavailable={() => setMapOff(true)}
           onAvailable={() => setMapOff(false)}
           me={me}
+          fallback={fallback}
           avatar={{ photoUri: profile.photoUri, avatarId: profile.avatarId, name: profile.displayName }}
         />
       </View>
@@ -404,6 +413,13 @@ export default function ConducirScreen() {
         </View>
       </View>
 
+      {!me && !mapOff ? (
+        <View pointerEvents="none" style={[styles.fallbackNote, { top: insets.top + 236 }]}>
+          <T face="body" style={{ color: ink.text.muted, fontSize: 12 }}>
+            {fallback.source === 'last_fix' && fallback.ageMs != null ? t.drive.fallbackLast(agoText(fallback.ageMs)) : fallback.source === 'trips' ? t.drive.fallbackTrips : t.drive.fallbackDefault}
+          </T>
+        </View>
+      ) : null}
       {posNotice && !mapOff ? <GpsNoticeButton key={posNotice.kind} notice={posNotice} top={insets.top + 170} /> : null}
 
       {mapOff ? (
@@ -415,6 +431,7 @@ export default function ConducirScreen() {
       ) : null}
 
       {sheet}
+      {location.sheet}
     </View>
   );
 }
@@ -536,6 +553,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs,
     backgroundColor: 'rgba(11,15,20,0.85)',
   },
+  fallbackNote: { position: 'absolute', alignSelf: 'center', paddingHorizontal: space.md, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(11,15,20,0.7)' },
   sheet: { position: 'absolute', borderWidth: 1, flexGrow: 0, overflow: 'hidden' },
   sheetScroll: { flexGrow: 0, flexShrink: 1 },
   sheetFooter: { paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm, borderTopWidth: StyleSheet.hairlineWidth },

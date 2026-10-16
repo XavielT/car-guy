@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { T } from '@/components/T';
 import { GhostButton, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import {
-  configure,
   DEFAULT_SETTINGS,
   getSettings,
-  hasPermission,
-  requestPermission,
   resync,
   scheduledCount,
   sendTest,
@@ -27,21 +25,18 @@ export default function NotificacionesScreen() {
   const { theme } = useTheme();
   const [config, setConfig] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [count, setCount] = useState(0);
+  // The registry's flow (ADR-59): the primer first, then the system dialog; blocked → the steps and the settings.
+  const notif = usePermissionRequest('notifications');
   // Null until checked, so the warning never flashes on a phone that is fine.
-  const [permitted, setPermitted] = useState<boolean | null>(null);
+  const permitted = notif.loaded ? notif.status === 'granted' : null;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [current, pending, granted] = await Promise.all([
-        getSettings(),
-        scheduledCount(),
-        hasPermission(),
-      ]);
+      const [current, pending] = await Promise.all([getSettings(), scheduledCount()]);
       if (cancelled) return;
       setConfig(current);
       setCount(pending);
-      setPermitted(granted);
     })().catch(() => {});
     return () => {
       cancelled = true;
@@ -58,30 +53,21 @@ export default function NotificacionesScreen() {
 
   async function toggle() {
     if (!config.enabled) {
-      // Permission is asked here, the first time the user says yes — not on
-      // first launch, when the request means nothing to them yet. The channel
-      // goes first: Android 13+ shows no prompt without one.
-      await configure();
-      const granted = await requestPermission();
-      setPermitted(granted);
-      if (!granted) return Alert.alert(t.notifications.title, t.notifications.denied);
+      // Permission is asked here, the first time the user says yes — not on first launch, when the request
+      // means nothing to them yet — and after the primer. (The registry creates the channel first: Android 13+
+      // shows no prompt without one.) "Ahora no" or blocked: the switch stays off.
+      if (!(await notif.ensure())) return;
     }
     await apply({ ...config, enabled: !config.enabled });
   }
 
   /** The "on but blocked" case: ask again, or send the user to the phone's settings. */
   async function fixPermission() {
-    await configure();
-    const granted = await requestPermission();
-    setPermitted(granted);
-    if (granted) {
+    // Primer, or — once Android stops showing the prompt — the steps and the button to the settings.
+    if (await notif.ensure()) {
       await resync();
       setCount(await scheduledCount());
-      return;
     }
-    // Android stops showing the prompt after it has been refused; only the
-    // system settings can undo that.
-    void Linking.openSettings();
   }
 
   return (
@@ -195,6 +181,7 @@ export default function NotificacionesScreen() {
           </>
         )}
       </ScrollView>
+      {notif.sheet}
     </SafeAreaView>
   );
 }

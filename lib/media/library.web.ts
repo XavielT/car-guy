@@ -7,13 +7,8 @@ import type { Candidate } from './index';
 
 export const LIBRARY_AVAILABLE = false;
 
-export type PhotoAccess = { granted: boolean; limited: boolean; canAskAgain: boolean };
 export type LibraryPhoto = { id: string; uri: string; width: number | null; height: number | null; creationTime: number | null };
 
-export async function ensurePhotoPermission(): Promise<PhotoAccess> {
-  return { granted: false, limited: false, canAskAgain: false };
-}
-export async function chooseMorePhotos(): Promise<void> {}
 export async function libraryYears(): Promise<number[]> {
   return [];
 }

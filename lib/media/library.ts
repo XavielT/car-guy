@@ -7,24 +7,12 @@
  * `ACCESS_MEDIA_LOCATION` is never enabled: GPS has no business in a car album
  * that may one day be public.
  */
-import { Asset, AssetField, MediaType, presentPermissionsPicker, Query, requestPermissionsAsync } from 'expo-media-library';
+import { Asset, AssetField, MediaType, Query } from 'expo-media-library';
 
 import { resolveTakenAt } from '../domain/album';
 import type { Candidate } from './index';
 
 export const LIBRARY_AVAILABLE = true;
-
-export type PhotoAccess = { granted: boolean; limited: boolean; canAskAgain: boolean };
-
-export async function ensurePhotoPermission(): Promise<PhotoAccess> {
-  const res = await requestPermissionsAsync(false, ['photo']);
-  return { granted: res.granted, limited: res.accessPrivileges === 'limited', canAskAgain: res.canAskAgain };
-}
-
-/** Android 14+ partial access: let the user add more photos to what the app can see. */
-export async function chooseMorePhotos(): Promise<void> {
-  await presentPermissionsPicker(['photo']);
-}
 
 function images(): Query {
   return new Query().eq(AssetField.MEDIA_TYPE, MediaType.IMAGE);

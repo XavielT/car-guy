@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Field } from '@/components/Field';
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, SectionHeader } from '@/components/ui';
 import { space } from '@/constants/theme';
@@ -44,6 +45,7 @@ export default function PerfilScreen() {
   const [draft, setDraft] = useState<string | null>(null);
   const name = draft ?? profile.displayName ?? '';
   const [working, setWorking] = useState(false);
+  const cameraPermission = usePermissionRequest('camera');
   const [notice, setNotice] = useState<{ text: string; tone: 'ok' | 'warn' } | null>(null);
 
   const displayName = profile.displayName ?? session?.user.email ?? null;
@@ -56,6 +58,8 @@ export default function PerfilScreen() {
   }
 
   async function photo(camera: boolean) {
+    // Native camera: primer first, then the system dialog (ADR-59). The web picker needs the gesture — no await before it.
+    if (camera && Platform.OS !== 'web' && !(await cameraPermission.ensure())) return;
     setNotice(null);
     setWorking(true);
     try {
@@ -183,6 +187,7 @@ export default function PerfilScreen() {
           </T>
         )
       ) : null}
+      {cameraPermission.sheet}
     </ScrollView>
   );
 }

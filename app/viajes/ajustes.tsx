@@ -5,7 +5,8 @@ import { Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } fr
 import { Field } from '@/components/Field';
 import { IosWebBanner } from '@/components/IosWebBanner';
 import { T } from '@/components/T';
-import { LastFixLine, MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/components/trips/TripPieces';
+import { PermissionRow } from '@/components/permissions/PermissionRow';
+import { LastFixLine, MiuiChecklist, useAutoReadiness } from '@/components/trips/TripPieces';
 import { GhostButton, Segmented, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
@@ -44,7 +45,6 @@ export default function TripSettingsScreen() {
   const [mode, setMode] = useState<TripsMode | null>(null);
   const [awake, setAwake] = useState(true);
   const [map, setMap] = useState(true);
-  const perm = useLocationPermission();
   const auto = useAutoReadiness();
   const live = useLiveTrip();
   const [busyNote, setBusyNote] = useState(false);
@@ -121,18 +121,8 @@ export default function TripSettingsScreen() {
       {shownMode === 'auto' ? <MiuiChecklist /> : null}
 
       {eyebrow(t.trips.permission)}
-      <Surface padded>
-        <View style={styles.rowBetween}>
-          <T face="semibold" style={{ color: theme.text.primary, fontSize: 15, flex: 1 }}>
-            {t.trips.permissionState[perm.state]}
-          </T>
-          <View style={[styles.dot, { backgroundColor: perm.state === 'granted' ? theme.status.ok : perm.state === 'denied' ? theme.status.vencido : theme.status.proximo }]} />
-        </View>
-        {perm.state !== 'granted' ? (
-          <GhostButton label={perm.state === 'denied' && !perm.canAsk ? t.trips.openSettings : t.trips.permissionFix} onPress={() => void perm.ask()} />
-        ) : null}
-        <GhostButton label={t.trips.permissionMore} onPress={() => router.push('/viajes/permisos')} />
-      </Surface>
+      <PermissionRow id="location_foreground" />
+      <GhostButton label={t.trips.permissionMore} onPress={() => router.push('/viajes/permisos')} />
 
       {eyebrow(t.trips.keepAwake)}
       <Surface padded>

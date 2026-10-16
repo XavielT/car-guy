@@ -175,6 +175,8 @@ export const enPart3: Pick<
     checksCaption: 'Daily, weekly and monthly. Edit what you check.',
     checkGuide: 'Check guide',
     checkGuideCaption: 'How to check each thing, step by step.',
+    permissions: 'Permissions & access',
+    permissionsCaption: 'Location, notifications, camera and photos: what is missing and how to turn it on.',
     title: 'More',
     subtitle: 'Your garage, your papers and the data that lives on this phone.',
 

@@ -23,7 +23,7 @@ const HOME: [number, number] = [-69.93, 18.47];
  * stops the follow; the re-centre button brings it back. Same two-source trail
  * as native. Flat and north-up: the web map has no course, and a 45° tilt only skewed the street names (M-12).
  */
-export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, onAvailable, me, avatar }: LiveMapProps) {
+export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onUnavailable, onAvailable, me, avatar, fallback }: LiveMapProps) {
   const top = insets?.top ?? 0;
   const bottom = insets?.bottom ?? 0;
   const box = useRef<View>(null);
@@ -32,8 +32,10 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
   const [tracking, setTracking] = useState(follow);
   const style = useMapStyle(onUnavailable, onAvailable);
   const fail = useRef(style.fail);
+  const fallbackRef = useRef(fallback);
   useEffect(() => {
     fail.current = style.fail;
+    fallbackRef.current = fallback;
   });
 
   const k = committedLength(trail.length);
@@ -55,7 +57,7 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
     if (!style.url || !el) return;
     let cancelled = false;
     let map: GLMap | null = null;
-    void createMap(el, style.url, { center: HOME, zoom: 16, pitch: 0 }, () => fail.current(), () => cancelled).then((m) => {
+    void createMap(el, style.url, { center: fallbackRef.current ? [fallbackRef.current.lng, fallbackRef.current.lat] : HOME, zoom: fallbackRef.current && !meRef.current ? fallbackRef.current.zoom : 16, pitch: 0 }, () => fail.current(), () => cancelled).then((m) => {
       if (!m) return;
       map = m;
       mapRef.current = m;
@@ -123,6 +125,13 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
     if (follow && tracking && !me && last) m.easeTo({ center: [last.lng, last.lat], zoom: Math.max(m.getZoom(), 15), duration: 800 });
   }, [ready, tail, last, follow, tracking, me]);
 
+  // No position yet: look where the fallback says (last position → recent trips → Santo Domingo), not at a corner (M-7).
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!ready || !m || me || !fallback) return;
+    m.jumpTo({ center: [fallback.lng, fallback.lat], zoom: fallback.zoom });
+  }, [ready, me, fallback]);
+
   useEffect(() => {
     const m = mapRef.current;
     if (!ready || !m) return;
@@ -147,7 +156,18 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
           <UserDot fresh={me.fresh} arrowDeg={me.heading == null ? null : me.heading - screen.bearing} {...avatar} />
         </View>
       ) : null}
-      {follow && !tracking ? <Recenter bottom={bottom} onPress={() => setTracking(true)} /> : null}
+      {follow ? (
+        <Recenter
+          bottom={bottom}
+          disabled={!me}
+          active={tracking && Boolean(me)}
+          onPress={() => {
+            setTracking(true);
+            const m = mapRef.current;
+            if (m && me) m.easeTo({ center: [me.lng, me.lat], zoom: Math.max(m.getZoom(), 15), duration: 600 });
+          }}
+        />
+      ) : null}
     </View>
   );
 });

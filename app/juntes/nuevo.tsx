@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { T } from '@/components/T';
 import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
@@ -31,13 +32,14 @@ export default function NuevoJunteScreen() {
   const [visibility, setVisibility] = useState<JunteVisibility>('invite');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const location = usePermissionRequest('location_foreground');
 
   const here = async () => {
     setError(null);
     try {
+      // Primer first, then the system dialog; "Ahora no" or blocked → the steps, no error (ADR-59).
+      if (!(await location.ensure())) return;
       const Location = await import('expo-location');
-      const perm = await Location.requestForegroundPermissionsAsync();
-      if (!perm.granted) throw new Error('permission');
       const fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       if (Date.now() - fix.timestamp > 60_000 || (fix.coords.accuracy ?? 999) > 100) throw new Error('stale');
       setMeet({ lat: Math.round(fix.coords.latitude * 1e5) / 1e5, lng: Math.round(fix.coords.longitude * 1e5) / 1e5 });
@@ -105,6 +107,7 @@ export default function NuevoJunteScreen() {
         </T>
       ) : null}
       <PrimaryButton label={t.juntes.createButton} disabled={busy || !title.trim()} onPress={() => void create()} />
+      {location.sheet}
     </ScrollView>
   );
 }

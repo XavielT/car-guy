@@ -12,18 +12,17 @@ import { radius, space } from '@/constants/theme';
 import { dateAtPrecision, type DatePrecision } from '@/lib/domain/album';
 import { dateLabel, monthTitle } from '@/lib/format';
 import { t } from '@/lib/i18n';
+import { managePhotoAccess } from '@/lib/permissions/store';
 import { importCandidates, pickCandidates, saveOriginal, type Candidate, type ImportProgress } from '@/lib/media';
 import {
   candidatesFromLibrary,
-  chooseMorePhotos,
-  ensurePhotoPermission,
   LIBRARY_AVAILABLE,
   libraryYears,
   monthCounts,
   monthPhotos,
   type LibraryPhoto,
-  type PhotoAccess,
 } from '@/lib/media/library';
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -50,7 +49,10 @@ export default function ImportScreen() {
   const insets = useSafeAreaInsets();
 
   const [vehicleId, setVehicleId] = useState(paramVehicle ?? activeVehicle?.id ?? '');
-  const [access, setAccess] = useState<PhotoAccess | null>(null);
+  // Photos: browsing the gallery by month needs the permission, so it is asked on the button, with its primer — not
+  // when this screen opens (ADR-59). Picking photos one by one (the system picker) needs none.
+  const photos = usePermissionRequest('photos');
+  const granted = photos.status === 'granted';
   const [years, setYears] = useState<number[]>([]);
   const [year, setYear] = useState<number>(new Date().getFullYear());
   // Keyed by what they were read for, so a year or month change shows "…"
@@ -74,26 +76,21 @@ export default function ImportScreen() {
   const targets = data.vehicles.filter((v) => v.detail);
 
   useEffect(() => {
-    if (!LIBRARY_AVAILABLE) return;
-    void ensurePhotoPermission().then(setAccess);
-  }, []);
-
-  useEffect(() => {
-    if (!access?.granted) return;
+    if (!granted) return;
     void libraryYears().then((ys) => {
       setYears(ys);
       if (ys.length && !ys.includes(year)) setYear(ys[0]);
     });
-  }, [access?.granted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [granted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!access?.granted) return;
+    if (!granted) return;
     let cancelled = false;
     void monthCounts(year).then((counts) => !cancelled && setCountsFor({ year, counts }));
     return () => {
       cancelled = true;
     };
-  }, [access?.granted, year, reload]);
+  }, [granted, year, reload]);
 
   const monthKey = stage.kind === 'month' ? `${stage.year}-${stage.month}` : null;
   useEffect(() => {
@@ -180,18 +177,21 @@ export default function ImportScreen() {
         <PrimaryButton label={t.importer.pick} onPress={() => void pickOnWeb()} />
       </View>
     );
-  } else if (!access) {
+  } else if (!photos.loaded) {
     body = <ActivityIndicator color={theme.accent} style={{ marginTop: space.xl }} />;
-  } else if (!access.granted) {
+  } else if (!granted) {
+    const blocked = photos.status === 'denied_blocked';
     body = (
       <View style={styles.webBox}>
         <T face="title" style={{ color: theme.text.primary, fontSize: 18, textTransform: 'uppercase' }}>
           {t.importer.permissionTitle}
         </T>
         <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
-          {access.canAskAgain ? t.importer.permissionBody : t.importer.permissionDenied}
+          {blocked ? t.importer.permissionDenied : t.importer.permissionBody}
         </T>
-        {access.canAskAgain ? <PrimaryButton label={t.importer.permissionAsk} onPress={() => void ensurePhotoPermission().then(setAccess)} /> : null}
+        <PrimaryButton label={blocked ? t.permissions.actions.how : t.importer.permissionAsk} onPress={() => void photos.ensure()} />
+        {/* The way out that needs no permission: the system's own photo picker. */}
+        <GhostButton label={t.importer.pick} onPress={() => void pickOnWeb()} />
       </View>
     );
   } else if (stage.kind === 'years') {
@@ -315,12 +315,12 @@ export default function ImportScreen() {
             <Chip key={v.id} label={v.name} selected={v.id === vehicleId} onPress={() => setVehicleId(v.id)} />
           ))}
         </ScrollView>
-        {access?.limited ? (
+        {photos.detail === 'limited' ? (
           <View style={[styles.banner, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
             <T face="body" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
               {t.importer.limited}
             </T>
-            <GhostButton label={t.importer.chooseMore} onPress={() => void chooseMorePhotos().then(() => setReload((n) => n + 1))} />
+            <GhostButton label={t.importer.chooseMore} onPress={() => void managePhotoAccess().then(() => setReload((n) => n + 1))} />
           </View>
         ) : null}
         <View style={{ flex: 1 }}>{body}</View>

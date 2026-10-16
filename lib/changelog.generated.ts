@@ -4,6 +4,25 @@ import type { ChangelogEntry } from './changelog/parse';
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "2.6.0",
+    "name": "\"Kōbō\"",
+    "date": null,
+    "unreleased": true,
+    "intro": [],
+    "sections": [
+      {
+        "title": null,
+        "intro": [],
+        "items": [
+          "**Permisos con explicación**: ahora Car Guy te explica para qué necesita cada permiso *antes* de pedirlo, y nunca lo pide en frío. Si lo negaste o quedó bloqueado, el lugar donde lo necesitas tiene un botón para arreglarlo: \"Dar permiso\", \"Abrir ajustes\" (Android) o los pasos exactos con \"Ya la activé\" (iPhone). Al volver de los ajustes, la app se entera sola.",
+          "**Más → Permisos y acceso**: una pantalla con ubicación, ubicación todo el tiempo, notificaciones, cámara, fotos, batería y el resto — qué hace cada una, si falta, y el botón para activarla. La bienvenida termina con \"Activa lo que necesitas\".",
+          "**Mapa de Modo conducir**: sin ubicación ya no queda en una esquina cualquiera: te muestra tu última ubicación (con \"hace 2 h\"), la zona de tus viajes recientes o Santo Domingo. \"Centrar en mí\" siempre está, el GPS que no responde dice por qué (sin señal / tardó demasiado) y se reintenta, y el permiso comparte la fila de chips en vez de una tarjeta.",
+          "**Cámara y fotos**: la cámara pide su permiso con explicación y, si no quieres, la galería sigue ahí; importar fotos viejas ya no pide acceso al abrir la pantalla, sino al tocar el botón."
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.5.2",
     "name": null,
     "date": "2026-10-16",

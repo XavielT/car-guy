@@ -7,7 +7,7 @@ Claude Code actualiza este archivo al terminar cada fase. Aquí no se espera nin
 |------|--------|------------------|-------|
 | 0 Kickoff y diagnóstico | **✔ hecha** (solo documentación; ningún cambio de producto) | rama `imp-16102026`, commit de la fase 0 | 2026-10-16 |
 | 1 Fix pack | **✔ código y pruebas** · pendiente: aplicar `sql/040` y publicar 2.5.2 (sin credenciales en esta máquina) | rama `imp-16102026-phase-1` | 2026-10-16 |
-| 2 Permisos y mapa | pendiente | | |
+| 2 Permisos y mapa | **✔ código y pruebas** · sin publicar (sin credenciales; ver abajo) | rama `imp-16102026-phase-2` | 2026-10-16 |
 | 3 SelectField | pendiente | | |
 | 4 Herramientas | pendiente | | |
 | 5 Reparaciones | pendiente | | |
@@ -71,3 +71,36 @@ Línea base (antes de tocar nada): `tsc` 4 errores TS2882 (CSS de maplibre, pree
 
 ### No verificado (fase 1)
 - X1 en Safari real; M-11 (punto estático) en el Redmi; que el aviso de iPhone y los pasos se lean bien en el teléfono; la contrastación de etiquetas del mapa nativo.
+
+## Fase 2 — permisos y mapa (2026-10-16)
+
+**Hecho:** registro central `lib/permissions/` (ADR-59), primer antes de cada diálogo, pantalla **Más → Permisos y acceso** (`app/permisos.tsx`), último paso de la bienvenida "Activa lo que necesitas", y el mapa de Modo conducir según ADR-64 (cámara de respaldo, `last_fix`, "Centrar en mí" siempre, errores 1/2/3 con motivo, chip de permiso en la fila de chips). Los M-1, M-3, M-5, M-6, M-7 y M-13 están cerrados (ver `findings.md` → "Estado tras la fase 2"). Docs: `00-context/03-architecture-decisions.md` (ADR-59 y ADR-64), `CHANGELOG.md` (2.6.0 sin publicar).
+
+**Tabla de permisos implementados** (estado por plataforma; Android = APK, iPhone = web/PWA):
+
+| Permiso | Android | iPhone web / PWA | Se pide |
+|---------|---------|------------------|---------|
+| `location_foreground` | check/request expo-location; aproximada y servicios apagados | Permissions API (+ respaldo `unknown`), códigos 1/2/3; toda negación = bloqueado, con pasos | primer al abrir un chip, al INICIAR (Conducir e Inicio), Zonas privadas, Juntes |
+| `location_background` | primer con la divulgación de Play + pasos; Android 11+ abre ajustes | no existe | al elegir Automático (`viajes/permisos`) |
+| `notifications` | primer + canal antes del diálogo | no disponible (sin token push en la app) | al activar recordatorios y antes de Automático |
+| `camera` | primer, luego `requestCameraPermissionsAsync`, luego `launchCameraAsync` | el navegador (el botón no existe en web) | "Tomar foto" (fotos, perfil) |
+| `photos` | primer al tocar el botón (ya no al abrir la pantalla); "algunas fotos" | selector del sistema | Importar de la galería |
+| `battery_unrestricted` | estado (módulo MIUI) y botón a la pantalla de batería; `unknown` en APKs viejos | — | fila de Permisos |
+| `install_unknown_apps` | no legible: botón a la pantalla del sistema | — | fila de Permisos |
+| `storage_persist` | — | `navigator.storage`; fila de Permisos | fila de Permisos (y la petición automática de siempre) |
+
+### Decisiones tomadas (fase 2)
+17. **Un solo `usePermissionRequest(id).ensure()`** para todas las pantallas (primer → diálogo / pasos), con `outcome()` para flujos que siguen mientras Android 11+ muestra su página de ajustes.
+18. **`unknown` deja intentar** (navegador sin Permissions API, batería en APK viejo): no se bloquea la función; el primer intento lo resuelve.
+19. **El primer de segundo plano es la divulgación destacada de Play** (el texto de `welcome.perms.disclosure`), en lugar del Alert que había; ya no hay dos diálogos seguidos.
+20. **Android: `services_off` abre la pantalla de ubicación del teléfono** (`LOCATION_SOURCE_SETTINGS`), no la página de la app.
+21. **`last_fix`** se guarda en un setting local (no está en la lista de claves sincronizadas) como máximo cada 30 s.
+22. **Los módulos nativos del registro se cargan al usarse** (`import()`): lo importa media app y sus pruebas, y `expo-media-library` no carga en jest.
+23. **Sin cambio nativo en esta fase**: no se tocó `app.json` ni los permisos declarados (la lista explícita de `android.permissions` queda para la fase 6, con el manifiesto fusionado a la vista). Por tanto este cambio es solo JS: `tools/ota-gate.cjs` decide OTA vs APK (la huella ya cambió con Firebase → APK pendiente); no se publicó nada (sin `.env.expo.local`, sin `gh`).
+24. **Recentrar** subió 40 px (no tapa el crédito del mapa). El estado del permiso entró como chip en la fila de chips en lugar de una tarjeta nueva (X6).
+
+### Pruebas (fase 2)
+`__tests__/permissions/` 33 pruebas: mapeo de estados por plataforma y códigos de error, el hook (primer antes del diálogo, "Ahora no" no pide, bloqueado muestra pasos, servicios apagados, `unknown`), Chip/Gate/Banner/Row, **re-lectura al volver** (`AppState` y `visibilitychange`), y la prueba de arquitectura (0 llamadas directas fuera de `lib/permissions`). `trips/gpsNotice`, `myPosition` (el watch sigue al permiso), `fallback-camera`. Total: 2 206 verdes de 2 217; los 11 rojos son los de entorno de siempre. Playwright 390×844 con UA de iPhone: capturas `f2-*.png` de prompt → primer → permitir (el navegador no fue consultado antes), ahora no, bloqueado → pasos → volver de ajustes, fix, aproximado, buscando, sin tiles, respaldo con última ubicación y por defecto, y Permisos y acceso.
+
+### No verificado (fase 2)
+Ver `findings.md` → "No verificado tras la fase 2": iPhone real (re-pregunta de la PWA, texto exacto de Ajustes, `storage.persist`) y Android real (segundo plano en dos pasos, `services_off`, "algunas fotos", cámara con "no volver a preguntar").

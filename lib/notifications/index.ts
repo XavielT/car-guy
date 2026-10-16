@@ -14,6 +14,7 @@ import { isMarbeteWindowOpen, marbeteNudges } from '../domain/legal-dr';
 import { kmPerDay } from '../domain/odometer';
 import { displayDueDate, evaluate } from '../domain/reminders';
 import { t } from '../i18n';
+import { checkPermission, requestPermission as requestPermissionFromRegistry } from '../permissions/store';
 import { firstAttentionDay, planNotifications, type PlanInput, type PlannedNotification } from './plan';
 
 /**
@@ -98,17 +99,18 @@ export async function configure(): Promise<void> {
  */
 export async function hasPermission(): Promise<boolean> {
   if (!supported()) return false;
-  const N = await import('expo-notifications');
-  return (await N.getPermissionsAsync()).granted;
+  return (await checkPermission('notifications')).status === 'granted';
 }
 
+/**
+ * Asks through the registry (ADR-59). Only for flows that already explained why — the screens use the primer
+ * (`usePermissionRequest('notifications')`); the offer after the first check is its own explanation (an alert).
+ */
 export async function requestPermission(): Promise<boolean> {
   if (!supported()) return false;
-  const N = await import('expo-notifications');
-  const current = await N.getPermissionsAsync();
-  if (current.granted) return true;
-  const asked = await N.requestPermissionsAsync();
-  return asked.granted;
+  const current = await checkPermission('notifications');
+  if (current.status === 'granted') return true;
+  return (await requestPermissionFromRegistry('notifications')).status === 'granted';
 }
 
 /**

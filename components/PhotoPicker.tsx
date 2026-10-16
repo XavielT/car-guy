@@ -9,6 +9,7 @@ import { recordError, recordReportable } from '@/lib/diagnostics';
 import { pickCandidates, storePhoto, type Candidate } from '@/lib/media';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useTheme } from '@/lib/theme/useTheme';
+import { usePermissionRequest } from './permissions/usePermissionRequest';
 import { T } from './T';
 
 /**
@@ -43,6 +44,7 @@ export function PhotoPicker({
   const { theme } = useTheme();
   const uri = useMediaUri(mediaId);
   const [busy, setBusy] = useState(false);
+  const cameraPermission = usePermissionRequest('camera');
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -72,6 +74,9 @@ export function PhotoPicker({
   }
 
   async function add(camera: boolean) {
+    // The camera is asked with its primer first (ADR-59); "Ahora no" or blocked leaves the gallery button right there.
+    // Never an await before the picker on the web: it needs the tap's gesture (and the camera is native only).
+    if (camera && Platform.OS !== 'web' && !(await cameraPermission.ensure())) return;
     let candidate: Candidate | undefined;
     try {
       // Called straight from the press handler: on web the picker injects an
@@ -134,6 +139,7 @@ export function PhotoPicker({
 
   return (
     <View style={[styles.empty, { height, borderColor: theme.line, backgroundColor: theme.bg.raised }]}>
+      {cameraPermission.sheet}
       <Ionicons name="camera-outline" size={26} color={theme.text.muted} />
       <View style={styles.actions}>
         {Platform.OS !== 'web' ? (

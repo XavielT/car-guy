@@ -38,6 +38,8 @@ export type LiveMapProps = {
   onUnavailable?: () => void;
   /** The map came back after "Reintentar" (the screen clears its "Sin mapa en línea"). */
   onAvailable?: () => void;
+  /** Where to look while there is no position (lib/map/fallbackCamera.ts, ADR-64): never a blank or arbitrary map. */
+  fallback?: { lat: number; lng: number; zoom: number } | null;
   /**
    * The user's own position (lib/trips/myPosition.ts, ADR-49). `fresh` = a fix ≤ 15 s and ≤ 50 m: the dot is
    * solid and the camera follows it; otherwise the last good position is drawn greyed and never followed.

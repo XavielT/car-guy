@@ -17,10 +17,10 @@
  * A manual trip never ends on its own.
  */
 import * as Location from 'expo-location';
-import { Platform } from 'react-native';
 
 import type { Trip } from '../db/types';
 import { recordError } from '../diagnostics';
+import { checkPermission } from '../permissions/store';
 import { isAutoArmed, switchIntensity } from './auto';
 import { feed, machineState, pushLiveFix, type FeedResult } from './engine';
 import type { Fix } from './geo';
@@ -54,11 +54,15 @@ export function isRecordingTrip(): boolean {
   return watcher != null || getLiveTrip() != null;
 }
 
+/**
+ * Reads the permission from the registry — it never asks (IMP 16102026 ADR-59, M-3). The screens that start a trip
+ * explain and ask first (`usePermissionRequest('location_foreground').ensure()`), then call this. "unknown" is the
+ * browser that cannot say: the watch below will make it ask, in the gesture that started the trip.
+ */
 async function ensurePermission(): Promise<StartResult | null> {
-  let perm = await Location.getForegroundPermissionsAsync();
-  if (!perm.granted && perm.canAskAgain) perm = await Location.requestForegroundPermissionsAsync();
-  if (!perm.granted) return { ok: false, reason: 'permission' };
-  if (Platform.OS !== 'web' && !(await Location.hasServicesEnabledAsync())) return { ok: false, reason: 'services' };
+  const { status } = await checkPermission('location_foreground');
+  if (status === 'services_off') return { ok: false, reason: 'services' };
+  if (status !== 'granted' && status !== 'unknown') return { ok: false, reason: 'permission' };
   return null;
 }
 
@@ -119,8 +123,7 @@ export async function startManualTrip(vehicleId: string, role: Trip['role'] = 'c
 /** Solo manual, after a restart mid-trip: the watcher again, if the permission is still there. */
 export async function resumeManualTrip(): Promise<void> {
   if (watcher) return;
-  const perm = await Location.getForegroundPermissionsAsync();
-  if (perm.granted) await startWatcher();
+  if ((await checkPermission('location_foreground')).status === 'granted') await startWatcher();
 }
 
 function toStop(result: FeedResult): StopResult {

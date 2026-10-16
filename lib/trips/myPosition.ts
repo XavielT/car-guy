@@ -6,10 +6,16 @@
  * becomes `fix` (the solid dot, the camera follows it); a coarse one is `approx`; a stale one is ignored, so
  * a cached position from this morning never lands on the map as if it were now.
  *
+ * The permission is the registry's (lib/permissions, IMP 16102026 ADR-59): this file reads it and reacts when it
+ * changes — granted from a chip, from the settings, from the browser's site settings — by starting or stopping the
+ * watch. It never asks.
+ *
  * - Web (iPhone PWA included): `WEB_PRECISE_GPS` (./webGeo) — the expo-location web shim hands the options object
  *   to `navigator.geolocation.watchPosition` as is.
  * - Android: a fresh `getCurrentPositionAsync` on start, never the last-known one as the truth.
  * - Coming back to the foreground restarts the watch: the first fix after waking is the suspicious one.
+ * - A failed read says why (M-5): the browser's codes 1/2/3 are told apart, so "denied", "no signal" and "too slow"
+ *   are three different messages.
  *
  * Read-only for the trip machine: recording keeps its own sources (lib/trips/live.ts, the background task).
  */
@@ -18,34 +24,36 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { recordError } from '../diagnostics';
+import { saveLastFix } from '../map/lastFix';
+import { geoErrorKind, type GeoErrorKind } from '../permissions/map';
+import { checkPermission, getPermission, onPermissionChange } from '../permissions/store';
+import type { PermissionStatus } from '../permissions/types';
 import { classifyFix } from './freshness';
 import { WEB_PRECISE_GPS } from './webGeo';
 
 export type MyFix = { lat: number; lng: number; acc: number | null; heading: number | null; t: number };
 
-/**
- * What the system says about the foreground location permission (IMP 16102026 M-1, M-6):
- * `undetermined` = never asked (the browser's "prompt") — not the same as a refusal; `denied` = refused but the
- * system will ask again; `blocked` = only the settings can change it (on the web a refusal always is: a page cannot
- * ask twice). Phase 2's permission registry replaces this with its own states.
- */
-export type LocationPermissionState = 'granted' | 'undetermined' | 'denied' | 'blocked';
-
 export type MyPosition = {
+  /** `denied` = there is no watch because the permission (or the phone's location) is not in order — see `permission`. */
   status: 'idle' | 'searching' | 'ok' | 'denied' | 'error';
-  /** null until the first read. */
-  permission: LocationPermissionState | null;
+  /** The registry's state of the foreground location permission; null until the first read. */
+  permission: PermissionStatus | null;
+  /** Why the last read failed, when it did and there is no fix. */
+  error: GeoErrorKind | null;
   /** The last fresh, precise fix (solid dot). */
   fix: MyFix | null;
   /** The newest recent-but-imprecise fix (grey halo, no re-centre). */
   approx: MyFix | null;
 };
 
-let state: MyPosition = { status: 'idle', permission: null, fix: null, approx: null };
+const EMPTY: MyPosition = { status: 'idle', permission: null, error: null, fix: null, approx: null };
+let state: MyPosition = EMPTY;
 const listeners = new Set<() => void>();
 let users = 0;
 let sub: Location.LocationSubscription | null = null;
 let appSub: { remove(): void } | null = null;
+let permSub: (() => void) | null = null;
+let lastPermission: PermissionStatus | null = null;
 let generation = 0;
 
 function set(next: Partial<MyPosition>): void {
@@ -65,36 +73,30 @@ function toFix(loc: Location.LocationObject): MyFix {
   };
 }
 
-/** The permission response, as the app's four states. */
-export function permissionState(perm: { granted: boolean; status?: string; canAskAgain?: boolean }): LocationPermissionState {
-  // The web shim answers {status: granted, granted: false} to a position error (code 2/3): the permission is there.
-  if (perm.granted || perm.status === 'granted') return 'granted';
-  if (perm.status === 'undetermined') return 'undetermined';
-  // The expo-location web shim answers canAskAgain: true to a refusal; a page cannot ask twice.
-  if (Platform.OS === 'web') return 'blocked';
-  return perm.canAskAgain === false ? 'blocked' : 'denied';
-}
-
 /** One location in, through the freshness rule. Exported for tests. */
 export function acceptLocation(loc: Location.LocationObject, now: number = Date.now()): void {
   const f = toFix(loc);
   const k = classifyFix(f, now);
-  if (k === 'good') set({ status: 'ok', fix: f, approx: null });
-  else if (k === 'coarse') set({ approx: f, status: state.fix ? state.status : 'searching' });
+  if (k === 'good') {
+    set({ status: 'ok', error: null, fix: f, approx: null });
+    saveLastFix({ lat: f.lat, lng: f.lng }, f.t);
+  } else if (k === 'coarse') set({ approx: f, status: state.fix ? state.status : 'searching' });
   // 'stale': ignored on purpose — the dot keeps its last good position, greyed by the UI.
 }
 
 async function start(): Promise<void> {
   const mine = ++generation;
-  set({ status: 'searching', approx: null });
+  set({ status: 'searching', approx: null, error: null });
   try {
-    const perm = await Location.getForegroundPermissionsAsync();
-    if (!perm.granted) {
-      // "Never asked" is not "refused" (M-1): the screen offers to ask instead of saying there is no permission.
-      if (mine === generation) set({ status: 'denied', permission: permissionState(perm) });
+    const snap = await checkPermission('location_foreground');
+    if (mine !== generation) return;
+    lastPermission = snap.status;
+    set({ permission: snap.status });
+    if (snap.status !== 'granted') {
+      // Never asked, refused, blocked, services off, no GPS: no watch. The screen offers the way out (PermissionChip).
+      set({ status: 'denied' });
       return;
     }
-    if (mine === generation) set({ permission: 'granted' });
     if (Platform.OS === 'android') {
       // A fresh one-shot fix first; it may take seconds, the watch below runs meanwhile.
       void Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
@@ -110,34 +112,17 @@ async function start(): Promise<void> {
     } as Location.LocationOptions;
     const s = await Location.watchPositionAsync(options, (loc) => mine === generation && acceptLocation(loc), (reason) => {
       recordError('my-position', reason);
-      if (mine === generation && !state.fix) set({ status: 'error' });
+      if (mine !== generation) return;
+      const kind = geoErrorKind(reason);
+      // Code 1 may mean the permission was just taken away: read it again (the registry notifies, we restart).
+      if (kind === 'denied') void checkPermission('location_foreground');
+      if (!state.fix) set({ status: 'error', error: kind });
     });
     if (mine !== generation) s.remove();
     else sub = s;
   } catch (error) {
     recordError('my-position', error);
-    if (mine === generation) set({ status: 'error' });
-  }
-}
-
-/**
- * Asks for the location from a tap (a user gesture, which the web needs) and, if it is granted, starts the watch
- * right away — the dot appears without leaving the screen (M-3). Returns the permission afterwards.
- */
-export async function askMyLocation(): Promise<LocationPermissionState> {
-  try {
-    const perm = await Location.requestForegroundPermissionsAsync();
-    const next = permissionState(perm);
-    set({ permission: next });
-    if (next === 'granted') {
-      stop();
-      await start();
-    }
-    return next;
-  } catch (error) {
-    recordError('my-position-ask', error);
-    set({ status: 'error' });
-    return state.permission ?? 'denied';
+    if (mine === generation) set({ status: 'error', error: geoErrorKind(error) });
   }
 }
 
@@ -163,6 +148,21 @@ function retain(): void {
       void start();
     } else if (s === 'background') stop();
   });
+  // The permission changed under us (a chip, the settings, the browser): start or stop to match (M-3).
+  permSub = onPermissionChange(() => {
+    const now = getPermission('location_foreground')?.status;
+    if (!now || now === lastPermission) return;
+    const was = lastPermission;
+    lastPermission = now;
+    set({ permission: now });
+    if (now === 'granted' && was !== 'granted') {
+      stop();
+      void start();
+    } else if (now !== 'granted') {
+      stop();
+      set({ status: 'denied', fix: null, approx: null });
+    }
+  });
 }
 
 function release(): void {
@@ -170,6 +170,8 @@ function release(): void {
   if (users > 0) return;
   appSub?.remove();
   appSub = null;
+  permSub?.();
+  permSub = null;
   stop();
   set({ status: 'idle', approx: null });
 }
@@ -199,5 +201,8 @@ export function __resetMyPosition(): void {
   users = 0;
   appSub?.remove();
   appSub = null;
-  state = { status: 'idle', permission: null, fix: null, approx: null };
+  permSub?.();
+  permSub = null;
+  lastPermission = null;
+  state = EMPTY;
 }

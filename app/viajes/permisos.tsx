@@ -1,17 +1,16 @@
-import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { T } from '@/components/T';
-import { MiuiChecklist, useAutoReadiness, useLocationPermission } from '@/components/trips/TripPieces';
+import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
+import { MiuiChecklist, useAutoReadiness } from '@/components/trips/TripPieces';
 import { Badge, GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
-import { Alert } from '@/lib/alert';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import { recordError } from '@/lib/diagnostics';
-import { requestPermission as requestNotificationPermission } from '@/lib/notifications';
+import { checkPermission } from '@/lib/permissions/store';
 import { armAuto } from '@/lib/trips/auto';
 import { setTripsMode, tripsMode, type TripsMode } from '@/lib/trips/settings';
 
@@ -22,20 +21,13 @@ import { setTripsMode, tripsMode, type TripsMode } from '@/lib/trips/settings';
  * settings for it; the screen re-checks on return and arms the service), and
  * on Xiaomi phones shows the MIUI checklist.
  */
-/** Resolves true when the person taps Continuar on the background-location disclosure. */
-function confirmBackgroundDisclosure(): Promise<boolean> {
-  return new Promise((resolve) => {
-    Alert.alert(t.welcome.perms.backgroundTitle, t.welcome.perms.disclosure, [
-      { text: t.common.cancel, style: 'cancel', onPress: () => resolve(false) },
-      { text: t.common.continue, onPress: () => resolve(true) },
-    ]);
-  });
-}
-
 export default function TripPermissionsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const perm = useLocationPermission();
+  // The registry's flows (ADR-59): each explains first (primer), then asks, or shows how when it is blocked.
+  const fg = usePermissionRequest('location_foreground');
+  const bg = usePermissionRequest('location_background');
+  const notifications = usePermissionRequest('notifications');
   const auto = useAutoReadiness();
   const [mode, setMode] = useState<TripsMode | null>(null);
   /** "Activar automático" was tapped: turn it on once the permission comes back granted. */
@@ -57,23 +49,21 @@ export default function TripPermissionsScreen() {
   const enableAuto = async () => {
     pending.current = true;
     try {
-      let fg = await Location.getForegroundPermissionsAsync();
-      if (!fg.granted) {
-        await perm.ask();
-        fg = await Location.getForegroundPermissionsAsync();
+      if (!(await fg.ensure())) {
+        pending.current = false;
+        return;
       }
-      if (fg.granted && fg.android?.accuracy !== 'coarse') {
-        // Android 13+: without this the service still runs, but its fixed
-        // notification ("Detección automática de viajes activa") is never shown —
-        // and the user should always see that the app is watching.
-        await requestNotificationPermission().catch(() => false);
-        // Prominent disclosure (Play's background-location policy): the exact text, and an
-        // affirmative tap, right before the system prompt — not only in the welcome slide.
-        if (!(await confirmBackgroundDisclosure())) {
+      // (read again: the closure's `fg.detail` is from before the primer)
+      if ((await checkPermission('location_foreground')).detail !== 'approximate') {
+        // Android 13+: without this the service still runs, but its fixed notification ("Detección automática de
+        // viajes activa") is never shown — and the person should always see that the app is watching. Optional.
+        await notifications.ensure();
+        // "Todo el tiempo": the primer carries Play's prominent disclosure and the steps; Android 11+ then opens the
+        // settings page, and the screen re-reads on return (the effect above arms the service).
+        if ((await bg.outcome()) === 'declined') {
           pending.current = false;
           return;
         }
-        await Location.requestBackgroundPermissionsAsync();
       }
     } catch (error) {
       recordError('trip-permission', error);
@@ -124,24 +114,24 @@ export default function TripPermissionsScreen() {
       )}
       {card(
         'manual',
-        perm.state === 'granted' ? (
+        fg.status === 'granted' ? (
           <T face="semibold" style={{ color: theme.statusText.ok, fontSize: 14, marginTop: space.sm }}>
             {t.trips.permGranted}
           </T>
         ) : (
           <View style={{ marginTop: space.sm }}>
             <PrimaryButton
-              label={perm.state === 'denied' && !perm.canAsk && Platform.OS !== 'web' ? t.trips.openSettings : t.trips.permRequest}
+              label={fg.status === 'denied_blocked' || fg.status === 'services_off' ? t.permissions.actions.how : t.trips.permRequest}
               onPress={() =>
                 void (async () => {
                   await setTripsMode('manual');
-                  await perm.ask();
+                  await fg.ensure();
                 })()
               }
             />
           </View>
         ),
-        t.trips.permissionState[perm.state].split(' ·')[0].toUpperCase(),
+        t.permissions.states[fg.status].toUpperCase(),
       )}
       {Platform.OS !== 'web'
         ? card(
@@ -179,6 +169,9 @@ export default function TripPermissionsScreen() {
           )
         : card('auto')}
       {Platform.OS !== 'web' ? <MiuiChecklist /> : null}
+      {fg.sheet}
+      {bg.sheet}
+      {notifications.sheet}
 
       {Platform.OS === 'web' ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.md }}>
