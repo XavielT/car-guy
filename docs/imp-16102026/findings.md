@@ -179,3 +179,14 @@ X4 (pestañas cortadas) y X6 (hueco de "¿Por qué?") ya están anotados: X4 en 
 - iPhone real: si "No permitir" se puede volver a preguntar desde la PWA, si la PWA vuelve a preguntar en cada apertura, y el **texto exacto** de Ajustes › Privacidad y seguridad › Localización › Sitios web de Safari (`t.permissions.steps.iphone`). `permissions.query` en Safari < 16 no existe: el estado queda `unknown` y el primer intento lo resuelve.
 - `storage.persist` en iOS: la fila "Guardar tus datos" aparece como "Falta" hasta que se pide; si no aporta en iOS, se puede quitar de `DEFS` (una línea).
 - Android/Redmi: flujo de dos pasos de "Permitir todo el tiempo" (Android 11+: la página de ajustes, y que `requestBackgroundPermissionsAsync` resuelva al volver), el estado `services_off`, `READ_MEDIA_VISUAL_USER_SELECTED` ("algunas fotos"), la cámara denegada con "no volver a preguntar". Todo cubierto por pruebas con el sistema simulado, nada probado en un teléfono (no hay dispositivo en adb).
+
+## Estado tras la fase 3 (2026-10-17)
+
+| Id | Estado | Cómo se probó |
+|----|--------|---------------|
+| F3 selectores de valor distintos en cada pantalla (~104) | **corregido**: `SelectField` / `ToggleRow` / `FilterBar`; sobreviven como pestañas solo las de navegación (lista con motivos en el test guarda) | `__tests__/pickers/select-field.test.tsx`, `no-inline-selectors.test.ts`, `f3-*.png` |
+| X3 "Negro" invisible / etiquetas truncadas | **corregido en fase 1** y ahora dentro de la hoja de color (borde ≥ 3:1, etiquetas a dos líneas) | `f3-4_color_sheet.png` |
+| M-9 selector de modo (Conducir) | el modo es ahora un `SelectField dark` en la hoja inactiva | revisión + tipado |
+
+### No verificado tras la fase 3
+Ver "No verificado (fase 3)" en `PROGRESS.md`.

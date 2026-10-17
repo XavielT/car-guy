@@ -8,7 +8,7 @@ Claude Code actualiza este archivo al terminar cada fase. Aquí no se espera nin
 | 0 Kickoff y diagnóstico | **✔ hecha** (solo documentación; ningún cambio de producto) | rama `imp-16102026`, commit de la fase 0 | 2026-10-16 |
 | 1 Fix pack | **✔ código y pruebas** · pendiente: aplicar `sql/040` y publicar 2.5.2 (sin credenciales en esta máquina) | rama `imp-16102026-phase-1` | 2026-10-16 |
 | 2 Permisos y mapa | **✔ código y pruebas** · sin publicar (sin credenciales; ver abajo) | rama `imp-16102026-phase-2` | 2026-10-16 |
-| 3 SelectField | pendiente | | |
+| 3 SelectField | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-3` | 2026-10-17 |
 | 4 Herramientas | pendiente | | |
 | 5 Reparaciones | pendiente | | |
 | 6 Regresión y release | pendiente | | |
@@ -104,3 +104,27 @@ Línea base (antes de tocar nada): `tsc` 4 errores TS2882 (CSS de maplibre, pree
 
 ### No verificado (fase 2)
 Ver `findings.md` → "No verificado tras la fase 2": iPhone real (re-pregunta de la PWA, texto exacto de Ajustes, `storage.persist`) y Android real (segundo plano en dos pasos, `services_off`, "algunas fotos", cámara con "no volver a preguntar").
+
+## Fase 3 — SelectField (2026-10-17)
+
+**Hecho:** un solo componente para elegir un valor (ADR-60): `SelectField` (campo + hoja que se cierra al elegir; búsqueda con más de 8 opciones; "Otro…" y "Ninguno"; rejilla de colores; `MultiSelectField` para varias), `ToggleRow` para los sí/no y `FilterBar` para filtros de lista ("Tipo: Todos ▾" + contador + "Limpiar"). Se migraron los selectores del inventario (`picker-inventory.md`): formularios de vehículo, carga, recordatorio, álbum, build (modificación, deseos, inventario), pista, DIY, memoria, aceite, viajes, juntes, comunidad/perfil/admin, ajustes (tema, idioma, modo de viajes), bienvenida, Modo conducir (vehículo y modo en la hoja; Pasajero como interruptor).
+
+**Filtros migrados a `FilterBar`:** Historial (tipo), Garaje (estado), Viajes (vehículo + mostrar), Pista (vehículo), Inventario de build (tipo). El combustible de Precios y de Cifras ahora es `FuelPicker` (un `SelectField`).
+
+**Interruptores (`ToggleRow`):** Pasajero (Modo conducir), Tanque lleno (carga), Solo reserva (indicador de combustible, 2 sitios), Mapa en línea (ajustes de viajes), y los demás booleanos del inventario.
+
+**Se quedan como pestañas (navegación, no valor)** — lista nombrada en `__tests__/pickers/no-inline-selectors.test.ts`: Ficha/Memoria, Modificaciones/Specs/Wishlist, Amigos/Seguidores/Solicitudes…, Entrar/Crear cuenta, Línea de tiempo/Cuadrícula; los atajos de década del `YearWheel` (acción) y la galería `app/dev/tokens.tsx`. También se quedan, por no ser una elección entre opciones con nombre: la respuesta tri-estado de cada ítem del chequeo (`chequeo/[templateId]/run.tsx`, entrada rápida) y el selector de foto de perfil (`perfil.tsx`, rejilla de imágenes).
+
+### Decisiones tomadas (fase 3)
+25. **Rama `imp-16102026-phase-3`**; los cambios de fase 1 y 2 siguen en sus ramas (esta sale de la de fase 2).
+26. **"Todos" siempre es la primera opción de un filtro** y es el valor que significa "sin filtro"; el estado vive en la pantalla (sobrevive a volver a la lista) y un cambio es un `setState` — sin recarga ni parpadeo.
+27. **Un selector de dos opciones también es `SelectField`** (unidad del tanque, modo de viajes): coherencia sobre un toque menos. Los sí/no son los que usan interruptor.
+28. **Conducir**: el vehículo ya no cicla con un toque (no se veía la lista); es un `SelectField dark` en la hoja inactiva, y durante un viaje vehículo y modo quedan como `StatusChip` de solo lectura.
+29. **La hoja de reclasificar categoría de una modificación** pasó a `SelectSheet` (misma interacción; ✔ en la categoría actual).
+30. **Guarda contra regresión** en vez de una regla de lint: una prueba (`no-inline-selectors`) que falla si una pantalla renderiza `Chip`/`Segmented` fuera de la lista de navegación; y que la lista no se pudra.
+
+### Pruebas (fase 3)
+`__tests__/pickers/select-field.test.tsx` (9: el valor se ve y las opciones no hasta abrir; elegir reporta y cierra; el fondo cierra sin cambiar; "Ninguno" elige `null`; números como valor; la píldora del filtro, contador y "Limpiar"; elegir en la hoja; el interruptor) y `no-inline-selectors.test.ts` (2). Total: 2 217 verdes de 2 228; los 11 rojos son los mismos de entorno de siempre (CRLF, rutas de Windows). `tsc` solo los 4 TS2882; lint: 0 errores nuevos en lo tocado (los 3 de `lib/` ya estaban). Capturas 390×844 con UA de iPhone: `screens/f3-*.png` (formulario cerrado, hoja de combustible, tipo, color, filtro de Viajes).
+
+### No verificado (fase 3)
+Android real (hojas con teclado, `back` cierra sin cambiar); iPhone real; Historial/Garaje/Pista con datos (las pruebas cubren el componente y el tipado; las capturas de esas pantallas necesitan un garaje con datos); contraste de la píldora activa con el tema claro.
