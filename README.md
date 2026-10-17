@@ -9,7 +9,8 @@ km/gal como siempre, pero ahora al lado del aceite que toca a los 5,000 km y del
 en enero.
 
 Plan de la transformación, decisiones y fases: [docs/imp-17092026/](docs/imp-17092026/) (2.0) y
-[docs/imp-28092026/](docs/imp-28092026/) (2.1 "Hachi-Gō").
+[docs/imp-28092026/](docs/imp-28092026/) (2.1 "Hachi-Gō"); the latest cycle, 2.6 "Kōbō" (permissions, selectors, tools hub, repairs; ADR-59…64):
+[docs/imp-16102026/](docs/imp-16102026/) — start with its `VERIFICACION.md`.
 Reglas de dominio y precios MICM semilla del app original: [docs/PLAN.md](docs/PLAN.md).
 
 ## Origen

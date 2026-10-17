@@ -39,6 +39,22 @@ Lo que solo tú puedes probar (iPhone real, Redmi, cuentas). Marca cada uno al t
 - [ ] Aparece en historial, en "Lo que me ha costado" y en la lista por taller.
 - [ ] Apagar datos, registrar otra, volver a prender: sincroniza.
 
+## Fase 6 (release 2.6.0) — esto lo haces tú, en este orden
+- [ ] **Aplicar el SQL en `x-core`**: `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql`, luego `sql/041_repairs_done_by_media.sql`; `npm run types:gen`; `node tools/verify-x-core.mjs`. (No se pudo desde la máquina de Claude: sin llaves.)
+- [ ] Desde WSL: `bash tools/local-rls/run.sh` — debe terminar en "all passed" (incluye `scenario_041.sql`, nunca corrido).
+- [ ] Cambiar el encabezado de `CHANGELOG.md` de `## 2.6.0 "Kōbō" (sin publicar)` a la fecha del release y `npm run changelog`.
+- [ ] Desde WSL: `bash tools/release-apk.sh --publish` (necesita `.env.expo.local`, `gh`, Android SDK). Commitear `releases/fingerprint.json` que deja el script.
+- [ ] Decidir el merge de `imp-16102026-phase-6` a `main` (las 6 ramas están apiladas; la última las contiene) y verificar el despliegue web en car-guy.vercel.app.
+- [ ] Instalar el APK encima de 2.5.1 en el Redmi: la base migra a v12 sin perder nada (fotos de servicios siguen visibles; las reparaciones viejas quedan "Un taller" si tenían taller y "Yo mismo" si no).
+
+### Marcado "no verificado" (nadie lo ha probado en un teléfono)
+- [ ] iPhone: re-pregunta de la PWA y texto exacto de Ajustes › Privacidad › Localización; "Aceite sintético" tras matar la app (en el navegador sí se verificó).
+- [ ] Redmi: permiso de segundo plano en dos pasos, `services_off`, "algunas fotos", cámara denegada con "no volver a preguntar".
+- [ ] Reparación con fotos reales (antes/después/factura) y el comparador con dos fotos.
+- [ ] Aviso de garantía una semana antes (poner una garantía de 8 días y esperar, o mover la fecha del teléfono).
+- [ ] Sincronizar una reparación con `sql/041` aplicado: aparece en el otro dispositivo con quién la hizo y sus fotos.
+- [ ] Historial / Garaje / Pista con filtros y datos reales (solo están probados por componente).
+
 ## Pendientes de ciclos anteriores que se cruzan
 - [ ] Subir la llave FCM a expo.dev (Firebase → car-guy-7052a → Cuentas de servicio) y borrar el JSON descargado.
 - [ ] Manejada real con el Redmi (permiso de ubicación, autoarranque MIUI, sin optimización de batería) y un junte en vivo con dos dispositivos.

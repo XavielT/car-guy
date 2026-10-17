@@ -313,30 +313,7 @@ export function FillUpForm({
 
       {/* The honest answer to "my km/gal looks wrong": the chain is only as good
           as the log, so the driver gets a way to say a link is missing. */}
-      <Pressable
-        onPress={() => setMissedPrevious((value) => !value)}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: missedPrevious }}
-        accessibilityLabel={t.fuel.missedPrevious}
-        style={styles.toggle}>
-        <View
-          style={[
-            styles.checkbox,
-            {
-              borderColor: missedPrevious ? theme.accentFill : theme.lineStrong,
-              backgroundColor: missedPrevious ? theme.accentFill : theme.bg.raised,
-            },
-          ]}
-        />
-        <View style={{ flex: 1 }}>
-          <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-            {t.fuel.missedPrevious}
-          </T>
-          <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: 2 }]}>
-            {t.fuel.missedPreviousHint(t.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
-          </T>
-        </View>
-      </Pressable>
+      <ToggleRow label={t.fuel.missedPrevious} hint={t.fuel.missedPreviousHint(t.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))} value={missedPrevious} onChange={setMissedPrevious} />
 
       {/* Note 7: the car's recent stations, then the brands for this fuel, then Otra (free text). */}
       <PickerField

@@ -51,3 +51,33 @@ describe('no Chip / Segmented as a value selector', () => {
     expect(stale).toEqual([]);
   });
 });
+
+/**
+ * A hand-made row of `Pressable`s with role tab/radio is the same thing as a Chip row (the service form's "Tipo" was
+ * one, found in the phase-6 review). Only these may exist, each with its reason.
+ */
+const HAND_MADE: Record<string, string> = {
+  'app/(tabs)/garaje.tsx': 'Portadas / Cuadrícula / Lista: how the garage is drawn (a view switch)',
+  'app/perfil.tsx': 'the avatar grid: a picture picker, not a list of named options',
+  'app/vehiculo/[id].tsx': 'the vehicle’s page tabs (with "Todas las secciones")',
+  'components/pickers/SwatchGrid.tsx': 'inside the colour sheet',
+  'components/ui/index.tsx': 'defines Chip and Segmented',
+};
+
+describe('no hand-made option rows either', () => {
+  it('only the named files render a tab/radio Pressable group', () => {
+    const offenders: string[] = [];
+    for (const dir of ['app', 'components']) {
+      for (const file of walk(join(ROOT, dir))) {
+        const rel = relative(ROOT, file).split('\\').join('/');
+        if (rel in HAND_MADE || rel.startsWith('components/tabbar/')) continue;
+        if (/accessibilityRole="(radio|tab)"/.test(readFileSync(file, 'utf8'))) offenders.push(rel);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+  it('the list does not rot', () => {
+    const stale = Object.keys(HAND_MADE).filter((rel) => !/accessibilityRole="(radio|tab)"/.test(readFileSync(join(ROOT, rel), 'utf8')));
+    expect(stale).toEqual([]);
+  });
+});

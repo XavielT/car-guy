@@ -93,3 +93,19 @@ describe('up: this phone', () => {
     expect(rec).toMatchObject({ done_by: 'shop', system: 'frenos' });
   });
 });
+
+describe('what the cloud does not know does not erase what this phone knows (phase-6 review b)', () => {
+  it('a pull of a row without done_by / system keeps the local values', async () => {
+    db.prepare(`INSERT INTO service_record (id, vehicle_id, kind, occurred_at, title, done_by, system, created_at, updated_at) VALUES ('r_keep', 'v1', 'reparacion', ?, 'Alternador', 'self', 'electrico', ?, ?)`).run(T, T, T);
+    await applyRemoteRows('service_record', [record('r_keep', { title: 'Alternador (editado en otro teléfono)', updated_at: '2026-10-18T10:00:00.000+00:00' })]);
+    expect(db.prepare(`SELECT title, done_by, system FROM service_record WHERE id = 'r_keep'`).get()).toEqual({ title: 'Alternador (editado en otro teléfono)', done_by: 'self', system: 'electrico' });
+  });
+
+  it('same for the vehicle’s oil_synthetic (v11)', async () => {
+    db.prepare(`UPDATE vehicle SET oil_synthetic = 1 WHERE id = 'v1'`).run();
+    await applyRemoteRows('vehicle', [
+      { id: 'v1', name: 'v1 renamed', type: 'carro', default_fuel_type: 'regular', created_at: '2026-10-01T12:00:00+00:00', updated_at: '2026-10-18T10:00:00.000+00:00', server_updated_at: '2026-10-18T10:00:01.000000+00:00', user_id: 'u1' },
+    ]);
+    expect(db.prepare(`SELECT name, oil_synthetic FROM vehicle WHERE id = 'v1'`).get()).toEqual({ name: 'v1 renamed', oil_synthetic: 1 });
+  });
+});

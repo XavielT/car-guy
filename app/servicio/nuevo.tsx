@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
+import { SelectField } from '@/components/pickers';
 import { OilBlock } from '@/components/service/OilBlock';
 import { DoneBySelect, linksToSlots, NO_PHOTOS, PendingPicker, RepairPhotos, slotsToLinks, SystemSelect, WarrantyPicker, type PhotoSlots } from '@/components/service/RepairPieces';
 import { T } from '@/components/T';
@@ -665,38 +666,21 @@ export default function NuevoServicioScreen() {
         {/* The repair mode has no kind selector: the kind is fixed (Reclasificar, in the detail, changes it). */}
         {!isRepair ? (
           <>
-        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {t.service.kind}
-        </T>
-        <View style={styles.row}>
-          {KINDS.map((k) => {
-            const on = kind === k;
-            return (
-              <Pressable
-                key={k}
-                onPress={() => {
-                  // "Mejora" is the build log now (IMP 28092026 Phase 4): a new one is a mod.
-                  // Editing a v2.0 mejora record stays here.
-                  if (k === 'mejora' && FEATURE_BUILD && !editingId) {
-                    router.replace({ pathname: '/mod/nuevo', params: { vehicleId: activeVehicle?.id } });
-                    return;
-                  }
-                  setKind(k);
-                }}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: on }}
-                style={[
-                  styles.kindChip,
-                  { borderColor: on ? KIND_COLOR[k] : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
-                ]}>
-                <View style={[styles.dot, { backgroundColor: KIND_COLOR[k] }]} />
-                <T face="title" style={[styles.chipLabel, { color: on ? theme.text.primary : theme.text.secondary }]}>
-                  {t.service.kinds[k]}
-                </T>
-              </Pressable>
-            );
-          })}
-        </View>
+        {/* A choice of a value: a SelectField like every other (ADR-60). */}
+        <SelectField<ServiceKind>
+          label={t.service.kind}
+          value={kind}
+          options={KINDS.map((k) => ({ value: k, label: t.service.kinds[k], swatch: KIND_COLOR[k] }))}
+          onChange={(k) => {
+            // "Mejora" is the build log now (IMP 28092026 Phase 4): a new one is a mod.
+            // Editing a v2.0 mejora record stays here.
+            if (k === 'mejora' && FEATURE_BUILD && !editingId) {
+              router.replace({ pathname: '/mod/nuevo', params: { vehicleId: activeVehicle?.id } });
+              return;
+            }
+            setKind(k);
+          }}
+        />
           </>
         ) : null}
 

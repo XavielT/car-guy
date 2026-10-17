@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -8,7 +7,7 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { SelectField } from '@/components/pickers';
 import { T } from '@/components/T';
-import { PrimaryButton } from '@/components/ui';
+import { PrimaryButton, ToggleRow } from '@/components/ui';
 import { IdentitySection, type IdentityValue } from '@/components/vehicle/IdentitySection';
 import { MakeModelYear, type MakeModelValue } from '@/components/vehicle/MakeModelYear';
 import { DEFAULT_SEGMENTS, GaugeTypeSection, type GaugeTypeValue } from '@/components/vehicle/GaugeTypeSection';
@@ -380,29 +379,7 @@ export function VehicleForm({
         onChange={(k) => setPerHundred(k === 'l_100km')}
       />
 
-      <Pressable
-        onPress={() => setSynthetic((v) => !v)}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: synthetic }}
-        accessibilityLabel={t.vehicle.synthetic}
-        hitSlop={{ top: 4, bottom: 4 }}
-        style={styles.toggle}>
-        <View
-          style={[
-            styles.checkbox,
-            { borderColor: synthetic ? theme.accent : theme.text.muted, backgroundColor: synthetic ? theme.accent : theme.bg.raised },
-          ]}>
-          {synthetic ? <Ionicons name="checkmark" size={16} color={theme.accentFillInk} /> : null}
-        </View>
-        <View style={{ flex: 1 }}>
-          <T face="semibold" style={[styles.toggleLabel, { color: theme.text.primary }]}>
-            {t.vehicle.synthetic}
-          </T>
-          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-            {t.vehicle.syntheticHint}
-          </T>
-        </View>
-      </Pressable>
+      <ToggleRow label={t.vehicle.synthetic} hint={t.vehicle.syntheticHint} value={synthetic} onChange={setSynthetic} />
 
       {/* 6 · Precio y fecha de compra — visible (note 8) */}
       <View style={styles.pair}>

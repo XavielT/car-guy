@@ -1,7 +1,7 @@
 # Architecture decisions — IMP 16102026 (ADR-59 … ADR-64)
 
 Numbering continues from ADR-58 (`docs/imp-01102026/00-context/03-architecture-decisions.md`), confirmed in phase 0.
-ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3, ADR-61 in phase 5, ADR-62 in phase 4; 63 is the BRIEF's proposals, each written when its phase builds it.
+ADR-59 and ADR-64 are from phase 2, ADR-60 from phase 3, ADR-62 from phase 4, ADR-61 from phase 5 and ADR-63 from phases 1 and 5: all six are written in full (the numbers are not in the order they were built).
 
 ## ADR-59 — Permissions: one registry, always explained first, re-read on return
 **Status:** implemented in phase 2.
@@ -68,5 +68,15 @@ ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3, ADR-61 in ph
 
 **Consequences.** `sql/041` must be applied to `x-core` before an app that pushes `service_media` / `done_by` / `system` ships (the pull side is already safe: unknown columns are dropped, so older apps are not affected). An older app that saves a repair omits `done_by`/`system`; the cloud keeps the stored value. A removed photo leaves its `media` row (as before); only its link goes.
 
-## ADR-63 (proposed in the BRIEF; written when built)
-- **63** Round-trip test of every field of a form through SQLite and sync (phase 1: vehicle; it already found the purchase-date drift).
+## ADR-63 — "It does not save" bugs are caught by a round-trip of every field
+**Status:** implemented in phase 1 (vehicle), extended in phase 5 (repairs).
+
+**Context.** N5 ("Aceite sintético" always came back unmarked) was not a UI bug: the switch was a field of the form, applied once at creation and never stored, so the editor could not read it back. Looking for it found a second one of the same family (the purchase date moved one day back on every save). Such bugs hide because each layer — form, draft, SQLite, sync — is fine by itself.
+
+**Decision.**
+1. A **round-trip test per form**: every field of the draft gets a value different from its default, goes form → `save…` → SQLite → the editor's loader and must come back identical, and the same row goes through `toCloudShape` / `applyRemoteRows` and back. `__tests__/db/vehicle-roundtrip.test.ts` does it for **every** key of `VehicleDraft`, so a field added to the draft without a column fails it. `__tests__/db/repairs.test.ts` and `repairs-sync.test.ts` do the same for `done_by`, `system` and the photo links.
+2. A bug of this kind gets its **failing test first**, in this file's pattern, before the fix.
+3. A column the cloud or an older app does not know must never erase a value this phone has: `applyRemoteRows` writes only the columns the row carries; `__tests__/db/repairs-sync.test.ts › what the cloud does not know…` pins it for `oil_synthetic`, `done_by` and `system`.
+4. Where the bug is in how the value is *shown*, the end-to-end check is made in the real web build (Chromium with the wasm SQLite): mark → save → reload the page → still marked (phase 6, N5).
+
+**Consequences.** Adding a field to a form means adding it to the draft, the column, the migration, the cloud mirror (`schema-parity.test.ts` fails otherwise) and the round trip — in one change.

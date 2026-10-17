@@ -11,7 +11,7 @@ Claude Code actualiza este archivo al terminar cada fase. Aquí no se espera nin
 | 3 SelectField | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-3` | 2026-10-17 |
 | 4 Herramientas | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-4` | 2026-10-17 |
 | 5 Reparaciones | **✔ código y pruebas** · **`sql/041` sin aplicar** (y `sql/040`) · sin publicar | rama `imp-16102026-phase-5` | 2026-10-17 |
-| 6 Regresión y release | pendiente | | |
+| 6 Regresión y release | **✔ regresión y docs** · release 2.6.0 **preparado, no publicado** (sin credenciales) | rama `imp-16102026-phase-6` (contiene todo) | 2026-10-17 |
 
 ## Números reales (confirmados por la fase 0, 2026-10-16)
 Versión **2.5.1** · schema local **v10** (`lib/db/migrations.ts:300`) · último `sql/` **039** · último ADR **58** · commit base **`2691f64`** (sin commits nuevos) · canales: APK 2.5.0 (versionCode 21) + OTA 2.5.1; `releases/fingerprint.json` = 2.5.0 `1232e32…`, huella nativa pendiente de APK por Firebase (el gate no se pudo ejecutar en Windows: `spawnSync npx ENOENT`) · SQL a `x-core`: `node tools/apply-sql.mjs`. **Ningún número del paquete cambia**: este ciclo usa schema **v11** (oil_synthetic, fase 1) y **v12** (reparaciones, fase 5), `sql/040` y `sql/041`, **ADR-59…64**, versión **2.6.0**.
@@ -173,3 +173,47 @@ Android/iPhone reales; la tarjeta Descubre/tour con el estado de Novedades en un
 
 ### No verificado (fase 5)
 SQL 041 contra PostgreSQL (ni aplicado ni el escenario de RLS); el CHECK de `ALTER TABLE ADD COLUMN` en `expo-sqlite` nativo y en el wasm de la web (la prueba corre en `node:sqlite`; la web se construyó y el formulario guardó una reparación en Chromium, que sí usa el wasm); fotos reales (el selector del navegador no se automatizó: las ranuras y los enlaces están probados por unidades); el aviso de garantía en un teléfono; sincronizar con la nube real; el comparador antes/después con dos fotos; "Resolver con una reparación" desde las tarjetas en el navegador (cubierto por `repairs.test.ts`).
+
+## Fase 6 — Regresión y release 2.6.0 "Kōbō" (2026-10-17)
+
+**Hecho:** trazabilidad N1–N9 y X1–X7 contra evidencia (`VERIFICACION.md`: nada en rojo; lo que depende del teléfono, de la nube o de credenciales está marcado), regresión completa, revisión cruzada a–e, ADR-59…64 completos (`00-context/03-architecture-decisions.md`), versión **2.6.0** (`package.json`, `package-lock.json`, `app.json`), `CHANGELOG.md` y `lib/changelog.generated.ts`, checklist manual y esta lista de ideas.
+
+**Arreglado en esta fase (lo encontró la revisión, no estaba pendiente de antes):**
+- El tipo del formulario de servicio ("Tipo": mantenimiento / reparación / mejora) y el "Reclasificar" del detalle eran filas de `Pressable` hechas a mano: la guarda de la fase 3 solo veía `Chip`/`Segmented`. Ahora son `SelectField`, y **la guarda también falla con un grupo de `Pressable` de rol tab/radio** fuera de una lista nombrada.
+- "¿Aceite sintético?" y "Se me olvidó registrar una carga anterior" eran casillas a mano: ahora son `ToggleRow` (booleano → interruptor, ADR-60).
+
+### Regresión
+- `tsc`: solo los 4 TS2882 de siempre. `eslint`: 0 errores nuevos (los 3 errores de `lib/` —`shareQueries`, `tireStats`, `gaugeSweep`— ya estaban en `main`).
+- `jest` completo: **2 324 verdes de 2 335**; las 11 rojas son las de entorno de la línea base de este equipo (4 de archivos legales generados y 1 del changelog por CRLF, 2 de `delete-vehicle` y 1 de `album` por `node:sqlite` en Windows, 3 de `skeletons` por el glob de `git ls-files`). Ninguna es del ciclo.
+- Paridad es/en ✔ · guarda de pickers (13) ✔ · guarda del registro de funciones (24) ✔ · ida y vuelta del vehículo ✔ · skeletons: el glob de la prueba no corre en Windows; se revisó a mano que el hub, Reparaciones y las demás pantallas nuevas renderizan su gemelo.
+- Build web ✔. Capturas a **320, 360 y 390 px** de Inicio, Vehículo (Resumen, Build, Eventos), Editar vehículo, Modo conducir, Herramientas, Permisos y Reparaciones: `04-tracking/screens/regresion/` — **sin desborde horizontal en ninguna** (comprobado por script).
+- N5 de punta a punta en el navegador (wasm real): marcar → guardar → recargar la página → sigue marcado.
+
+### Revisión cruzada (detalle en `VERIFICACION.md`)
+a) ningún `SelectField` rompe valores guardados · b) el sync no pisa valores nuevos (prueba nueva: una fila de la nube sin `oil_synthetic`/`done_by`/`system` no los borra) · c) reparación offline ✔; **RLS pendiente de correr** · d) cada permiso tiene salida (prueba nueva `permissions/way-out.test.ts`, 16) · e) no queda selección en línea fuera del picker.
+
+### Release 2.6.0 — preparado, NO publicado
+Es un release **nativo (APK)**: la huella ya cambió con Firebase (`releases/fingerprint.json` sigue en 2.5.0) y el ciclo trae permisos y migraciones nuevas. Lo que falta, y por qué no se hizo aquí:
+1. **Aplicar el SQL en `x-core`** (sin credenciales en esta máquina): `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql` y luego `…/041_repairs_done_by_media.sql`; `npm run types:gen`; `node tools/verify-x-core.mjs`; y `bash tools/local-rls/run.sh` donde haya PostgreSQL 16 (WSL). **Antes de publicar.**
+2. **Construir y publicar el APK** con `bash tools/release-apk.sh --publish` desde WSL/Linux: necesita `.env.expo.local` (token de EAS), `~/Android/Sdk` y `gh` — nada de eso existe en esta máquina Windows. El script comprueba la firma (`a16450a0`), `versionName`, el bundle con la nube, y al final `node tools/ota-gate.cjs record 2.6.0` actualiza `releases/fingerprint.json` (hay que commitearlo). Antes de correrlo, cambiar el encabezado del CHANGELOG de `(sin publicar)` a la fecha de ese día (el script lee la sección `## 2.6.0 `).
+3. **Web (Vercel):** se despliega al hacer push/merge a `main` de este árbol; el build web local pasó. Verificar `car-guy.vercel.app` tras el merge.
+4. **Llave FCM** (pendiente de ciclos anteriores): subirla a expo.dev.
+5. Después del APK, los cambios solo de JS salen por `--ota` (`tools/ota-gate.cjs` no corre en Windows: usar Git Bash/WSL).
+Las ramas de fase están apiladas (`imp-16102026-phase-1 → … → phase-6`, cada una sale de la anterior): **la 6 contiene todo**; falta decidir el merge a `main` (PR o fast-forward).
+
+### Decisiones tomadas (fase 6)
+50. **Versión 2.6.0** (no existía): `2.5.2` nunca se publicó por separado; sus notas quedan en su sección del CHANGELOG y llegan igual en las Novedades de quien venga de 2.5.1.
+51. **El encabezado del CHANGELOG queda "(sin publicar)"** hasta el día del release: el script de release no escribe la fecha y publicar con una fecha inventada sería peor.
+52. **No se publicó ni se simuló nada**: sin `gh`, sin `.env.expo.local`, sin `x-core`. Todo lo demás del release está listo y probado.
+53. **Los booleanos que seguían siendo casillas a mano pasan a `ToggleRow`**; las casillas de consentimiento legal, de selección múltiple de fotos y del chequeo siguen siendo casillas (no son un ajuste).
+
+### Ideas para el próximo ciclo (quedaron fuera)
+- **Wake Lock en iPhone** (pantalla encendida en Modo conducir) y **Web Push en la PWA** (avisos de recordatorios y garantías sin la app abierta; iOS 16.4+).
+- **Aviso de garantía y recordatorios también para iPhone**: hoy las notificaciones locales son solo Android; en la PWA queda el distintivo dentro de la app.
+- **Fotos de una reparación: retirar el `media` huérfano** al quitar una foto (hoy solo se borra el enlace).
+- **Mano de obra sugerida** cuando el taller repite (el último precio de ese taller), y "otros costos" en la reparación.
+- **Testigos de freno / presión de gomas** si algún día hay datos (hoy no existen, el mapa de SPEC-C los listaba).
+- **Escenarios de RLS en CI** (PostgreSQL en un contenedor) para que `local-rls` no dependa de WSL.
+- **Declarar `*.css` para `maplibre-gl`** (los 4 TS2882 de siempre) y arreglar los 3 errores de lint de `main`.
+- **Filtros de Historial/Garaje/Pista con datos reales en capturas**: hoy solo están cubiertos por pruebas del componente.
+- **Un script que mida los toques por función con datos reales** (hoy se mide por estructura + Chromium sin datos).
