@@ -15,7 +15,8 @@ import { IosWebBanner } from '@/components/IosWebBanner';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, useAutoReadiness } from '@/components/trips/TripPieces';
-import { Segmented } from '@/components/ui';
+import { selectOptions, SelectField } from '@/components/pickers';
+import { ToggleRow } from '@/components/ui';
 import { palette, radius, space } from '@/constants/theme';
 import { trips as tripRepo } from '@/lib/db/tripOps';
 import type { Trip } from '@/lib/db/types';
@@ -190,13 +191,8 @@ export default function ConducirScreen() {
     if (after && after.tripId === current.tripId) setLiveTrip({ ...after, role });
   };
 
-  // The vehicle chip cycles the garage's cars while nothing records.
+  // The vehicle field picks among the garage's cars while nothing records.
   const drivable = data.vehicles.filter((v) => !v.isArchived);
-  const cycleVehicle = () => {
-    if (live || drivable.length < 2 || !tripVehicle) return;
-    const i = drivable.findIndex((v) => v.id === tripVehicle.id);
-    setActiveVehicle(drivable[(i + 1) % drivable.length].id);
-  };
 
   // The mode switch, as in Viajes → Ajustes: never mid-trip; Automático needs its permissions first.
   const shownMode: TripsMode = mode && MODES.includes(mode) ? mode : 'manual';
@@ -237,29 +233,39 @@ export default function ConducirScreen() {
       {live ? null : <TipCard id="drive" dark style={{ marginBottom: 0 }} />}
       {live ? null : <IosWebBanner dark compact />}
 
+      {/* Idle: three controls — the car, the mode, "Pasajero" — as fields; recording: what they are, read-only (ADR-60). */}
+      {live ? null : (
+        <>
+          {drivable.length > 1 ? (
+            <SelectField<string>
+              dark
+              label={t.routes.vehicle}
+              value={tripVehicle?.id ?? null}
+              options={drivable.map((v) => ({ value: v.id, label: v.name }))}
+              onChange={setActiveVehicle}
+            />
+          ) : null}
+          {mode ? <SelectField<TripsMode> dark label={t.trips.mode} value={shownMode} options={selectOptions(MODES, (key) => t.trips.modes[key])} onChange={chooseMode} /> : null}
+          <ToggleRow dark label={t.drive.passenger} value={shownPassenger} onChange={() => void togglePassenger()} />
+        </>
+      )}
       <View style={styles.chips}>
-        <Chip
-          label={`${(tripVehicle?.name ?? '—').toUpperCase()}${!live && drivable.length > 1 ? ' ▾' : ''}`}
-          a11y={t.drive.vehicleChip(tripVehicle?.name ?? '—')}
-          onPress={!live && drivable.length > 1 ? cycleVehicle : undefined}
-        />
-        <Chip label={t.trips.modes[shownMode].toUpperCase()} a11y={t.drive.modeChip(t.trips.modes[shownMode])} />
-        <Chip
-          label={t.drive.passenger}
-          a11y={t.drive.passengerA11y(shownPassenger)}
-          color={shownPassenger ? ink.accent : ink.text.disabled}
-          selected={shownPassenger}
-          onPress={() => void togglePassenger()}
-        />
+        {live ? (
+          <>
+            <StatusChip label={(tripVehicle?.name ?? '—').toUpperCase()} a11y={t.drive.vehicleChip(tripVehicle?.name ?? '—')} />
+            <StatusChip label={t.trips.modes[shownMode].toUpperCase()} a11y={t.drive.modeChip(t.trips.modes[shownMode])} />
+            <StatusChip label={t.drive.passenger} a11y={t.drive.passengerA11y(shownPassenger)} color={shownPassenger ? ink.accent : ink.text.disabled} selected={shownPassenger} />
+          </>
+        ) : null}
         {/* The permission shares the chips' row (X6) instead of a card of its own: tap → Permisos y acceso. */}
-        <Chip
+        <StatusChip
           label={`${t.permissions.items.location_foreground.title} · ${t.permissions.states[location.status]}`.toUpperCase()}
           a11y={`${t.permissions.items.location_foreground.title}: ${t.permissions.states[location.status]}`}
           color={location.status === 'granted' ? ink.statusText.ok : ink.statusText.proximo}
           onPress={() => router.push('/permisos' as never)}
         />
         {native && focused ? (
-          <Chip label={`☀ ${t.drive.keepAwake}`} a11y={t.drive.keepAwake} color={ink.accent} />
+          <StatusChip label={`☀ ${t.drive.keepAwake}`} a11y={t.drive.keepAwake} color={ink.accent} />
         ) : null}
       </View>
 
@@ -302,14 +308,6 @@ export default function ConducirScreen() {
               {t.drive.seeTrips.toUpperCase()} →
             </T>
           </Pressable>
-          {mode ? (
-            <Segmented<TripsMode>
-              dark
-              options={MODES.map((key) => ({ key, label: t.trips.modes[key] }))}
-              value={shownMode}
-              onChange={chooseMode}
-            />
-          ) : null}
           {!native ? (
             <T face="body" style={{ color: ink.text.muted, fontSize: 12 }}>
               {t.drive.webManual}
@@ -436,7 +434,8 @@ export default function ConducirScreen() {
   );
 }
 
-function Chip({
+/** A read-only or navigational chip of the always-dark sheet (not a choice: those are fields). */
+function StatusChip({
   label,
   a11y,
   color = ink.text.secondary,

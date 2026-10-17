@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { T } from '@/components/T';
-import { Chip, GhostButton, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { privacyZones } from '@/lib/db/repos';
 import type { PrivacyZone } from '@/lib/db/types';
@@ -91,11 +92,7 @@ export function PrivacyZonesEditor() {
         </Surface>
       )}
       <Field label={t.social.zoneLabel} value={label} onChangeText={setLabel} />
-      <View style={styles.chips}>
-        {RADII.map((r) => (
-          <Chip key={r} label={t.social.zoneRadius(r)} selected={radius === r} onPress={() => setRadius(r)} />
-        ))}
-      </View>
+      <SelectField label={t.social.zoneRadiusLabel} value={radius} options={selectOptions(RADII, (r) => t.social.zoneRadius(r))} onChange={setRadius} />
       {note ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.xs }}>
           {note}

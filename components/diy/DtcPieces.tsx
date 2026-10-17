@@ -5,7 +5,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
+import { SelectField } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { createRepairForDtc, linkDtcRepair, logDtc, repairsFor, setDtcResolved } from '@/lib/db/diyQueries';
 import type { ServiceRecord, VehicleDtcEvent } from '@/lib/db/types';
@@ -66,11 +67,7 @@ export function DtcLogSheet({ visible, code, vehicleId, onClose, onSaved }: { vi
   return (
     <Sheet visible={visible} onClose={onClose} title={`${t.obd.log} · ${code}`}>
       <ScrollView style={{ maxHeight: 480 }} keyboardShouldPersistTaps="handled">
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm }}>
-          {cars.map((v) => (
-            <Chip key={v.id} label={v.name} selected={target === v.id} onPress={() => setTarget(v.id)} />
-          ))}
-        </View>
+        <SelectField<string> label={t.routes.vehicle} value={target} options={cars.map((v) => ({ value: v.id, label: v.name }))} onChange={setTarget} />
         <DateField label={t.obd.seenAt} value={date} onChange={setDate} noFuture />
         <Field label={t.obd.km} keyboardType="number-pad" value={km} onChangeText={setKm} />
         <Field label={t.obd.notes} value={notes} onChangeText={setNotes} multiline />

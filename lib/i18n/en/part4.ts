@@ -112,6 +112,7 @@ export const enPart4: Pick<
     picker: 'Shop or person',
     pickerNone: 'None',
     pickerOther: 'Other (type it)',
+    pickerAdd: '+ Add a contact…',
     nameRequired: 'Give it a name.',
   },
   diyMore: {

@@ -1,12 +1,10 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Field } from '@/components/Field';
-import { T } from '@/components/T';
-import { Chip } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
 import { space } from '@/constants/theme';
 import type { Drivetrain, Transmission, VehicleOrigin } from '@/lib/db/types';
 import { t } from '@/lib/i18n';
-import { useTheme } from '@/lib/theme/useTheme';
 
 export type IdentityValue = {
   nickname: string;
@@ -26,7 +24,6 @@ const ORIGINS: VehicleOrigin[] = ['jdm', 'usdm', 'eudm', 'local', 'otro'];
 
 /** "+ Identidad del carro" — unchanged from 2.1 (apodo, chasis, motor, transmisión, tracción, origen, historia). */
 export function IdentitySection({ value, onChange }: { value: IdentityValue; onChange: (next: IdentityValue) => void }) {
-  const { theme } = useTheme();
   const set = <K extends keyof IdentityValue>(key: K, v: IdentityValue[K]) => onChange({ ...value, [key]: v });
 
   return (
@@ -53,30 +50,27 @@ export function IdentitySection({ value, onChange }: { value: IdentityValue; onC
         value={value.chassisNumber}
         onChangeText={(x) => set('chassisNumber', x)}
       />
-      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {t.vehicle.transmission}
-      </T>
-      <View style={styles.row}>
-        {TRANSMISSIONS.map((x) => (
-          <Chip key={x} label={t.transmissions[x]} selected={value.transmission === x} onPress={() => set('transmission', value.transmission === x ? null : x)} />
-        ))}
-      </View>
-      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {t.vehicle.drivetrain}
-      </T>
-      <View style={styles.row}>
-        {DRIVETRAINS.map((d) => (
-          <Chip key={d} label={d.toUpperCase()} selected={value.drivetrain === d} onPress={() => set('drivetrain', value.drivetrain === d ? null : d)} />
-        ))}
-      </View>
-      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {t.vehicle.origin}
-      </T>
-      <View style={styles.row}>
-        {ORIGINS.map((o) => (
-          <Chip key={o} label={t.origins[o]} selected={value.origin === o} onPress={() => set('origin', value.origin === o ? null : o)} />
-        ))}
-      </View>
+      <SelectField<Transmission | null>
+        label={t.vehicle.transmission}
+        value={value.transmission}
+        allowNone
+        options={selectOptions(TRANSMISSIONS, (x) => t.transmissions[x])}
+        onChange={(x) => set('transmission', x)}
+      />
+      <SelectField<Drivetrain | null>
+        label={t.vehicle.drivetrain}
+        value={value.drivetrain}
+        allowNone
+        options={selectOptions(DRIVETRAINS, (d) => d.toUpperCase())}
+        onChange={(d) => set('drivetrain', d)}
+      />
+      <SelectField<VehicleOrigin | null>
+        label={t.vehicle.origin}
+        value={value.origin}
+        allowNone
+        options={selectOptions(ORIGINS, (o) => t.origins[o])}
+        onChange={(o) => set('origin', o)}
+      />
       <Field
         label={t.vehicle.importedYear}
         placeholder="2012"

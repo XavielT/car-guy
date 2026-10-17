@@ -7,7 +7,8 @@ import { Field } from '@/components/Field';
 import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/feedback/present';
 import { AdminFeedbackDetailSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
-import { EmptyState, GhostButton, KeyValueRow, Segmented, StatusPill, Surface } from '@/components/ui';
+import { SelectField } from '@/components/pickers';
+import { EmptyState, GhostButton, KeyValueRow, StatusPill, Surface } from '@/components/ui';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -106,12 +107,7 @@ export default function ComentarioDetalle() {
         </T>
       </Surface>
 
-      <Segmented<FeedbackStatus>
-        options={FEEDBACK_STATUSES.map((s) => ({ key: s, label: statusLabel(s) }))}
-        value={row.status as FeedbackStatus}
-        onChange={setStatus}
-        style={styles.block}
-      />
+      <SelectField<FeedbackStatus> label={t.vehicleForm.status} value={row.status as FeedbackStatus} options={FEEDBACK_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))} onChange={setStatus} />
 
       <Surface style={styles.block}>
         <KeyValueRow label={a.from} value={row.user_id ? (row.email ?? row.user_id.slice(0, 8)) : (row.email ?? a.anonymous)} />

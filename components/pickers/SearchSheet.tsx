@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -67,6 +67,7 @@ export function SearchSheet({
   // With the keyboard up the sheet sits on it: the list gets what is left.
   const listMax = keyboard ? Math.max(160, height - keyboard - 260) : height * 0.55;
   const [query, setQuery] = useState('');
+  const listRef = useRef<SectionList<SearchItem, { title: string; data: SearchItem[] }>>(null);
   const [typingOther, setTypingOther] = useState(false);
   const [other, setOther] = useState('');
 
@@ -80,6 +81,26 @@ export function SearchSheet({
     }
     return [...groups.entries()].map(([title, data]) => ({ title, data }));
   }, [items, query]);
+
+  // The chosen row is in view when the sheet opens (a 13-option list opens at the bottom for the last ones).
+  useEffect(() => {
+    if (!visible || !selectedKey || query) return;
+    const timer = setTimeout(() => {
+      for (let s = 0; s < sections.length; s++) {
+        const i = sections[s].data.findIndex((it) => it.key === selectedKey);
+        if (i >= 0) {
+          try {
+            listRef.current?.scrollToLocation({ sectionIndex: s, itemIndex: i, viewOffset: 48, animated: false });
+          } catch {
+            // rows not measured yet: the list simply opens at the top
+          }
+          return;
+        }
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, selectedKey]);
 
   function close() {
     setQuery('');
@@ -128,6 +149,8 @@ export function SearchSheet({
               </View>
             ) : null}
             <SectionList
+              ref={listRef}
+              onScrollToIndexFailed={() => {}}
               style={{ maxHeight: listMax }}
               sections={sections}
               keyExtractor={(item) => item.key}

@@ -6,9 +6,9 @@ import { radius, space } from '@/constants/theme';
 import { FuelPicker } from '@/components/FuelPicker';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
-import { SwatchGrid } from '@/components/pickers';
+import { SelectField } from '@/components/pickers';
 import { T } from '@/components/T';
-import { Chip, PrimaryButton, Segmented } from '@/components/ui';
+import { PrimaryButton } from '@/components/ui';
 import { IdentitySection, type IdentityValue } from '@/components/vehicle/IdentitySection';
 import { MakeModelYear, type MakeModelValue } from '@/components/vehicle/MakeModelYear';
 import { DEFAULT_SEGMENTS, GaugeTypeSection, type GaugeTypeValue } from '@/components/vehicle/GaugeTypeSection';
@@ -86,7 +86,11 @@ export type VehicleDraft = {
 const STATUSES: VehicleStatus[] = ['activo', 'proyecto', 'en_taller', 'accidentado', 'guardado', 'restauracion', 'prestado'];
 
 const MATERIALS = colors('material').filter((m) => m.id !== 'material-otro');
-const swatches = (kind: 'exterior' | 'interior') => colors(kind).map((c) => ({ id: c.id, label: refLabel(c), hex: c.hex, light: c.light }));
+const swatchOptions = (kind: 'exterior' | 'interior') =>
+  colors(kind)
+    .filter((c) => c.hex)
+    .map((c) => ({ value: c.id as string | null, label: refLabel(c), swatch: c.hex }));
+const colorLabel = (kind: 'exterior' | 'interior', id: string | null) => (id ? (swatchOptions(kind).find((o) => o.value === id)?.label ?? null) : null);
 
 /**
  * The vehicle form v2 (IMP 29092026 Phase 3, 03-screens.md "Phase 3"): the
@@ -272,27 +276,38 @@ export function VehicleForm({
       <MakeModelYear value={mmy} onChange={setMmy} />
 
       {/* 3 · Tipo */}
-      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {t.vehicleForm.bodyType}
-      </T>
-      <View style={styles.row}>
-        {bodyTypes().map((b) => (
-          <Chip key={b.id} label={refLabel(b)} selected={bodyType === b.id} onPress={() => setBodyType(bodyType === b.id ? null : b.id)} />
-        ))}
-      </View>
+      <SelectField<string | null>
+        label={t.vehicleForm.bodyType}
+        value={bodyType}
+        allowNone
+        options={bodyTypes().map((b) => ({ value: b.id, label: refLabel(b) }))}
+        onChange={setBodyType}
+      />
 
       {/* 4 · Color, Interior */}
-      <SwatchGrid label={t.vehicleForm.color} swatches={swatches('exterior')} value={color.id} otherText={color.id ? null : color.label} onChange={setColor} />
-      <SwatchGrid label={t.vehicleForm.interior} swatches={swatches('interior')} value={interior.id} onChange={setInterior} />
-      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {t.vehicleForm.interiorMaterial}
-      </T>
-      <View style={styles.row}>
-        {MATERIALS.map((m) => {
-          const id = m.id.replace(/^material-/, '');
-          return <Chip key={m.id} label={refLabel(m)} selected={material === id} onPress={() => setMaterial(material === id ? null : id)} />;
-        })}
-      </View>
+      <SelectField<string | null>
+        label={t.vehicleForm.color}
+        variant="swatch"
+        value={color.id}
+        options={swatchOptions('exterior')}
+        other={{ onOther: (text) => setColor({ id: null, label: text }), current: color.id ? null : color.label }}
+        onChange={(id) => setColor({ id, label: colorLabel('exterior', id) })}
+      />
+      <SelectField<string | null>
+        label={t.vehicleForm.interior}
+        variant="swatch"
+        value={interior.id}
+        allowNone
+        options={swatchOptions('interior')}
+        onChange={(id) => setInterior({ id, label: colorLabel('interior', id) })}
+      />
+      <SelectField<string | null>
+        label={t.vehicleForm.interiorMaterial}
+        value={material}
+        allowNone
+        options={MATERIALS.map((m) => ({ value: m.id.replace(/^material-/, ''), label: refLabel(m) }))}
+        onChange={setMaterial}
+      />
 
       <View style={styles.pair}>
         <View style={styles.half}>
@@ -304,10 +319,7 @@ export function VehicleForm({
       </View>
 
       {/* 5 · Combustible, Tanque (gal | L), Odómetro */}
-      <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-        {t.vehicle.fuel}
-      </T>
-      <FuelPicker value={fuel} onChange={setFuel} />
+      <FuelPicker label={t.vehicle.fuel} value={fuel} onChange={setFuel} />
 
       <View style={styles.pair}>
         <View style={styles.half}>
@@ -323,14 +335,14 @@ export function VehicleForm({
                 : undefined
             }
           />
-          <Segmented<VolumeUnit>
-            options={[
-              { key: 'gal', label: 'gal' },
-              { key: 'l', label: 'L' },
-            ]}
+          <SelectField<VolumeUnit>
+            label={t.vehicleForm.tankUnit}
             value={unit}
+            options={[
+              { value: 'gal', label: 'gal' },
+              { value: 'l', label: 'L' },
+            ]}
             onChange={changeUnit}
-            style={styles.unit}
           />
         </View>
         <View style={styles.half}>
@@ -358,17 +370,14 @@ export function VehicleForm({
 
       {FEATURE_GAUGE_SEGMENTS && liquid ? <GaugeTypeSection value={gauge} onChange={setGauge} /> : null}
 
-      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
-        {t.vehicleForm.economyUnit}
-      </T>
-      <Segmented<'volume' | 'l_100km'>
-        options={[
-          { key: 'volume', label: unit === 'l' ? 'km/L' : 'km/gal' },
-          { key: 'l_100km', label: 'L/100 km' },
-        ]}
+      <SelectField<'volume' | 'l_100km'>
+        label={t.vehicleForm.economyUnit}
         value={perHundred ? 'l_100km' : 'volume'}
+        options={[
+          { value: 'volume', label: unit === 'l' ? 'km/L' : 'km/gal' },
+          { value: 'l_100km', label: 'L/100 km' },
+        ]}
         onChange={(k) => setPerHundred(k === 'l_100km')}
-        style={{ marginBottom: space.md }}
       />
 
       <Pressable
@@ -417,29 +426,29 @@ export function VehicleForm({
       {/* 7 · Estado (+ Desde, Nota) — a sold car keeps its status; "Cambiar estado" on the hub changes it back */}
       {sold ? null : (
         <>
-          <T face="eyebrow" style={[styles.label, { color: theme.text.muted }]}>
-            {t.vehicleForm.status}
-          </T>
-          <View style={styles.row}>
-            {STATUSES.map((s) => (
-              <Chip key={s} label={statusLabel(s)} selected={status === s} onPress={() => setStatus(s)} />
-            ))}
-          </View>
-          {status !== 'activo' ? (
-            <View style={styles.pair}>
-              <View style={styles.half}>
-                <DateField label={t.vehicleForm.statusSince} value={statusSince} onChange={setStatusSince} noFuture />
-              </View>
-              <View style={styles.half}>
-                <Field
-                  label={t.vehicleForm.statusNote}
-                  placeholder={t.vehicleForm.statusNotePlaceholder}
-                  value={statusNote}
-                  onChangeText={setStatusNote}
-                />
-              </View>
-            </View>
-          ) : null}
+          <SelectField<VehicleStatus>
+            label={t.vehicleForm.status}
+            value={status}
+            options={STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
+            onChange={setStatus}
+            extra={
+              status !== 'activo' ? (
+                <View style={styles.pair}>
+                  <View style={styles.half}>
+                    <DateField label={t.vehicleForm.statusSince} value={statusSince} onChange={setStatusSince} noFuture />
+                  </View>
+                  <View style={styles.half}>
+                    <Field
+                      label={t.vehicleForm.statusNote}
+                      placeholder={t.vehicleForm.statusNotePlaceholder}
+                      value={statusNote}
+                      onChangeText={setStatusNote}
+                    />
+                  </View>
+                </View>
+              ) : null
+            }
+          />
         </>
       )}
 

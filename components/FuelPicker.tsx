@@ -1,25 +1,24 @@
-import { Chip } from '@/components/ui';
+import { SelectField } from '@/components/pickers';
+import { t } from '@/lib/i18n';
 import { FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
 import type { FuelType } from '@/lib/types';
-import { View } from 'react-native';
 
+/** The fuel of a vehicle, a fill-up or a price: one field, the options in a sheet (ADR-60). */
 export function FuelPicker({
   value,
   onChange,
+  label = t.vehicle.fuel,
 }: {
   value: FuelType;
   onChange: (t: FuelType) => void;
+  label?: string;
 }) {
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-      {FUEL_ORDER.map((type) => (
-        <Chip
-          key={type}
-          label={FUEL_CATALOG[type].label}
-          selected={value === type}
-          onPress={() => onChange(type)}
-        />
-      ))}
-    </View>
+    <SelectField<FuelType>
+      label={label}
+      value={value}
+      options={FUEL_ORDER.map((type) => ({ value: type, label: FUEL_CATALOG[type].label }))}
+      onChange={onChange}
+    />
   );
 }

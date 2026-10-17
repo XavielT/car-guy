@@ -22,6 +22,7 @@ export { RecordRow, type RecordKind } from './RecordRow';
 export { Sheet } from './Sheet';
 export { StatusPill, type Status, type Tone } from './StatusPill';
 export { Surface } from './Surface';
+export { ToggleRow } from './ToggleRow';
 
 /**
  * A card is a Surface. The two were separate while the Tu Combustible RD screens

@@ -7,7 +7,8 @@ import { IosWebBanner } from '@/components/IosWebBanner';
 import { T } from '@/components/T';
 import { PermissionRow } from '@/components/permissions/PermissionRow';
 import { LastFixLine, MiuiChecklist, useAutoReadiness } from '@/components/trips/TripPieces';
-import { GhostButton, Segmented, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, Surface, ToggleRow } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { vehicles as vehicleRepo } from '@/lib/db/repos';
 import { FEATURE_MAP_V2 } from '@/lib/flagsV8';
@@ -91,14 +92,7 @@ export default function TripSettingsScreen() {
       </T>
       <IosWebBanner />
 
-      {eyebrow(t.trips.mode)}
-      {mode ? (
-        <Segmented<TripsMode>
-          options={MODES.map((key) => ({ key, label: t.trips.modes[key] }))}
-          value={shownMode}
-          onChange={chooseMode}
-        />
-      ) : null}
+      {mode ? <SelectField<TripsMode> label={t.trips.mode} value={shownMode} options={selectOptions(MODES, (key) => t.trips.modes[key])} onChange={chooseMode} /> : null}
       <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: space.sm }}>
         {t.trips.modeHint[shownMode]}
       </T>
@@ -146,15 +140,12 @@ export default function TripSettingsScreen() {
       {FEATURE_MAP_V2 ? (
         // Phase 4: the same trips_map switch, now "en línea / apagado"; the style is fixed (no picker).
         <Surface padded style={{ gap: space.sm }}>
-          <Segmented<'on' | 'off'>
-            options={[
-              { key: 'on', label: t.trips.mapOnline },
-              { key: 'off', label: t.trips.mapOff },
-            ]}
-            value={map ? 'on' : 'off'}
-            onChange={(k) => {
-              setMap(k === 'on');
-              void setTripsMap(k === 'on');
+          <ToggleRow
+            label={t.trips.mapOnline}
+            value={map}
+            onChange={(on) => {
+              setMap(on);
+              void setTripsMap(on);
             }}
           />
           <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>

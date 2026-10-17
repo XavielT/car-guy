@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
@@ -129,12 +130,7 @@ export default function ExportarScreen() {
           {t.export.subtitle}
         </T>
 
-        <SectionHeader title={t.export.period} style={styles.firstSection} />
-        <Segmented<PeriodKey>
-          options={PERIODS.map((key) => ({ key, label: t.stats.periods[key] }))}
-          value={period}
-          onChange={setPeriod}
-        />
+        <SelectField<PeriodKey> label={t.export.period} value={period} options={selectOptions(PERIODS, (key) => t.stats.periods[key])} onChange={setPeriod} />
 
         {showSkeleton ? (
           <ListCardsSkeleton n={3} lines={2} buttons={1} spacing={space.md} titleWidth="45%" style={styles.cards} />

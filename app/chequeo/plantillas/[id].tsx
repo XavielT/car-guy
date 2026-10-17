@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { CheckTemplateSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Segmented, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { ensureVehicleTemplate, saveTemplate, type TemplateDraftItem } from '@/lib/db/inspectionOps';
@@ -167,14 +168,7 @@ export default function TemplateEditorScreen() {
 
         <Field label={t.check.editor.name} value={name} onChangeText={setName} />
 
-        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {t.check.editor.cadence}
-        </T>
-        <View style={styles.chips}>
-          {CADENCES.map((c) => (
-            <Chip key={c} label={t.check.cadences[c]} selected={cadence === c} onPress={() => setCadence(c)} />
-          ))}
-        </View>
+        <SelectField label={t.check.editor.cadence} value={cadence} options={selectOptions(CADENCES, (c) => t.check.cadences[c])} onChange={setCadence} />
 
         <View style={styles.switchRow}>
           <T face="semibold" style={{ color: theme.text.primary, fontSize: 14, flex: 1 }}>
@@ -253,14 +247,7 @@ export default function TemplateEditorScreen() {
 
             {row.enabled ? (
               <View style={{ marginTop: space.md }}>
-                <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
-                  {t.check.editor.onFail}
-                </T>
-                <Segmented
-                  options={ON_FAIL.map((k) => ({ key: k, label: t.check.onFailShort[k] }))}
-                  value={row.onFail}
-                  onChange={(v) => patchRow(row.key, { onFail: v })}
-                />
+                <SelectField label={t.check.editor.onFail} value={row.onFail} options={selectOptions(ON_FAIL, (k) => t.check.onFailShort[k])} onChange={(v) => patchRow(row.key, { onFail: v })} />
               </View>
             ) : null}
           </Surface>

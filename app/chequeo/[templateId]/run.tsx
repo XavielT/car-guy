@@ -7,7 +7,8 @@ import { CheckPhotoStrip } from '@/components/checks/CheckPhotoStrip';
 import { Field } from '@/components/Field';
 import { CheckRunSkeleton } from '@/components/skeletons/CheckSkeleton';
 import { T } from '@/components/T';
-import { BoostRing, PrimaryButton, Segmented, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { BoostRing, PrimaryButton, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
@@ -355,16 +356,10 @@ export default function RunScreen() {
                         label={catalogLabel('checkItem', item, 'label')}
                         onChange={(ids) => setPhotos((p) => ({ ...p, [item.id]: ids }))}
                       />
-                      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: 6 }}>
-                        {t.check.onFailTitle}
-                      </T>
-                      <Segmented
-                        options={[
-                          { key: 'task', label: t.check.onFailShort.task },
-                          { key: 'reminder', label: t.check.onFailShort.reminder },
-                          { key: 'none', label: t.check.onFailShort.none },
-                        ]}
+                      <SelectField
+                        label={t.check.onFailTitle}
                         value={actions[item.id] ?? defaultActionFor(verdict, item.onFail)}
+                        options={selectOptions(['task', 'reminder', 'none'] as const, (k) => t.check.onFailShort[k])}
                         onChange={(v) => setActions((p) => ({ ...p, [item.id]: v }))}
                       />
                     </View>

@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
-import { EmptyState, PrimaryButton, Segmented, StatusPill, Surface } from '@/components/ui';
+import { FilterBar, selectOptions } from '@/components/pickers';
+import { EmptyState, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { tasks as taskRepo } from '@/lib/db/repos';
@@ -69,12 +70,7 @@ export default function TareasScreen() {
           {t.tasks.subtitle}
         </T>
 
-        <Segmented
-          style={styles.row}
-          options={STATUSES.map((s) => ({ key: s, label: t.tasks.statuses[s] }))}
-          value={status}
-          onChange={setStatus}
-        />
+        <FilterBar filters={[{ key: 'status', label: t.vehicleForm.status, value: status, onChange: setStatus, options: selectOptions(STATUSES, (s) => t.tasks.statuses[s]) }]} />
 
         {showSkeleton ? (
           <ListCardsSkeleton n={4} />

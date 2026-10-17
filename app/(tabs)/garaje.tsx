@@ -10,7 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RevokedPrompt } from '@/components/share/RevokedPrompt';
 import { TabsGarajeSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
-import { Badge, CarbonFrame, Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
+import { FilterBar } from '@/components/pickers';
+import { Badge, CarbonFrame, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { garageFacts, type GarageFacts } from '@/lib/db/garageQueries';
@@ -253,16 +254,20 @@ export default function GarajeScreen() {
           ) : null}
         </View>
 
-        <View style={styles.filters} accessibilityRole="tablist">
-          {(['activos', 'proyecto', 'ex'] as Filter[]).map((f) => (
-            <Chip
-              key={f}
-              label={t.garage.filters[f]}
-              selected={filter === f}
-              onPress={() => setFilter(filter === f ? null : f)}
-            />
-          ))}
-        </View>
+        <FilterBar
+          filters={[
+            {
+              key: 'status',
+              label: t.vehicle.status,
+              value: filter ?? '',
+              options: [
+                { value: '', label: t.pickers.all },
+                ...(['activos', 'proyecto', 'ex'] as Filter[]).map((f) => ({ value: f as string, label: t.garage.filters[f] })),
+              ],
+              onChange: (v: string) => setFilter((v || null) as Filter | null),
+            },
+          ]}
+        />
 
         {!settled ? (
           showSkeleton ? <TabsGarajeSkeleton /> : null

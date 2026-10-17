@@ -11,7 +11,8 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoViewerSkeleton } from '@/components/skeletons/PhotoViewerSkeleton';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { palette, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
@@ -234,11 +235,7 @@ export default function PhotoViewer() {
 
         <Sheet visible={editing} onClose={() => setEditing(false)} title={t.viewer.realDate}>
           <DateField label={t.viewer.realDate} value={date} onChange={setDate} noFuture />
-          <View style={{ flexDirection: 'row', marginBottom: space.md }}>
-            {(['day', 'month', 'year'] as DatePrecision[]).map((p) => (
-              <Chip key={p} label={t.importer.precisions[p]} selected={precision === p} onPress={() => setPrecision(p)} />
-            ))}
-          </View>
+          <SelectField<DatePrecision> label={t.importer.precision} value={precision} options={selectOptions(['day', 'month', 'year'] as DatePrecision[], (p) => t.importer.precisions[p])} onChange={setPrecision} />
           <Field label={t.viewer.caption} placeholder={t.viewer.captionPlaceholder} value={caption} onChangeText={setCaption} multiline />
           <PrimaryButton label={t.viewer.save} onPress={() => void saveEdit()} />
           <GhostButton label={t.common.cancel} onPress={() => setEditing(false)} />

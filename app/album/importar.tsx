@@ -7,7 +7,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { DateField } from '@/components/DateField';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { dateAtPrecision, type DatePrecision } from '@/lib/domain/album';
 import { dateLabel, monthTitle } from '@/lib/format';
@@ -197,11 +198,7 @@ export default function ImportScreen() {
   } else if (stage.kind === 'years') {
     body = (
       <>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginBottom: space.md }}>
-          {years.map((y) => (
-            <Chip key={y} label={String(y)} selected={y === year} onPress={() => setYear(y)} />
-          ))}
-        </ScrollView>
+        <SelectField<number> label={t.pickers.year} value={year} options={selectOptions(years, (y) => String(y))} onChange={setYear} />
         <View style={styles.months}>
           {MONTHS.map((label, i) => {
             const n = counts?.[i] ?? 0;
@@ -310,11 +307,7 @@ export default function ImportScreen() {
         <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
           {t.importer.target(target?.name ?? '—')}
         </T>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginTop: space.sm, marginBottom: space.md }}>
-          {targets.map((v) => (
-            <Chip key={v.id} label={v.name} selected={v.id === vehicleId} onPress={() => setVehicleId(v.id)} />
-          ))}
-        </ScrollView>
+        <SelectField<string> label={t.routes.vehicle} value={vehicleId} options={targets.map((v) => ({ value: v.id, label: v.name }))} onChange={setVehicleId} />
         {photos.detail === 'limited' ? (
           <View style={[styles.banner, { backgroundColor: theme.statusBg.proximo, borderColor: theme.status.proximo }]}>
             <T face="body" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
@@ -402,14 +395,7 @@ export default function ImportScreen() {
             {showDate ? (
               <>
                 <DateField label={override ? t.importer.overrideLabel : t.importer.undatedLabel(summary.none)} value={overrideDate} onChange={setOverrideDate} noFuture />
-                <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-                  {t.importer.precision}
-                </T>
-                <View style={{ flexDirection: 'row' }}>
-                  {(['day', 'month', 'year'] as DatePrecision[]).map((p) => (
-                    <Chip key={p} label={t.importer.precisions[p]} selected={precision === p} onPress={() => setPrecision(p)} />
-                  ))}
-                </View>
+                <SelectField<DatePrecision> label={t.importer.precision} value={precision} options={selectOptions(['day', 'month', 'year'] as DatePrecision[], (p) => t.importer.precisions[p])} onChange={setPrecision} />
               </>
             ) : null}
 

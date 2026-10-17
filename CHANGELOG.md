@@ -7,6 +7,9 @@
 - **Mapa de Modo conducir**: sin ubicación ya no queda en una esquina cualquiera: te muestra tu última ubicación (con "hace 2 h"), la zona de tus viajes recientes o Santo Domingo. "Centrar en mí" siempre está, el GPS que no responde dice por qué (sin señal / tardó demasiado) y se reintenta, y el permiso comparte la fila de chips en vez de una tarjeta.
 - **Cámara y fotos**: la cámara pide su permiso con explicación y, si no quieres, la galería sigue ahí; importar fotos viejas ya no pide acceso al abrir la pantalla, sino al tocar el botón.
 
+- **Un solo selector para todo**: elegir un valor ya no es una fila de botones que se pone donde cae — es un campo que muestra lo elegido y abre una hoja con las opciones, que se cierra al elegir (con búsqueda cuando hay muchas y "Otro…" cuando aplica). Combustible, tipo de carrocería, color, estado, tema, idioma, visibilidad, rol, duraciones y los demás: igual en todas partes. Los sí/no (Pasajero, Tanque lleno, Solo reserva, Mapa en línea) son interruptores.
+- **Filtros**: las listas (Historial, Garaje, Viajes, Pista, Inventario, Precios) filtran con botones compactos "Tipo: Todos ▾" que abren la misma hoja, con un contador y "Limpiar" cuando hay filtros puestos.
+
 ## 2.5.2 (2026-10-16)
 
 - **Aceite sintético**: la casilla ahora se queda marcada. Al guardar, el recordatorio del aceite pasa a 10,000 km / 12 meses; si la desmarcas, vuelve al intervalo normal sin perder cuándo hiciste el último cambio.

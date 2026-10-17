@@ -6,7 +6,8 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { space } from '@/constants/theme';
 import { lastFxRate, saveWishlistItem } from '@/lib/db/buildQueries';
@@ -106,12 +107,6 @@ export function WishlistForm({ vehicleId, itemId, onDone, skeleton }: { vehicleI
     });
   }
 
-  const label = (t: string) => (
-    <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.sm }}>
-      {t}
-    </T>
-  );
-
   // Not the empty fields of a new item while the real one is on its way.
   if (!loaded) return showSkeleton ? (skeleton ?? <FormSkeleton />) : null;
   return (
@@ -120,12 +115,13 @@ export function WishlistForm({ vehicleId, itemId, onDone, skeleton }: { vehicleI
         {itemId ? t.wishlist.editTitle : t.wishlist.newTitle}
       </T>
       <Field label={t.wishlist.name} placeholder={t.wishlist.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
-      {label(t.modForm.category)}
-      <View style={styles.chips}>
-        {categories.map((c) => (
-          <Chip key={c.id} label={catalogLabel('modCategory', c)} selected={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
-        ))}
-      </View>
+      <SelectField<string | null>
+        label={t.modForm.category}
+        value={categoryId}
+        allowNone
+        options={categories.map((c) => ({ value: c.id as string | null, label: catalogLabel('modCategory', c) }))}
+        onChange={setCategoryId}
+      />
       <View style={styles.pair}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.modForm.brand} value={brand} onChangeText={setBrand} />
@@ -134,18 +130,9 @@ export function WishlistForm({ vehicleId, itemId, onDone, skeleton }: { vehicleI
           <Field label={t.modForm.partNumber} value={partNumber} onChangeText={setPartNumber} />
         </View>
       </View>
-      {label(t.wishlist.priority)}
-      <View style={styles.chips}>
-        {([1, 2, 3] as const).map((p) => (
-          <Chip key={p} label={t.wishlist.priorities[p]} selected={priority === p} onPress={() => setPriority(p)} />
-        ))}
-      </View>
+      <SelectField<1 | 2 | 3> label={t.wishlist.priority} value={priority} options={selectOptions([1, 2, 3] as const, (p) => t.wishlist.priorities[p])} onChange={setPriority} />
       <Field label={t.wishlist.price} keyboardType="decimal-pad" value={price} onChangeText={setPrice} />
-      <View style={styles.chips}>
-        {CURRENCIES.map((c) => (
-          <Chip key={c} label={c} selected={currency === c} onPress={() => setCurrency(c)} />
-        ))}
-      </View>
+      <SelectField label={t.pickers.currency} value={currency} options={selectOptions(CURRENCIES, (c) => c)} onChange={setCurrency} />
       <View style={styles.pair}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Field label={t.wishlist.shipping} keyboardType="decimal-pad" value={shipping} onChangeText={setShipping} />
@@ -160,12 +147,7 @@ export function WishlistForm({ vehicleId, itemId, onDone, skeleton }: { vehicleI
       <Field label={t.wishlist.vendor} value={vendor} onChangeText={setVendor} />
       <Field label={t.wishlist.url} value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" />
       <DateField label={t.wishlist.targetDate} value={target || new Date().toISOString().slice(0, 10)} onChange={setTarget} />
-      {label(t.wishlist.status)}
-      <View style={styles.chips}>
-        {STATUSES.map((s) => (
-          <Chip key={s} label={t.build.wishStatuses[s]} selected={status === s} onPress={() => setStatus(s)} />
-        ))}
-      </View>
+      <SelectField label={t.wishlist.status} value={status} options={selectOptions(STATUSES, (s) => t.build.wishStatuses[s])} onChange={setStatus} />
       <Field label={t.wishlist.notes} value={notes} onChangeText={setNotes} multiline />
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.sm }}>

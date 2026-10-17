@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { PhotoThumb } from '@/components/album/PhotoThumb';
@@ -6,7 +6,8 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
@@ -76,7 +77,6 @@ export function ModForm({
   const [others, setOthers] = useState<Mod[]>([]);
   const [readings, setReadings] = useState<OdometerReading[]>([]);
   const [photos, setPhotos] = useState<ModMedia[]>([]);
-  const [search, setSearch] = useState('');
 
   const [categoryId, setCategoryId] = useState(draft?.categoryId ?? 'otro');
   const [name, setName] = useState(draft?.name ?? '');
@@ -158,10 +158,6 @@ export function ModForm({
   const total = modTotalDop({ costPartDop: num(part), costLaborDop: num(labor), costShippingDop: num(shipping), costCustomsDop: num(customs) });
   const kmValue = installedKm.trim() ? parseDecimal(installedKm) : null;
   const kmWarning = kmValue != null && status === 'instalado' ? odometerWarning(kmValue, isoFromDateInput(installedAt), readings) : null;
-  const shownCategories = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q ? categories.filter((c) => catalogLabel('modCategory', c).toLowerCase().includes(q)) : categories;
-  }, [categories, search]);
 
   async function addPhotos() {
     const picked = await pickCandidates({ multiple: true });
@@ -255,22 +251,22 @@ export function ModForm({
         </T>
       ) : null}
 
-      {eyebrow(t.modForm.category)}
-      <Field label={t.modForm.searchCategory} value={search} onChangeText={setSearch} />
-      <View style={styles.chips}>
-        {shownCategories.map((c) => (
-          <Chip key={c.id} label={catalogLabel('modCategory', c)} selected={categoryId === c.id} onPress={() => setCategoryId(c.id)} />
-        ))}
-      </View>
+      <SelectField<string>
+        label={t.modForm.category}
+        value={categoryId}
+        options={categories.map((c) => ({ value: c.id, label: catalogLabel('modCategory', c) }))}
+        onChange={setCategoryId}
+      />
 
       {t.modForm.presets[categoryId]?.length ? (
         <>
-          {eyebrow(t.modForm.presetsTitle)}
-          <View style={styles.chips}>
-            {t.modForm.presets[categoryId].map((p) => (
-              <Chip key={p} label={p} selected={name === p} onPress={() => (setName(p), setError(null))} />
-            ))}
-          </View>
+          <SelectField<string | null>
+            label={t.modForm.presetsTitle}
+            value={t.modForm.presets[categoryId].includes(name) ? name : null}
+            options={selectOptions(t.modForm.presets[categoryId], (p) => p)}
+            onChange={(p) => p && (setName(p), setError(null))}
+            placeholder={t.pickers.choose}
+          />
         </>
       ) : null}
 
@@ -285,12 +281,7 @@ export function ModForm({
       </View>
       <Field label={t.modForm.variant} value={variant} onChangeText={setVariant} />
 
-      {eyebrow(t.modForm.status)}
-      <View style={styles.chips}>
-        {STATUSES.map((s) => (
-          <Chip key={s} label={t.build.statuses[s]} selected={status === s} onPress={() => setStatus(s)} />
-        ))}
-      </View>
+      <SelectField label={t.modForm.status} value={status} options={selectOptions(STATUSES, (s) => t.build.statuses[s])} onChange={setStatus} />
 
       {status !== 'planeado' && status !== 'pedido' ? (
         <>
@@ -299,12 +290,7 @@ export function ModForm({
         </>
       ) : null}
 
-      {eyebrow(t.modForm.installer)}
-      <View style={styles.chips}>
-        {INSTALLERS.map((i) => (
-          <Chip key={i} label={t.build.installers[i]} selected={installer === i} onPress={() => setInstaller(i)} />
-        ))}
-      </View>
+      <SelectField label={t.modForm.installer} value={installer} options={selectOptions(INSTALLERS, (i) => t.build.installers[i])} onChange={setInstaller} />
       {installer !== 'yo' ? (
         <ContactPicker
           contactId={contactId}
@@ -322,11 +308,7 @@ export function ModForm({
           <Field label={t.modForm.rate} keyboardType="decimal-pad" value={rate} onChangeText={setRate} />
         </View>
       </View>
-      <View style={styles.chips}>
-        {CURRENCIES.map((c) => (
-          <Chip key={c} label={c} selected={currency === c} onPress={() => setCurrency(c)} />
-        ))}
-      </View>
+      <SelectField label={t.pickers.currency} value={currency} options={selectOptions(CURRENCIES, (c) => c)} onChange={setCurrency} />
       {fx != null ? (
         <View style={[styles.fx, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
           <T face="mono" style={{ color: theme.text.primary, fontSize: 13, flex: 1 }}>
@@ -398,13 +380,12 @@ export function ModForm({
 
       {others.length ? (
         <>
-          {eyebrow(t.modForm.replaces)}
-          <View style={styles.chips}>
-            <Chip label={t.modForm.replacesNone} selected={!replaces} onPress={() => setReplaces(null)} />
-            {others.map((m) => (
-              <Chip key={m.id} label={m.name} selected={replaces === m.id} onPress={() => setReplaces(m.id)} />
-            ))}
-          </View>
+          <SelectField<string | null>
+            label={t.modForm.replaces}
+            value={replaces}
+            options={[{ value: null, label: t.modForm.replacesNone }, ...others.map((m) => ({ value: m.id as string | null, label: m.name }))]}
+            onChange={setReplaces}
+          />
         </>
       ) : null}
 

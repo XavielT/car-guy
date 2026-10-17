@@ -6,7 +6,8 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { todayIsoDate } from '@/lib/format';
 import { t } from '@/lib/i18n';
@@ -80,27 +81,13 @@ export default function NuevoJunteScreen() {
           <Field label={t.juntes.time} value={time} onChangeText={setTime} keyboardType="numbers-and-punctuation" placeholder="15:30" />
         </View>
       </View>
-      <T face="eyebrow" style={[styles.h, { color: theme.text.muted }]}>
-        {t.juntes.duration}
-      </T>
-      <View style={styles.chips}>
-        {HOURS.map((h) => (
-          <Chip key={h} label={t.juntes.hours(h)} selected={hours === h} onPress={() => setHours(h)} />
-        ))}
-      </View>
+      <SelectField label={t.juntes.duration} value={hours} options={selectOptions(HOURS, (h) => t.juntes.hours(h))} onChange={setHours} />
       <T face="eyebrow" style={[styles.h, { color: theme.text.muted }]}>
         {t.juntes.meet}
       </T>
       <Field label={t.juntes.meetLabel} value={meetLabel} onChangeText={(v) => setMeetLabel(v.slice(0, 80))} />
       <GhostButton label={meet ? `${t.juntes.meetSet} ✓` : t.juntes.meetHere} onPress={() => void here()} />
-      <T face="eyebrow" style={[styles.h, { color: theme.text.muted }]}>
-        {t.juntes.visibility}
-      </T>
-      <View style={styles.chips}>
-        {VIS.map((v) => (
-          <Chip key={v} label={t.juntes.visibilityOpts[v]} selected={visibility === v} onPress={() => setVisibility(v)} />
-        ))}
-      </View>
+      <SelectField label={t.juntes.visibility} value={visibility} options={selectOptions(VIS, (v) => t.juntes.visibilityOpts[v])} onChange={setVisibility} />
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.sm }}>
           {error}

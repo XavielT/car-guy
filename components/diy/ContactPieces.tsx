@@ -6,7 +6,8 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { contactLinks, listContacts, saveContact, type ContactLink } from '@/lib/db/diyQueries';
@@ -93,14 +94,7 @@ export function ContactForm({ contactId, onDone, skeleton }: { contactId?: strin
         {contactId ? t.contacts.editTitle : t.contacts.newTitle}
       </T>
       <Field label={t.contacts.name} placeholder={t.contacts.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
-      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {t.contacts.kind}
-      </T>
-      <View style={styles.chips}>
-        {CONTACT_KINDS.map((k) => (
-          <Chip key={k} label={t.contacts.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
-        ))}
-      </View>
+      <SelectField label={t.contacts.kind} value={kind} options={selectOptions(CONTACT_KINDS, (k) => t.contacts.kinds[k])} onChange={setKind} />
       <Field label={t.contacts.phone} keyboardType="phone-pad" value={phone} onChangeText={setPhone} hint={formatPhone(phone) ?? undefined} />
       <Field label={t.contacts.whatsapp} keyboardType="phone-pad" value={whatsapp} onChangeText={setWhatsapp} />
       <ContactButtons contact={{ name, phone, whatsapp }} />
@@ -159,6 +153,10 @@ export function ContactForm({ contactId, onDone, skeleton }: { contactId?: strin
  * one-off name that is not worth a contact. The form keeps both values; the
  * contact wins when both are set.
  */
+/** Sentinel values of the picker's two special rows (never stored). */
+const OTHER = '__other';
+const ADD = '__add';
+
 export function ContactPicker({
   contactId,
   text,
@@ -171,7 +169,6 @@ export function ContactPicker({
   textLabel?: string;
 }) {
   const router = useRouter();
-  const { theme } = useTheme();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [other, setOther] = useState(Boolean(text && !contactId));
 
@@ -181,17 +178,26 @@ export function ContactPicker({
 
   return (
     <View>
-      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {t.contacts.picker}
-      </T>
-      <View style={styles.chips}>
-        <Chip label={t.contacts.pickerNone} selected={!contactId && !other} onPress={() => (setOther(false), onChange({ contactId: null, text: '' }))} />
-        {contacts.map((c) => (
-          <Chip key={c.id} label={c.name} selected={contactId === c.id} onPress={() => (setOther(false), onChange({ contactId: c.id, text: c.name }))} />
-        ))}
-        <Chip label={t.contacts.pickerOther} selected={other && !contactId} onPress={() => (setOther(true), onChange({ contactId: null, text: text ?? '' }))} />
-        <Chip label="+" onPress={() => router.push('/contactos/nuevo')} />
-      </View>
+      <SelectField<string | null>
+        label={t.contacts.picker}
+        value={contactId ?? (other ? OTHER : null)}
+        options={[
+          { value: null, label: t.contacts.pickerNone },
+          ...contacts.map((c) => ({ value: c.id as string | null, label: c.name })),
+          { value: OTHER, label: t.contacts.pickerOther },
+          { value: ADD, label: t.contacts.pickerAdd },
+        ]}
+        onChange={(v) => {
+          if (v === ADD) return router.push('/contactos/nuevo');
+          if (v === OTHER) {
+            setOther(true);
+            return onChange({ contactId: null, text: text ?? '' });
+          }
+          setOther(false);
+          const c = v == null ? null : contacts.find((x) => x.id === v);
+          onChange(c ? { contactId: c.id, text: c.name } : { contactId: null, text: '' });
+        }}
+      />
       {other && !contactId ? <Field label={textLabel ?? t.contacts.name} value={text ?? ''} onChangeText={(t) => onChange({ contactId: null, text: t })} /> : null}
     </View>
   );

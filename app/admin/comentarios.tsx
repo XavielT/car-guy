@@ -5,7 +5,8 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-n
 import { AdminFeedbackListSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
 import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/feedback/present';
-import { Chip, EmptyState, StatusPill } from '@/components/ui';
+import { FilterBar } from '@/components/pickers';
+import { EmptyState, StatusPill } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useAdminGate } from '@/lib/cloud/admin';
@@ -83,12 +84,20 @@ export default function ComentariosRecibidos() {
       <T face="eyebrow" style={{ color: theme.accent, fontSize: 11 }}>
         {t.feedback.admin.count(rows?.length ?? 0)}
       </T>
-      <View style={styles.chips}>
-        <Chip label={t.feedback.admin.all} selected={filter === 'all'} onPress={() => setFilter('all')} />
-        {FEEDBACK_STATUSES.map((s) => (
-          <Chip key={s} label={`${statusLabel(s)} ${counts[s]}`} selected={filter === s} onPress={() => setFilter(s)} />
-        ))}
-      </View>
+      <FilterBar
+        filters={[
+          {
+            key: 'status',
+            label: t.vehicleForm.status,
+            value: filter,
+            onChange: setFilter,
+            options: [
+              { value: 'all', label: t.feedback.admin.all },
+              ...FEEDBACK_STATUSES.map((s) => ({ value: s as typeof filter, label: `${statusLabel(s)} ${counts[s]}` })),
+            ],
+          },
+        ]}
+      />
 
       {rows === null ? <EmptyState icon="cloud-offline-outline" message={t.feedback.admin.loadFailed} actionLabel={t.common.retry} onAction={load} /> : null}
       {rows && !shown.length ? <EmptyState icon="mail-open-outline" message={t.feedback.admin.empty} /> : null}

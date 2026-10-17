@@ -6,7 +6,8 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Segmented, Sheet } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
@@ -227,45 +228,27 @@ export function EventForm({
         {milestoneId ? t.events.editTitle : t.events.newTitle}
       </T>
 
-      {eyebrow(t.events.type)}
-      <View style={styles.chips}>
-        {EVENT_TYPES.map((et) => {
-          const on = eventType === et.id;
-          return (
-            <Pressable
-              key={et.id}
-              onPress={() => setEventType(et.id)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              aria-selected={on}
-              style={[styles.typeChip, { backgroundColor: on ? theme.accentFill : theme.bg.raised, borderColor: on ? theme.accentFill : theme.line }]}>
-              <Ionicons name={et.icon as keyof typeof Ionicons.glyphMap} size={15} color={on ? theme.accentFillInk : theme.text.secondary} />
-              <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                {et.label}
-              </T>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SelectField
+        label={t.events.type}
+        value={eventType}
+        options={EVENT_TYPES.map((et) => ({ value: et.id, label: et.label }))}
+        onChange={setEventType}
+      />
 
       {isHito ? (
-        <View style={styles.chips}>
-          {HITO_KINDS.map((k) => (
-            <Chip key={k} label={t.hito.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
-          ))}
-        </View>
+        <SelectField label={t.hito.kind} value={kind} options={selectOptions(HITO_KINDS, (k) => t.hito.kinds[k])} onChange={setKind} />
       ) : (
         <>
-          {eyebrow(t.events.severity)}
-          <Segmented
-            options={SEVERITIES.map((s) => ({
-              key: s.id,
-              label: s.label,
-              color: s.id === 'grave' ? theme.danger : s.id === 'moderado' ? theme.status.urgente : theme.status.proximo,
-            }))}
+
+          <SelectField
+            label={t.events.severity}
             value={severity}
+            options={SEVERITIES.map((s) => ({
+              value: s.id,
+              label: s.label,
+              swatch: s.id === 'grave' ? theme.danger : s.id === 'moderado' ? theme.status.urgente : theme.status.proximo,
+            }))}
             onChange={setSeverity}
-            style={{ marginBottom: space.md }}
           />
         </>
       )}

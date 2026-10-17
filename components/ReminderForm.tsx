@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Segmented } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, ToggleRow } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { reminders as reminderRepo, serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { Reminder, ReminderMetric, ServiceType, Vehicle } from '@/lib/db/types';
@@ -150,28 +151,21 @@ export function ReminderForm({
     <View>
       <Field label={t.reminders.form.title} value={title} onChangeText={setTitle} />
 
-      <Label text={t.reminders.form.catalog} />
-      <View style={styles.chips}>
-        <Chip label={t.reminders.form.catalogNone} selected={serviceTypeId == null} onPress={() => pickType(null)} />
-        {catalog.map((type) => (
-          <Chip
-            key={type.id}
-            label={catalogLabel('serviceType', type)}
-            selected={serviceTypeId === type.id}
-            onPress={() => pickType(type)}
-          />
-        ))}
-      </View>
+      <SelectField<string | null>
+        label={t.reminders.form.catalog}
+        value={serviceTypeId}
+        options={[
+          { value: null, label: t.reminders.form.catalogNone },
+          ...catalog.map((type) => ({ value: type.id as string | null, label: catalogLabel('serviceType', type) })),
+        ]}
+        onChange={(id) => pickType(id == null ? null : (catalog.find((type) => type.id === id) ?? null))}
+      />
 
-      <Label text={t.reminders.form.metric} />
-      <Segmented
-        options={(['date', 'km', 'both'] as const).map((key) => ({
-          key,
-          label: t.reminders.form.metrics[key],
-        }))}
+      <SelectField<ReminderMetric>
+        label={t.reminders.form.metric}
         value={metric}
+        options={selectOptions(['date', 'km', 'both'] as const, (key) => t.reminders.form.metrics[key])}
         onChange={setMetric}
-        style={{ marginBottom: space.sm }}
       />
       {metric === 'both' ? <Hint text={t.reminders.form.bothHint} /> : null}
 
@@ -180,16 +174,7 @@ export function ReminderForm({
         <Field label={t.reminders.form.dueKm} keyboardType="number-pad" value={dueKm} onChangeText={setDueKm} />
       ) : null}
 
-      <Label text={t.reminders.form.recurring} />
-      <Segmented
-        options={[
-          { key: 'yes', label: t.reminders.form.yes },
-          { key: 'no', label: t.reminders.form.no },
-        ]}
-        value={recurring ? 'yes' : 'no'}
-        onChange={(v) => setRecurring(v === 'yes')}
-        style={{ marginBottom: space.md }}
-      />
+      <ToggleRow label={t.reminders.form.recurring} value={recurring} onChange={setRecurring} />
 
       {recurring ? (
         <>
@@ -224,17 +209,7 @@ export function ReminderForm({
             />
           ) : null}
 
-          <Label text={t.reminders.form.fixed} />
-          <Segmented
-            options={[
-              { key: 'yes', label: t.reminders.form.yes },
-              { key: 'no', label: t.reminders.form.no },
-            ]}
-            value={fixed ? 'yes' : 'no'}
-            onChange={(v) => setFixed(v === 'yes')}
-            style={{ marginBottom: space.sm }}
-          />
-          <Hint text={t.reminders.form.fixedHint} />
+          <ToggleRow label={t.reminders.form.fixed} value={fixed} onChange={setFixed} hint={t.reminders.form.fixedHint} />
         </>
       ) : null}
 
@@ -267,16 +242,7 @@ export function ReminderForm({
 
       <Field label={t.reminders.form.notes} value={notes} onChangeText={setNotes} multiline />
 
-      <Label text={t.reminders.form.enabled} />
-      <Segmented
-        options={[
-          { key: 'yes', label: t.reminders.enabledLabel },
-          { key: 'no', label: t.reminders.disabledLabel },
-        ]}
-        value={enabled ? 'yes' : 'no'}
-        onChange={(v) => setEnabled(v === 'yes')}
-        style={{ marginBottom: space.lg }}
-      />
+      <ToggleRow label={t.reminders.form.enabled} value={enabled} onChange={setEnabled} />
 
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>
@@ -293,14 +259,6 @@ export function ReminderForm({
   );
 }
 
-function Label({ text }: { text: string }) {
-  const { theme } = useTheme();
-  return (
-    <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-      {text}
-    </T>
-  );
-}
 
 function Hint({ text }: { text: string }) {
   const { theme } = useTheme();

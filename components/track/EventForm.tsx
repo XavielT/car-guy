@@ -7,7 +7,8 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
@@ -37,6 +38,8 @@ import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { DaySummaryCard, shareCardImage, shareSummaryText, summaryText } from './TrackPieces';
 
+/** The sentinel row of the venue picker that opens the new-venue form (never stored). */
+const ADD_VENUE = '__add_venue';
 const DISCIPLINES: TrackDiscipline[] = ['track_day', 'drift', 'drag', 'autocross', 'junte', 'prueba'];
 const WEATHERS = ['soleado', 'nublado', 'lluvia', 'noche'];
 const CONDITIONS = ['seca', 'con_goma', 'humeda', 'mojada', 'polvo'];
@@ -252,31 +255,21 @@ export function EventForm({
 
       {vehicles.length > 1 ? (
         <>
-          {eyebrow(t.track.event.vehicle)}
-          <View style={styles.chips}>
-            {vehicles.map((v) => (
-              <Chip key={v.id} label={v.name} selected={vehicleId === v.id} onPress={() => setVehicleId(v.id)} />
-            ))}
-          </View>
+          <SelectField<string> label={t.track.event.vehicle} value={vehicleId} options={vehicles.map((v) => ({ value: v.id, label: v.name }))} onChange={setVehicleId} />
         </>
       ) : null}
 
-      {eyebrow(t.track.event.venue)}
-      <View style={styles.chips}>
-        {venues.map((v) => (
-          <Chip key={v.id} label={v.name} selected={venueId === v.id} onPress={() => setVenueId(v.id)} />
-        ))}
-        <Chip label={t.track.event.addVenue} selected={addingVenue} onPress={() => setAddingVenue((a) => !a)} />
-      </View>
+      <SelectField<string | null>
+        label={t.track.event.venue}
+        value={addingVenue ? ADD_VENUE : venueId}
+        options={[...venues.map((v) => ({ value: v.id as string | null, label: v.name })), { value: ADD_VENUE, label: t.track.event.addVenue }]}
+        onChange={(v) => (v === ADD_VENUE ? setAddingVenue(true) : (setAddingVenue(false), setVenueId(v)))}
+      />
       {addingVenue ? (
         <View style={[styles.box, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
           <Field label={t.track.event.venueName} value={venueName} onChangeText={setVenueName} />
           <Field label={t.track.event.venueCity} value={venueCity} onChangeText={setVenueCity} />
-          <View style={styles.chips}>
-            {VENUE_TYPES.map((x) => (
-              <Chip key={x} label={t.track.event.venueTypes[x]} selected={venueType === x} onPress={() => setVenueType(x)} />
-            ))}
-          </View>
+          <SelectField label={t.track.event.venueType} value={venueType} options={selectOptions(VENUE_TYPES, (x) => t.track.event.venueTypes[x])} onChange={setVenueType} />
           <GhostButton label={t.track.event.venueSave} disabled={!venueName.trim()} onPress={() => void createVenue()} />
         </View>
       ) : null}
@@ -286,29 +279,14 @@ export function EventForm({
       <Field label={t.track.event.title} placeholder={t.track.event.titlePlaceholder} value={title} onChangeText={setTitle} />
       <Field label={t.track.event.organizer} value={organizer} onChangeText={setOrganizer} />
 
-      {eyebrow(t.track.event.discipline)}
-      <View style={styles.chips}>
-        {DISCIPLINES.map((d) => (
-          <Chip key={d} label={t.track.disciplines[d]} selected={discipline === d} onPress={() => setDiscipline(d)} />
-        ))}
-      </View>
+      <SelectField label={t.track.event.discipline} value={discipline} options={selectOptions(DISCIPLINES, (d) => t.track.disciplines[d])} onChange={setDiscipline} />
 
-      {eyebrow(t.track.event.weather)}
-      <View style={styles.chips}>
-        {WEATHERS.map((w) => (
-          <Chip key={w} label={t.track.event.weathers[w]} selected={weather === w} onPress={() => setWeather(weather === w ? null : w)} />
-        ))}
-      </View>
+      <SelectField<string | null> label={t.track.event.weather} value={weather} allowNone options={selectOptions(WEATHERS, (w) => t.track.event.weathers[w])} onChange={setWeather} />
       {pair(
         <Field label={t.track.event.ambient} keyboardType="decimal-pad" value={ambient} onChangeText={setAmbient} />,
         <Field label={t.track.event.trackTemp} keyboardType="decimal-pad" value={trackTemp} onChangeText={setTrackTemp} />,
       )}
-      {eyebrow(t.track.event.condition)}
-      <View style={styles.chips}>
-        {CONDITIONS.map((c) => (
-          <Chip key={c} label={t.track.event.conditions[c]} selected={condition === c} onPress={() => setCondition(condition === c ? null : c)} />
-        ))}
-      </View>
+      <SelectField<string | null> label={t.track.event.condition} value={condition} allowNone options={selectOptions(CONDITIONS, (c) => t.track.event.conditions[c])} onChange={setCondition} />
 
       {pair(
         <Field label={t.track.event.odoStart} keyboardType="number-pad" value={odoStart} onChangeText={setOdoStart} />,
@@ -485,8 +463,8 @@ function Consumables({ eventId, vehicleId, usage, onChanged }: { eventId: string
           </View>
           {burned.has(x.id) ? null : (
             <>
-              <Chip label={used.has(x.id) ? t.track.consumables.usedChipOn : t.track.consumables.usedChip} selected={used.has(x.id)} onPress={() => void setTireUsed(eventId, x, !used.has(x.id)).then(onChanged)} />
-              <Chip label="🔥" onPress={() => burn(x)} />
+              <GhostButton label={used.has(x.id) ? `✓ ${t.track.consumables.usedChipOn}` : t.track.consumables.usedChip} onPress={() => void setTireUsed(eventId, x, !used.has(x.id)).then(onChanged)} />
+              <GhostButton label="🔥" onPress={() => burn(x)} />
             </>
           )}
         </View>

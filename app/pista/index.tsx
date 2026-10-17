@@ -6,7 +6,8 @@ import { BestsStrip, EventCard } from '@/components/track/TrackPieces';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
-import { Chip, EmptyState, PrimaryButton } from '@/components/ui';
+import { FilterBar } from '@/components/pickers';
+import { EmptyState, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listEvents, vehicleBests, type EventCard as Card, type PersonalBest } from '@/lib/db/trackQueries';
@@ -63,12 +64,17 @@ export default function TrackIndexScreen() {
       </T>
       <TipCard id="track" />
       {vehicles.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>
-          <Chip label={t.history.all} selected={!filter} onPress={() => setFilter(null)} />
-          {vehicles.map((v) => (
-            <Chip key={v.id} label={v.name} selected={filter === v.id} onPress={() => setFilter(v.id)} />
-          ))}
-        </ScrollView>
+        <FilterBar
+          filters={[
+            {
+              key: 'vehicle',
+              label: t.routes.vehicle,
+              value: filter ?? '',
+              options: [{ value: '', label: t.history.all }, ...vehicles.map((v) => ({ value: v.id, label: v.name }))],
+              onChange: (v: string) => setFilter(v || null),
+            },
+          ]}
+        />
       ) : null}
       {showSkeleton ? <ListCardsSkeleton section n={4} pad={space.md} r={radius.button} eyebrow lines={1} titleWidth="65%" /> : <BestsStrip bests={bests} />}
       {cards && !cards.length && !showSkeleton ? <EmptyState icon="speedometer-outline" message={t.track.empty} /> : null}

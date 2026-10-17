@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { radius, space } from '@/constants/theme';
+import { palette, radius, space } from '@/constants/theme';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
@@ -17,6 +18,10 @@ export function PickerField({
   onPress,
   hint,
   disabled,
+  leading,
+  error,
+  testID,
+  dark,
 }: {
   label: string;
   value: string | null | undefined;
@@ -24,8 +29,15 @@ export function PickerField({
   onPress: () => void;
   hint?: string;
   disabled?: boolean;
+  /** A swatch or icon before the value (SelectField). */
+  leading?: ReactNode;
+  error?: string | null;
+  testID?: string;
+  /** On an always-dark surface (Modo conducir): the dark palette whatever the app theme. */
+  dark?: boolean;
 }) {
-  const { theme } = useTheme();
+  const { theme: appTheme } = useTheme();
+  const theme = dark ? palette.dark : appTheme;
   const empty = !value;
 
   return (
@@ -38,16 +50,24 @@ export function PickerField({
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value || placeholder}`}
-        accessibilityState={{ disabled: Boolean(disabled) }}
+        accessibilityHint={undefined}
+        accessibilityState={{ disabled: Boolean(disabled), expanded: false }}
+        testID={testID}
         style={[
           styles.box,
-          { backgroundColor: theme.bg.raised, borderColor: theme.line, opacity: disabled ? 0.5 : 1 },
+          { backgroundColor: theme.bg.raised, borderColor: error ? theme.statusText.vencido : theme.line, opacity: disabled ? 0.5 : 1 },
         ]}>
+        {leading}
         <T face="body" numberOfLines={1} style={[styles.value, { color: empty ? theme.text.muted : theme.text.primary }]}>
           {value || placeholder}
         </T>
         <Ionicons name="chevron-down" size={18} color={theme.text.muted} />
       </Pressable>
+      {error ? (
+        <T face="body" style={[styles.hint, { color: theme.statusText.vencido }]}>
+          {error}
+        </T>
+      ) : null}
       {hint ? (
         <T face="body" style={[styles.hint, { color: theme.text.secondary }]}>
           {hint}

@@ -5,7 +5,8 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } fro
 
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
-import { Chip, GhostButton, KeyValueRow, PrimaryButton, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, KeyValueRow, PrimaryButton, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useSession } from '@/lib/cloud/auth';
 import { recordError } from '@/lib/diagnostics';
@@ -156,14 +157,7 @@ export default function ComentarioScreen() {
         {t.feedback.intro}
       </T>
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {t.feedback.kindLabel}
-      </T>
-      <View style={styles.chips} accessibilityRole="radiogroup">
-        {FEEDBACK_KINDS.map((k) => (
-          <Chip key={k} label={t.feedback.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
-        ))}
-      </View>
+      <SelectField label={t.feedback.kindLabel} value={kind} options={selectOptions(FEEDBACK_KINDS, (k) => t.feedback.kinds[k])} onChange={setKind} />
 
       <Field
         label={t.feedback.message}

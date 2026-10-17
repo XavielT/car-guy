@@ -8,7 +8,8 @@ import { TripsListSkeleton } from '@/components/skeletons/TripsListSkeleton';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions, AutoBlockedCard } from '@/components/trips/TripPieces';
-import { Chip, EmptyState, GhostButton, Segmented } from '@/components/ui';
+import { FilterBar } from '@/components/pickers';
+import { EmptyState, GhostButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { Trip } from '@/lib/db/types';
@@ -80,22 +81,34 @@ export default function TripsScreen() {
       <TipCard id="trips" />
       <AutoBlockedCard />
 
-      {vehicles.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>
-          <Chip label={t.trips.allVehicles} selected={!scope} onPress={() => setScope('')} />
-          {vehicles.map((v) => (
-            <Chip key={v.id} label={v.name} selected={scope === v.id} onPress={() => setScope(v.id)} />
-          ))}
-        </ScrollView>
-      ) : null}
+      {showSkeleton ? null : (
+        <FilterBar
+          filters={[
+            ...(vehicles.length > 1
+              ? [
+                  {
+                    key: 'vehicle',
+                    label: t.routes.vehicle,
+                    value: scope,
+                    options: [{ value: '', label: t.trips.allVehicles }, ...vehicles.map((v) => ({ value: v.id, label: v.name }))],
+                    onChange: (v: string) => setScope(v),
+                  },
+                ]
+              : []),
+            {
+              key: 'show',
+              label: t.pickers.show,
+              value: filter,
+              options: FILTERS.map((key) => ({ value: key, label: t.trips.filters[key] })),
+              onChange: (v: TripFilter) => setFilter(v),
+            },
+          ]}
+        />
+      )}
 
       {showSkeleton ? <TripsListSkeleton /> : null}
 
       {list && !showSkeleton ? <TripsStrip summary={monthSummary(list)} /> : null}
-
-      {showSkeleton ? null : (
-        <Segmented<TripFilter> options={FILTERS.map((key) => ({ key, label: t.trips.filters[key] }))} value={filter} onChange={setFilter} style={{ marginBottom: space.md }} />
-      )}
 
       {map && shown.length && !showSkeleton && FEATURE_MAP_V2 && !heatDown && heatPoints.length ? (
         <View style={{ marginBottom: space.md }}>

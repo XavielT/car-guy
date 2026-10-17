@@ -6,7 +6,8 @@ import { Avatar } from '@/components/Avatar';
 import { Field } from '@/components/Field';
 import { AdminUsersSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
-import { Badge, EmptyState, Segmented, Sheet } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { Badge, EmptyState, Sheet } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchAdminUsers, refreshRole, ROLES, setUserRole, useAdminGate, type AdminUser, type Role } from '@/lib/cloud/admin';
@@ -153,11 +154,7 @@ export default function AdminUsers() {
       <Sheet visible={editing != null} onClose={() => setEditing(null)} title={editing ? t.admin.changeRole(editing.email) : ''}>
         {editing ? (
           <View style={{ gap: space.md }}>
-            <Segmented<Role>
-              options={ROLES.map((key) => ({ key, label: t.admin.roles[key] }))}
-              value={editing.role}
-              onChange={(r) => void change(editing, r)}
-            />
+            <SelectField<Role> label={t.pickers.role} value={editing.role} options={selectOptions(ROLES, (key) => t.admin.roles[key])} onChange={(r) => void change(editing, r)} />
             {notice ? (
               <T face="semibold" style={{ color: notice === t.admin.roleSaved ? theme.statusText.ok : theme.statusText.vencido, fontSize: 13 }}>
                 {notice}

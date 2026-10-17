@@ -6,7 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PriceBoard } from '@/components/PriceBoard';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
-import { Badge, Chip, GhostButton, PrimaryButton, SectionHeader, Surface } from '@/components/ui';
+import {  } from '@/components/pickers';
+import { FuelPicker } from '@/components/FuelPicker';
+import { Badge, GhostButton, PrimaryButton, SectionHeader, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { usePriceData } from '@/hooks/usePriceData';
@@ -19,7 +21,7 @@ import {
   weekRangeLabel,
 } from '@/lib/domain/fuelPrices';
 import { money } from '@/lib/format';
-import { FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
+import { FUEL_CATALOG } from '@/lib/fuel';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -101,11 +103,7 @@ export default function PreciosScreen() {
             ) : null}
 
             <SectionHeader title={t.fuelPricesUi.historyTitle} caption={t.fuelPricesUi.historyCaption} />
-            <View style={styles.chips}>
-              {FUEL_ORDER.map((f) => (
-                <Chip key={f} label={FUEL_CATALOG[f].shortLabel} selected={f === fuel} onPress={() => setFuel(f)} />
-              ))}
-            </View>
+            <FuelPicker value={fuel} onChange={setFuel} />
 
             {history.length === 0 ? (
               <T face="body" style={[styles.empty, { color: theme.text.muted }]}>

@@ -4,7 +4,8 @@ import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { VehicleSwitchesSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
-import { Chip, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { deliverBook, generateBook } from '@/lib/book';
@@ -117,14 +118,7 @@ export default function BookScreen() {
         {t.book.intro}
       </T>
 
-      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.sm }}>
-        {t.book.period}
-      </T>
-      <View style={styles.chips}>
-        {(['todo', 'ano', 'este'] as Period[]).map((p) => (
-          <Chip key={p} label={p === 'este' ? String(new Date().getFullYear()) : t.book.periods[p]} selected={period === p} onPress={() => setPeriod(p)} />
-        ))}
-      </View>
+      <SelectField<Period> label={t.book.period} value={period} options={selectOptions(['todo', 'ano', 'este'] as Period[], (p) => (p === 'este' ? String(new Date().getFullYear()) : t.book.periods[p]))} onChange={setPeriod} />
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.sm }}>
         {t.share.sections}

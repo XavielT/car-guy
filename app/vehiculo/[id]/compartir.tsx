@@ -6,7 +6,8 @@ import { Linking, Platform, ScrollView, Share, StyleSheet, Switch, View } from '
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { VehicleSwitchesSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, Segmented } from '@/components/ui';
+import { SelectField } from '@/components/pickers';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
@@ -173,11 +174,12 @@ export default function ShareScreen() {
         {t.share.intro}
       </T>
 
-      <Segmented
+      <SelectField
+        label={t.social.shareVisibilityLabel}
         options={[
-          { key: 'private', label: t.share.visibility.private },
-          { key: 'link', label: t.share.visibility.link },
-          { key: 'public', label: t.share.visibility.public },
+          { value: 'private', label: t.share.visibility.private },
+          { value: 'link', label: t.share.visibility.link },
+          { value: 'public', label: t.share.visibility.public },
         ]}
         value={visibility}
         onChange={(k) => changeVisibility(k)}
@@ -252,11 +254,11 @@ export default function ShareScreen() {
         </T>
       ) : null}
 
-      {eyebrow(t.share.photos(chosen, MAX_PHOTOS))}
-      <Segmented
+      <SelectField
+        label={t.share.photos(chosen, MAX_PHOTOS)}
         options={[
-          { key: 'fotos', label: t.share.pickPhotos },
-          { key: 'portada', label: t.share.pickHero },
+          { value: 'fotos', label: t.share.pickPhotos },
+          { value: 'portada', label: t.share.pickHero },
         ]}
         value={mode}
         onChange={setMode}

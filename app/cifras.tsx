@@ -14,7 +14,8 @@ import { TripsCifrasBlock } from '@/components/trips/TripPieces';
 import { EventCostsBlock } from '@/components/cifras/EventCostsBlock';
 import { PricesBlock } from '@/components/cifras/PricesBlock';
 import { TiresBlock } from '@/components/cifras/TiresBlock';
-import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
+import { FilterBar, selectOptions } from '@/components/pickers';
+import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -142,10 +143,8 @@ export default function CifrasScreen() {
       <ScrollView ref={scrollRef} contentContainerStyle={styles.pad}>
         <ScreenTitle title={t.stats.title} size={34} sub={t.stats.subtitle(activeVehicle.name)} />
 
-        <Segmented<PeriodKey>
-          options={PERIODS.map((key) => ({ key, label: t.stats.periods[key] }))}
-          value={period}
-          onChange={setPeriod}
+        <FilterBar
+          filters={[{ key: 'period', label: t.export.period, value: period, onChange: setPeriod, options: selectOptions(PERIODS, (key) => t.stats.periods[key]) }]}
         />
         <T face="body" style={[styles.periodHint, { color: theme.text.muted }]}>
           {t.stats.periodHint[period]}
@@ -376,7 +375,6 @@ export default function CifrasScreen() {
     </SafeAreaView>
   );
 }
-
 
 /**
  * One headline number. Tapping it scrolls to the chart it came from, which is

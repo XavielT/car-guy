@@ -11,6 +11,7 @@ import { Field } from '@/components/Field';
 import { VehicleBuildSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
+import { FilterBar, SelectSheet } from '@/components/pickers';
 import { Chip, EmptyState, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -193,11 +194,17 @@ export default function BuildScreen() {
   const items = data.inventory.filter((i) => (invKind === 'todo' ? true : i.kind === invKind || (invKind === 'ruedas' && i.kind === 'aro') || (invKind === 'gomas' && i.kind === 'goma')));
   const invTab = (
     <View style={{ gap: space.sm }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
-        {kinds.map((k) => (
-          <Chip key={k} label={t.inventory.kinds[k]} selected={invKind === k} onPress={() => setInvKind(k)} />
-        ))}
-      </ScrollView>
+      <FilterBar
+        filters={[
+          {
+            key: 'kind',
+            label: t.pickers.type,
+            value: invKind,
+            options: kinds.map((k) => ({ value: k, label: t.inventory.kinds[k] })),
+            onChange: (v: string) => setInvKind(v),
+          },
+        ]}
+      />
       {showTires && data.tires.length ? <TireStatsCard vehicleId={vehicle.id} vehicleName={vehicle.nickname || vehicle.name} version={data} onLimit={setHeatLimit} /> : null}
       {!data.wheelSets.length && !data.tires.length && !data.inventory.length ? <EmptyState icon="cube-outline" message={t.inventory.empty} /> : null}
       {showSets && data.wheelSets.length ? (
@@ -335,20 +342,14 @@ export default function BuildScreen() {
         />
       </Sheet>
 
-      <Sheet visible={Boolean(reclass)} onClose={() => setReclass(null)} title={t.build.reclassify}>
-        <ScrollView style={{ maxHeight: 420 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {data.categories.map((c) => (
-              <Chip
-                key={c.id}
-                label={catalogLabel('modCategory', c)}
-                selected={reclass?.categoryId === c.id}
-                onPress={() => reclass && void modAction(reclass.id, { kind: 'reclasificar', categoryId: c.id }).then(() => (setReclass(null), void after()))}
-              />
-            ))}
-          </View>
-        </ScrollView>
-      </Sheet>
+      <SelectSheet
+        visible={Boolean(reclass)}
+        title={t.build.reclassify}
+        options={data.categories.map((c) => ({ value: c.id, label: catalogLabel('modCategory', c) }))}
+        value={reclass?.categoryId}
+        onClose={() => setReclass(null)}
+        onPick={(id) => reclass && void modAction(reclass.id, { kind: 'reclasificar', categoryId: id }).then(() => (setReclass(null), void after()))}
+      />
     </View>
   );
 }

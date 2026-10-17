@@ -7,7 +7,8 @@ import { JunteChat } from '@/components/junte/JunteChat';
 import { JunteMap, type JunteMapPeer } from '@/components/map';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
-import { Chip, EmptyState, GhostButton, PrimaryButton, Surface } from '@/components/ui';
+import { SelectField } from '@/components/pickers';
+import { EmptyState, GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { milestones, tripShares } from '@/lib/db/repos';
@@ -268,11 +269,12 @@ export default function JunteScreen() {
           {me?.route ? (
             <GhostButton label={t.juntes.unlink} onPress={() => void act(() => linkJunteTrip(j.id, null))} />
           ) : myShares.length ? (
-            <View style={styles.chips}>
-              {myShares.slice(0, 6).map((s) => (
-                <Chip key={s.id} label={`${t.juntes.linkTrip}: ${s.title || s.startedDay || '—'}`} selected={myShare?.id === s.id} onPress={() => void act(() => linkJunteTrip(j.id, s.id))} />
-              ))}
-            </View>
+            <SelectField<string | null>
+              label={t.juntes.linkTrip}
+              value={myShare?.id ?? null}
+              options={myShares.slice(0, 6).map((s) => ({ value: s.id as string | null, label: s.title || s.startedDay || '—' }))}
+              onChange={(id) => id && void act(() => linkJunteTrip(j.id, id))}
+            />
           ) : (
             <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
               {t.juntes.linkNone}

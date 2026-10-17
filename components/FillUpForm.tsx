@@ -5,7 +5,7 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { FuelPicker } from '@/components/FuelPicker';
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, Segmented } from '@/components/ui';
+import { GhostButton, PrimaryButton, ToggleRow } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { completeAmounts, odometerBounds, parseDecimal } from '@/lib/domain/economy';
@@ -222,10 +222,7 @@ export function FillUpForm({
         hint={lastOdo != null ? t.fuel.odometerHint(`${lastOdo.toLocaleString('es-DO')} km`) : undefined}
       />
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {t.fuel.type}
-      </T>
-      <FuelPicker value={fuel} onChange={setFuel} />
+      <FuelPicker label={t.fuel.type} value={fuel} onChange={setFuel} />
 
       <Field
         label={t.fuel.volume(meta.unitLabel)}
@@ -265,17 +262,7 @@ export function FillUpForm({
         </T>
       )}
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {t.fuel.loadKind}
-      </T>
-      <Segmented
-        options={[
-          { key: 'full', label: t.fuel.fullTank },
-          { key: 'partial', label: t.fuel.partial },
-        ]}
-        value={full ? 'full' : 'partial'}
-        onChange={(next) => setFull(next === 'full')}
-      />
+      <ToggleRow label={t.fuel.fullTank} value={full} onChange={setFull} />
       <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: space.sm }]}>
         {t.fuel.partialHint(meta.unitLabel)}
       </T>

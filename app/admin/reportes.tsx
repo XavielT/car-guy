@@ -4,7 +4,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AdminPanelSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
-import { Chip, EmptyState, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { EmptyState, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { useAdminGate } from '@/lib/cloud/admin';
 import { dateLabel } from '@/lib/format';
@@ -58,11 +59,7 @@ export default function ReportesScreen() {
           <T face="mono" style={{ color: theme.text.muted, fontSize: 12 }}>
             {[dateLabel(r.created_at), r.reporter ? t.social.reportBy(r.reporter) : null].filter(Boolean).join(' · ')}
           </T>
-          <View style={styles.chips}>
-            {STATUSES.map((st) => (
-              <Chip key={st} label={t.social.reportStatus[st]} selected={r.status === st} onPress={() => void setReportStatus(r.id, st).then(load)} />
-            ))}
-          </View>
+          <SelectField label={t.vehicleForm.status} value={r.status} options={selectOptions(STATUSES, (st) => t.social.reportStatus[st])} onChange={(st) => void setReportStatus(r.id, st).then(load)} />
         </Surface>
       ))}
     </ScrollView>

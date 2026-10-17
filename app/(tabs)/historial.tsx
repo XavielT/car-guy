@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { TabsHistorialSkeleton } from '@/components/skeletons/TabsScreensSkeleton';
 import { T } from '@/components/T';
+import { FilterBar } from '@/components/pickers';
 import { EmptyState, GhostButton, RecordRow, Sheet, type RecordKind } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { radius, space } from '@/constants/theme';
@@ -126,34 +127,20 @@ export default function HistorialScreen() {
           sub={`${activeVehicle.name}${activeVehicle.plate ? ` · ${activeVehicle.plate}` : ''}`}
         />
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters} contentContainerStyle={styles.filtersRow}>
-          {filters().map((f) => {
-            const on = filter === f.key;
-            return (
-              <Pressable
-                key={f.key}
-                onPress={() => {
-                  setFilter(f.key);
-                  setLimit(PAGE);
-                }}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: on }}
-                aria-selected={on}
-                hitSlop={{ top: 4, bottom: 4 }}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: on ? theme.accentFill : theme.bg.surface,
-                    borderColor: on ? theme.accentFill : theme.lineStrong,
-                  },
-                ]}>
-                <T face="title" style={[styles.chipLabel, { color: on ? theme.accentFillInk : theme.text.secondary }]}>
-                  {f.label}
-                </T>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <FilterBar
+          filters={[
+            {
+              key: 'kind',
+              label: t.pickers.type,
+              value: filter as string,
+              options: filters().map((f) => ({ value: f.key as string, label: f.label })),
+              onChange: (v: string) => {
+                setFilter(v as 'todo' | RecordKind);
+                setLimit(PAGE);
+              },
+            },
+          ]}
+        />
 
         <Field
           label={t.history.search}

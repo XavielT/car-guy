@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ListKeyValueSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
-import { KeyValueRow, PrimaryButton, SectionHeader, Segmented, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { KeyValueRow, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
@@ -121,12 +122,7 @@ export default function ReporteScreen() {
           {t.report.subtitle}
         </T>
 
-        <SectionHeader title={t.report.period} style={styles.firstSection} />
-        <Segmented<PeriodKey>
-          options={PERIODS.map((key) => ({ key, label: t.stats.periods[key] }))}
-          value={period}
-          onChange={setPeriod}
-        />
+        <SelectField<PeriodKey> label={t.report.period} value={period} options={selectOptions(PERIODS, (key) => t.stats.periods[key])} onChange={setPeriod} />
 
         {showSkeleton ? (
           <ListKeyValueSkeleton rows={4} style={styles.summary} />

@@ -16,7 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { PermissionRow } from '@/components/permissions/PermissionRow';
 import { T } from '@/components/T';
-import { CarbonFrame, ClusterHero, GaugeRing, GhostButton, Hanko, LcdDigits, PrimaryButton, Segmented, Surface, TelltaleRow } from '@/components/ui';
+import { SelectField } from '@/components/pickers';
+import { CarbonFrame, ClusterHero, GaugeRing, GhostButton, Hanko, LcdDigits, PrimaryButton, Surface, TelltaleRow } from '@/components/ui';
 import { VehicleForm } from '@/components/VehicleForm';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
@@ -228,11 +229,12 @@ function LangSlide({ again }: { again: boolean }) {
         />
       </Art>
       <Heading eyebrow={t.welcome.lang.eyebrow} title={t.welcome.lang.title} body={t.welcome.lang.body} />
-      <Segmented<LanguagePreference>
+      <SelectField<LanguagePreference>
+        label={t.language.title}
         options={[
-          { key: 'system', label: t.language.system },
-          { key: 'es', label: t.language.es },
-          { key: 'en', label: t.language.en },
+          { value: 'system', label: t.language.system },
+          { value: 'es', label: t.language.es },
+          { value: 'en', label: t.language.en },
         ]}
         value={language.preference}
         onChange={(next) => {

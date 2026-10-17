@@ -6,7 +6,8 @@ import Svg, { Path } from 'react-native-svg';
 import { T } from '@/components/T';
 import { Field } from '@/components/Field';
 import { DetailTripSkeleton } from '@/components/skeletons/DetailTripSkeleton';
-import { Chip, GhostButton, PrimaryButton, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { privacyZones, tripShares } from '@/lib/db/repos';
 import { tripPoints, trips as tripRepo } from '@/lib/db/tripOps';
@@ -147,11 +148,7 @@ export default function ShareTripScreen() {
         </T>
       ) : (
         <>
-          <View style={styles.chips}>
-            {VIS.map((v) => (
-              <Chip key={v} label={t.social.shareVisibility[v]} selected={visibility === v} onPress={() => setVisibility(v)} />
-            ))}
-          </View>
+          <SelectField label={t.social.shareVisibilityLabel} value={visibility} options={selectOptions(VIS, (v) => t.social.shareVisibility[v])} onChange={setVisibility} />
           <Field label={t.social.shareTitleField} value={title} onChangeText={setTitle} />
           <PrimaryButton label={existing ? t.social.shareUpdate : t.social.sharePublish} disabled={busy} onPress={() => void publish()} />
         </>

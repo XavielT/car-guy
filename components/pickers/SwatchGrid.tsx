@@ -6,6 +6,7 @@ import { radius, space } from '@/constants/theme';
 import { luminance, needsOutline } from '@/lib/domain/contrast';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
+import { PrimaryButton } from '../ui';
 import { T } from '../T';
 
 export type Swatch = { id: string; label: string; hex?: string | null; light?: boolean };
@@ -21,6 +22,7 @@ export function SwatchGrid({
   otherText,
   onChange,
   label,
+  onPicked,
 }: {
   swatches: Swatch[];
   /** The chosen swatch id, or null (none / "Otro"). */
@@ -29,6 +31,8 @@ export function SwatchGrid({
   otherText?: string | null;
   onChange: (next: { id: string | null; label: string | null }) => void;
   label?: string;
+  /** Called after a swatch was picked, or the typed colour confirmed (SelectField closes its sheet here). */
+  onPicked?: () => void;
 }) {
   const { theme } = useTheme();
   const [typing, setTyping] = useState(Boolean(!value && otherText));
@@ -53,6 +57,7 @@ export function SwatchGrid({
                 onPress={() => {
                   setTyping(false);
                   onChange(on ? { id: null, label: null } : { id: s.id, label: s.label });
+                  onPicked?.();
                 }}
                 accessibilityRole="radio"
                 accessibilityLabel={s.label}
@@ -96,9 +101,12 @@ export function SwatchGrid({
           placeholder={t.pickers.colorOther}
           placeholderTextColor={theme.text.muted}
           accessibilityLabel={t.pickers.colorOther}
+          returnKeyType="done"
+          onSubmitEditing={() => otherText?.trim() && onPicked?.()}
           style={[styles.input, { backgroundColor: theme.bg.raised, borderColor: theme.line, color: theme.text.primary }]}
         />
       ) : null}
+      {typing && onPicked ? <PrimaryButton label={t.pickers.use} disabled={!otherText?.trim()} onPress={onPicked} /> : null}
     </View>
   );
 }

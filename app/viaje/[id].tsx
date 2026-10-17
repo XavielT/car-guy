@@ -10,7 +10,8 @@ import { DetailTripSkeleton } from '@/components/skeletons/DetailTripSkeleton';
 import { T } from '@/components/T';
 import { shareCardImage, shareSummaryText } from '@/components/track/TrackPieces';
 import { confirmDeleteTrip, DistributionBar, setTripRole, TripShareCard, tripText } from '@/components/trips/TripPieces';
-import { Chip, GhostButton, PrimaryButton, Segmented, Surface } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { odometer as odometerRepo } from '@/lib/db/repos';
@@ -178,12 +179,14 @@ export default function TripScreen() {
       {label.toUpperCase()}
     </T>
   );
+  // The usual labels are suggestions for the free-text field above: a sheet that fills it (never a laid-out row).
   const suggestions = (set: (v: string) => void, current: string) => (
-    <View style={styles.chips}>
-      {t.trips.labelSuggestions.map((s) => (
-        <Chip key={s} label={s} selected={current === s} onPress={() => set(current === s ? '' : s)} />
-      ))}
-    </View>
+    <SelectField<string | null>
+      label={t.pickers.suggestions}
+      value={t.trips.labelSuggestions.includes(current) ? current : null}
+      options={selectOptions(t.trips.labelSuggestions, (s) => s)}
+      onChange={(v) => v && set(v)}
+    />
   );
 
   return (
@@ -272,22 +275,17 @@ export default function TripScreen() {
 
         {vehicles.length > 1 ? (
           <>
-            {eyebrow(t.trips.vehicle)}
-            <View style={styles.chips}>
-              {vehicles.map((v) => (
-                <Chip key={v.id} label={v.name} selected={trip.vehicleId === v.id} onPress={() => void changeVehicle(v.id)} />
-              ))}
-            </View>
+            <SelectField<string> label={t.trips.vehicle} value={trip.vehicleId} options={vehicles.map((v) => ({ value: v.id, label: v.name }))} onChange={(id) => void changeVehicle(id)} />
           </>
         ) : null}
 
-        {eyebrow(t.trips.role)}
-        <Segmented<TripRole>
-          options={[
-            { key: 'conductor', label: t.trips.roleDriver },
-            { key: 'pasajero', label: t.trips.rolePassenger },
-          ]}
+        <SelectField<TripRole>
+          label={t.trips.role}
           value={trip.role}
+          options={[
+            { value: 'conductor', label: t.trips.roleDriver },
+            { value: 'pasajero', label: t.trips.rolePassenger },
+          ]}
           onChange={(r) => void changeRole(r)}
         />
         {trip.role === 'pasajero' ? (

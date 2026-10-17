@@ -5,7 +5,8 @@ import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { space } from '@/constants/theme';
 import { mountWheelSet, saveInventoryItem, saveTire, saveWheelSet } from '@/lib/db/buildQueries';
@@ -103,12 +104,7 @@ export function InventoryItemForm({ vehicleId, itemId, onDone, skeleton }: { veh
   return (
     <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
       <Title>{itemId ? t.inventory.item.editTitle : t.inventory.item.newTitle}</Title>
-      <Eyebrow>{t.inventory.item.kind}</Eyebrow>
-      <View style={styles.chips}>
-        {ITEM_KINDS.map((k) => (
-          <Chip key={k} label={t.inventory.item.kinds[k]} selected={kind === k} onPress={() => setKind(k)} />
-        ))}
-      </View>
+      <SelectField label={t.inventory.item.kind} value={kind} options={selectOptions(ITEM_KINDS, (k) => t.inventory.item.kinds[k])} onChange={setKind} />
       <Field label={t.inventory.item.name} value={name} onChangeText={setName} />
       <View style={styles.pair}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -126,12 +122,7 @@ export function InventoryItemForm({ vehicleId, itemId, onDone, skeleton }: { veh
           <Field label={t.inventory.item.unit} value={unit} onChangeText={setUnit} />
         </View>
       </View>
-      <Eyebrow>{t.inventory.item.condition}</Eyebrow>
-      <View style={styles.chips}>
-        {CONDITIONS.map((c) => (
-          <Chip key={c} label={t.inventory.item.conditions[c]} selected={condition === c} onPress={() => setCondition(c)} />
-        ))}
-      </View>
+      <SelectField label={t.inventory.item.condition} value={condition} options={selectOptions(CONDITIONS, (c) => t.inventory.item.conditions[c])} onChange={setCondition} />
       <Field label={t.inventory.item.location} value={location} onChangeText={setLocation} />
       <Field label={t.inventory.item.cost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
       <SwitchRow label={t.inventory.item.garage} value={garage} onChange={setGarage} />
@@ -241,12 +232,7 @@ export function WheelSetForm({ vehicleId, setId, onDone, skeleton }: { vehicleId
         </View>
       </View>
       <Field label={t.inventory.wheel.qty} keyboardType="number-pad" value={qty} onChangeText={setQty} />
-      <Eyebrow>{t.inventory.wheel.status}</Eyebrow>
-      <View style={styles.chips}>
-        {SET_STATUSES.map((st) => (
-          <Chip key={st} label={t.inventory.setStatus[st]} selected={status === st} onPress={() => setStatus(st)} />
-        ))}
-      </View>
+      <SelectField label={t.inventory.wheel.status} value={status} options={selectOptions(SET_STATUSES, (st) => t.inventory.setStatus[st])} onChange={setStatus} />
       <Field label={t.inventory.wheel.notes} value={notes} onChangeText={setNotes} multiline />
       {tires.length ? (
         <>
@@ -399,25 +385,14 @@ export function TireForm({
         </View>
       </View>
       <Field label={t.inventory.tire.heatCycles} keyboardType="number-pad" value={heat} onChangeText={setHeat} />
-      <Eyebrow>{t.inventory.tire.set}</Eyebrow>
-      <View style={styles.chips}>
-        <Chip label={t.inventory.tire.noSet} selected={!setId} onPress={() => setSetId(null)} />
-        {sets.map((w) => (
-          <Chip key={w.id} label={w.name} selected={setId === w.id} onPress={() => setSetId(w.id)} />
-        ))}
-      </View>
-      <Eyebrow>{t.inventory.tire.position}</Eyebrow>
-      <View style={styles.chips}>
-        {POSITIONS.map((p) => (
-          <Chip key={p} label={t.inventory.positions[p]} selected={position === p} onPress={() => setPosition(p)} />
-        ))}
-      </View>
-      <Eyebrow>{t.inventory.tire.status}</Eyebrow>
-      <View style={styles.chips}>
-        {TIRE_STATUSES.map((st) => (
-          <Chip key={st} label={t.inventory.tireStatus[st]} selected={status === st} onPress={() => setStatus(st)} />
-        ))}
-      </View>
+      <SelectField<string | null>
+        label={t.inventory.tire.set}
+        value={setId}
+        options={[{ value: null, label: t.inventory.tire.noSet }, ...sets.map((w) => ({ value: w.id as string | null, label: w.name }))]}
+        onChange={setSetId}
+      />
+      <SelectField label={t.inventory.tire.position} value={position} options={selectOptions(POSITIONS, (p) => t.inventory.positions[p])} onChange={setPosition} />
+      <SelectField label={t.inventory.tire.status} value={status} options={selectOptions(TIRE_STATUSES, (st) => t.inventory.tireStatus[st])} onChange={setStatus} />
       <Field label={t.inventory.tire.cost} keyboardType="decimal-pad" value={cost} onChangeText={setCost} />
       <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
         {parsed.aspectAssumed ? t.inventory.tire.aspectAssumed : ''}

@@ -1,15 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { FuelPicker } from '@/components/FuelPicker';
-import { PickerField, SearchSheet, type SearchItem } from '@/components/pickers';
+import { PickerField, SearchSheet, SelectField, selectOptions, type SearchItem } from '@/components/pickers';
 import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { GhostButton, PrimaryButton } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
@@ -132,10 +132,7 @@ export default function NuevoPrecioScreen() {
           {editing ? t.fuelPricesUi.editTitle : t.fuelPricesUi.newTitle}
         </T>
 
-        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {t.fuelPricesUi.fuel}
-        </T>
-        <FuelPicker value={fuel} onChange={setFuel} />
+        <FuelPicker label={t.fuelPricesUi.fuel} value={fuel} onChange={setFuel} />
 
         <Field
           label={t.fuelPricesUi.price(FUEL_CATALOG[fuel].perUnitLabel)}
@@ -147,14 +144,7 @@ export default function NuevoPrecioScreen() {
 
         <DateField label={t.fuelPricesUi.date} value={date} onChange={setDate} hint={t.fuelPricesUi.dateHint} />
 
-        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {t.fuelPricesUi.source}
-        </T>
-        <View style={styles.chips}>
-          {SOURCES.map((s) => (
-            <Chip key={s} label={fuelPriceSourceLabel(s)} selected={s === source} onPress={() => setSource(s)} />
-          ))}
-        </View>
+        <SelectField label={t.fuelPricesUi.source} value={source} options={selectOptions(SOURCES, (s) => fuelPriceSourceLabel(s))} onChange={setSource} />
 
         {needsStation ? (
           <>

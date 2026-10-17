@@ -3,9 +3,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { SegmentsRow } from '@/components/fuel/GaugePicker';
+import { SelectField, selectOptions } from '@/components/pickers';
 import { T } from '@/components/T';
-import { Chip } from '@/components/ui';
-import { radius, space } from '@/constants/theme';
+import { space } from '@/constants/theme';
 import { MAX_SEGMENTS, MIN_SEGMENTS, type GaugeType } from '@/lib/domain/gauge';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -27,55 +27,38 @@ export function GaugeTypeSection({ value, onChange }: { value: GaugeTypeValue; o
   const set = (patch: Partial<GaugeTypeValue>) => onChange({ ...value, ...patch });
   const n = value.segments;
 
-  const card = (type: GaugeType, art: React.ReactNode) => {
-    const on = value.type === type;
-    return (
-      <Pressable
-        key={type}
-        onPress={() => set({ type, reserveAt: type === value.type ? value.reserveAt : null })}
-        accessibilityRole="radio"
-        accessibilityState={{ selected: on }}
-        accessibilityLabel={t.gauge.types[type]}
-        style={[styles.card, { borderColor: on ? theme.accent : theme.line, backgroundColor: on ? theme.bg.raised : 'transparent' }]}>
-        <View style={styles.art}>{art}</View>
-        <T face="semibold" style={{ color: on ? theme.text.primary : theme.text.secondary, fontSize: 13 }}>
-          {t.gauge.types[type]}
-        </T>
-      </Pressable>
-    );
+  // The dash of each kind, drawn: it stays under the field as the preview of what was chosen (ADR-60).
+  const arts: Record<GaugeType, React.ReactNode> = {
+    needle8: (
+      <Svg width={44} height={26}>
+        <Path d="M 4 24 A 18 18 0 0 1 40 24" stroke={theme.text.muted} strokeWidth={3} fill="none" strokeLinecap="round" />
+        <Path d="M 22 24 L 33 12" stroke={theme.accent} strokeWidth={3} strokeLinecap="round" />
+      </Svg>
+    ),
+    segments: (
+      <Svg width={44} height={26}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Rect key={i} x={2 + i * 8.5} y={8} width={6.5} height={12} rx={1.5} fill={i === 0 ? theme.danger : i < 3 ? theme.accent : 'none'} stroke={i === 0 ? theme.danger : theme.accent} strokeWidth={1.5} />
+        ))}
+      </Svg>
+    ),
+    percent: (
+      <T face="mono" style={{ color: theme.accent, fontSize: 16 }}>
+        45 %
+      </T>
+    ),
   };
 
   return (
     <View style={styles.wrap}>
-      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: 4 }}>
-        {t.gauge.typeTitle}
-      </T>
-      <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginBottom: space.sm }}>
-        {t.gauge.typeHint}
-      </T>
-      <View style={styles.cards}>
-        {card(
-          'needle8',
-          <Svg width={44} height={26}>
-            <Path d="M 4 24 A 18 18 0 0 1 40 24" stroke={theme.text.muted} strokeWidth={3} fill="none" strokeLinecap="round" />
-            <Path d="M 22 24 L 33 12" stroke={theme.accent} strokeWidth={3} strokeLinecap="round" />
-          </Svg>,
-        )}
-        {card(
-          'segments',
-          <Svg width={44} height={26}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Rect key={i} x={2 + i * 8.5} y={8} width={6.5} height={12} rx={1.5} fill={i === 0 ? theme.danger : i < 3 ? theme.accent : 'none'} stroke={i === 0 ? theme.danger : theme.accent} strokeWidth={1.5} />
-            ))}
-          </Svg>,
-        )}
-        {card(
-          'percent',
-          <T face="mono" style={{ color: theme.accent, fontSize: 16 }}>
-            45 %
-          </T>,
-        )}
-      </View>
+      <SelectField<GaugeType>
+        label={t.gauge.typeTitle}
+        hint={t.gauge.typeHint}
+        value={value.type}
+        options={selectOptions(['needle8', 'segments', 'percent'] as const, (type) => t.gauge.types[type])}
+        onChange={(type) => set({ type, reserveAt: type === value.type ? value.reserveAt : null })}
+        extra={<View style={styles.preview}>{arts[value.type]}</View>}
+      />
 
       {value.type === 'segments' ? (
         <View style={{ marginTop: space.md }}>
@@ -92,21 +75,17 @@ export function GaugeTypeSection({ value, onChange }: { value: GaugeTypeValue; o
             {t.gauge.segmentsHint}
           </T>
 
-          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.md, marginBottom: space.xs }}>
-            {t.gauge.reserveAtTitle}
-          </T>
-          <View style={styles.chips}>
-            {(
-              [
-                [2, t.gauge.reserveAt.two],
-                [1, t.gauge.reserveAt.one],
-                [0, t.gauge.reserveAt.zero],
-                [null, t.gauge.reserveAt.unknown],
-              ] as [number | null, string][]
-            ).map(([k, label]) => (
-              <Chip key={String(k)} label={label} selected={value.reserveAt === k} onPress={() => set({ reserveAt: k })} />
-            ))}
-          </View>
+          <SelectField<number | null>
+            label={t.gauge.reserveAtTitle}
+            value={value.reserveAt}
+            options={[
+              { value: 2, label: t.gauge.reserveAt.two },
+              { value: 1, label: t.gauge.reserveAt.one },
+              { value: 0, label: t.gauge.reserveAt.zero },
+              { value: null, label: t.gauge.reserveAt.unknown },
+            ]}
+            onChange={(reserveAt) => set({ reserveAt })}
+          />
         </View>
       ) : null}
     </View>
@@ -141,11 +120,8 @@ function Stepper({ value, min, max, onChange }: { value: number; min: number; ma
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md },
-  cards: { flexDirection: 'row', gap: space.sm },
-  card: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: space.sm, borderWidth: 1.5, borderRadius: radius.card, minHeight: 72 },
-  art: { height: 28, justifyContent: 'center' },
+  preview: { height: 36, justifyContent: 'center', alignItems: 'center', marginBottom: space.sm, marginTop: -space.xs },
   stepRow: { flexDirection: 'row', alignItems: 'center' },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   stepBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
 });

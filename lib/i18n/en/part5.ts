@@ -420,6 +420,8 @@ export const enPart5: Pick<
     zoneHere: 'Add my location now',
     zoneLabel: 'Name (home, work…)',
     zoneRadius: (m: number) => `${m} m`,
+    zoneRadiusLabel: 'Zone radius',
+    shareVisibilityLabel: 'Who can see it',
     zoneDelete: 'Remove zone',
     zoneNoFix: 'No recent location. Step outside and try again.',
     zonesEmpty: 'No zones yet.',

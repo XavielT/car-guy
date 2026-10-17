@@ -8,14 +8,8 @@ import { Avatar } from '@/components/Avatar';
 import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
-import {
-  GhostButton,
-  NavRow,
-  PrimaryButton,
-  Segmented,
-  StatusPill,
-  Surface,
-} from '@/components/ui';
+import { SelectField } from '@/components/pickers';
+import { GhostButton, NavRow, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { appVersion, gitSha } from '@/lib/appVersion';
@@ -263,11 +257,12 @@ export default function MasScreen() {
         />
 
         <MoreSection title={t.more.appearance} caption={t.more.appearanceCaption} />
-        <Segmented<ThemePreference>
+        <SelectField<ThemePreference>
+          label={t.more.appearance}
           options={[
-            { key: 'system', label: t.more.themes.system },
-            { key: 'dark', label: t.more.themes.dark },
-            { key: 'light', label: t.more.themes.light },
+            { value: 'system', label: t.more.themes.system },
+            { value: 'dark', label: t.more.themes.dark },
+            { value: 'light', label: t.more.themes.light },
           ]}
           value={preference}
           onChange={setPreference}
@@ -276,11 +271,12 @@ export default function MasScreen() {
         {FEATURE_I18N ? (
           <>
             <MoreSection title={t.language.title} caption={t.language.caption} />
-            <Segmented<LanguagePreference>
+            <SelectField<LanguagePreference>
+              label={t.language.title}
               options={[
-                { key: 'system', label: t.language.system },
-                { key: 'es', label: t.language.es },
-                { key: 'en', label: t.language.en },
+                { value: 'system', label: t.language.system },
+                { value: 'es', label: t.language.es },
+                { value: 'en', label: t.language.en },
               ]}
               value={language.preference}
               onChange={(next) => {

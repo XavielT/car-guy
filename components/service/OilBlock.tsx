@@ -1,11 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
-import { Field } from '@/components/Field';
-import { PickerField, SearchSheet } from '@/components/pickers';
+import { MultiSelectField, PickerField, SearchSheet, SelectField, selectOptions } from '@/components/pickers';
 import { T } from '@/components/T';
-import { Chip, Surface } from '@/components/ui';
+import { Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import {
   joinSpecs,
@@ -18,6 +17,7 @@ import {
   splitSpecs,
   type OilFields,
 } from '@/lib/domain/oil';
+import type { OilType } from '@/lib/db/types';
 import type { MemorySuggestion } from '@/lib/domain/carMemory';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -55,7 +55,6 @@ export function OilBlock({
   // Saved specs that are not in the list (typed elsewhere) still show, as chips of their own.
   const extraSpecs = specs.filter((s) => !specChoices.includes(s));
   const [brandOpen, setBrandOpen] = useState(false);
-  const [otherGrade, setOtherGrade] = useState(Boolean(value.oilViscosity && !grades.includes(value.oilViscosity)));
 
   const set = (patch: Partial<OilFields>) => onChange({ ...value, ...patch });
   const lastLine = last ? oilSummary(last) : null;
@@ -78,7 +77,6 @@ export function OilBlock({
         <Pressable
           onPress={() => {
             onChange({ ...last });
-            setOtherGrade(Boolean(last.oilViscosity && !grades.includes(last.oilViscosity)));
           }}
           accessibilityRole="button"
           accessibilityLabel={`${t.oil.sameAsLastA11y}: ${lastLine}`}
@@ -95,7 +93,6 @@ export function OilBlock({
           <Pressable
             onPress={() => {
               onChange({ ...value, ...memoryOil });
-              setOtherGrade(Boolean(memoryOil.oilViscosity && !grades.includes(memoryOil.oilViscosity)));
             }}
             accessibilityRole="button"
             accessibilityLabel={memory.label}
@@ -113,53 +110,16 @@ export function OilBlock({
         )
       ) : null}
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {t.oil.viscosity}
-      </T>
-      <View style={styles.wrap}>
-        {grades.map((g) => (
-          <Chip
-            key={g}
-            label={g}
-            selected={!otherGrade && value.oilViscosity === g}
-            onPress={() => {
-              setOtherGrade(false);
-              set({ oilViscosity: value.oilViscosity === g ? null : g });
-            }}
-          />
-        ))}
-        <Chip
-          label={t.oil.viscosityOther}
-          selected={otherGrade}
-          onPress={() => {
-            const next = !otherGrade;
-            setOtherGrade(next);
-            if (!next || grades.includes(value.oilViscosity ?? '')) set({ oilViscosity: null });
-          }}
-        />
-      </View>
-      {otherGrade ? (
-        <Field
-          label={t.oil.viscosityOtherLabel}
-          value={value.oilViscosity ?? ''}
-          onChangeText={(t) => set({ oilViscosity: t || null })}
-          autoCapitalize="characters"
-        />
-      ) : null}
+      <SelectField<string | null>
+        label={t.oil.viscosity}
+        value={value.oilViscosity && grades.includes(value.oilViscosity) ? value.oilViscosity : null}
+        allowNone
+        options={grades.map((g) => ({ value: g as string | null, label: g }))}
+        other={{ label: t.oil.viscosityOther, current: value.oilViscosity && !grades.includes(value.oilViscosity) ? value.oilViscosity : null, onOther: (text) => set({ oilViscosity: text.trim().toUpperCase() || null }) }}
+        onChange={(g) => set({ oilViscosity: g })}
+      />
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {t.oil.type}
-      </T>
-      <View style={styles.wrap}>
-        {OIL_TYPES.map((ot) => (
-          <Chip
-            key={ot}
-            label={t.oil.types[ot]}
-            selected={value.oilType === ot}
-            onPress={() => set({ oilType: value.oilType === ot ? null : ot })}
-          />
-        ))}
-      </View>
+      <SelectField<OilType | null> label={t.oil.type} value={value.oilType} allowNone options={selectOptions(OIL_TYPES, (ot) => t.oil.types[ot])} onChange={(ot) => set({ oilType: ot })} />
 
       <PickerField
         label={t.oil.brand}
@@ -177,17 +137,7 @@ export function OilBlock({
         onClose={() => setBrandOpen(false)}
       />
 
-      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-        {t.oil.spec}
-      </T>
-      <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
-        {t.oil.specHint}
-      </T>
-      <View style={styles.wrap}>
-        {[...specChoices, ...extraSpecs].map((s) => (
-          <Chip key={s} label={s} selected={specs.includes(s)} onPress={() => toggleSpec(s)} />
-        ))}
-      </View>
+      <MultiSelectField label={t.oil.spec} hint={t.oil.specHint} values={specs} options={selectOptions([...specChoices, ...extraSpecs], (x) => x)} onToggle={toggleSpec} />
     </Surface>
   );
 }

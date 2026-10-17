@@ -5,7 +5,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
-import { Chip, GhostButton, PrimaryButton, Sheet } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { BUY_FIELDS, deleteFact, loadMemory, saveBuyFields, saveFact, type MemoryData } from '@/lib/db/memoryQueries';
 import type { VehicleFact, VehicleFactGroup } from '@/lib/db/types';
@@ -193,14 +194,7 @@ export function MemoryTab({ vehicleId, onChanged }: { vehicleId: string; onChang
           <ScrollView style={{ maxHeight: 520 }} keyboardShouldPersistTaps="handled">
             <Field label={t.memory.label} placeholder={t.memory.labelPlaceholder} value={fact.label} onChangeText={(v) => setFact((x) => x && { ...x, label: v })} autoFocus testID="fact-label" />
             <Field label={t.memory.value} placeholder={t.memory.valuePlaceholder} value={fact.value} onChangeText={(v) => setFact((x) => x && { ...x, value: v })} testID="fact-value" />
-            <T face="eyebrow" style={{ color: theme.text.secondary, fontSize: 12, marginBottom: 6 }}>
-              {t.memory.group}
-            </T>
-            <View style={styles.chips}>
-              {FACT_GROUPS.map((g) => (
-                <Chip key={g} label={sectionTitle(g)} selected={fact.groupName === g} onPress={() => setFact((x) => x && { ...x, groupName: g })} />
-              ))}
-            </View>
+            <SelectField label={t.memory.group} value={fact.groupName} options={selectOptions(FACT_GROUPS, (g) => sectionTitle(g))} onChange={(g) => setFact((x) => x && { ...x, groupName: g })} />
             {factError ? (
               <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.sm }}>
                 {factError}

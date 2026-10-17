@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
+import { FuelPicker } from '@/components/FuelPicker';
+import {  } from '@/components/pickers';
 import { StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
 import { ChartFrame } from '@/components/charts/ChartFrame';
 import { T } from '@/components/T';
-import { Chip } from '@/components/ui';
+
 import { categoryColors, categoryInkLight, fonts, space } from '@/constants/theme';
 import { usePriceData } from '@/hooks/usePriceData';
 import { chartSeries } from '@/lib/domain/fuelPrices';
 import { money, todayIsoDate } from '@/lib/format';
-import { FUEL_CATALOG, FUEL_ORDER } from '@/lib/fuel';
+import { FUEL_CATALOG } from '@/lib/fuel';
 import { localeTag, t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FuelType } from '@/lib/types';
@@ -136,11 +138,7 @@ export function PricesBlock({ defaultFuel }: { defaultFuel?: FuelType }) {
           ) : null
         }
       </ChartFrame>
-      <View style={styles.chips}>
-        {FUEL_ORDER.map((f) => (
-          <Chip key={f} label={FUEL_CATALOG[f].shortLabel} selected={f === fuel} onPress={() => setFuel(f)} />
-        ))}
-      </View>
+      <FuelPicker value={fuel} onChange={setFuel} />
     </View>
   );
 }

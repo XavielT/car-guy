@@ -7,7 +7,8 @@ import { Avatar } from '@/components/Avatar';
 import { Field } from '@/components/Field';
 import { GarageMembersSkeleton } from '@/components/skeletons/GarageMembersSkeleton';
 import { T } from '@/components/T';
-import { Badge, Chip, GhostButton, PrimaryButton } from '@/components/ui';
+import { SelectField, selectOptions } from '@/components/pickers';
+import { Badge, GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
@@ -158,8 +159,7 @@ export default function MembersScreen() {
           </View>
           {owner && m.role !== 'owner' ? (
             <View style={styles.chips}>
-              <Chip label={t.members.roles.editor} selected={m.role === 'editor'} onPress={() => void changeRole(m, 'editor')} />
-              <Chip label={t.members.roles.viewer} selected={m.role === 'viewer'} onPress={() => void changeRole(m, 'viewer')} />
+              <SelectField label={t.pickers.role} value={m.role} options={selectOptions(['editor', 'viewer'] as const, (r) => t.members.roles[r])} onChange={(r) => void changeRole(m, r)} />
               <GhostButton danger label={t.members.remove} disabled={busy} onPress={() => remove(m)} />
             </View>
           ) : null}
@@ -169,13 +169,7 @@ export default function MembersScreen() {
 
       {owner ? (
         <View style={[styles.card, { backgroundColor: theme.bg.surface, borderColor: theme.accent, marginTop: space.md }]}>
-          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-            {t.members.invite}
-          </T>
-          <View style={styles.chips}>
-            <Chip label={t.members.roles.editor} selected={role === 'editor'} onPress={() => setRole('editor')} />
-            <Chip label={t.members.roles.viewer} selected={role === 'viewer'} onPress={() => setRole('viewer')} />
-          </View>
+          <SelectField label={t.members.invite} value={role} options={selectOptions(['editor', 'viewer'] as const, (r) => t.members.roles[r])} onChange={setRole} />
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
             {t.members.roleHints[role]}
           </T>

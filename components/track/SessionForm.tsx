@@ -6,7 +6,8 @@ import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
 import { T } from '@/components/T';
-import { Chip, CornerGrid, GhostButton, PrimaryButton } from '@/components/ui';
+import { MultiSelectField, SelectField, selectOptions } from '@/components/pickers';
+import { CornerGrid, GhostButton, PrimaryButton } from '@/components/ui';
 import type { Corner, CornerValues } from '@/components/ui/CornerGrid';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
@@ -267,12 +268,7 @@ export function SessionForm({
         {timed ? stat(t.track.session.best, session.bestLapMs ? formatLap(session.bestLapMs) : '—') : stat(t.track.session.runs, session.runs != null ? String(session.runs) : '—')}
       </View>
 
-      {eyebrow(t.track.session.kind)}
-      <View style={styles.chips}>
-        {KINDS.map((k) => (
-          <Chip key={k} label={t.track.session.kinds[k]} selected={session.kind === k} onPress={() => sess('kind', k)} />
-        ))}
-      </View>
+      <SelectField label={t.track.session.kind} value={session.kind} options={selectOptions(KINDS, (k) => t.track.session.kinds[k])} onChange={(k) => sess('kind', k)} />
 
       {/* Pressures, cold → hot */}
       {card(
@@ -309,22 +305,20 @@ export function SessionForm({
       {eyebrow(t.track.session.tires)}
       {sets.length ? (
         <>
-          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 4 }}>
-            {t.track.session.tireSetF}
-          </T>
-          <View style={styles.chips}>
-            {sets.map((w) => (
-              <Chip key={w.id} label={w.name} selected={sheet.tireSetFId === w.id} onPress={() => set('tireSetFId', sheet.tireSetFId === w.id ? null : w.id)} />
-            ))}
-          </View>
-          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 4 }}>
-            {t.track.session.tireSetR}
-          </T>
-          <View style={styles.chips}>
-            {sets.map((w) => (
-              <Chip key={w.id} label={w.name} selected={sheet.tireSetRId === w.id} onPress={() => set('tireSetRId', sheet.tireSetRId === w.id ? null : w.id)} />
-            ))}
-          </View>
+          <SelectField<string | null>
+            label={t.track.session.tireSetF}
+            value={sheet.tireSetFId}
+            allowNone
+            options={sets.map((w) => ({ value: w.id as string | null, label: w.name }))}
+            onChange={(id) => set('tireSetFId', id)}
+          />
+          <SelectField<string | null>
+            label={t.track.session.tireSetR}
+            value={sheet.tireSetRId}
+            allowNone
+            options={sets.map((w) => ({ value: w.id as string | null, label: w.name }))}
+            onChange={(id) => set('tireSetRId', id)}
+          />
         </>
       ) : null}
       {pair(text('tireSizeF', t.track.session.sizeF), text('tireSizeR', t.track.session.sizeR))}
@@ -332,33 +326,27 @@ export function SessionForm({
 
       {sessionId && tires.length ? (
         <>
-          {eyebrow(t.track.consumables.sessionTitle)}
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: 6 }}>
             {t.track.consumables.sessionHint}
           </T>
-          <View style={styles.chips}>
-            {tires.map((x) => {
-              const on = usedHere.has(x.id);
-              const label = [t.corners[x.position as 'fl'] ?? null, x.size].filter(Boolean).join(' · ') || t.inventory.tire.editTitle;
-              return (
-                <Chip
-                  key={x.id}
-                  label={on ? `✓ ${label}` : label}
-                  selected={on}
-                  onPress={() =>
-                    void setTireUsed(ev.id, x, !on, sessionId).then(() =>
-                      setUsedHere((prev) => {
-                        const next = new Set(prev);
-                        if (on) next.delete(x.id);
-                        else next.add(x.id);
-                        return next;
-                      }),
-                    )
-                  }
-                />
+          <MultiSelectField<string>
+            label={t.track.consumables.sessionTitle}
+            values={[...usedHere]}
+            options={tires.map((x) => ({ value: x.id, label: [t.corners[x.position as 'fl'] ?? null, x.size].filter(Boolean).join(' · ') || t.inventory.tire.editTitle }))}
+            onToggle={(id) => {
+              const x = tires.find((tire) => tire.id === id);
+              if (!x) return;
+              const on = usedHere.has(id);
+              void setTireUsed(ev.id, x, !on, sessionId).then(() =>
+                setUsedHere((prev) => {
+                  const next = new Set(prev);
+                  if (on) next.delete(id);
+                  else next.add(id);
+                  return next;
+                }),
               );
-            })}
-          </View>
+            }}
+          />
         </>
       ) : null}
 
@@ -431,12 +419,7 @@ export function SessionForm({
       )}
       <Field label={t.track.session.incident} placeholder={t.track.session.incidentPlaceholder} value={session.incident ?? ''} onChangeText={(x) => sess('incident', x.trim() ? x : null)} />
 
-      {eyebrow(t.track.session.feel)}
-      <View style={styles.chips}>
-        {FEELS.map((f) => (
-          <Chip key={f} label={t.track.session.feels[f]} selected={session.carFeel === f} onPress={() => sess('carFeel', session.carFeel === f ? null : f)} />
-        ))}
-      </View>
+      <SelectField<string | null> label={t.track.session.feel} value={session.carFeel} allowNone options={selectOptions(FEELS, (f) => t.track.session.feels[f])} onChange={(f) => sess('carFeel', f)} />
       <View style={styles.stars}>
         {[1, 2, 3, 4, 5].map((n) => (
           <Pressable key={n} onPress={() => sess('rating', session.rating === n ? null : n)} accessibilityRole="button" accessibilityLabel={`${t.track.session.rating} ${n}`} accessibilityState={{ selected: (session.rating ?? 0) >= n }} hitSlop={4}>

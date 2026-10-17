@@ -3,7 +3,8 @@ import { Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type
 import Svg, { Line, Path } from 'react-native-svg';
 
 import { T } from '@/components/T';
-import { Chip } from '@/components/ui';
+import { ToggleRow } from '@/components/ui';
+
 import { radius, space } from '@/constants/theme';
 import { hitTestSegment, PERCENT_STEP, snapPercent, stepsFor, type GaugeCfg } from '@/lib/domain/gauge';
 import { t } from '@/lib/i18n';
@@ -79,8 +80,8 @@ function Head({ label, reserve }: { label: string; reserve?: ReserveToggle }) {
         <T face="eyebrow" style={{ color: theme.text.secondary, fontSize: 12 }}>
           {label}
         </T>
-        {reserve ? <Chip label={t.gauge.reserveOnly} selected={reserve.on} onPress={() => reserve.onToggle(!reserve.on)} /> : null}
       </View>
+      {reserve ? <ToggleRow label={t.gauge.reserveOnly} value={reserve.on} onChange={reserve.onToggle} /> : null}
       {reserve?.on ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginBottom: space.xs }}>
           {t.gauge.reserveOnlyHint}
@@ -317,8 +318,8 @@ function NeedlePicker({
         <T face="eyebrow" style={{ color: theme.text.secondary, fontSize: 12 }}>
           {label}
         </T>
-        {reserve ? <Chip label={t.gauge.reserveOnly} selected={reserve.on} onPress={() => reserve.onToggle(!reserve.on)} /> : null}
       </View>
+      {reserve ? <ToggleRow label={t.gauge.reserveOnly} value={reserve.on} onChange={reserve.onToggle} /> : null}
       {reserve?.on ? (
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginBottom: space.xs }}>
           {t.gauge.reserveOnlyHint}
