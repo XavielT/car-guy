@@ -102,3 +102,31 @@ Hoy hay **7 testigos**, todos **tocables** (`lamp.onPress`, `components/ui/Tellt
 
 ## Banderas que esconden funciones
 `FEATURE_LEGAL = false` (`lib/flagsV8.ts:18`) pero Más sigue mostrando "Legal" y `/legal` existe: revisar en la fase 4 si es intencional. `FEATURE_JUNTE_CHAT = false`: el chat no está (esperado).
+
+## Después de la fase 4 (2026-10-17) — toques desde Inicio
+
+**Cómo se midió.** La estructura manda: Inicio → botón **Herramientas** (1) → la función (2); el hub se dibuja desde el registro, así que toda función registrada y activa está a 2 toques (la prueba `registry.test.ts › depth from Inicio` lo comprueba sobre el código de Inicio, Más y el hub). El flujo hub → búsqueda → función y el de "sin carro" se recorrieron en Chromium (390 px, UA de iPhone) y con un carro creado en la propia app el hub del vehículo a 320/360/390 px; ver `screens/f4-*.png`. No hay un script que cuente toques por cada función con datos reales: lo que dependa de un dato (un código OBD guardado, un permiso) se prueba por componente.
+
+| Función | Antes | Después | Cómo |
+|---------|-------|---------|------|
+| Diagnóstico OBD | 2 (enterrada) | **1** con el testigo CHECK · **2** hub/lupa · atajo en el vehículo | testigo + fila destacada + atajo |
+| Registrar reparación | 3 (un camino) | **2** | hub (destacada) · atajo del vehículo · testigo Batería |
+| Registrar echada | 1 | 1 | atajo de Inicio · testigo Combustible |
+| Iniciar viaje / Conducir | 1 | 1 | botón central |
+| Registrar servicio, gasto | 2 | 2 | hub |
+| Registrar evento | 3 | **2** | hub · atajo · testigo Refrigerante |
+| Registrar mod | 2 | 2 | hub · atajo |
+| Agregar fotos | 3 | **2** | hub · atajo |
+| Álbum, Eventos | 3 | **2** | hub |
+| Build | 1 | 1 | atajo de Inicio |
+| Ficha técnica | 3 | **2** | hub |
+| Guía de fluidos | 4 | **2** | hub (función propia) |
+| Editar el carro | 3 | **2** | hub (función propia) |
+| Miembros del garaje | 3 | **2** | hub (función propia) |
+| Libro del carro | 3 | **2** | hub |
+| Compartir el carro | 2–3 | **2** | hub |
+| Ajustes de viajes | 3 | **2** | hub (función propia) |
+| Viajes, Juntes, Comunidad, Precios, Tareas, Contactos, Documentos, Notificaciones, Versiones, Legal, Apoyar, Comentarios, Cuenta, Permisos, Bienvenida, Instalar | 1–2 | 1–2 | hub (2) y sus entradas de siempre |
+| Chequeo semanal, Recordatorios, Cifras, Pista, Odómetro | 1 | 1 | Inicio / testigos |
+
+**Escondidas que dejaron de serlo:** reparación nueva, evento, fotos, álbum/eventos, ficha, fluidos, editar vehículo, miembros, libro, ajustes de viajes (las 10 ≥ 3 toques o de un solo camino que son funciones; todas a 2). **Siguen siendo pantallas internas** (no funciones: se llega a ellas desde la función): detalle de un registro, plantillas del chequeo (dentro de Chequeo), un set de aros o una goma (dentro de Build), publicar un viaje (dentro del viaje), perfil público (enlace). Quedan a 3 toques o más **por ser detalle de algo**, no por estar escondidas.

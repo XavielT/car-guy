@@ -9,7 +9,7 @@ Claude Code actualiza este archivo al terminar cada fase. Aquí no se espera nin
 | 1 Fix pack | **✔ código y pruebas** · pendiente: aplicar `sql/040` y publicar 2.5.2 (sin credenciales en esta máquina) | rama `imp-16102026-phase-1` | 2026-10-16 |
 | 2 Permisos y mapa | **✔ código y pruebas** · sin publicar (sin credenciales; ver abajo) | rama `imp-16102026-phase-2` | 2026-10-16 |
 | 3 SelectField | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-3` | 2026-10-17 |
-| 4 Herramientas | pendiente | | |
+| 4 Herramientas | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-4` | 2026-10-17 |
 | 5 Reparaciones | pendiente | | |
 | 6 Regresión y release | pendiente | | |
 
@@ -128,3 +128,23 @@ Ver `findings.md` → "No verificado tras la fase 2": iPhone real (re-pregunta d
 
 ### No verificado (fase 3)
 Android real (hojas con teclado, `back` cierra sin cambiar); iPhone real; Historial/Garaje/Pista con datos (las pruebas cubren el componente y el tipado; las capturas de esas pantallas necesitan un garaje con datos); contraste de la píldora activa con el tema claro.
+
+## Fase 4 — Herramientas, atajos, testigos y buscador (2026-10-17)
+
+**Hecho (ADR-62):** registro único de funciones (`lib/features/`: 41 funciones), hub **Herramientas** (`app/herramientas.tsx`, entrada en Más y dos botones en el encabezado de Inicio, esqueleto gemelo), buscador es/en tolerante a errores, fila de atajos en el vehículo, tira de pestañas con degradado y "Todas las secciones" (X4), testigos que abren su función con texto al mantener presionado, testigo **CHECK** (ámbar con un código OBD sin resolver), OBD como "Diagnóstico OBD" (subtítulo, aviso de primera vez, enlace desde Eventos y Tareas vacíos), tarjeta "Descubre" y pointer de 2 pasos a Herramientas. Medición de toques: `feature-map.md` → "Después de la fase 4".
+
+### Decisiones tomadas (fase 4)
+31. **Rama `imp-16102026-phase-4`**, sale de la de fase 3.
+32. **"Registrar reparación" no queda `hidden`**: ya existe (`/servicio/nuevo?kind=reparacion`, Historial → "+"); el registro la ofrece desde ya y la fase 5 cambia la pantalla, no la entrada.
+33. **OBD no exige carro** (`needsVehicle:false`, `passVehicle:true`): buscar un código funciona sin carro; con uno activo se lleva `vehicleId`.
+34. **Los testigos abren la acción, no la lista de recordatorios** (SPEC-C): Aceite → registrar servicio, Refrigerante → registrar evento, Batería → registrar reparación, Gomas → Build, Marbete y seguro → Documentos, Chequeo → chequeo, Combustible → echada, CHECK → OBD. Los recordatorios siguen a un toque desde "Pendientes" y a dos desde el hub. El testigo de **Freno** no existe en la tira (no hay datos de freno); GPS/REC/PASAJERO no son testigos de la tira (son chips de Conducir): no se inventaron.
+35. **El tour de 2 pasos se muestra a quien ya tiene un carro** y no lo ha visto, no solo a quien actualiza: no hay forma local de distinguir una actualización de una instalación nueva una vez leídas las Novedades. Espera a que se cierre la hoja de Novedades.
+36. **Una sola tarjeta de empuje en Inicio** (tour → OBD → Descubre), nunca dos; todo se guarda en `settings` locales (no se sincronizan).
+37. **Los cuatro sub-destinos** (Guía de fluidos, Editar el carro, Miembros del garaje, Ajustes de viajes) son funciones del registro para que estén a 2 toques; el resto de pantallas internas se queda como detalle.
+38. **Telltales ≥ 44 pt**: `hitSlop` vertical 10 (lámpara 24 pt → 44) y pestañas de 44 pt de alto; el botón de Herramientas/lupa del encabezado es de 36 pt + `hitSlop` 4 (44).
+
+### Pruebas (fase 4)
+`__tests__/features/registry.test.ts` (24: guardia rutas ↔ registro, ids con copy es/en, OBD destacada/atajo/testigo, `featureHref`, 9 búsquedas del PROMPT con sinónimos es/en, acentos, errores de tecleo, "nada" sin resultados, profundidad ≤ 2 sobre Inicio/Más/hub) y `surfaces.test.tsx` (9: atajos presentes en orden y navegando con el carro, bordes de la tira y centrado de la pestaña activa, cada testigo resuelve su función y su texto es/en, Descubre salta lo usado/descartado). i18n paridad, esqueleto gemelo del hub. Chromium 390 px: hub, búsqueda "luz del tablero" y "check engine" → Diagnóstico OBD, sin resultados, sin carro ("Elige el carro"), carro creado en la app → atajos y tira a 320/360/390 px.
+
+### No verificado (fase 4)
+Android/iPhone reales; la tarjeta Descubre/tour con el estado de Novedades en un teléfono con datos de una versión anterior; el testigo CHECK con un código OBD guardado (cubierto por tipos y por el contador, no por captura); el badge de permiso en el hub en Android.

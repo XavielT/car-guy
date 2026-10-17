@@ -1,7 +1,7 @@
 # Architecture decisions — IMP 16102026 (ADR-59 … ADR-64)
 
 Numbering continues from ADR-58 (`docs/imp-01102026/00-context/03-architecture-decisions.md`), confirmed in phase 0.
-ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3; 61–63 are the BRIEF's proposals, each written when its phase builds it.
+ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3, ADR-62 in phase 4; 61, 63 are the BRIEF's proposals, each written when its phase builds it.
 
 ## ADR-59 — Permissions: one registry, always explained first, re-read on return
 **Status:** implemented in phase 2.
@@ -36,7 +36,22 @@ ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3; 61–63 are 
 
 **Consequences.** One interaction to learn; forms get shorter (no wrapping chip walls). Choosing something that used to be one tap on a visible chip is now two taps (open, choose) — the price of consistency, accepted in BRIEF §3 for choices with more than a couple of options and for the sake of one pattern for the rest. Touch targets stay ≥ 44 pt (PickerField 56, rows 48, pills 44).
 
-## ADR-61 … ADR-63 (proposed in the BRIEF; written when built)
+## ADR-62 — One registry of functions feeds the hub, the search, the shortcuts, the telltales and the tips
+**Status:** implemented in phase 4.
+
+**Context.** OBD lived two taps down a 33-row list in Más, with no shortcut and no telltale; 19 functions were hidden (≥ 3 taps or a single path, `docs/imp-16102026/feature-map.md`); the vehicle's tab strip cut "Pista, Viajes, Docs" off the screen with no hint that it scrolls.
+
+**Decision.**
+1. `lib/features/registry.ts` is the list of what the app can do: `FeatureDef` = id, icon, href (`[id]` = the active vehicle), section, `needsVehicle`/`passVehicle`, the `app/` folders it `covers`, keywords in es **and** en, and where it surfaces (`featured`, `shortcut`, `telltale`). Titles and one-line descriptions live in the dictionaries (`t.features.items`).
+2. **Guard:** `__tests__/features/registry.test.ts` walks `app/` and fails when a screen is neither covered by a feature nor named in `INTERNAL_ROUTES` with its reason; it also fails when an id lacks its es/en title and description.
+3. **Hub "Herramientas"** (`app/herramientas.tsx`): search on top, the four featured functions (OBD, reparación, echada, viaje), then a card per function by section with its badge (OBD codes pending, a missing permission). Entry: first row of Más and two buttons in Inicio's header (the hub, and the magnifier that opens it with the search focused). The tab bar is unchanged (CONDUCIR + 4).
+4. **Search** (`lib/features/search.ts`): accent-folded, every word must mean something (title, keyword or description), a slip of one or two letters is forgiven, es and en keywords always both searched.
+5. **Vehicle:** a shortcut row (the registry's `shortcut` functions) over the tabs; the tab strip is an `EdgeScroll` (fade on the side with more, the active tab centred) plus an "all sections" button that opens a `SelectSheet`.
+6. **Telltales:** the lamp → function map is the registry's (`LAMP_TELLTALE`, `featureForTelltale`); a long press says what a tap does; a new CHECK lamp is off unless a saved OBD code is unresolved.
+7. **Home nudge:** one card at a time — the two-step pointer to Herramientas, OBD's "¿Se prendió una luz?", then a function never used (`DISCOVER_ORDER`); each is dismissible and local-only (`settings`: `tools_tour_done`, `obd_notice_dismissed`, `feature_used`, `discover_dismissed`).
+
+**Consequences.** A function added to the registry shows up in the hub and the search by itself, and a screen added without registering fails a test. A telltale now opens the *action* (log an oil change) rather than the reminders list; reminders remain one tap from "Pendientes" and two from the hub.
+
+## ADR-61, ADR-63 (proposed in the BRIEF; written when built)
 - **61** A repair stays a `ServiceRecord` with `kind='reparacion'` (phase 5).
-- **62** One registry of functions feeds the hub, search, shortcuts, telltales and tips (phase 4).
 - **63** Round-trip test of every field of a form through SQLite and sync (phase 1: vehicle; it already found the purchase-date drift).
