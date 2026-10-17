@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ObdLink } from '@/components/features/ObdLink';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
 import { FilterBar, selectOptions } from '@/components/pickers';
@@ -75,7 +76,10 @@ export default function TareasScreen() {
         {showSkeleton ? (
           <ListCardsSkeleton n={4} />
         ) : !loaded ? null : rows.length === 0 ? (
-          <EmptyState icon="checkmark-done-outline" message={t.tasks.empty} />
+          <>
+            <EmptyState icon="checkmark-done-outline" message={t.tasks.empty} />
+            <ObdLink vehicleId={activeVehicle.id} />
+          </>
         ) : (
           rows.map((task) => (
             <Pressable

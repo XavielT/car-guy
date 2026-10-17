@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ObdLink } from '@/components/features/ObdLink';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { EmptyState, PrimaryButton } from '@/components/ui';
@@ -83,6 +84,7 @@ export function EventsTab({ vehicleId, version, readOnly }: { vehicleId: string;
       <View>
         {tip}
         <EmptyState icon="flag-outline" message={t.events.tabEmpty} actionLabel={readOnly ? undefined : t.events.add} onAction={readOnly ? undefined : add} />
+        <ObdLink vehicleId={vehicleId} />
       </View>
     );
   }

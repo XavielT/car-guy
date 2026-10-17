@@ -116,7 +116,16 @@ export default function MasScreen() {
           }
         />
 
-        {/* Cifras left the tab bar for the CONDUCIR button (IMP 30092026 Phase 4, ADR-43): first row here. */}
+        {/* Herramientas (IMP 16102026 ADR-62): every function and its search, the first row. */}
+        <IconRow
+          icon="apps-outline"
+          label={t.features.title}
+          caption={t.features.subtitle}
+          onPress={() => router.push('/herramientas')}
+          style={styles.firstSection}
+        />
+
+        {/* Cifras left the tab bar for the CONDUCIR button (IMP 30092026 Phase 4, ADR-43). */}
         <IconRow
           icon="stats-chart-outline"
           label={t.tabs.cifras}

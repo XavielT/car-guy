@@ -57,6 +57,10 @@ import { TripsHubTab } from '@/components/trips/TripPieces';
 import { investedTotal } from '@/lib/domain/build';
 import { Alert } from '@/lib/alert';
 import { FEATURE_GAUGE_SEGMENTS } from '@/lib/flagsV10';
+import { EdgeScroll } from '@/components/ui/EdgeScroll';
+import { ShortcutRow } from '@/components/vehicle/ShortcutRow';
+import { SelectSheet } from '@/components/pickers';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -112,6 +116,8 @@ export default function VehicleHubScreen() {
   const [specValue, setSpecValue] = useState('');
   const [tab, setTab] = useState<Tab>(TABS.some((t) => t.flag && t.key === tabParam) ? (tabParam as Tab) : 'resumen');
   const [statusOpen, setStatusOpen] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState(false);
+  const [tabBox, setTabBox] = useState<Partial<Record<Tab, { x: number; w: number }>>>({});
   const [saleOpen, setSaleOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   // An Ex opens read-only (its story is written); "Editar historia" unlocks it
@@ -308,29 +314,53 @@ export default function VehicleHubScreen() {
           {FEATURE_GAUGE_SEGMENTS ? <TankLine vehicle={vehicle} fillups={data.fillups.filter((f) => f.vehicleId === vehicle.id)} odometerKm={odometerKm} /> : null}
         </View>
 
-        {/* 1 — the page tabs (sticky) */}
-        <View style={{ backgroundColor: theme.bg.base, paddingVertical: space.sm }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist">
-            {TABS.filter((tb) => tb.flag).map((tb) => {
-              const on = tb.key === tab;
-              return (
-                <Pressable
-                  key={tb.key}
-                  onPress={() => setTab(tb.key)}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: on }}
-                  aria-selected={on}
-                  style={[
-                    styles.tab,
-                    { borderColor: on ? theme.accentFill : theme.lineStrong, backgroundColor: on ? theme.accentFill : theme.bg.surface },
-                  ]}>
-                  <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
-                    {t.hub.tabs[tb.key]}
-                  </T>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+        {/* 1 — the shortcuts (SPEC-C §4) and the page tabs (sticky); the tabs fade where there is more (X4) */}
+        <View style={{ backgroundColor: theme.bg.base, paddingTop: space.sm }}>
+          {!viewer ? <ShortcutRow vehicleId={vehicle.id} /> : null}
+        </View>
+        <View style={[styles.tabsRow, { backgroundColor: theme.bg.base }]}>
+          <View style={{ flex: 1 }}>
+            <EdgeScroll bg={theme.bg.base} active={tabBox[tab] ?? null} accessibilityRole="tablist">
+              {TABS.filter((tb) => tb.flag).map((tb) => {
+                const on = tb.key === tab;
+                return (
+                  <Pressable
+                    key={tb.key}
+                    onPress={() => setTab(tb.key)}
+                    onLayout={(e) => {
+                      const { x, width } = e.nativeEvent.layout;
+                      setTabBox((prev) => (prev[tb.key]?.x === x && prev[tb.key]?.w === width ? prev : { ...prev, [tb.key]: { x, w: width } }));
+                    }}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    aria-selected={on}
+                    style={[
+                      styles.tab,
+                      { borderColor: on ? theme.accentFill : theme.lineStrong, backgroundColor: on ? theme.accentFill : theme.bg.surface },
+                    ]}>
+                    <T face="title" style={{ color: on ? theme.accentFillInk : theme.text.secondary, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' }}>
+                      {t.hub.tabs[tb.key]}
+                    </T>
+                  </Pressable>
+                );
+              })}
+            </EdgeScroll>
+          </View>
+          <Pressable
+            onPress={() => setSectionsOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t.features.tabs.all}
+            style={[styles.allBtn, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
+            <Ionicons name="grid-outline" size={20} color={theme.accent} />
+          </Pressable>
+          <SelectSheet<Tab>
+            visible={sectionsOpen}
+            title={t.features.tabs.allTitle}
+            options={TABS.filter((tb) => tb.flag).map((tb) => ({ value: tb.key, label: t.hub.tabs[tb.key] }))}
+            value={tab}
+            onPick={setTab}
+            onClose={() => setSectionsOpen(false)}
+          />
         </View>
 
         {/* 2 — the tab's content */}
@@ -790,7 +820,9 @@ const styles = StyleSheet.create({
   odoRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.md },
   addMod: { borderWidth: 1, borderRadius: radius.tag, paddingHorizontal: space.md, minHeight: 36, justifyContent: 'center', marginBottom: space.sm },
   odo: { alignSelf: 'flex-start', alignItems: 'center', borderWidth: 1, borderRadius: radius.input, paddingHorizontal: space.md, paddingVertical: space.sm, marginTop: space.md, marginBottom: space.sm },
-  tab: { minHeight: 40, justifyContent: 'center', paddingHorizontal: space.md, borderRadius: radius.tag, borderWidth: 1, marginRight: space.sm },
+  tabsRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.sm },
+  allBtn: { width: 44, height: 44, borderRadius: radius.tag, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  tab: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.md, borderRadius: radius.tag, borderWidth: 1, marginRight: space.sm },
   eyebrow: { fontSize: 11, marginBottom: space.sm },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
   tile: { flexBasis: '47%', flexGrow: 1, borderWidth: 1, borderRadius: radius.input, padding: space.md },

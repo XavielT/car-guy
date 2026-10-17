@@ -24,6 +24,8 @@ const SAME_OK = new Set([
   'Español', 'English', 'MICM', 'App', 'Stock', 'Interior', 'Legal',
   // Phase 6: "junte" is the Dominican word, kept in English like "Build"; "Chat" is the same word.
   'Juntes', 'Chat',
+  // Phase 4: OBD and the check-engine lamp are the same words in both.
+  'OBD', 'Check engine',
 ]);
 
 /** Proper nouns that contain Spanish words; removed before the leftover check. */

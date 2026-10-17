@@ -64,7 +64,7 @@ export const enPart1: Pick<
     build: 'Build',
     ficha: 'Spec sheet',
     fluids: 'Fluids',
-    obd: 'OBD codes',
+    obd: 'OBD diagnostics',
     obdCode: 'Code',
     contacts: 'Contacts',
     newContact: 'New contact',

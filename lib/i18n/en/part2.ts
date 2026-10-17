@@ -159,7 +159,7 @@ export const enPart2: Pick<
       mod: 'Mods',
       hito: 'Milestones',
       pista: 'Track',
-      obd: 'OBD codes',
+      obd: 'OBD diagnostics',
       viaje: 'Trips',
     },
     tripTitle: (km: string, minutes: number) => `Trip · ${km} km · ${minutes} min`,

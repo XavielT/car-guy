@@ -58,7 +58,8 @@ export const enPart4: Pick<
     oem: (f: string, r: string) => `Factory: front ${f} psi · rear ${r} psi`,
   },
   obd: {
-    title: 'OBD codes',
+    title: 'OBD diagnostics',
+    subtitle: 'Look up the code behind the dashboard light (P0300…)',
     eyebrow: 'OBD-II',
     search: 'Search code',
     searchPlaceholder: 'P0301',
@@ -119,8 +120,8 @@ export const enPart4: Pick<
     section: 'DIY',
     contacts: 'Contacts',
     contactsCaption: 'The mechanic, the parts guy, the tow truck.',
-    obd: 'OBD codes',
-    obdCaption: 'What that P0301 means, and when it showed up.',
+    obd: 'OBD diagnostics',
+    obdCaption: 'Look up the code behind the dashboard light (P0300…)',
   },
   share: {
     title: 'Share',

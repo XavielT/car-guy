@@ -10,6 +10,12 @@
 - **Un solo selector para todo**: elegir un valor ya no es una fila de botones que se pone donde cae — es un campo que muestra lo elegido y abre una hoja con las opciones, que se cierra al elegir (con búsqueda cuando hay muchas y "Otro…" cuando aplica). Combustible, tipo de carrocería, color, estado, tema, idioma, visibilidad, rol, duraciones y los demás: igual en todas partes. Los sí/no (Pasajero, Tanque lleno, Solo reserva, Mapa en línea) son interruptores.
 - **Filtros**: las listas (Historial, Garaje, Viajes, Pista, Inventario, Precios) filtran con botones compactos "Tipo: Todos ▾" que abren la misma hoja, con un contador y "Limpiar" cuando hay filtros puestos.
 
+- **Herramientas**: un solo lugar con todo lo que Car Guy hace, con buscador ("luz del tablero", "factura", "cambio de aceite"…). Está en el encabezado de Inicio, junto a una lupa, y en la primera fila de Más. Diagnóstico OBD, Registrar reparación, Registrar echada e Iniciar viaje van arriba.
+- **Diagnóstico OBD a la vista**: se llama así, tiene su atajo en cada carro y un testigo nuevo en el tablero (CHECK) que se prende en ámbar cuando guardaste un código sin resolver. Si es la primera vez, te explica para qué sirve.
+- **Atajos en el carro**: + Reparación, OBD, + Echada, + Evento, + Mod y + Foto sobre las pestañas. Las pestañas muestran con un degradado que hay más, la activa se centra y un botón abre todas las secciones.
+- **Testigos que abren algo**: cada luz del tablero lleva a lo que se puede hacer (registrar el cambio de aceite, una reparación…), y si la dejas presionada te dice qué hace.
+- **Descubre**: una sugerencia a la vez en Inicio con una función que todavía no has usado.
+
 ## 2.5.2 (2026-10-16)
 
 - **Aceite sintético**: la casilla ahora se queda marcada. Al guardar, el recordatorio del aceite pasa a 10,000 km / 12 meses; si la desmarcas, vuelve al intervalo normal sin perder cuándo hiciste el último cambio.

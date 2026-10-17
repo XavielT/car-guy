@@ -1,4 +1,8 @@
 import { useKeepAwake } from 'expo-keep-awake';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { HomeNudge } from '@/components/features/HomeNudge';
+import { useOpenDtcCount, useOpenFeature } from '@/components/features/useFeatures';
+import { featureForTelltale, LAMP_TELLTALE } from '@/lib/features/registry';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
@@ -89,6 +93,8 @@ export default function HomeScreen() {
   const [tripNotice, setTripNotice] = useState<string | null>(null);
   const [tripBusy, setTripBusy] = useState(false);
   const location = usePermissionRequest('location_foreground');
+  const openDtc = useOpenDtcCount(activeVehicle?.id);
+  const { open: openFeature } = useOpenFeature();
   const focused = useIsFocused();
   useEffect(() => {
     if (!FEATURE_TRIPS) return;
@@ -250,12 +256,25 @@ export default function HomeScreen() {
         },
   );
 
+  // What a lamp opens comes from the registry (ADR-62); a long press says what that is.
+  const lampTarget = (icon: string) => {
+    const tt = LAMP_TELLTALE[icon];
+    const def = tt ? featureForTelltale(tt) : undefined;
+    return def ? { onPress: () => openFeature(def), hint: t.features.telltale.hint[tt as keyof typeof t.features.telltale.hint] } : { onPress: () => router.push('/recordatorios') };
+  };
   const lamps: Lamp[] = lampStates(allReminders, weekly).map((l) => ({
     icon: l.icon,
     status: l.state,
     label: l.label,
-    onPress: l.icon === 'checklist' ? () => router.push('/chequeo') : () => router.push('/recordatorios'),
+    ...lampTarget(l.icon),
   }));
+  // CHECK (SPEC-C §5): off unless a saved OBD code is still unresolved — then amber, and it opens the diagnostics.
+  lamps.unshift({
+    icon: 'engine',
+    status: openDtc ? 'proximo' : 'off',
+    label: t.features.telltale.check,
+    ...lampTarget('engine'),
+  });
   // IMP 01102026 Phase 3 (research 03 §4): the fuel lamp — amber at ≤ 2 squares / 2/8 / 20 %, red at the reserve.
   const tank = FEATURE_GAUGE_SEGMENTS && activeVehicle.detail ? tankNow(activeVehicle.detail, vehicleFillups, odometerKm) : null;
   if (tank) {
@@ -263,7 +282,7 @@ export default function HomeScreen() {
       icon: 'fuel',
       status: tank.telltale === 'red' ? 'vencido' : tank.telltale === 'amber' ? 'proximo' : 'off',
       label: t.gauge.tank,
-      onPress: () => router.push('/carga/nueva'),
+      ...lampTarget('fuel'),
     });
   }
 
@@ -331,6 +350,22 @@ export default function HomeScreen() {
             </Pressable>
           ) : null}
           {FEATURE_SYNC && session ? <SyncPill /> : null}
+          <Pressable
+            onPress={() => router.push('/herramientas')}
+            accessibilityRole="button"
+            accessibilityLabel={t.features.open}
+            hitSlop={4}
+            style={[styles.headerBtn, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
+            <Ionicons name="apps-outline" size={20} color={theme.accent} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push({ pathname: '/herramientas', params: { focus: 'search' } })}
+            accessibilityRole="button"
+            accessibilityLabel={t.features.openSearch}
+            hitSlop={4}
+            style={[styles.headerBtn, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
+            <Ionicons name="search-outline" size={20} color={theme.accent} />
+          </Pressable>
           <Pressable
             onPress={() => router.push('/cuenta')}
             accessibilityRole="button"
@@ -536,6 +571,8 @@ export default function HomeScreen() {
           </Surface>
         ) : null}
 
+        <HomeNudge hasVehicle fillups={vehicleFillups.length} />
+
         <QuickActions
           actions={[
             { label: t.quickActions.fuel, icon: 'flash-outline', onPress: () => router.push('/carga/nueva') },
@@ -678,6 +715,7 @@ const TASK_STATUS: Record<Task['priority'], Status> = {
 const BADGE_TONE: Record<Status, BadgeTone> = { vencido: 'red', urgente: 'amber', proximo: 'amber', ok: 'green' };
 
 const styles = StyleSheet.create({
+  headerBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   accountCard: { marginBottom: space.md },
   accountActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },

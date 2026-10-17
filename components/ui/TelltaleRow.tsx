@@ -1,4 +1,5 @@
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -27,7 +28,8 @@ export type LampIcon =
   | 'document'
   | 'fuel'
   | 'wrench'
-  | 'checklist';
+  | 'checklist'
+  | 'engine';
 
 export type Lamp = {
   icon: LampIcon;
@@ -35,6 +37,8 @@ export type Lamp = {
   status: Status | 'off';
   label: string;
   onPress?: () => void;
+  /** A short line shown on a long press: what tapping it does. */
+  hint?: string;
 };
 
 // 24 px, 1.7 stroke, drawn for this component. Paths only — no fills — so the
@@ -53,6 +57,7 @@ const ICONS: Record<LampIcon, { d: string; dots?: [number, number][] }> = {
   document: { d: 'M7 3h7l4 4v14H7z M14 3v4h4 M9.5 12h5 M9.5 15.5h5' },
   fuel: { d: 'M4 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15 M3 20h11 M6 8h5 M13 9h2l2 2v6a1.5 1.5 0 0 0 3 0V9l-3-3' },
   wrench: { d: 'M14.5 4.5a4.5 4.5 0 0 0-5.3 5.9L3.5 16.1l4.4 4.4 5.7-5.7a4.5 4.5 0 0 0 5.9-5.3l-2.7 2.7-2.9-.8-.8-2.9z' },
+  engine: { d: 'M3 10h2V8h3V6h6v2h2v2h3v6h-3v2h-3l-2 2H9l-2-2H5v-2H3z M9 12h6' },
   checklist: { d: 'M10 6h10 M10 12h10 M10 18h10 M4 6l1.2 1.2L7.6 4.8 M4 12l1.2 1.2 2.4-2.4 M4 18l1.2 1.2 2.4-2.4' },
 };
 
@@ -66,19 +71,30 @@ const stateLabel = (): Record<Lamp['status'], string> => ({
 
 export function TelltaleRow({ lamps }: { lamps: Lamp[] }) {
   const testing = useLampTest();
+  const [tip, setTip] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tip) return;
+    const timer = setTimeout(() => setTip(null), 3000);
+    return () => clearTimeout(timer);
+  }, [tip]);
 
   return (
     <View
       accessibilityRole="summary"
       style={[styles.row, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
       {lamps.map((lamp) => (
-        <LampView key={`${lamp.icon}:${lamp.label}`} lamp={lamp} testing={testing} />
+        <LampView key={`${lamp.icon}:${lamp.label}`} lamp={lamp} testing={testing} onTip={setTip} />
       ))}
+      {tip ? (
+        <Text accessibilityLiveRegion="polite" style={styles.tip}>
+          {tip}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-function LampView({ lamp, testing }: { lamp: Lamp; testing: boolean }) {
+function LampView({ lamp, testing, onTip }: { lamp: Lamp; testing: boolean; onTip: (text: string) => void }) {
   const on = lamp.status !== 'off' && lamp.status !== 'ok';
   const color = testing
     ? lamp.status === 'off' || lamp.status === 'ok'
@@ -110,7 +126,13 @@ function LampView({ lamp, testing }: { lamp: Lamp; testing: boolean }) {
 
   const a11y = `${lamp.label}: ${stateLabel()[lamp.status]}`;
   return lamp.onPress ? (
-    <Pressable onPress={lamp.onPress} accessibilityRole="button" accessibilityLabel={a11y} hitSlop={6}>
+    <Pressable
+      onPress={lamp.onPress}
+      onLongPress={() => onTip(lamp.hint ? `${lamp.label} — ${lamp.hint}` : `${lamp.label}: ${stateLabel()[lamp.status]}`)}
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+      accessibilityHint={lamp.hint}
+      hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}>
       {body}
     </Pressable>
   ) : (
@@ -139,6 +161,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignSelf: 'center',
   },
+  tip: { width: '100%', textAlign: 'center', color: theme.text.secondary, fontSize: 12, paddingTop: 4 },
   lamp: {
     width: 36,
     height: 24,

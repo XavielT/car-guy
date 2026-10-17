@@ -59,6 +59,9 @@ export default function ObdScreen() {
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
         {t.obd.title}
       </T>
+      <T face="body" style={{ color: theme.text.secondary, fontSize: 14, marginTop: -space.sm, marginBottom: space.md }}>
+        {t.obd.subtitle}
+      </T>
       <Field label={t.obd.search} placeholder={t.obd.searchPlaceholder} value={query} onChangeText={setQuery} autoCapitalize="characters" autoFocus={add === '1'} />
       {code ? (
         <>
