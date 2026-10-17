@@ -10,13 +10,13 @@ import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { Alert } from '@/lib/alert';
 import { userMessage } from '@/lib/diagnostics';
-import { fuel as fuelRepo, history } from '@/lib/db/repos';
+import { fuel as fuelRepo, history, serviceRecords as serviceRecordRepo } from '@/lib/db/repos';
 import { fuelCfgFor } from '@/lib/domain/partialEconomy';
-import type { FuelLog, HistoryEntry } from '@/lib/db/types';
+import type { FuelLog, HistoryEntry, ServiceRecord } from '@/lib/db/types';
 import { todayIso } from '@/lib/domain/dates';
 import { inRange, periodRanges, type PeriodKey } from '@/lib/domain/stats';
 import { deliverText } from '@/lib/export/deliver';
-import { costsCsv, exportFileName, fuelCsv, historyCsv } from '@/lib/export/csv';
+import { costsCsv, exportFileName, fuelCsv, historyCsv, repairsCsv } from '@/lib/export/csv';
 import { garageOwnershipCost } from '@/lib/db/statsQueries';
 import type { GarageCost } from '@/lib/domain/costs';
 import { money } from '@/lib/format';
@@ -41,6 +41,7 @@ export default function ExportarScreen() {
   const [period, setPeriod] = useState<PeriodKey>('ano');
   const [rows, setRows] = useState<HistoryEntry[]>([]);
   const [logs, setLogs] = useState<FuelLog[]>([]);
+  const [repairs, setRepairs] = useState<ServiceRecord[]>([]);
   const [busy, setBusy] = useState(false);
   // Note 8: lifetime and garage-wide, so the period selector does not apply to it.
   const [garage, setGarage] = useState<GarageCost | null>(null);
@@ -67,13 +68,15 @@ export default function ExportarScreen() {
 
     (async () => {
       const range = periodRanges(todayIso())[period];
-      const [feed, fuelRows] = await Promise.all([
+      const [feed, fuelRows, serviceRows] = await Promise.all([
         history.feed(vehicleId, { from: range.from ?? undefined, to: range.to }),
         fuelRepo.list(vehicleId),
+        serviceRecordRepo.listWhere({ vehicleId }),
       ]);
       if (cancelled) return;
       setRows(feed);
       setLogs(inRange(fuelRows, range.from, range.to));
+      setRepairs(inRange(serviceRows.filter((r) => r.kind === 'reparacion'), range.from, range.to));
     })()
       .catch(() => {})
       .finally(() => {
@@ -85,13 +88,15 @@ export default function ExportarScreen() {
     };
   }, [vehicleId, period]);
 
-  async function run(kind: 'historial' | 'combustible' | 'costos') {
+  async function run(kind: 'historial' | 'combustible' | 'costos' | 'reparaciones') {
     if (!activeVehicle) return;
     setBusy(true);
     try {
       const content =
         kind === 'historial'
           ? historyCsv(rows)
+          : kind === 'reparaciones'
+            ? repairsCsv(repairs)
           : kind === 'costos'
             ? costsCsv(garage ?? (await garageOwnershipCost()))
             : fuelCsv(logs, activeVehicle.detail?.volumeUnit ?? 'gal', fuelCfgFor(activeVehicle.detail));
@@ -161,6 +166,19 @@ export default function ExportarScreen() {
               {t.export.rows(logs.length)}
             </T>
             <GhostButton label={action} onPress={() => run('combustible')} disabled={busy || !logs.length} />
+          </Surface>
+
+          <Surface>
+            <T face="title" style={[styles.cardTitle, { color: theme.text.primary }]}>
+              {t.repair.list.title}
+            </T>
+            <T face="body" style={[styles.cardBody, { color: theme.text.secondary }]}>
+              {t.repair.exportCaption}
+            </T>
+            <T face="mono" style={[styles.count, { color: theme.text.muted }]}>
+              {t.export.rows(repairs.length)}
+            </T>
+            <GhostButton label={action} onPress={() => run('reparaciones')} disabled={busy || !repairs.length} />
           </Surface>
 
           <Surface>

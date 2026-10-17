@@ -73,6 +73,8 @@ export type OwnershipCost = {
   byCategory: Record<CostCategory, number>;
   /** What sold mods brought back, as a positive number. */
   modsSold: number;
+  /** Of the `mantenimiento` bucket, what the repairs were (v12: shown as its own line; the bucket is unchanged). */
+  repairs: number;
   /** Everything but the car's purchase and sale. */
   spend: number;
   /** purchase − sale + spend: "lo que me ha costado". */
@@ -103,9 +105,11 @@ export function ownershipCost(input: OwnershipInput, today: string): OwnershipCo
   const { vehicle } = input;
   const buckets = emptyBuckets();
   const dates: string[] = [];
+  let repairs = 0;
 
   for (const row of input.spend) {
     buckets[FROM_STAT[row.category]] += row.amountDop || 0;
+    if (row.category === 'reparacion') repairs += row.amountDop || 0;
     if (row.occurredAt) dates.push(row.occurredAt);
   }
   for (const item of input.inventory ?? []) {
@@ -142,6 +146,7 @@ export function ownershipCost(input: OwnershipInput, today: string): OwnershipCo
     soldPrice,
     byCategory,
     modsSold: roundMoney(modsSold),
+    repairs: roundMoney(repairs),
     spend,
     total,
     distanceKm,

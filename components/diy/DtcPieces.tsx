@@ -8,9 +8,9 @@ import { T } from '@/components/T';
 import { SelectField } from '@/components/pickers';
 import { GhostButton, PrimaryButton, Sheet } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { createRepairForDtc, linkDtcRepair, logDtc, repairsFor, setDtcResolved } from '@/lib/db/diyQueries';
+import { linkDtcRepair, logDtc, repairsFor, setDtcResolved } from '@/lib/db/diyQueries';
 import type { ServiceRecord, VehicleDtcEvent } from '@/lib/db/types';
-import { lookup, normalizeCode, type Dtc } from '@/lib/domain/dtc';
+import { normalizeCode, type Dtc } from '@/lib/domain/dtc';
 import { parseDecimal } from '@/lib/domain/economy';
 import { dateLabel, isoFromDateInput, km as fmtKm, todayIsoDate } from '@/lib/format';
 import { currentLanguage, t } from '@/lib/i18n';
@@ -138,13 +138,11 @@ export function DtcEventRow({ event, vehicleName, onChanged }: { event: VehicleD
         <ScrollView style={{ maxHeight: 420 }}>
           <GhostButton
             label={t.obd.linkNew}
-            onPress={() =>
-              void createRepairForDtc(event, dtcText(lookup(event.code)) ?? '').then((r) => {
-                setLinking(false);
-                onChanged();
-                router.push({ pathname: '/servicio/[id]', params: { id: r.id } });
-              })
-            }
+            onPress={() => {
+              // The repair form, not a stub: who did it, the cost, the photos — saving links this code to it (N7).
+              setLinking(false);
+              router.push({ pathname: '/servicio/nuevo', params: { kind: 'reparacion', title: t.obd.repairTitle(event.code), vehicleId: event.vehicleId, dtcEvent: event.id } });
+            }}
           />
           {repairs.map((r) => (
             <Pressable

@@ -151,17 +151,19 @@ describe('ownershipCost — the dev seed', () => {
    *   mods  radiador (the v2.0 mejora record, 14,500 + 2,500 = 17,000; its mod is linked, not re-added)
    *         + aros 28,800 + 3,500 = 32,300 (USD 480 × 60, stored in RD$) + gomas 16,000 + 800 = 16,800
    *         + swap and ECU at 0 → 66,100
+   *   mantenimiento the alternator he changed himself (IMP 16102026 Phase 5): 4,500, no labour
    *   otros multa 1,500 + parqueo 200 = 1,700
    *   pista drift day 2,500 + 3,800 + 3,500 = 9,800
-   *   → 350,000 + 29,086.40 + 66,100 + 1,700 + 9,800 = 456,686.40
-   *   odometer 49,040 → 52,400 = 3,360 km → 135.92 RD$/km
+   *   → 350,000 + 29,086.40 + 66,100 + 4,500 + 1,700 + 9,800 = 461,186.40
+   *   odometer 49,040 → 52,400 = 3,360 km → 137.26 RD$/km
    */
   it("the Trueno's total equals the seed's sum", async () => {
     const cost = (await vehicleOwnershipCost(GARAGE_IDS.ae85, TODAY))!;
-    expect(cost.byCategory).toEqual({ mods: 66_100, mantenimiento: 0, combustible: 29_086.4, pista: 9_800, otros: 1_700 });
-    expect(cost.total).toBe(456_686.4);
+    expect(cost.byCategory).toEqual({ mods: 66_100, mantenimiento: 4_500, combustible: 29_086.4, pista: 9_800, otros: 1_700 });
+    expect(cost.total).toBe(461_186.4);
+    expect(cost.repairs).toBe(4_500);
     expect(cost.distanceKm).toBe(3_360);
-    expect(cost.perKm).toBe(135.92);
+    expect(cost.perKm).toBe(137.26);
     // No purchase date: "desde el primer registro" — the swap (15 ago 2025, a RD$ 0 mod row) is the oldest.
     expect(cost.sinceBasis).toBe('primer_registro');
     expect(cost.since).toBe('2025-08-15T12:00:00.000Z');
@@ -174,7 +176,7 @@ describe('ownershipCost — the dev seed', () => {
     expect(garage.vehicles.map((v) => v.vehicleId)).toEqual(expect.arrayContaining([GARAGE_IDS.ae85, GARAGE_IDS.ds3, V]));
 
     const csv = costsCsv(garage);
-    expect(csv).toContain('Trueno AE85,total,456686.40');
+    expect(csv).toContain('Trueno AE85,total,461186.40');
     expect(csv).toContain(`garaje,total,${garage.total.toFixed(2)}`);
   });
 });

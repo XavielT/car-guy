@@ -253,6 +253,8 @@ export default function HomeScreen() {
           title: entry.item.title,
           countdown: t.home.taskCountdown,
           onPress: () => router.push({ pathname: '/tarea/[id]', params: { id: entry.item.id } }),
+          // X7: a task is a Pendiente; one tap opens the repair form with it loaded and closing on save.
+          onResolve: () => router.push({ pathname: '/servicio/nuevo', params: { kind: 'reparacion', title: entry.item.title, resolve: `task:${entry.item.id}`, vehicleId: entry.item.vehicleId } }),
         },
   );
 
@@ -499,8 +501,8 @@ export default function HomeScreen() {
         {pending.length ? (
           <View style={styles.pending}>
             {pending.map((p) => (
+              <View key={p.key}>
               <Pressable
-                key={p.key}
                 onPress={p.onPress}
                 accessibilityRole="button"
                 accessibilityLabel={`${STATUS_LABEL[p.status]}: ${p.title}, ${p.countdown}`}
@@ -513,6 +515,14 @@ export default function HomeScreen() {
                   {p.countdown}
                 </T>
               </Pressable>
+              {p.onResolve ? (
+                <Pressable onPress={p.onResolve} accessibilityRole="button" style={styles.resolveLink}>
+                  <T face="semibold" style={{ color: theme.accent, fontSize: 12 }}>
+                    {t.repair.resolveWith}
+                  </T>
+                </Pressable>
+              ) : null}
+              </View>
             ))}
           </View>
         ) : null}
@@ -584,6 +594,7 @@ export default function HomeScreen() {
             FEATURE_TRACK
               ? { label: t.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } }) }
               : { label: t.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
+            { label: t.features.short.repair, icon: 'build-outline', onPress: () => router.push({ pathname: '/servicio/nuevo', params: { kind: 'reparacion', vehicleId: activeVehicle.id } }) },
             // Cifras left the tab bar (IMP 30092026 Phase 4, ADR-43): a tile here and Más's first row.
             { label: t.tabs.cifras, icon: 'stats-chart-outline', onPress: () => router.push('/cifras') },
           ]}
@@ -681,7 +692,7 @@ function byPriority(a: Task, b: Task): number {
   return rank[a.priority] - rank[b.priority];
 }
 
-type Pending = { key: string; status: Status; title: string; countdown: string; onPress: () => void };
+type Pending = { key: string; status: Status; title: string; countdown: string; onPress: () => void; onResolve?: () => void };
 
 /** The mono countdown on a Pendientes row: "1,250 km", "−320 km", "12 d", "−3 d". */
 function countdown(status: EvaluatedReminder['status']): string {
@@ -751,6 +762,7 @@ const styles = StyleSheet.create({
   installPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, marginRight: space.sm },
   heroHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.sm },
   pending: { gap: space.sm, marginBottom: space.lg },
+  resolveLink: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.md },
   pendingRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -319,6 +319,38 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
       costPartsDop: 8500,
       costLaborDop: 4000,
       shop: 'Auto Servicio El Che',
+      doneBy: 'shop' as const,
+      system: 'motor' as const,
+    },
+    // IMP 16102026 Phase 5: one repair of a (made-up) shop with a warranty running, one done by the owner. No real
+    // names, no phone.
+    {
+      vehicleId: GARAGE_IDS.ds3,
+      kind: 'reparacion' as const,
+      occurredAt: at(20),
+      odometerKm: 101_000,
+      title: 'Pastillas y rectificado de discos',
+      description: 'Chillido al frenar.',
+      costPartsDop: 3200,
+      costLaborDop: 1800,
+      shop: 'Taller de ejemplo',
+      doneBy: 'shop' as const,
+      system: 'frenos' as const,
+      warrantyUntilDate: at(-70),
+      warrantyUntilKm: null,
+    },
+    {
+      vehicleId: GARAGE_IDS.ae85,
+      kind: 'reparacion' as const,
+      occurredAt: at(60),
+      odometerKm: 49_900,
+      title: 'Cambié el alternador',
+      description: 'No cargaba la batería.',
+      costPartsDop: 4500,
+      costLaborDop: 0,
+      shop: '',
+      doneBy: 'self' as const,
+      system: 'electrico' as const,
     },
     {
       vehicleId: GARAGE_IDS.ae85,
@@ -338,15 +370,15 @@ export async function seedRealGarage(today = new Date()): Promise<string[]> {
     if (s.kind === 'mejora') radiatorRecordId = recordId;
     await serviceRepo.upsert({
       id: recordId,
-      ...s,
-      totalDop: s.costPartsDop + s.costLaborDop,
       warrantyUntilDate: null,
       warrantyUntilKm: null,
+      ...s,
+      totalDop: s.costPartsDop + s.costLaborDop,
       sourceInspectionId: null,
       sourceTaskId: null,
     });
   }
-  lines.push('4 servicios (DS3: 2 mantenimientos y 1 reparación · AE85: 1 mejora)');
+  lines.push('6 servicios (DS3: 2 mantenimientos y 2 reparaciones · AE85: 1 reparación propia y 1 mejora)');
 
   const spends: [string, ExpenseCategory, number, number, string][] = [
     [GARAGE_IDS.ds3, 'marbete', 3000, 250, 'Marbete 2026'],

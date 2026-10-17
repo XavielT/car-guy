@@ -120,6 +120,8 @@ export const SYNC_TABLES: SyncTable[] = [
   // Children of service_record and inspection.
   { name: 'service_record_item', localOnly: ['syncedAt'] },
   { name: 'part', localOnly: ['syncedAt'] },
+  // v12: the photos of a service, with their role — after service_record (local FK).
+  { name: 'service_media', localOnly: ['syncedAt'] },
   { name: 'inspection_result', localOnly: ['syncedAt'] },
 
   // Metadata only — the bytes go to Storage, never through PostgREST.

@@ -1,7 +1,7 @@
 import { displayUnitLabel, fuelForDisplay, type VolumeUnit } from '../domain/units';
 import { partialEconomy, type FuelCfg, type SeriesPoint } from '../domain/partialEconomy';
 import { t } from '../i18n';
-import type { FuelLog, HistoryEntry } from '../db/types';
+import type { FuelLog, HistoryEntry, ServiceRecord } from '../db/types';
 import { economyById } from '../domain/economy';
 import { COST_CATEGORIES, type GarageCost } from '../domain/costs';
 import { historyTitle } from '../domain/history';
@@ -72,6 +72,44 @@ export function historyCsv(entries: HistoryEntry[]): string {
       entry.odometerKm != null ? num(entry.odometerKm, 0) : '',
       entry.amountDop != null ? num(entry.amountDop) : '',
     ]),
+  );
+}
+
+export const REPAIRS_HEADERS = [
+  'fecha',
+  'titulo',
+  'sistema',
+  'quien',
+  'taller',
+  'odometro_km',
+  'piezas_dop',
+  'mano_obra_dop',
+  'total_dop',
+  'garantia_hasta',
+  'garantia_km',
+];
+
+const DONE_BY_CSV: Record<string, string> = { self: 'yo', shop: 'taller', friend: 'amigo_o_mecanico', other: 'otro' };
+
+/** Every repair of a car, with who did it, the shop, the cost split and the warranty (IMP 16102026 N7). */
+export function repairsCsv(records: ServiceRecord[]): string {
+  return toCsv(
+    REPAIRS_HEADERS,
+    records
+      .filter((r) => r.kind === 'reparacion')
+      .map((r) => [
+        day(r.occurredAt),
+        r.title,
+        r.system ?? '',
+        DONE_BY_CSV[r.doneBy] ?? r.doneBy,
+        r.doneBy === 'self' ? '' : r.shop,
+        r.odometerKm != null ? num(r.odometerKm, 0) : '',
+        num(r.costPartsDop),
+        num(r.costLaborDop),
+        num(r.totalDop),
+        r.warrantyUntilDate ? day(r.warrantyUntilDate) : '',
+        r.warrantyUntilKm != null ? num(r.warrantyUntilKm, 0) : '',
+      ]),
   );
 }
 
@@ -180,7 +218,11 @@ export function costsCsv(garage: GarageCost): string {
     const since = cost.since ? day(cost.since) : '';
     if (cost.purchasePrice != null) rows.push([name, 'compra', num(cost.purchasePrice), since, '', '']);
     if (cost.soldPrice != null) rows.push([name, 'venta', num(-cost.soldPrice), '', '', '']);
-    for (const key of COST_CATEGORIES) rows.push([name, key, num(cost.byCategory[key]), '', '', '']);
+    for (const key of COST_CATEGORIES) {
+      rows.push([name, key, num(cost.byCategory[key]), '', '', '']);
+      // v12: the repairs inside "mantenimiento", on their own row, so a spreadsheet can tell them apart.
+      if (key === 'mantenimiento' && cost.repairs > 0) rows.push([name, 'de_ellas_reparaciones', num(cost.repairs), '', '', '']);
+    }
     rows.push([name, 'total', num(cost.total), since, num(cost.distanceKm, 0), cost.perKm != null ? num(cost.perKm) : '']);
   }
   rows.push([

@@ -6,6 +6,7 @@ import {
   currentOdometer,
   odometer as odometerRepo,
   reminders as reminderRepo,
+  serviceRecords as serviceRecordRepo,
   settings as settingsRepo,
   vehicles as vehicleRepo,
 } from '../db/repos';
@@ -123,6 +124,7 @@ async function gatherPlanInput(config: NotificationSettings, today: string): Pro
 
   const reminders: PlanInput['reminders'] = [];
   const templates: PlanInput['templates'] = [];
+  const warranties: NonNullable<PlanInput['warranties']> = [];
 
   for (const vehicle of garage) {
     const [rows, km, readings, mine] = await Promise.all([
@@ -148,6 +150,13 @@ async function gatherPlanInput(config: NotificationSettings, today: string): Pro
       });
     }
 
+    // v12: a repair's warranty that has not ended yet (N7).
+    for (const record of await serviceRecordRepo.listWhere({ vehicleId: vehicle.id })) {
+      if (record.kind === 'reparacion' && record.warrantyUntilDate && record.warrantyUntilDate.slice(0, 10) >= today.slice(0, 10)) {
+        warranties.push({ id: record.id, title: record.title, until: record.warrantyUntilDate, vehicleName: several ? vehicle.name : undefined });
+      }
+    }
+
     for (const t of mine) {
       templates.push({
         id: t.id,
@@ -167,6 +176,7 @@ async function gatherPlanInput(config: NotificationSettings, today: string): Pro
     reminders,
     templates,
     marbeteNudges: isMarbeteWindowOpen(today) ? marbeteNudges(today) : [],
+    warranties,
   };
 }
 

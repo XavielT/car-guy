@@ -381,6 +381,7 @@ export const enPart3: Pick<
       otros: 'Other',
     },
     modsSold: (amount: string) => `Already taken off: ${amount} in mods sold`,
+    ofRepairs: (amount: string) => `Of maintenance, ${amount} is repairs`,
     total: 'Total',
     perKm: 'Per km',
     perKmHint: (running: string) => `${running}/km not counting the purchase`,

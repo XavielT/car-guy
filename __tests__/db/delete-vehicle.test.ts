@@ -68,6 +68,7 @@ function seedVehicle(v: string) {
   });
   insert('service_record_item', { id: `${v}_svc_item`, service_record_id: `${v}_svc`, service_type_id: 'aceite_motor' });
   insert('part', { id: `${v}_part`, service_record_id: `${v}_svc`, name: 'Filtro' });
+  insert('service_media', { id: `${v}_sm`, service_record_id: `${v}_svc`, media_id: `${v}_media_service_record`, role: 'before' });
   insert('expense', { id: `${v}_exp`, vehicle_id: v, occurred_at: T, category: 'otro', amount_dop: 100 });
   insert('reminder', { id: `${v}_rem`, vehicle_id: v, title: 'Aceite', metric: 'date' });
   insert('inspection_template', { id: `carro_semanal@${v}`, vehicle_id: v, name: 'Semanal', cadence: 'semanal' });
@@ -93,7 +94,7 @@ function seedVehicle(v: string) {
 
 const OWNED = [
   'vehicle', 'vehicle_spec', 'odometer_reading', 'fuel_log', 'service_record', 'service_record_item',
-  'part', 'expense', 'reminder', 'inspection_template', 'inspection_item', 'inspection',
+  'part', 'service_media', 'expense', 'reminder', 'inspection_template', 'inspection_item', 'inspection',
   'inspection_result', 'task', 'document', 'media',
 ];
 

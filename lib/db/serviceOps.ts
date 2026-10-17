@@ -1,13 +1,17 @@
 import { enqueue } from './client';
 import {
   expenses as expenseRepo,
+  media as mediaRepo,
+  milestones as milestoneRepo,
   parts as partRepo,
   reminders as reminderRepo,
+  serviceMedia as serviceMediaRepo,
   serviceRecordItems as itemRepo,
   serviceRecords as serviceRecordRepo,
   tasks as taskRepo,
 } from './repos';
-import type { ExpenseCategory, ServiceKind } from './types';
+import type { DoneBy, ExpenseCategory, ServiceCategory, ServiceKind, ServiceMediaRole, Task } from './types';
+import { isPending } from '../domain/events';
 import { EMPTY_OIL, normalizeOil, type OilFields } from '../domain/oil';
 import { completeLegal, describeReset, resetForServiceItems } from '../domain/reminders';
 import { id as newId } from '../format';
@@ -39,6 +43,17 @@ export type ServiceDraft = {
   warrantyUntilKm: number | null;
   sourceTaskId?: string | null;
   sourceInspectionId?: string | null;
+  /** v12: who did it. Omitted (a record made from a task or an old link), the stored value stays. */
+  doneBy?: DoneBy;
+  /** v12: the system a repair touched. Omitted, the stored value stays. */
+  system?: ServiceCategory | null;
+  /**
+   * v12: the photos with their role. When given, the links are replaced wholesale (a slot that was emptied loses its
+   * link); omitted, they are left as they are.
+   */
+  media?: { mediaId: string; role: ServiceMediaRole; sort?: number }[];
+  /** v12 (X7): the Pendiente this repair resolves — an event with a pending text, or an open task. */
+  resolve?: { kind: 'event' | 'task'; id: string } | null;
   /** Catalog items done in this visit — these drive the reminder resets. */
   serviceTypeIds: string[];
   /**
@@ -55,7 +70,14 @@ export type SaveResult = {
   id: string;
   /** Human-readable lines for the summary sheet, e.g. "Aceite de motor → 57,000 km". */
   resets: string[];
+  /** What closing a Pendiente changed, to offer "Deshacer" (v12, X7). */
+  resolved?: ResolvedPending;
 };
+
+/** The state a resolved Pendiente had before, enough to put it back. */
+export type ResolvedPending =
+  | { kind: 'event'; id: string; title: string; previous: { resolvedAt: string | null; linkedServiceId: string | null } }
+  | { kind: 'task'; id: string; title: string; previous: { status: Task['status']; doneRecordId: string | null } };
 
 /**
  * Saves a service record and everything it implies, in one transaction.
@@ -68,6 +90,7 @@ export type SaveResult = {
 export async function saveServiceRecord(draft: ServiceDraft): Promise<SaveResult> {
   const recordId = draft.id ?? newId();
 
+  let resolved: ResolvedPending | undefined;
   const resets = await enqueue(async (db) => {
     await serviceRecordRepo.upsert(
       {
@@ -83,6 +106,8 @@ export async function saveServiceRecord(draft: ServiceDraft): Promise<SaveResult
         totalDop: draft.totalDop,
         shop: draft.shop,
         ...(draft.contactId !== undefined ? { contactId: draft.contactId } : {}),
+        ...(draft.doneBy !== undefined ? { doneBy: draft.doneBy } : {}),
+        ...(draft.system !== undefined ? { system: draft.system } : {}),
         warrantyUntilDate: draft.warrantyUntilDate,
         warrantyUntilKm: draft.warrantyUntilKm,
         sourceTaskId: draft.sourceTaskId ?? null,
@@ -128,6 +153,34 @@ export async function saveServiceRecord(draft: ServiceDraft): Promise<SaveResult
       );
     }
 
+    if (draft.media) {
+      // Links are replaced wholesale, like parts: the form shows every slot, so what it sends is the truth.
+      for (const existing of await serviceMediaRepo.listWhere({ serviceRecordId: recordId })) {
+        await serviceMediaRepo.softDelete(existing.id, db);
+      }
+      for (const [i, m] of draft.media.entries()) {
+        await serviceMediaRepo.upsert(
+          { id: `sm_${m.mediaId}`, serviceRecordId: recordId, mediaId: m.mediaId, role: m.role, sort: m.sort ?? i, deletedAt: null },
+          db,
+        );
+      }
+    }
+
+    // The Pendiente this repair closes (X7): remember what it was, so "Deshacer" can put it back.
+    if (draft.resolve?.kind === 'event') {
+      const event = await milestoneRepo.getById(draft.resolve.id);
+      if (event) {
+        resolved = { kind: 'event', id: event.id, title: event.pending || event.title, previous: { resolvedAt: event.resolvedAt, linkedServiceId: event.linkedServiceId } };
+        await milestoneRepo.upsert({ id: event.id, resolvedAt: new Date().toISOString(), linkedServiceId: recordId }, db);
+      }
+    } else if (draft.resolve?.kind === 'task' && draft.resolve.id !== draft.sourceTaskId) {
+      const task = await taskRepo.getById(draft.resolve.id);
+      if (task) {
+        resolved = { kind: 'task', id: task.id, title: task.title, previous: { status: task.status, doneRecordId: task.doneRecordId } };
+        await taskRepo.upsert({ id: task.id, status: 'hecha', doneRecordId: recordId }, db);
+      }
+    }
+
     // A task that became a record points back at it, so the task detail can say
     // what closed it and the record is not orphaned from the note that asked
     // for it.
@@ -150,7 +203,29 @@ export async function saveServiceRecord(draft: ServiceDraft): Promise<SaveResult
     return patches.map(({ reminder, patch }) => describeReset(reminder, patch));
   });
 
-  return { id: recordId, resets };
+  return { id: recordId, resets, ...(resolved ? { resolved } : {}) };
+}
+
+/** "Pendiente resuelto · Deshacer": puts the event or task back as it was (the record itself stays). */
+export async function undoResolvedPending(resolved: ResolvedPending): Promise<void> {
+  await enqueue(async (db) => {
+    if (resolved.kind === 'event') {
+      await milestoneRepo.upsert({ id: resolved.id, resolvedAt: resolved.previous.resolvedAt, linkedServiceId: resolved.previous.linkedServiceId }, db);
+    } else {
+      await taskRepo.upsert({ id: resolved.id, status: resolved.previous.status, doneRecordId: resolved.previous.doneRecordId }, db);
+    }
+  });
+}
+
+export type PendingChoice = { key: string; kind: 'event' | 'task'; id: string; title: string };
+
+/** What a repair of this vehicle can close: events with a pending text, then open tasks. */
+export async function listOpenPendings(vehicleId: string): Promise<PendingChoice[]> {
+  const [events, tasks] = await Promise.all([milestoneRepo.listWhere({ vehicleId }), taskRepo.listWhere({ vehicleId })]);
+  return [
+    ...events.filter(isPending).map((e): PendingChoice => ({ key: `event:${e.id}`, kind: 'event', id: e.id, title: e.pending.trim() })),
+    ...tasks.filter((t) => t.status !== 'hecha').map((t): PendingChoice => ({ key: `task:${t.id}`, kind: 'task', id: t.id, title: t.title })),
+  ];
 }
 
 export type ExpenseDraft = {
@@ -224,4 +299,19 @@ export async function shopSuggestions(vehicleId: string): Promise<string[]> {
     if (shop && !seen.includes(shop)) seen.push(shop);
   }
   return seen.slice(0, 6);
+}
+
+/**
+ * A service's photos with their role: the v12 links in order, then any photo that only has the owner link (an older
+ * phone that synced, a maintenance form's single photo) as "other". Deleted media never appear.
+ */
+export async function loadServiceMedia(recordId: string): Promise<{ mediaId: string; role: ServiceMediaRole }[]> {
+  const [links, owned] = await Promise.all([
+    serviceMediaRepo.listWhere({ serviceRecordId: recordId }),
+    mediaRepo.listWhere({ ownerTable: 'service_record', ownerId: recordId }),
+  ]);
+  const liveOwned = new Set(owned.filter((m) => m.kind === 'photo').map((m) => m.id));
+  const linked = links.filter((l) => liveOwned.has(l.mediaId)).sort((a, b) => a.sort - b.sort).map((l) => ({ mediaId: l.mediaId, role: l.role }));
+  const seen = new Set(linked.map((l) => l.mediaId));
+  return [...linked, ...[...liveOwned].filter((id) => !seen.has(id)).map((mediaId) => ({ mediaId, role: 'other' as const }))];
 }

@@ -24,7 +24,10 @@ export const CHANGELOG: ChangelogEntry[] = [
           "**Diagnóstico OBD a la vista**: se llama así, tiene su atajo en cada carro y un testigo nuevo en el tablero (CHECK) que se prende en ámbar cuando guardaste un código sin resolver. Si es la primera vez, te explica para qué sirve.",
           "**Atajos en el carro**: + Reparación, OBD, + Echada, + Evento, + Mod y + Foto sobre las pestañas. Las pestañas muestran con un degradado que hay más, la activa se centra y un botón abre todas las secciones.",
           "**Testigos que abren algo**: cada luz del tablero lleva a lo que se puede hacer (registrar el cambio de aceite, una reparación…), y si la dejas presionada te dice qué hace.",
-          "**Descubre**: una sugerencia a la vez en Inicio con una función que todavía no has usado."
+          "**Descubre**: una sugerencia a la vez en Inicio con una función que todavía no has usado.",
+          "**Registrar reparaciones**: ahora hay una pantalla propia para lo que le arreglaste al carro, tú mismo o en un taller — qué falló, el sistema, quién la hizo, piezas y mano de obra, la garantía con un toque (30 días, 90 días, 6 meses, 1 año), y fotos de antes, después y la factura. Está en Inicio, en los atajos del carro, en Eventos y en Herramientas.",
+          "**Pendientes que se cierran solos**: en la tarjeta de un pendiente, \"Resolver con una reparación\"; al guardar queda resuelto y puedes deshacerlo 10 segundos.",
+          "**Reparaciones**: la lista del carro con lo gastado, filtros por sistema, taller y año, y el resumen por taller. Te avisamos una semana antes de que venza una garantía. Las reparaciones salen en el libro del carro y en un CSV propio."
         ]
       }
     ]

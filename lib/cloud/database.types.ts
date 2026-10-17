@@ -1835,6 +1835,48 @@ export type Database = {
         }
         Relationships: []
       }
+      service_media: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          media_id: string
+          role: string
+          server_updated_at: string
+          service_record_id: string
+          sort: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string | null
+          id: string
+          media_id: string
+          role?: string
+          server_updated_at?: string
+          service_record_id: string
+          sort?: number
+          updated_at: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          media_id?: string
+          role?: string
+          server_updated_at?: string
+          service_record_id?: string
+          sort?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       service_record: {
         Row: {
           contact_id: string | null
@@ -1843,11 +1885,13 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string
+          done_by: string
           id: string
           kind: string
           occurred_at: string
           odometer_km: number | null
           server_updated_at: string
+          system: string | null
           shop: string
           source_inspection_id: string | null
           source_task_id: string | null
@@ -1867,11 +1911,13 @@ export type Database = {
           created_at: string
           deleted_at?: string | null
           description?: string
+          done_by?: string
           id: string
           kind: string
           occurred_at: string
           odometer_km?: number | null
           server_updated_at?: string
+          system?: string | null
           shop?: string
           source_inspection_id?: string | null
           source_task_id?: string | null
@@ -1891,11 +1937,13 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string
+          done_by?: string
           id?: string
           kind?: string
           occurred_at?: string
           odometer_km?: number | null
           server_updated_at?: string
+          system?: string | null
           shop?: string
           source_inspection_id?: string | null
           source_task_id?: string | null

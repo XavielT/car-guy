@@ -78,6 +78,19 @@ export const FEATURES: FeatureDef[] = [
     },
   },
   {
+    id: 'repairs',
+    icon: 'build',
+    href: '/vehiculo/[id]/reparaciones',
+    section: 'vehiculo',
+    needsVehicle: true,
+    covers: [],
+    enabled: true,
+    keywords: {
+      es: ['reparaciones', 'historial de reparaciones', 'talleres', 'garantia', 'cuanto he gastado en taller', 'arreglos'],
+      en: ['repairs', 'repair history', 'shops', 'warranty', 'how much spent on repairs', 'fixes'],
+    },
+  },
+  {
     id: 'service',
     icon: 'construct-outline',
     href: '/servicio/nuevo?kind=mantenimiento',

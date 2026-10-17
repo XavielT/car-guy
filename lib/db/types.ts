@@ -171,6 +171,10 @@ export type ServiceType = Syncable & {
 
 export type ServiceKind = 'mantenimiento' | 'reparacion' | 'mejora';
 
+/** v12: who did the job. */
+export type DoneBy = 'self' | 'shop' | 'friend' | 'other';
+export type ServiceMediaRole = 'before' | 'after' | 'invoice' | 'other';
+
 export type ServiceRecord = Syncable & {
   vehicleId: string;
   kind: ServiceKind;
@@ -188,6 +192,18 @@ export type ServiceRecord = Syncable & {
   sourceTaskId: string | null;
   /** v2: the taller/contact that did the job. */
   contactId: string | null;
+  /** v12: yo mismo / un taller / un amigo o mecánico / otro. */
+  doneBy: DoneBy;
+  /** v12: the system a repair touched (a ServiceCategory), null when not said. */
+  system: ServiceCategory | null;
+};
+
+/** v12: a photo of a service with its role (the pattern of ModMedia). */
+export type ServiceMedia = Syncable & {
+  serviceRecordId: string;
+  mediaId: string;
+  role: ServiceMediaRole;
+  sort: number;
 };
 
 export type ServiceRecordItem = Syncable & {

@@ -62,7 +62,12 @@ export type PlanInput = {
   }[];
   templates: { id: string; name: string; cadence: Cadence; enabled: boolean; baseId?: string }[];
   marbeteNudges: { date: string; message: string }[];
+  /** v12 (N7): repairs with a warranty still running — one heads-up a week before it ends. Optional: older callers omit it. */
+  warranties?: { id: string; title: string; until: string; vehicleName?: string }[];
 };
+
+/** How far ahead of its end a warranty says so. */
+export const WARRANTY_NOTICE_DAYS = 7;
 
 /** A day-only ISO (stored as local noon) moved to the user's hour on that day. */
 export function atHour(dayIso: string, hour: number, minute: number): string {
@@ -150,6 +155,18 @@ export function planNotifications(input: PlanInput, now: string = input.today): 
         route: `/recordatorio/${reminder.id}`,
       });
     }
+  }
+
+  for (const w of input.warranties ?? []) {
+    const suffix = w.vehicleName ? ` · ${w.vehicleName}` : '';
+    push({
+      kind: 'date',
+      id: `warranty:${w.id}:soon`,
+      title: t.repair.warrantyReminder.title + suffix,
+      body: t.repair.warrantyReminder.body(w.title, WARRANTY_NOTICE_DAYS),
+      date: atHour(addDays(w.until, -WARRANTY_NOTICE_DAYS), input.hour, input.minute),
+      route: `/servicio/${w.id}`,
+    });
   }
 
   for (const nudge of input.marbeteNudges) {

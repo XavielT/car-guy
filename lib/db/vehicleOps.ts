@@ -223,7 +223,8 @@ function vehicleScopes(): [string, string][] {
         OR (owner_table = 'inspection_result' AND owner_id IN
               (SELECT r.id FROM inspection_result r JOIN inspection i ON i.id = r.inspection_id WHERE i.vehicle_id = ?3))
         OR id IN (SELECT media_id FROM album_item WHERE vehicle_id = ?3)
-        OR id IN (SELECT mm.media_id FROM mod_media mm JOIN mod ON mod.id = mm.mod_id WHERE mod.vehicle_id = ?3)`,
+        OR id IN (SELECT mm.media_id FROM mod_media mm JOIN mod ON mod.id = mm.mod_id WHERE mod.vehicle_id = ?3)
+        OR id IN (SELECT sm.media_id FROM service_media sm JOIN service_record sr ON sr.id = sm.service_record_id WHERE sr.vehicle_id = ?3)`,
     ],
     // Schema v2 children reached through their parent (IMP 28092026).
     ['mod_media', 'mod_id IN (SELECT id FROM mod WHERE vehicle_id = ?3)'],
@@ -233,6 +234,7 @@ function vehicleScopes(): [string, string][] {
     ['track_session', 'event_id IN (SELECT id FROM track_event WHERE vehicle_id = ?3)'],
     ['service_record_item', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)'],
     ['part', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)'],
+    ['service_media', 'service_record_id IN (SELECT id FROM service_record WHERE vehicle_id = ?3)'],
     ['inspection_result', 'inspection_id IN (SELECT id FROM inspection WHERE vehicle_id = ?3)'],
     ['inspection_item', 'template_id IN (SELECT id FROM inspection_template WHERE vehicle_id = ?3)'],
     ...[

@@ -48,6 +48,11 @@ export function OwnershipCard({ cost }: { cost: OwnershipCost }) {
         {COST_CATEGORIES.map((key) => (
           <Row key={key} label={t.costs.categories[key]} value={money(cost.byCategory[key])} muted={cost.byCategory[key] === 0} />
         ))}
+        {cost.repairs > 0 ? (
+          <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
+            {t.costs.ofRepairs(money(cost.repairs))}
+          </T>
+        ) : null}
         {cost.modsSold > 0 ? (
           <T face="body" style={[styles.hint, { color: theme.text.muted }]}>
             {t.costs.modsSold(money(cost.modsSold))}

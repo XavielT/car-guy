@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ObdLink } from '@/components/features/ObdLink';
 import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
-import { EmptyState, PrimaryButton } from '@/components/ui';
+import { EmptyState, GhostButton, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { milestones as milestoneRepo } from '@/lib/db/repos';
 import type { Milestone } from '@/lib/db/types';
@@ -49,8 +49,8 @@ export function PendingEventsBanner({ vehicleId, version }: { vehicleId: string;
   return (
     <View style={{ gap: 6, marginBottom: space.sm }}>
       {pending.map((m) => (
+        <View key={m.id}>
         <Pressable
-          key={m.id}
           onPress={() => router.push({ pathname: '/evento/[id]', params: { id: m.id } })}
           accessibilityRole="button"
           style={({ pressed }) => [styles.pending, { borderColor: theme.status.proximo, backgroundColor: `${theme.status.proximo}1F`, opacity: pressed ? 0.85 : 1 }]}>
@@ -60,6 +60,15 @@ export function PendingEventsBanner({ vehicleId, version }: { vehicleId: string;
           </T>
           <Ionicons name="chevron-forward" size={16} color={theme.text.muted} />
         </Pressable>
+        <Pressable
+          onPress={() => router.push({ pathname: '/servicio/nuevo', params: { kind: 'reparacion', title: m.pending.trim(), resolve: `event:${m.id}`, vehicleId } })}
+          accessibilityRole="button"
+          style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: space.md }}>
+          <T face="semibold" style={{ color: theme.accent, fontSize: 12 }}>
+            {t.repair.resolveWith}
+          </T>
+        </Pressable>
+        </View>
       ))}
     </View>
   );
@@ -76,6 +85,7 @@ export function EventsTab({ vehicleId, version, readOnly }: { vehicleId: string;
   const rows = useMilestones(vehicleId, version);
   const markerColor = useMarkerColor();
   const add = () => router.push({ pathname: '/evento/nuevo', params: { vehicleId } });
+  const addRepair = () => router.push({ pathname: '/servicio/nuevo', params: { kind: 'reparacion', vehicleId } });
   if (!rows) return null;
   const items = eventTimeline(rows, vehicleId);
   const tip = readOnly ? null : <TipCard id="events" />;
@@ -85,6 +95,7 @@ export function EventsTab({ vehicleId, version, readOnly }: { vehicleId: string;
         {tip}
         <EmptyState icon="flag-outline" message={t.events.tabEmpty} actionLabel={readOnly ? undefined : t.events.add} onAction={readOnly ? undefined : add} />
         <ObdLink vehicleId={vehicleId} />
+        {readOnly ? null : <GhostButton label={t.features.short.repair} onPress={addRepair} />}
       </View>
     );
   }
@@ -128,6 +139,7 @@ export function EventsTab({ vehicleId, version, readOnly }: { vehicleId: string;
         );
       })}
       {readOnly ? null : <PrimaryButton label={t.events.add} onPress={add} />}
+      {readOnly ? null : <GhostButton label={t.features.short.repair} onPress={addRepair} />}
     </View>
   );
 }

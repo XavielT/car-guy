@@ -396,3 +396,26 @@ describe('firstAttentionDay', () => {
     expect(firstAttentionDay(reminder({ dueDate: null }), ctx)).toBeNull();
   });
 });
+
+describe('warranty reminders (IMP 16102026 Phase 5)', () => {
+  it('one heads-up a week before the warranty ends, at the chosen hour, opening the repair', () => {
+    const plan = planNotifications(base({ warranties: [{ id: 'r1', title: 'Frenos', until: iso(2026, 11, 20) }], hour: 9, minute: 0 }));
+    const w = plan.find((p) => p.id === 'warranty:r1:soon');
+    expect(w?.kind).toBe('date');
+    if (w?.kind === 'date') {
+      expect(w.route).toBe('/servicio/r1');
+      expect(new Date(w.date).getDate()).toBe(13);
+      expect(new Date(w.date).getHours()).toBe(9);
+      expect(w.body).toContain('Frenos');
+    }
+  });
+  it('a warranty whose heads-up moment already passed schedules nothing (the badge in the app covers it)', () => {
+    const plan = planNotifications(base({ warranties: [{ id: 'r2', title: 'Frenos', until: iso(2026, 9, 22) }] }));
+    expect(plan.some((p) => p.id.startsWith('warranty:'))).toBe(false);
+  });
+  it('names the car when there are several', () => {
+    const plan = planNotifications(base({ warranties: [{ id: 'r3', title: 'Alternador', until: iso(2027, 1, 20), vehicleName: 'DS3' }] }));
+    const w = plan.find((p) => p.id === 'warranty:r3:soon');
+    expect(w?.title).toContain('DS3');
+  });
+});

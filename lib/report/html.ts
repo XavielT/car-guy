@@ -278,6 +278,7 @@ function costsBlock(cost: OwnershipCost): string {
     ${cost.purchasePrice != null ? row(t.costs.purchase, money(cost.purchasePrice)) : `<tr><td colspan="2" class="muted">${escape(t.costs.noPurchase)}</td></tr>`}
     ${cost.soldPrice != null ? row(t.costs.sold, `− ${money(cost.soldPrice)}`) : ''}
     ${COST_CATEGORIES.map((key) => row(t.costs.categories[key], money(cost.byCategory[key]))).join('\n    ')}
+    ${cost.repairs > 0 ? `<tr><td colspan="2" class="muted">${escape(t.costs.ofRepairs(money(cost.repairs)))}</td></tr>` : ''}
     ${cost.modsSold > 0 ? `<tr><td colspan="2" class="muted">${escape(t.costs.modsSold(money(cost.modsSold)))}</td></tr>` : ''}
     ${row(t.costs.total, money(cost.total), true)}
     ${row(t.costs.perKm, cost.perKm != null ? money(cost.perKm) : '—')}

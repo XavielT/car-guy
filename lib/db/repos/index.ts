@@ -19,6 +19,7 @@ import type {
   Mod,
   ModCategory,
   ModMedia,
+  ServiceMedia,
   SetupSheet,
   SpecSnapshot,
   Tire,
@@ -95,6 +96,7 @@ export const milestones = makeRepo<Milestone>({ table: 'milestone' });
 export const modCategories = makeRepo<ModCategory>({ table: 'mod_category', booleans: ['isSeeded'] });
 export const mods = makeRepo<Mod>({ table: 'mod', booleans: ['affectsSpecs'] });
 export const modMedia = makeRepo<ModMedia>({ table: 'mod_media' });
+export const serviceMedia = makeRepo<ServiceMedia>({ table: 'service_media' });
 export const specSnapshots = makeRepo<SpecSnapshot>({ table: 'spec_snapshot' });
 export const torqueSpecs = makeRepo<TorqueSpec>({ table: 'torque_spec' });
 export const wishlist = makeRepo<WishlistItem>({ table: 'wishlist_item' });
@@ -510,6 +512,7 @@ export const ALL_TABLES = [
   'mod_category',
   'mod',
   'mod_media',
+  'service_media',
   'vehicle_specsheet',
   'spec_snapshot',
   'torque_spec',

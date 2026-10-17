@@ -180,8 +180,8 @@ export async function localRawDossier(
   }
 
   if (flags.maintenance) {
-    const rows = await db.getAllAsync<{ kind: string; occurred_at: string; title: string; odometer_km: number | null; total_dop: number }>(
-      `SELECT kind, occurred_at, title, odometer_km, total_dop FROM service_record
+    const rows = await db.getAllAsync<{ kind: string; occurred_at: string; title: string; odometer_km: number | null; total_dop: number; shop: string; done_by: string; warranty_until_date: string | null }>(
+      `SELECT kind, occurred_at, title, odometer_km, total_dop, shop, done_by, warranty_until_date FROM service_record
         WHERE vehicle_id = ? AND deleted_at IS NULL AND kind IN ('mantenimiento', 'reparacion', 'mejora') AND ${inPeriod('occurred_at')}
         ORDER BY occurred_at DESC`,
       [vehicleId, ...period],

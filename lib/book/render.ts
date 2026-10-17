@@ -300,6 +300,14 @@ export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint
     w.row([L.date, L.work, m.total ? L.cost : ''], [0.2, 0.6, 0.2], { header: true, rightLast: true });
     for (const r of m.recent) w.row([r.date, r.title, r.cost ?? ''], [0.2, 0.6, 0.2], { rightLast: true });
   }
+  if (d.repairs?.count) {
+    // IMP 16102026 N7: the repairs with who did them, what they cost and the warranty — in the book only.
+    const r = d.repairs;
+    w.heading(t.repair.list.title);
+    w.para([t.repair.list.count(r.count), r.total ? t.repair.list.spent + ': ' + r.total : null].filter(Boolean).join(' · '), { size: 10, color: INK2 });
+    w.row([L.date, L.work, t.repair.doneByLabel, r.total ? L.cost : '', t.repair.detail.warranty], [0.15, 0.33, 0.24, 0.13, 0.15], { header: true });
+    for (const x of r.recent) w.row([x.date, x.title, x.who, x.cost ?? '', x.warranty ?? ''], [0.15, 0.33, 0.24, 0.13, 0.15]);
+  }
   if (d.costs) {
     // Note 8, only with "costos" on.
     const c = d.costs;

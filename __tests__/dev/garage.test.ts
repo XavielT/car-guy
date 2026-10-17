@@ -61,8 +61,8 @@ describe('seedRealGarage', () => {
       all(`SELECT id FROM ${table} WHERE vehicle_id = ?`, vehicleId).length;
     expect(count('fuel_log', GARAGE_IDS.ae85)).toBe(8);
     expect(count('fuel_log', GARAGE_IDS.ds3)).toBe(12);
-    expect(count('service_record', GARAGE_IDS.ds3)).toBe(3);
-    expect(count('service_record', GARAGE_IDS.ae85)).toBe(1);
+    expect(count('service_record', GARAGE_IDS.ds3)).toBe(4);
+    expect(count('service_record', GARAGE_IDS.ae85)).toBe(2);
     expect(count('task', GARAGE_IDS.c3)).toBe(4);
     expect(count('fuel_log', GARAGE_IDS.c3) + count('fuel_log', GARAGE_IDS.jetta)).toBe(0);
 

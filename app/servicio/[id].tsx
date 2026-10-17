@@ -4,6 +4,8 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MissingRecord } from '@/components/MissingRecord';
+import { RepairDetail } from '@/components/service/RepairDetail';
+import { SelectField } from '@/components/pickers';
 import { RecordSkeleton } from '@/components/skeletons/RecordSkeleton';
 import { T } from '@/components/T';
 import { GhostButton, Hanko, PrimaryButton, Surface } from '@/components/ui';
@@ -148,7 +150,9 @@ export default function ServicioDetalleScreen() {
           </Pressable>
         ) : null}
 
-        {photoUri ? <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" /> : null}
+        {photoUri && record.kind !== 'reparacion' ? <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" /> : null}
+
+        {record.kind === 'reparacion' ? <RepairDetail record={record} version={data} /> : null}
 
         <Surface style={{ marginBottom: space.md }}>
           <Row label={t.service.total} value={money(record.totalDop)} big />
@@ -204,7 +208,7 @@ export default function ServicioDetalleScreen() {
           </>
         ) : null}
 
-        {record.warrantyUntilDate || record.warrantyUntilKm != null ? (
+        {record.kind !== 'reparacion' && (record.warrantyUntilDate || record.warrantyUntilKm != null) ? (
           <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: space.md }}>
             {t.service.warranty}:{' '}
             <T face="mono" style={{ fontSize: 12 }}>
@@ -214,36 +218,19 @@ export default function ServicioDetalleScreen() {
           </T>
         ) : null}
 
-        <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
-          {t.service.reclassify}
-        </T>
-        <View style={styles.row}>
-          {KINDS.map((k) => {
-            const on = record.kind === k;
-            return (
-              <Pressable
-                key={k}
-                onPress={() => {
-                  if (on) return;
-                  void (async () => {
-                    // Same id, same place in the history — only the label moves.
-                    await serviceRecordRepo.upsert({ id: record.id, kind: k });
-                    await refresh();
-                  })();
-                }}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                style={[
-                  styles.kindChip,
-                  { borderColor: on ? inkOf(k) : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
-                ]}>
-                <T face="title" style={[styles.chipLabel, { color: on ? theme.text.primary : theme.text.secondary }]}>
-                  {t.service.kinds[k]}
-                </T>
-              </Pressable>
-            );
-          })}
-        </View>
+        <SelectField<ServiceKind>
+          label={t.service.reclassify}
+          value={record.kind}
+          options={KINDS.map((k) => ({ value: k, label: t.service.kinds[k], swatch: KIND_COLOR[k] }))}
+          onChange={(k) => {
+            if (k === record.kind) return;
+            void (async () => {
+              // Same id, same place in the history — only the label moves.
+              await serviceRecordRepo.upsert({ id: record.id, kind: k });
+              await refresh();
+            })();
+          }}
+        />
 
         <View style={{ height: space.lg }} />
         <PrimaryButton

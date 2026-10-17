@@ -7,6 +7,7 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { OilBlock } from '@/components/service/OilBlock';
+import { DoneBySelect, linksToSlots, NO_PHOTOS, PendingPicker, RepairPhotos, slotsToLinks, SystemSelect, WarrantyPicker, type PhotoSlots } from '@/components/service/RepairPieces';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, radius, space } from '@/constants/theme';
@@ -21,10 +22,13 @@ import {
   specsheets as specsheetRepo,
 } from '@/lib/db/repos';
 import { lastOilFor } from '@/lib/db/oilQueries';
-import { saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
+import { loadServiceMedia, saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
+import { offerUndo } from '@/lib/db/resolvedPendingStore';
+import { linkDtcRepair } from '@/lib/db/diyQueries';
+import { askForLabor, askForShop } from '@/lib/domain/repairs';
 import { saveMilestone } from '@/lib/db/albumQueries';
 import { recordError } from '@/lib/diagnostics';
-import type { ServiceKind, ServiceType, VehicleSpecsheet } from '@/lib/db/types';
+import type { DoneBy, ServiceCategory, ServiceKind, ServiceType, VehicleSpecsheet } from '@/lib/db/types';
 import { suggestionsFor } from '@/lib/domain/carMemory';
 import { todayIso } from '@/lib/domain/dates';
 import { EMPTY_OIL, isOilItem, normalizeOil, type OilFields } from '@/lib/domain/oil';
@@ -70,10 +74,19 @@ export default function NuevoServicioScreen() {
     serviceTypeId?: string;
     date?: string;
     km?: string;
+    /** `event:<id>` or `task:<id>`: the Pendiente this repair resolves (X7). */
+    resolve?: string;
+    vehicleId?: string;
+    /** An OBD event this repair answers: saving links it (diyQueries.linkDtcRepair). */
+    dtcEvent?: string;
   }>();
   const editingId = params.id ?? null;
   const { theme } = useTheme();
-  const { activeVehicle, refresh } = useStore();
+  const { activeVehicle, refresh, setActiveVehicle } = useStore();
+  // A link from a vehicle's shortcut carries its id: the form is for that car.
+  useEffect(() => {
+    if (params.vehicleId && activeVehicle?.id !== params.vehicleId) setActiveVehicle(params.vehicleId);
+  }, [params.vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The alias: /servicio/nuevo?kind=mejora (the Historial FAB, old links) opens the mod form.
   useEffect(() => {
@@ -105,6 +118,11 @@ export default function NuevoServicioScreen() {
   const [showParts, setShowParts] = useState(false);
   const [parts, setParts] = useState<PartDraft[]>([]);
   const [photoMediaId, setPhotoMediaId] = useState<string | null>(null);
+  // v12 (N7): who did it, which system, the photos with a role, and the Pendiente it closes.
+  const [doneBy, setDoneBy] = useState<DoneBy>('shop');
+  const [system, setSystem] = useState<ServiceCategory | null>(null);
+  const [photos, setPhotos] = useState<PhotoSlots>(NO_PHOTOS);
+  const [resolveKey, setResolveKey] = useState<string | null>(params.resolve ?? null);
   const [sourceTaskId, setSourceTaskId] = useState<string | null>(params.taskId ?? null);
   const [sourceInspectionId, setSourceInspectionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -200,6 +218,9 @@ export default function NuevoServicioScreen() {
         );
       }
       setPhotoMediaId(photos[0]?.id ?? null);
+      setDoneBy(row.doneBy ?? 'shop');
+      setSystem(row.system ?? null);
+      setPhotos(linksToSlots(await loadServiceMedia(editingId)));
       // Where the record came from survives an edit — it is history, not input.
       setSourceTaskId(row.sourceTaskId);
       setSourceInspectionId(row.sourceInspectionId);
@@ -232,6 +253,7 @@ export default function NuevoServicioScreen() {
   }, [vehicleId, oilItemKey, editingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!activeVehicle) return null;
+  const isRepair = kind === 'reparacion';
   const oilFuel = activeVehicle.defaultFuelType?.startsWith('gasoil') ? 'diesel' : 'gasolina';
 
   // The title writes itself from the items until the user takes it over; a
@@ -260,8 +282,11 @@ export default function NuevoServicioScreen() {
   const visibleBody = visible.filter((ty) => ty.category === 'carroceria');
   const paintPicked = selected.some((id) => PAINT_TYPES.includes(id));
 
+  const resolveParsed = resolveKey ? ({ kind: resolveKey.startsWith('task:') ? 'task' : 'event', id: resolveKey.slice(resolveKey.indexOf(':') + 1) } as const) : null;
+
   function save() {
     if (!effectiveTitle.trim()) return setError(t.service.titleRequired);
+    const own = isRepair && !askForShop(doneBy);
     const badNumber = (
       [
         [costParts, t.service.costParts],
@@ -284,10 +309,11 @@ export default function NuevoServicioScreen() {
         title: effectiveTitle.trim(),
         description: description.trim(),
         costPartsDop: partsCost,
-        costLaborDop: laborCost,
+        costLaborDop: isRepair && !askForLabor(doneBy) ? 0 : laborCost,
         totalDop: total,
-        shop: shop.trim(),
-        contactId: FEATURE_DIY ? contactId : undefined,
+        shop: own ? '' : shop.trim(),
+        contactId: own ? null : FEATURE_DIY ? contactId : undefined,
+        ...(isRepair ? { doneBy, system, media: slotsToLinks(photos), resolve: resolveParsed } : {}),
         warrantyUntilDate: warrantyDate ? isoFromDateInput(warrantyDate) : null,
         warrantyUntilKm: warrantyKm.trim() ? parseDecimal(warrantyKm) : null,
         sourceTaskId,
@@ -297,7 +323,15 @@ export default function NuevoServicioScreen() {
         oil: Object.fromEntries(oilItems.map((t) => [t.id, oil[t.id] ?? EMPTY_OIL])),
         parts,
       });
+      if (params.dtcEvent) await linkDtcRepair(params.dtcEvent, result.id).catch((e) => recordError('dtc-link', e));
       await refresh();
+
+      if (isRepair) {
+        // A repair goes to its own detail; what it closed can be undone for 10 s from there (X7).
+        if (result.resolved) offerUndo(result.resolved, result.id);
+        router.replace({ pathname: '/servicio/[id]', params: { id: result.id } });
+        return;
+      }
 
       const message = result.resets.length
         ? `${t.service.savedWithResets}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`
@@ -331,46 +365,8 @@ export default function NuevoServicioScreen() {
     })();
   }
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
-        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
-          {editingId ? t.service.editTitle : t.service.newTitle}
-        </T>
-
-        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
-          {t.service.kind}
-        </T>
-        <View style={styles.row}>
-          {KINDS.map((k) => {
-            const on = kind === k;
-            return (
-              <Pressable
-                key={k}
-                onPress={() => {
-                  // "Mejora" is the build log now (IMP 28092026 Phase 4): a new one is a mod.
-                  // Editing a v2.0 mejora record stays here.
-                  if (k === 'mejora' && FEATURE_BUILD && !editingId) {
-                    router.replace({ pathname: '/mod/nuevo', params: { vehicleId: activeVehicle?.id } });
-                    return;
-                  }
-                  setKind(k);
-                }}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: on }}
-                style={[
-                  styles.kindChip,
-                  { borderColor: on ? KIND_COLOR[k] : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
-                ]}>
-                <View style={[styles.dot, { backgroundColor: KIND_COLOR[k] }]} />
-                <T face="title" style={[styles.chipLabel, { color: on ? theme.text.primary : theme.text.secondary }]}>
-                  {t.service.kinds[k]}
-                </T>
-              </Pressable>
-            );
-          })}
-        </View>
-
+  const dateOdo = (
+    <>
         <DateField label={t.service.date} value={date} onChange={setDate} noFuture />
         <Field
           label={t.service.odometer}
@@ -385,6 +381,10 @@ export default function NuevoServicioScreen() {
           </T>
         ) : null}
 
+    </>
+  );
+  const items = (
+    <>
         {kind === 'mantenimiento' ? (
           <>
             <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
@@ -447,6 +447,10 @@ export default function NuevoServicioScreen() {
           </>
         ) : null}
 
+    </>
+  );
+  const titleDesc = (
+    <>
         <Field
           label={t.service.title}
           placeholder={t.service.titlePlaceholder}
@@ -458,6 +462,10 @@ export default function NuevoServicioScreen() {
         />
         <Field label={t.service.description} value={description} onChangeText={setDescription} multiline />
 
+    </>
+  );
+  const costs = (
+    <>
         <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
           {t.service.costs}
         </T>
@@ -477,6 +485,10 @@ export default function NuevoServicioScreen() {
           hint={t.service.totalAuto}
         />
 
+    </>
+  );
+  const shopBlock = (
+    <>
         {FEATURE_DIY ? (
           // The shop is a contact now (call / WhatsApp from it), with free text for a one-off.
           <ContactPicker
@@ -507,6 +519,10 @@ export default function NuevoServicioScreen() {
           </View>
         ) : null}
 
+    </>
+  );
+  const warrantyBlock = (
+    <>
         <Pressable
           onPress={() => setShowWarranty((v) => !v)}
           accessibilityRole="button"
@@ -523,6 +539,10 @@ export default function NuevoServicioScreen() {
           </>
         ) : null}
 
+    </>
+  );
+  const partsBlock = (
+    <>
         <Pressable
           onPress={() => setShowParts((v) => !v)}
           accessibilityRole="button"
@@ -557,6 +577,10 @@ export default function NuevoServicioScreen() {
           </Surface>
         ) : null}
 
+    </>
+  );
+  const photosBlock = (
+    <>
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {t.service.photos}
         </T>
@@ -567,6 +591,129 @@ export default function NuevoServicioScreen() {
           vehicleId={activeVehicle.id}
           onChange={setPhotoMediaId}
         />
+
+    </>
+  );
+
+  // v12 (N7): the repair mode — what was repaired, the symptom, system, who did it, the shop (not if it was you), date,
+  // parts and costs (no labour if it was you), warranty, photos with a role, and the Pendiente it closes.
+  const repairBody = (
+    <>
+      <Field
+        label={t.repair.whatLabel}
+        placeholder={t.repair.whatPlaceholder}
+        value={effectiveTitle}
+        onChangeText={(v) => {
+          setTitleTouched(true);
+          setTitle(v);
+        }}
+      />
+      <Field label={t.repair.symptomLabel} placeholder={t.repair.symptomPlaceholder} value={description} onChangeText={setDescription} multiline />
+      <SystemSelect value={system} onChange={setSystem} />
+      <DoneBySelect value={doneBy} onChange={setDoneBy} />
+      {askForShop(doneBy) ? shopBlock : null}
+      {dateOdo}
+      <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
+        {t.service.costs}
+      </T>
+      {askForLabor(doneBy) ? (
+        <View style={styles.pair}>
+          <View style={styles.half}>
+            <Field label={t.service.costParts} keyboardType="decimal-pad" value={costParts} onChangeText={setCostParts} />
+          </View>
+          <View style={styles.half}>
+            <Field label={t.service.costLabor} keyboardType="decimal-pad" value={costLabor} onChangeText={setCostLabor} />
+          </View>
+        </View>
+      ) : (
+        <>
+          <Field label={t.service.costParts} keyboardType="decimal-pad" value={costParts} onChangeText={setCostParts} hint={t.repair.laborSelfNote} />
+        </>
+      )}
+      <Field
+        label={t.service.total}
+        keyboardType="decimal-pad"
+        value={totalOverride ?? String(computedTotal)}
+        onChangeText={setTotalOverride}
+        hint={t.service.totalAuto}
+      />
+      {partsBlock}
+      <WarrantyPicker
+        repairDate={date}
+        date={warrantyDate}
+        km={warrantyKm}
+        onChange={(next) => {
+          setWarrantyDate(next.date);
+          setWarrantyKm(next.km);
+        }}
+      />
+      <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
+        {t.repair.photosLabel}
+      </T>
+      <RepairPhotos recordId={recordId} vehicleId={activeVehicle.id} value={photos} onChange={setPhotos} />
+      <PendingPicker vehicleId={activeVehicle.id} value={resolveKey} onChange={(key) => setResolveKey(key)} />
+    </>
+  );
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg.base }} edges={['bottom']}>
+      <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
+        <T face="display" style={[styles.h, { color: theme.text.primary }]}>
+          {isRepair ? (editingId ? t.repair.editTitle : t.repair.title) : editingId ? t.service.editTitle : t.service.newTitle}
+        </T>
+
+        {/* The repair mode has no kind selector: the kind is fixed (Reclasificar, in the detail, changes it). */}
+        {!isRepair ? (
+          <>
+        <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
+          {t.service.kind}
+        </T>
+        <View style={styles.row}>
+          {KINDS.map((k) => {
+            const on = kind === k;
+            return (
+              <Pressable
+                key={k}
+                onPress={() => {
+                  // "Mejora" is the build log now (IMP 28092026 Phase 4): a new one is a mod.
+                  // Editing a v2.0 mejora record stays here.
+                  if (k === 'mejora' && FEATURE_BUILD && !editingId) {
+                    router.replace({ pathname: '/mod/nuevo', params: { vehicleId: activeVehicle?.id } });
+                    return;
+                  }
+                  setKind(k);
+                }}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                style={[
+                  styles.kindChip,
+                  { borderColor: on ? KIND_COLOR[k] : theme.line, backgroundColor: on ? `${KIND_COLOR[k]}22` : theme.bg.raised },
+                ]}>
+                <View style={[styles.dot, { backgroundColor: KIND_COLOR[k] }]} />
+                <T face="title" style={[styles.chipLabel, { color: on ? theme.text.primary : theme.text.secondary }]}>
+                  {t.service.kinds[k]}
+                </T>
+              </Pressable>
+            );
+          })}
+        </View>
+          </>
+        ) : null}
+
+        {isRepair ? (
+          repairBody
+        ) : (
+          <>
+            {dateOdo}
+            {items}
+            {titleDesc}
+            {costs}
+            {shopBlock}
+            {warrantyBlock}
+            {partsBlock}
+            {photosBlock}
+          </>
+        )}
 
         {error ? (
           <T face="body" style={[styles.error, { color: theme.dangerText }]}>

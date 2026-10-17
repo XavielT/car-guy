@@ -90,7 +90,7 @@ export type RawDossier = {
     tags: string | null;
     cost_dop?: number | null;
   }[];
-  services?: { kind: string; occurred_at: string; title: string; odometer_km?: number | null; total_dop?: number | null }[];
+  services?: { kind: string; occurred_at: string; title: string; odometer_km?: number | null; total_dop?: number | null; shop?: string | null; done_by?: string | null; warranty_until_date?: string | null }[];
   track?: { id: string; occurred_at: string; title: string; discipline: string; venue_id: string | null; venue: string | null; layout?: string | null; sessions: number; runs: number | null; best_lap_ms: number | null }[];
   milestones?: { kind: string; occurred_at: string; title: string; story: string }[];
   /**
@@ -133,6 +133,8 @@ export type Dossier = {
   mods: { category: string; items: { name: string; detail: string; cost: string | null }[] }[] | null;
   modCount: number;
   modsTotal: string | null;
+  /** The book's repairs section (IMP 16102026 N7): who, where, what it cost, the warranty. Not on the public page. */
+  repairs?: { count: number; total: string | null; recent: { date: string; title: string; who: string; cost: string | null; warranty: string | null }[] } | null;
   maintenance: { count: number; last: { title: string; date: string } | null; total: string | null; recent: { title: string; date: string; cost: string | null }[] } | null;
   track: { events: number; bests: { venue: string; lap: string }[]; recent: { title: string; date: string; line: string }[] } | null;
   /** Only with "costos" on; the rows of the Cifras card, already worded. */
@@ -195,6 +197,9 @@ export const TIRE_BADGE_NAMES: { threshold: number; name: string }[] = [
 ];
 
 const km = (n: number) => `${Math.round(n).toLocaleString('en-US')} km`;
+
+/** Who did a repair, in the file's own (Spanish) words like LABELS — this module bundles without the i18n. */
+const DONE_BY_WORDS: Record<string, string> = { self: 'Yo mismo', shop: 'Un taller', friend: 'Un amigo o mecánico', other: 'Otro' };
 
 const LABELS: Record<string, Record<string, string>> = {
   transmission: { manual: 'Manual', automatica: 'Automática', cvt: 'CVT', secuencial: 'Secuencial' },
@@ -307,6 +312,24 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
     };
   }
 
+  let repairs: Dossier['repairs'] = null;
+  if (raw.services) {
+    const fixes = raw.services.filter((r) => r.kind === 'reparacion');
+    if (fixes.length) {
+      repairs = {
+        count: fixes.length,
+        total: raw.show.costs ? dop(fixes.reduce((t, r) => t + (r.total_dop ?? 0), 0)) : null,
+        recent: fixes.slice(0, 12).map((r) => ({
+          date: shortDate(r.occurred_at),
+          title: r.title,
+          who: r.done_by === 'self' ? DONE_BY_WORDS.self : r.shop?.trim() || (r.done_by ? (DONE_BY_WORDS[r.done_by] ?? '') : ''),
+          cost: r.total_dop != null && r.total_dop > 0 ? dop(r.total_dop) : null,
+          warranty: r.warranty_until_date ? shortDate(r.warranty_until_date) : null,
+        })),
+      };
+    }
+  }
+
   let track: Dossier['track'] = null;
   if (raw.track) {
     const best = new Map<string, number>();
@@ -397,6 +420,7 @@ export function publicDossier(raw: RawDossier, opts: { storageBase: string }): D
     modCount: onCar.length,
     modsTotal,
     maintenance,
+    repairs,
     track,
     costs,
     tires,

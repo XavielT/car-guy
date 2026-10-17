@@ -61,7 +61,7 @@ export function mediaObjectPath(userId: string, vehicleId: string | null, mediaI
 export const UPDATED_BY_TABLES = new Set([
   'vehicle', 'vehicle_spec', 'odometer_reading', 'fuel_log', 'service_record', 'service_record_item', 'part', 'expense',
   'reminder', 'inspection', 'inspection_result', 'task', 'document', 'media',
-  'vehicle_ownership', 'album_item', 'milestone', 'mod', 'mod_media', 'vehicle_specsheet', 'spec_snapshot', 'torque_spec',
+  'vehicle_ownership', 'album_item', 'milestone', 'mod', 'mod_media', 'service_media', 'vehicle_specsheet', 'spec_snapshot', 'torque_spec',
   'wishlist_item', 'inventory_item', 'wheel_set', 'tire', 'vehicle_dtc_event', 'fluid_guide_item', 'track_event',
   'track_session', 'setup_sheet', 'consumable_usage', 'vehicle_share',
   'trip',

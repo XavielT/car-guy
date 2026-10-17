@@ -2,6 +2,7 @@
 export const FEATURE_IDS = [
   'obd',
   'repair',
+  'repairs',
   'fuel',
   'trip',
   'service',
