@@ -190,3 +190,15 @@ X4 (pestañas cortadas) y X6 (hueco de "¿Por qué?") ya están anotados: X4 en 
 
 ### No verificado tras la fase 3
 Ver "No verificado (fase 3)" en `PROGRESS.md`.
+
+## Estado tras la fase 5 (2026-10-17)
+
+| Id | Estado | Cómo se probó |
+|----|--------|---------------|
+| N7 no se puede registrar una reparación | **corregido** (ya existía el registro; ahora tiene modo propio, quién la hizo, sistema, fotos con rol, garantía rápida y 5 entradas) | `db/repairs`, `service/repair-pieces`, Chromium `f5-*.png` |
+| X7 los Pendientes no se cierran | **corregido** (evento y tarea; "Resolver con una reparación" y "Deshacer" 10 s) | `db/repairs.test.ts` |
+| Garantía que no avisa | **corregido** (aviso local 7 días antes; distintivo y permiso en la lista) | `notifications/plan.test.ts` |
+| "Lo que me ha costado": reparaciones mezcladas | **corregido sin mover cifras** (línea "de ellas, reparaciones", CSV, libro) | `export/repairs.test.ts`, `domain/costs.test.ts` |
+
+### No verificado tras la fase 5
+Ver "No verificado (fase 5)" en `PROGRESS.md`; lo principal: `sql/041` sin aplicar ni probar contra PostgreSQL.

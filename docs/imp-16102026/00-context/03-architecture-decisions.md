@@ -1,7 +1,7 @@
 # Architecture decisions — IMP 16102026 (ADR-59 … ADR-64)
 
 Numbering continues from ADR-58 (`docs/imp-01102026/00-context/03-architecture-decisions.md`), confirmed in phase 0.
-ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3, ADR-62 in phase 4; 61, 63 are the BRIEF's proposals, each written when its phase builds it.
+ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3, ADR-61 in phase 5, ADR-62 in phase 4; 63 is the BRIEF's proposals, each written when its phase builds it.
 
 ## ADR-59 — Permissions: one registry, always explained first, re-read on return
 **Status:** implemented in phase 2.
@@ -52,6 +52,21 @@ ADR-59 and ADR-64 are written in full (phase 2), ADR-60 in phase 3, ADR-62 in ph
 
 **Consequences.** A function added to the registry shows up in the hub and the search by itself, and a screen added without registering fails a test. A telltale now opens the *action* (log an oil change) rather than the reminders list; reminders remain one tap from "Pendientes" and two from the hub.
 
-## ADR-61, ADR-63 (proposed in the BRIEF; written when built)
-- **61** A repair stays a `ServiceRecord` with `kind='reparacion'` (phase 5).
+## ADR-61 — A repair stays a ServiceRecord (kind = 'reparacion'); we complete it, we do not model it twice
+**Status:** implemented in phase 5.
+
+**Context.** Note N7 said there was no way to log a repair. There was: `ServiceRecord` with `kind='reparacion'`, parts and labour costs, the shop as a contact, a warranty by date/km, a parts list and one photo — reachable only through Historial → "+" (3 taps), without "who did it", with one photo, a warranty that never warned, and Pendientes (events with `pending`, tasks) that nothing connected to the repair that fixes them (`docs/imp-16102026/repairs-audit.md`).
+
+**Decision.**
+1. **No parallel model.** A repair is a `service_record`; maintenance, repair and mod ("mejora") stay one table (ADR-09) and "Reclasificar" keeps working.
+2. **Additive v12 / `sql/041`:** `service_record.done_by` (`self|shop|friend|other`; backfill `self` only for a record with neither contact nor shop), `service_record.system` (a service category: motor, frenos, …), and `service_media(id, service_record_id, media_id, role before|after|invoice|other, sort)` — the pattern of `mod_media`, with the derived id `sm_<media id>` so a migrating phone and the cloud backfill converge. `media` itself (shared by vehicle, mods, expenses, checks, profile) is untouched: a photo still belongs to its service through `owner_table/owner_id`, the link only adds its role; readers take the links and add any owner-only photo as "other" (`loadServiceMedia`). RLS = members of the vehicle through `vehicle_of('service_record', …)`, like `part`.
+3. **The form has a repair mode** (`/servicio/nuevo?kind=reparacion`, not another screen): what was repaired + symptom, system, who did it (a `SelectField`), the shop only when it was not you, date and odometer, parts and labour (no labour when it was you), total, a quick warranty choice (30 d / 90 d / 6 m / 1 y / other, counted from the repair's date and following it), photos in Antes / Después / Factura / Otras slots, and **the Pendiente it resolves** (events with a pending text and open tasks).
+4. **Closing a Pendiente (X7):** saving stamps the event's `resolvedAt` + `linkedServiceId` (or closes the task with `doneRecordId`) in the same transaction and returns what it was; the repair's detail shows "Pendiente resuelto · Deshacer" for 10 s (`resolvedPendingStore`). "Resolver con una reparación" is on the "Pendiente: …" cards (vehicle hub banner) and on the tasks of Inicio.
+5. **Entry points:** the registry's featured/shortcut "Registrar reparación" (phase 4), a tile in Inicio, the Eventos tab, the OBD code's "Nueva reparación con este código" (now the form, linking the code on save), and the Historial FAB as before. A new function "Reparaciones" (`/vehiculo/[id]/reparaciones`): total spent, filters by system/shop/year, summary by shop, warranties expiring.
+6. **Money and exports:** the costs card keeps repairs inside `mantenimiento` and adds "de ellas, reparaciones" (`OwnershipCost.repairs`); the costs CSV gains a `de_ellas_reparaciones` row, a new repairs CSV (who, shop, parts, labour, total, warranty), and the book a "Reparaciones" section (the public page is unchanged).
+7. **Warranty heads-up:** one local notification a week before it ends (`warranty:<id>:soon`, through the same plan as reminders), and, in the repairs list, the notifications permission banner when one is about to end.
+
+**Consequences.** `sql/041` must be applied to `x-core` before an app that pushes `service_media` / `done_by` / `system` ships (the pull side is already safe: unknown columns are dropped, so older apps are not affected). An older app that saves a repair omits `done_by`/`system`; the cloud keeps the stored value. A removed photo leaves its `media` row (as before); only its link goes.
+
+## ADR-63 (proposed in the BRIEF; written when built)
 - **63** Round-trip test of every field of a form through SQLite and sync (phase 1: vehicle; it already found the purchase-date drift).

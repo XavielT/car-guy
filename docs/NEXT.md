@@ -6,6 +6,15 @@ still works that way.
 
 Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-17092026/04-tracking/PROGRESS.md).
 
+## Cycle 6 — IMP 16102026 (Car Guy 2.6 "Kōbō") — in progress, nothing published yet
+
+Phases 0–5 are done on branches `imp-16102026-phase-1…5` (each branches off the previous one); phase 6 is the regression pass and the 2.6.0 release. Log: [`imp-16102026/04-tracking/PROGRESS.md`](imp-16102026/04-tracking/PROGRESS.md).
+
+**Before publishing anything (needs Xaviel's machine / credentials):**
+1. `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql` and `…/041_repairs_done_by_media.sql` (additive, re-runnable, rollback at the end of each file), then `npm run types:gen` and `node tools/verify-x-core.mjs`. The app that pushes `oil_synthetic` / `done_by` / `system` / `service_media` fails its push if these are not applied first.
+2. Run `bash tools/local-rls/run.sh` where PostgreSQL 16 exists (WSL): `scenario_041.sql` is wired in and has never been run.
+3. Release 2.5.2 (the fix pack, schema v11) and then 2.6.0 (v12): the native fingerprint already changed with Firebase, so the gate says APK; `tools/ota-gate.cjs` does not run on Windows (use Git Bash).
+
 ## Cycle 5 — IMP 01102026 (Car Guy 2.5 "Nakama") — released 2026-10-02, two checks open
 
 Eighteen notes from Xaviel's use of 2.4.x on the Redmi (APK) and his iPhone (Safari Home-Screen PWA) → fix pack

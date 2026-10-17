@@ -10,7 +10,7 @@ Claude Code actualiza este archivo al terminar cada fase. Aquí no se espera nin
 | 2 Permisos y mapa | **✔ código y pruebas** · sin publicar (sin credenciales; ver abajo) | rama `imp-16102026-phase-2` | 2026-10-16 |
 | 3 SelectField | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-3` | 2026-10-17 |
 | 4 Herramientas | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-4` | 2026-10-17 |
-| 5 Reparaciones | pendiente | | |
+| 5 Reparaciones | **✔ código y pruebas** · **`sql/041` sin aplicar** (y `sql/040`) · sin publicar | rama `imp-16102026-phase-5` | 2026-10-17 |
 | 6 Regresión y release | pendiente | | |
 
 ## Números reales (confirmados por la fase 0, 2026-10-16)
@@ -148,3 +148,28 @@ Android real (hojas con teclado, `back` cierra sin cambiar); iPhone real; Histor
 
 ### No verificado (fase 4)
 Android/iPhone reales; la tarjeta Descubre/tour con el estado de Novedades en un teléfono con datos de una versión anterior; el testigo CHECK con un código OBD guardado (cubierto por tipos y por el contador, no por captura); el badge de permiso en el hub en Android.
+
+## Fase 5 — Registrar reparaciones (2026-10-17)
+
+**Qué ya existía:** `ServiceRecord` con `kind='reparacion'`, costos de piezas y mano de obra, taller como contacto, garantía por fecha/km, lista de piezas y una foto; formulario en `app/servicio/nuevo.tsx`; un solo camino (Historial → "+"). **Qué se agregó** (ADR-61): schema **v12** (`lib/db/migrationV12.ts`) y **`sql/041_repairs_done_by_media.sql`** — `done_by`, `system` y la tabla `service_media` (fotos con rol); modo reparación del formulario; cerrar Pendientes con "Deshacer"; "Resolver con una reparación"; entradas (Inicio, Eventos, OBD, Herramientas, atajos); pantalla **Reparaciones**; detalle con quién/taller/fotos por rol/factura/garantía con cuenta regresiva/Pendiente vinculado; costos ("de ellas, reparaciones"), CSV de reparaciones, sección en el libro; aviso de garantía por vencer; datos de prueba.
+
+**SQL:** `sql/041_repairs_done_by_media.sql` está **escrito, NO aplicado** (sin credenciales de Supabase en esta máquina). Es aditivo (2 columnas y 1 tabla en `carguy`), re-ejecutable, con RLS de miembros como `part`, y con el rollback al final. **Aplicar con `node tools/apply-sql.mjs sql/041_repairs_done_by_media.sql` (y `sql/040` antes) ANTES de publicar la app**; después `npm run types:gen` (los tipos de `lib/cloud/database.types.ts` se editaron a mano, igual que lo que generará) y `node tools/verify-x-core.mjs`. El escenario de RLS `tools/local-rls/scenario_041.sql` está enganchado en `run.sh` pero **no se corrió**: no hay PostgreSQL local (el script es de Linux/WSL).
+
+### Decisiones tomadas (fase 5)
+39. **Rama `imp-16102026-phase-5`**, sale de la de fase 4. Versión de esquema local 12.
+40. **`service_record.system` (columna nueva) además de `done_by`**: el PROMPT pide "sistema afectado" y no había dónde guardarlo (una reparación no lleva ítems del catálogo, que reiniciarían recordatorios). Es una categoría de servicio (`motor`, `frenos`, …), nullable.
+41. **Las fotos conservan su dueño (`media.owner_*`) y ganan un enlace con rol** (`service_media`); no se tocó `media`. Los lectores usan los enlaces y suman las fotos solo-dueño como "Otras" (un teléfono viejo que sincroniza, el formulario de mantenimiento con su foto única).
+42. **El formulario de mantenimiento/mejora no cambió** (foto única, mismos campos); solo el tipo "reparación" entra al modo nuevo. Sin selector de tipo en modo reparación (el detalle reclasifica, ahora con `SelectField`).
+43. **"Yo mismo" borra taller y mano de obra al guardar** (no solo los oculta): un registro propio nunca arrastra el texto de un taller.
+44. **Un Pendiente es un evento con `pending` o una tarea abierta**; si la tarea ya es la `sourceTaskId` de la reparación, se cierra una vez y no se ofrece deshacer.
+45. **Garantía rápida cuenta desde la fecha de la reparación y la sigue** si se edita la fecha; "Otra…" abre fecha y km. Aviso local **7 días antes** (si ese momento ya pasó, solo queda el distintivo dentro de la app con el botón de permitir notificaciones).
+46. **OBD → "Nueva reparación con este código" abre el formulario** (con título `Código P0301` y el vínculo al guardar) en vez de crear un registro vacío; `createRepairForDtc` queda sin uso en pantallas.
+47. **El libro del carro incluye la sección Reparaciones; la página pública no** (nombres de talleres y costos no salen sin que el dueño los pida: el interruptor de costos de la página gobierna solo lo que ya mostraba).
+48. **"De ellas, reparaciones"** es una línea informativa (no una cubeta nueva): `mantenimiento` sigue sumando reparación + mantenimiento para no mover las cifras de nadie.
+49. **Datos de prueba**: una reparación propia (AE85) y una de "Taller de ejemplo" sin teléfono con garantía vigente (DS3), solo en `lib/dev/garage.ts`; los totales fijados en las pruebas del sembrado se actualizaron (AE85 461 186,40).
+
+### Pruebas (fase 5)
+`migrate-v12` (5: columnas y CHECKs, backfill de `done_by`, fotos → enlaces con id derivado, sin bump de `updated_at`), `repairs` (10: `done_by`/`system`, enlaces con rol y reemplazo, cerrar un evento y una tarea, **deshacer**, solo-una-vez con `sourceTaskId`), `repairs-sync` (5: orden de sync, bajar a otro teléfono, fila de un teléfono viejo, enlace que llega antes que su registro, subir en forma de nube), `domain/repairs` (10: garantía, lista, filtros, resumen por taller), `service/repair-pieces` (10: garantía rápida y "Otra…", ranuras ↔ enlaces, selector de Pendiente), `export/repairs` (6: costos, CSV, libro), notificaciones de garantía (3), paridad de esquema y de `updated_by` con `sql/041`, y las pruebas de versión (12). Total: 2 301 verdes de 2 315 antes de actualizar el sembrado; ver el cierre abajo. Chromium 390 px con UA de iPhone: formulario propio y de taller, hoja de quién/garantía, detalle, lista y hub (`screens/f5-*.png`), con un carro creado en la propia app.
+
+### No verificado (fase 5)
+SQL 041 contra PostgreSQL (ni aplicado ni el escenario de RLS); el CHECK de `ALTER TABLE ADD COLUMN` en `expo-sqlite` nativo y en el wasm de la web (la prueba corre en `node:sqlite`; la web se construyó y el formulario guardó una reparación en Chromium, que sí usa el wasm); fotos reales (el selector del navegador no se automatizó: las ranuras y los enlaces están probados por unidades); el aviso de garantía en un teléfono; sincronizar con la nube real; el comparador antes/después con dos fotos; "Resolver con una reparación" desde las tarjetas en el navegador (cubierto por `repairs.test.ts`).
