@@ -29,6 +29,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const PROJECT_REF = 'nakgrkcqyuycadeuenuw';
 const ENDPOINT = `https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`;
@@ -43,9 +44,9 @@ if (!file) {
   process.exit(1);
 }
 
-const root = resolve(new URL('..', import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const target = resolve(root, file);
-const rel = relative(root, target);
+const rel = relative(root, target).split('\\').join('/');
 
 if (!rel.startsWith('sql/') || rel.includes('..')) {
   console.error(`Refusing ${rel}: only files under sql/ may be applied.`);
