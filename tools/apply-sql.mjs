@@ -57,7 +57,7 @@ function token() {
   const raw = readFileSync(resolve(root, '.env.supabase'), 'utf8');
   for (const line of raw.split('\n')) {
     const [key, ...rest] = line.split('=');
-    if (key?.trim().toLowerCase() === 'access_token') return rest.join('=').trim();
+    if (['access_token', 'expo_supabase_access_token'].includes(key?.trim().toLowerCase())) return rest.join('=').trim();
   }
   throw new Error('ACCESS_TOKEN not found in .env.supabase');
 }
