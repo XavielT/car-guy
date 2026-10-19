@@ -41,7 +41,7 @@ Lo que solo tú puedes probar (iPhone real, Redmi, cuentas). Marca cada uno al t
 
 ## Fase 6 (release 2.6.0) — esto lo haces tú, en este orden
 - [ ] **Aplicar el SQL en `x-core`**: `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql`, luego `sql/041_repairs_done_by_media.sql`; `npm run types:gen`; `node tools/verify-x-core.mjs`. (No se pudo desde la máquina de Claude: sin llaves.)
-- [ ] Desde WSL: `bash tools/local-rls/run.sh` — debe terminar en "all passed" (incluye `scenario_041.sql`, nunca corrido).
+- [x] RLS: `local-rls` ya corrió completo en WSL el 2026-10-18 ("all passed", incluye `scenario_041.sql`). Repetir solo si cambia el SQL.
 - [ ] Cambiar el encabezado de `CHANGELOG.md` de `## 2.6.0 "Kōbō" (sin publicar)` a la fecha del release y `npm run changelog`.
 - [ ] Desde WSL: `bash tools/release-apk.sh --publish` (necesita `.env.expo.local`, `gh`, Android SDK). Commitear `releases/fingerprint.json` que deja el script.
 - [ ] Decidir el merge de `imp-16102026-phase-6` a `main` (las 6 ramas están apiladas; la última las contiene) y verificar el despliegue web en car-guy.vercel.app.

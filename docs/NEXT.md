@@ -12,7 +12,7 @@ Phases 0–6 are done on branches `imp-16102026-phase-1…6` (each branches off 
 
 **Before publishing anything (needs Xaviel's machine / credentials):**
 1. `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql` and `…/041_repairs_done_by_media.sql` (additive, re-runnable, rollback at the end of each file), then `npm run types:gen` and `node tools/verify-x-core.mjs`. The app that pushes `oil_synthetic` / `done_by` / `system` / `service_media` fails its push if these are not applied first.
-2. Run `bash tools/local-rls/run.sh` where PostgreSQL 16 exists (WSL): `scenario_041.sql` is wired in and has never been run.
+2. `local-rls` (RLS scenarios incl. `scenario_041.sql`) **passed on 2026-10-18** in WSL (Ubuntu-24.04, `postgresql-16`): `wsl -u postgres bash -c "cd /mnt/c/dev2/car-guy && sed 's/$//' tools/local-rls/run.sh > /tmp/r.sh && bash /tmp/r.sh"` (the script is CRLF in this checkout; strip it).
 3. Release 2.5.2 (the fix pack, schema v11) and then 2.6.0 (v12): the native fingerprint already changed with Firebase, so the gate says APK; `tools/ota-gate.cjs` does not run on Windows (use Git Bash).
 
 ## Cycle 5 — IMP 01102026 (Car Guy 2.5 "Nakama") — released 2026-10-02, two checks open
