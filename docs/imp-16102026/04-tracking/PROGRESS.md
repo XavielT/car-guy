@@ -11,7 +11,7 @@ Claude Code actualiza este archivo al terminar cada fase. Aquí no se espera nin
 | 3 SelectField | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-3` | 2026-10-17 |
 | 4 Herramientas | **✔ código y pruebas** · sin publicar (sin credenciales) | rama `imp-16102026-phase-4` | 2026-10-17 |
 | 5 Reparaciones | **✔ código y pruebas** · **`sql/041` sin aplicar** (y `sql/040`) · sin publicar | rama `imp-16102026-phase-5` | 2026-10-17 |
-| 6 Regresión y release | **✔ regresión y docs** · release 2.6.0 **preparado, no publicado** (sin credenciales) | rama `imp-16102026-phase-6` (contiene todo) | 2026-10-17 |
+| 6 Regresión y release | **✔ publicado: v2.6.0 (APK, versionCode 22)** · `sql/040` y `sql/041` aplicados en `x-core` | `main` (merge fast-forward de la fase 6) | 2026-10-21 |
 
 ## Números reales (confirmados por la fase 0, 2026-10-16)
 Versión **2.5.1** · schema local **v10** (`lib/db/migrations.ts:300`) · último `sql/` **039** · último ADR **58** · commit base **`2691f64`** (sin commits nuevos) · canales: APK 2.5.0 (versionCode 21) + OTA 2.5.1; `releases/fingerprint.json` = 2.5.0 `1232e32…`, huella nativa pendiente de APK por Firebase (el gate no se pudo ejecutar en Windows: `spawnSync npx ENOENT`) · SQL a `x-core`: `node tools/apply-sql.mjs`. **Ningún número del paquete cambia**: este ciclo usa schema **v11** (oil_synthetic, fase 1) y **v12** (reparaciones, fase 5), `sql/040` y `sql/041`, **ADR-59…64**, versión **2.6.0**.
@@ -217,3 +217,10 @@ Las ramas de fase están apiladas (`imp-16102026-phase-1 → … → phase-6`, c
 - **Declarar `*.css` para `maplibre-gl`** (los 4 TS2882 de siempre) y arreglar los 3 errores de lint de `main`.
 - **Filtros de Historial/Garaje/Pista con datos reales en capturas**: hoy solo están cubiertos por pruebas del componente.
 - **Un script que mida los toques por función con datos reales** (hoy se mide por estructura + Chromium sin datos).
+
+### Publicación de 2.6.0 (2026-10-21)
+- **SQL:** `sql/040` y `sql/041` aplicados a `x-core` con `tools/apply-sql.mjs` (HTTP 201 cada uno; el script se arregló para Windows y acepta `EXPO_SUPABASE_ACCESS_TOKEN`). Verificación de solo lectura: columnas `done_by`, `system`, `oil_synthetic`, tabla `service_media` con RLS y 4 políticas, backfill hecho (2 reparaciones propias, 3 vehículos sintéticos). `verify-x-core` **no se corrió** (crea cuentas de prueba en producción; regla del ciclo) y `types:gen` tampoco (el CLI de Supabase no tiene binario para Windows): los tipos editados a mano coinciden con la nube.
+- **APK:** construido en la nube de EAS (`release-apk`, versionCode 22), firmado con la llave de EAS (`a16450a0…`), bundle con la nube ✔, versionName 2.6.0 ✔. 173 759 924 bytes, SHA-256 `95c9795b…c85d`. Release: https://github.com/XavielT/car-guy/releases/tag/v2.6.0 con `car-guy.apk` (enlace fijo verificado) y `car-guy-v2.6.0.apk`.
+- **Huella nativa** `f4613b33…` guardada en `releases/fingerprint.json` (coincide con el runtime que reportó EAS); los cambios de solo JS salen ahora por `--ota`.
+- **Web:** `main` empujado a `origin`; `car-guy.vercel.app` responde 200. Las 7 funciones de `api/` cargan en Node (el script `check-api-load` falla en Windows por comillas; se corrió una versión equivalente).
+- **Falta:** la llave FCM en expo.dev (ciclo anterior) y las pruebas en teléfono de `05-manual-checklist.md`.

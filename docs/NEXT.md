@@ -8,7 +8,7 @@ Full history and per-phase detail: [`imp-17092026/04-tracking/PROGRESS.md`](imp-
 
 ## Cycle 6 — IMP 16102026 (Car Guy 2.6 "Kōbō") — in progress, nothing published yet
 
-Phases 0–6 are done on branches `imp-16102026-phase-1…6` (each branches off the previous one; **phase-6 holds everything**). Version is already **2.6.0** in `package.json` / `app.json`; the regression pass is in [`imp-16102026/VERIFICACION.md`](imp-16102026/VERIFICACION.md). What is left is the release itself (steps below, and in `05-manual-checklist.md` → "Fase 6"). Log: [`imp-16102026/04-tracking/PROGRESS.md`](imp-16102026/04-tracking/PROGRESS.md).
+Phases 0–6 are done on branches `imp-16102026-phase-1…6` (each branches off the previous one; **phase-6 holds everything**). Version is already **2.6.0** in `package.json` / `app.json`; the regression pass is in [`imp-16102026/VERIFICACION.md`](imp-16102026/VERIFICACION.md). **Released 2026-10-21 as the v2.6.0 APK** (versionCode 22, EAS cloud build); SQL 040/041 are applied. What is left is the manual checklist (`05-manual-checklist.md`) and the FCM key. Log: [`imp-16102026/04-tracking/PROGRESS.md`](imp-16102026/04-tracking/PROGRESS.md).
 
 **Before publishing anything (needs Xaviel's machine / credentials):**
 1. `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql` and `…/041_repairs_done_by_media.sql` (additive, re-runnable, rollback at the end of each file), then `npm run types:gen` and `node tools/verify-x-core.mjs`. The app that pushes `oil_synthetic` / `done_by` / `system` / `service_media` fails its push if these are not applied first.

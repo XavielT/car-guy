@@ -40,11 +40,11 @@ Lo que solo tú puedes probar (iPhone real, Redmi, cuentas). Marca cada uno al t
 - [ ] Apagar datos, registrar otra, volver a prender: sincroniza.
 
 ## Fase 6 (release 2.6.0) — esto lo haces tú, en este orden
-- [ ] **Aplicar el SQL en `x-core`**: `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql`, luego `sql/041_repairs_done_by_media.sql`; `npm run types:gen`; `node tools/verify-x-core.mjs`. (No se pudo desde la máquina de Claude: sin llaves.)
+- [x] (hecho 2026-10-21 por Claude) **Aplicar el SQL en `x-core`**: `node tools/apply-sql.mjs sql/040_vehicle_oil_synthetic.sql`, luego `sql/041_repairs_done_by_media.sql`; `npm run types:gen`; `node tools/verify-x-core.mjs`. (No se pudo desde la máquina de Claude: sin llaves.)
 - [x] RLS: `local-rls` ya corrió completo en WSL el 2026-10-18 ("all passed", incluye `scenario_041.sql`). Repetir solo si cambia el SQL.
-- [ ] Cambiar el encabezado de `CHANGELOG.md` de `## 2.6.0 "Kōbō" (sin publicar)` a la fecha del release y `npm run changelog`.
-- [ ] Desde WSL: `bash tools/release-apk.sh --publish` (necesita `.env.expo.local`, `gh`, Android SDK). Commitear `releases/fingerprint.json` que deja el script.
-- [ ] Decidir el merge de `imp-16102026-phase-6` a `main` (las 6 ramas están apiladas; la última las contiene) y verificar el despliegue web en car-guy.vercel.app.
+- [x] (hecho) Cambiar el encabezado de `CHANGELOG.md` de `## 2.6.0 "Kōbō" (sin publicar)` a la fecha del release y `npm run changelog`.
+- [x] (hecho: build en la nube de EAS + `gh release create`, v2.6.0) Desde WSL: `bash tools/release-apk.sh --publish` (necesita `.env.expo.local`, `gh`, Android SDK). Commitear `releases/fingerprint.json` que deja el script.
+- [x] (hecho) Decidir el merge de `imp-16102026-phase-6` a `main` (las 6 ramas están apiladas; la última las contiene) y verificar el despliegue web en car-guy.vercel.app.
 - [ ] Instalar el APK encima de 2.5.1 en el Redmi: la base migra a v12 sin perder nada (fotos de servicios siguen visibles; las reparaciones viejas quedan "Un taller" si tenían taller y "Yo mismo" si no).
 
 ### Marcado "no verificado" (nadie lo ha probado en un teléfono)
