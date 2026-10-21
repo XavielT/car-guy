@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.6.0 "Kōbō" (sin publicar)
+## 2.6.0 "Kōbō" (2026-10-21)
 
 - **Permisos con explicación**: ahora Car Guy te explica para qué necesita cada permiso *antes* de pedirlo, y nunca lo pide en frío. Si lo negaste o quedó bloqueado, el lugar donde lo necesitas tiene un botón para arreglarlo: "Dar permiso", "Abrir ajustes" (Android) o los pasos exactos con "Ya la activé" (iPhone). Al volver de los ajustes, la app se entera sola.
 - **Más → Permisos y acceso**: una pantalla con ubicación, ubicación todo el tiempo, notificaciones, cámara, fotos, batería y el resto — qué hace cada una, si falta, y el botón para activarla. La bienvenida termina con "Activa lo que necesitas".

@@ -6,8 +6,8 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     "version": "2.6.0",
     "name": "\"Kōbō\"",
-    "date": null,
-    "unreleased": true,
+    "date": "2026-10-21",
+    "unreleased": false,
     "intro": [],
     "sections": [
       {
