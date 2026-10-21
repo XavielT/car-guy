@@ -34,6 +34,7 @@ function currentFingerprint() {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
     env: { ...process.env, APP_VARIANT: '' },
+    shell: process.platform === 'win32', // npx is npx.cmd on Windows
     maxBuffer: 64 * 1024 * 1024,
   });
   return JSON.parse(out.slice(out.indexOf('{'))).runtimeVersion ?? null;
