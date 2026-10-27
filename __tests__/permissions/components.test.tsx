@@ -315,6 +315,34 @@ describe('rowAction — the one button of a Permisos row', () => {
   });
 });
 
+describe('the "Cómo activarlo" steps close by themselves once the permission is on (found on a Xiaomi)', () => {
+  function Probe({ onReady }: { onReady: (api: ReturnType<typeof usePermissionRequest>) => void }) {
+    const api = usePermissionRequest('location_foreground');
+    onReady(api);
+    return <View>{api.sheet}</View>;
+  }
+
+  it('blocked → steps open → the person turns it on in Ajustes and comes back → steps gone', async () => {
+    __resetPermissions();
+    impl.location_foreground.check.mockResolvedValue({ status: 'denied_blocked' });
+    let api!: ReturnType<typeof usePermissionRequest>;
+    let r!: ReactTestRenderer;
+    await act(async () => {
+      r = create(<Probe onReady={(a) => (api = a)} />);
+    });
+    await act(async () => {
+      await api.outcome();
+    });
+    expect(texts(r.root).some((s) => s.includes('Permitir') || s.includes('Ya la activé'))).toBe(true);
+
+    impl.location_foreground.check.mockResolvedValue({ status: 'granted' });
+    await act(async () => {
+      await api.recheck();
+    });
+    expect(texts(r.root).some((s) => s.includes('Ya la activé'))).toBe(false);
+  });
+});
+
 describe('web: the page becoming visible again re-reads (an installed PWA coming back from the iPhone settings)', () => {
   afterEach(() => {
     delete (globalThis as { document?: unknown }).document;

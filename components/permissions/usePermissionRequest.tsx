@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { markPrimerSeen } from '@/lib/permissions/primer';
 import { canAskInApp, needsSettings } from '@/lib/permissions/map';
@@ -29,6 +29,13 @@ export function usePermissionRequest(id: PermissionId) {
   const live = usePermission(id);
   const [ui, setUi] = useState<'none' | 'primer' | 'steps'>('none');
   const pending = useRef<((o: PermissionOutcome) => void) | null>(null);
+
+  // Found on a real phone: after turning the permission on in Ajustes and coming back, the "Cómo activarlo" steps stayed open
+  // over a row that already said "Permitido". Once it is granted there is nothing left to explain.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing the sheet with the registry's state, an external store
+    if (live.status === 'granted') setUi((cur) => (cur === 'steps' ? 'none' : cur));
+  }, [live.status]);
 
   const finish = useCallback((o: PermissionOutcome) => {
     const resolve = pending.current;
