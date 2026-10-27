@@ -91,6 +91,14 @@ export default function InstalarScreen() {
             </T>
           </View>
         ))}
+        <View style={{ gap: 2 }}>
+          <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
+            {t.install.stuckTitle}
+          </T>
+          <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19 }}>
+            {t.install.stuckBody}
+          </T>
+        </View>
         <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17 }}>
           {t.install.updates}
         </T>

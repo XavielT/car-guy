@@ -583,7 +583,7 @@ export const enPart5: Pick<
     steps: [
       {
         title: 'Download the file',
-        body: 'Chrome warns «This type of file can harm your device». It\'s the usual warning for apps outside the Play Store: tap «Download anyway».',
+        body: 'It is about 170 MB. When Chrome finishes downloading it warns «File might be harmful» (the usual warning for apps outside the Play Store): tap «Download anyway». Until you tap it, the download does not complete.',
       },
       {
         title: 'Allow installs from Chrome',
@@ -594,6 +594,8 @@ export const enPart5: Pick<
         body: 'Tap «Install». If Play Protect asks, choose «Install anyway». Done: open Car Guy.',
       },
     ],
+    stuckTitle: 'Stuck on “downloading”?',
+    stuckBody: 'If Chrome asks «Download file again?», tap «Download». If the download reaches the end and nothing happens, open the notification panel or Chrome’s menu ⋮ → Downloads: it is waiting there for the «File might be harmful» prompt. Tap it and go on to step 2.',
     updates: 'To update, download the new version from here and install it on top: your data stays.',
     pwaTitle: 'Also in your browser',
     pwaBody: 'Car Guy works on the web. In Chrome: menu ⋮ → «Install app» (or «Add to Home screen»). On iPhone: Share → «Add to Home Screen».',

@@ -3047,7 +3047,7 @@ export const es = {
     steps: [
       {
         title: 'Descarga el archivo',
-        body: 'Chrome avisa «Este tipo de archivo puede dañar tu dispositivo». Es el aviso de siempre para apps fuera de la Play Store: toca «Descargar de todos modos».',
+        body: 'Son unos 170 MB. Cuando Chrome termine de bajarlos avisa «El archivo puede ser dañino» (el aviso de siempre para apps fuera de la Play Store): toca «Descargar de todos modos». Hasta que lo toques, la descarga no se completa.',
       },
       {
         title: 'Permite instalar desde Chrome',
@@ -3058,6 +3058,8 @@ export const es = {
         body: 'Toca «Instalar». Si Play Protect pregunta, elige «Instalar de todos modos». Listo: abre Car Guy.',
       },
     ],
+    stuckTitle: '¿Se queda «descargando»?',
+    stuckBody: 'Si Chrome pregunta «¿Descargar el archivo otra vez?», toca «Descargar». Si la descarga llega al final y no pasa nada, abre el panel de notificaciones o el menú ⋮ → Descargas de Chrome: ahí está esperando el aviso «El archivo puede ser dañino». Tócalo y sigue con el paso 2.',
     updates: 'Para actualizar, descarga la versión nueva desde aquí e instálala encima: tus datos se quedan.',
     pwaTitle: 'También en tu navegador',
     pwaBody: 'Car Guy funciona en la web. En Chrome: menú ⋮ → «Instalar app» (o «Agregar a pantalla de inicio»). En iPhone: Compartir → «Agregar a inicio».',
