@@ -150,7 +150,7 @@ export function RepairPhotos({ recordId, vehicleId, value, onChange }: { recordI
         ownerTable="service_record"
         ownerId={recordId}
         vehicleId={vehicleId}
-        height={110}
+        height={170}
         onChange={(id) => onChange({ ...value, [role]: id })}
       />
     </View>

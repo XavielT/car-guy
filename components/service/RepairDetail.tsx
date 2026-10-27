@@ -29,6 +29,8 @@ export function RepairDetail({ record, version }: { record: ServiceRecord; versi
   const router = useRouter();
   const [links, setLinks] = useState<Link[]>([]);
   const [contact, setContact] = useState<Contact | null>(null);
+  // Bumped after "Deshacer": the closed Pendiente line has to be read again (found on the phone: it stayed on screen).
+  const [tick, setTick] = useState(0);
   const [closed, setClosed] = useState<{ kind: 'event' | 'task'; id: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function RepairDetail({ record, version }: { record: ServiceRecord; versi
     return () => {
       live = false;
     };
-  }, [record.id, record.contactId, record.vehicleId, version]);
+  }, [record.id, record.contactId, record.vehicleId, version, tick]);
 
   const first = (role: ServiceMediaRole) => links.find((l) => l.role === role)?.mediaId ?? null;
   const before = first('before');
@@ -72,7 +74,10 @@ export function RepairDetail({ record, version }: { record: ServiceRecord; versi
           </T>
           <Pressable
             onPress={() => {
-              void undoResolvedPending(offer.resolved).then(() => clearUndo());
+              void undoResolvedPending(offer.resolved).then(() => {
+                clearUndo();
+                setTick((n) => n + 1);
+              });
             }}
             accessibilityRole="button"
             style={styles.toastBtn}>
@@ -106,8 +111,8 @@ export function RepairDetail({ record, version }: { record: ServiceRecord; versi
             {t.repair.detail.compare}
           </T>
           <View style={styles.compare}>
-            <Shot mediaId={before} label={t.repair.slots.before} />
-            <Shot mediaId={after} label={t.repair.slots.after} />
+            {before ? <Shot mediaId={before} label={t.repair.slots.before} /> : null}
+            {after ? <Shot mediaId={after} label={t.repair.slots.after} /> : null}
           </View>
         </>
       ) : null}
