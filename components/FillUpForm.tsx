@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -58,6 +59,7 @@ export function FillUpForm({
   onDelete?: () => void;
 }) {
   const { theme } = useTheme();
+  const router = useRouter();
   const { data } = useStore();
 
   // IMP 03112026 (ADR-67): a draft from a photo or a sentence pre-fills the fields below; the person saves as always.
@@ -293,6 +295,15 @@ export function FillUpForm({
       {/* IMP 03112026 SPEC-B §B2: start from a photo; the form below stays the way to type it by hand. */}
       {initial ? null : (
         <View style={{ marginBottom: space.sm }}>
+          <Pressable
+            onPress={() => router.push('/carga/express')}
+            accessibilityRole="button"
+            accessibilityLabel={t.ai.express.expressEntry}
+            style={[styles.express, { borderColor: theme.accent, backgroundColor: theme.bg.raised }]}>
+            <T face="title" style={{ color: theme.text.primary, fontSize: 15 }}>
+              {t.ai.express.expressEntry}
+            </T>
+          </Pressable>
           <CaptureButton kind="fuel_receipt" label={t.ai.capture.scanReceipt} onRead={(r, ph) => applyRead(r, ph, 'invoice')} />
           <CaptureButton kind="odometer" icon="speedometer-outline" label={t.ai.capture.dashboardPhoto} onRead={(r, ph) => applyRead(r, ph, 'odometer_photo')} />
           {aiFilled > 0 ? (
@@ -472,6 +483,7 @@ export function FillUpForm({
 
 const styles = StyleSheet.create({
   gauges: { marginTop: space.lg },
+  express: { borderWidth: 1, borderRadius: radius.card, paddingHorizontal: space.md, minHeight: 52, justifyContent: 'center', marginBottom: space.md },
   prompt: { borderWidth: 1, borderRadius: 12, padding: space.md, marginBottom: space.md },
   pad: { padding: space.gutter, paddingBottom: 56 },
   h: { fontSize: 26, lineHeight: 28, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: space.sm },

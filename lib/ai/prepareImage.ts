@@ -11,8 +11,7 @@
  */
 import { Platform } from 'react-native';
 
-import { MediaError } from '../media/compress';
-import { compressPhoto } from '../media/compress';
+import { compressPhoto, MediaError } from '../media/compress';
 import { toBase64 } from '../social/base64';
 import type { PreparedImage } from './read';
 

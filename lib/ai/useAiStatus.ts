@@ -28,32 +28,44 @@ export type AiStatus = {
 export function useAiStatus(): AiStatus {
   const { session } = useSession();
   const signedIn = !!session;
-  const [response, setResponse] = useState<StatusResponse | null>(null);
-  const [failure, setFailure] = useState<'offline' | 'error' | null>(null);
+  // The answer is remembered WITH the account it was read for: signing in or out makes it stale at once (consent and
+  // limits change), without resetting state inside an effect.
+  const [fetched, setFetched] = useState<{ signedIn: boolean; response: StatusResponse | null; failure: 'offline' | 'error' | null } | null>(null);
   const alive = useRef(true);
 
   const refresh = useCallback(async () => {
     if (!isCloudConfigured) return;
     try {
       const r = await fetchAiStatus();
-      if (!alive.current) return;
-      setResponse(r);
-      setFailure(null);
+      if (alive.current) setFetched({ signedIn, response: r, failure: null });
     } catch (e) {
       const code = e instanceof AiError ? e.code : 'offline';
-      if (alive.current) setFailure(code === 'offline' || code === 'timeout' ? 'offline' : 'error');
+      if (alive.current) setFetched({ signedIn, response: null, failure: code === 'offline' || code === 'timeout' ? 'offline' : 'error' });
     }
-  }, []);
+  }, [signedIn]);
 
+  // The state is set when the promise settles (the shape app/admin/uso.tsx uses), not synchronously in the effect.
   useEffect(() => {
     alive.current = true;
-    setResponse(null);
-    void refresh();
+    if (isCloudConfigured) {
+      fetchAiStatus().then(
+        (r) => {
+          if (alive.current) setFetched({ signedIn, response: r, failure: null });
+        },
+        (e: unknown) => {
+          const code = e instanceof AiError ? e.code : 'offline';
+          if (alive.current) setFetched({ signedIn, response: null, failure: code === 'offline' || code === 'timeout' ? 'offline' : 'error' });
+        },
+      );
+    }
     return () => {
       alive.current = false;
     };
-    // Signing in or out changes consent and limits: read again.
-  }, [refresh, signedIn]);
+  }, [signedIn]);
+
+  const current = fetched && fetched.signedIn === signedIn ? fetched : null;
+  const response = current?.response ?? null;
+  const failure = current?.failure ?? null;
 
   const setConsent = useCallback(
     async (on: boolean) => {

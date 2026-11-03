@@ -348,3 +348,18 @@ export async function sendTest(): Promise<void> {
     trigger: { type: N.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL_ID },
   });
 }
+
+/**
+ * A notification NOW with a route to open when it is tapped (IMP 03112026: "Tu carga está lista para confirmar").
+ * Silent when notifications are unsupported here or the permission is not granted: a missing alert must never undo the
+ * work it announces.
+ */
+export async function notifyNow(input: { title: string; body: string; route: string }): Promise<void> {
+  if (!supported()) return;
+  if (!(await hasPermission())) return;
+  const N = await import('expo-notifications');
+  await N.scheduleNotificationAsync({
+    content: { title: input.title, body: input.body, data: { route: input.route } },
+    trigger: null,
+  });
+}
