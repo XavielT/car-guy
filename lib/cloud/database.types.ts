@@ -10,10 +10,70 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   carguy: {
     Tables: {
+      ai_consent: {
+        Row: {
+          accepted_at: string
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          user_id?: string
+          version?: string
+        }
+        Update: {
+          accepted_at?: string
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      ai_usage: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          error_code: string | null
+          function: string
+          id: number
+          input_tokens: number
+          model: string | null
+          ok: boolean
+          output_tokens: number
+          user_id: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          error_code?: string | null
+          function: string
+          id?: never
+          input_tokens?: number
+          model?: string | null
+          ok: boolean
+          output_tokens?: number
+          user_id: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          error_code?: string | null
+          function?: string
+          id?: never
+          input_tokens?: number
+          model?: string | null
+          ok?: boolean
+          output_tokens?: number
+          user_id?: string
+          vehicle_id?: string | null
+        }
+        Relationships: []
+      }
       album_item: {
         Row: {
           created_at: string
@@ -1891,10 +1951,10 @@ export type Database = {
           occurred_at: string
           odometer_km: number | null
           server_updated_at: string
-          system: string | null
           shop: string
           source_inspection_id: string | null
           source_task_id: string | null
+          system: string | null
           title: string
           total_dop: number
           updated_at: string
@@ -1917,10 +1977,10 @@ export type Database = {
           occurred_at: string
           odometer_km?: number | null
           server_updated_at?: string
-          system?: string | null
           shop?: string
           source_inspection_id?: string | null
           source_task_id?: string | null
+          system?: string | null
           title: string
           total_dop?: number
           updated_at: string
@@ -1943,10 +2003,10 @@ export type Database = {
           occurred_at?: string
           odometer_km?: number | null
           server_updated_at?: string
-          system?: string | null
           shop?: string
           source_inspection_id?: string | null
           source_task_id?: string | null
+          system?: string | null
           title?: string
           total_dop?: number
           updated_at?: string
@@ -2875,6 +2935,7 @@ export type Database = {
           name: string
           nickname: string | null
           notes: string
+          oil_synthetic: boolean
           origin: string | null
           photo_media_id: string | null
           plate: string | null
@@ -2935,6 +2996,7 @@ export type Database = {
           name: string
           nickname?: string | null
           notes?: string
+          oil_synthetic?: boolean
           origin?: string | null
           photo_media_id?: string | null
           plate?: string | null
@@ -2995,6 +3057,7 @@ export type Database = {
           name?: string
           nickname?: string | null
           notes?: string
+          oil_synthetic?: boolean
           origin?: string | null
           photo_media_id?: string | null
           plate?: string | null
@@ -3770,6 +3833,7 @@ export type Database = {
     }
     Functions: {
       accept_follow: { Args: { p_handle: string }; Returns: boolean }
+      admin_ai_usage: { Args: never; Returns: Json }
       admin_pending_deletions: {
         Args: never
         Returns: {
@@ -3791,10 +3855,6 @@ export type Database = {
       }
       admin_stats: { Args: never; Returns: Json }
       admin_usage: { Args: never; Returns: Json }
-      admin_ai_usage: { Args: never; Returns: Json }
-      ai_usage_prune: { Args: { p_days?: number }; Returns: number }
-      my_ai_consent: { Args: never; Returns: boolean }
-      set_ai_consent: { Args: { p_on: boolean; p_version?: string }; Returns: boolean }
       admin_users: {
         Args: { p_limit?: number }
         Returns: {
@@ -3811,6 +3871,9 @@ export type Database = {
           vehicles: number
         }[]
       }
+      ai_day_start: { Args: never; Returns: string }
+      ai_gate: { Args: { p_function: string; p_user: string }; Returns: Json }
+      ai_usage_prune: { Args: { p_days?: number }; Returns: number }
       attach_feedback_screenshot: {
         Args: { p_device_id: string; p_id: string }
         Returns: boolean
@@ -3890,6 +3953,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      my_ai_consent: { Args: never; Returns: boolean }
       my_juntes: { Args: never; Returns: Json }
       my_social: { Args: never; Returns: Json }
       public_dossier: { Args: { p_slug: string }; Returns: Json }
@@ -3920,6 +3984,10 @@ export type Database = {
       send_junte_message: {
         Args: { p_body: string; p_junte: string }
         Returns: string
+      }
+      set_ai_consent: {
+        Args: { p_on: boolean; p_version?: string }
+        Returns: boolean
       }
       set_app_config: {
         Args: { p_key: string; p_public?: boolean; p_value: Json }

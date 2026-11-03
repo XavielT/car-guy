@@ -6,7 +6,7 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 | Phase | Prompt | Status | Commit(s) | Notes |
 |-------|--------|--------|-----------|-------|
 | 0 | Kickoff + diagnosis | ✔ | (this commit) | docs only; zero product change; zero secret read. Numbers confirmed. |
-| 1 | Keys + gateway | ◐ code done · prod steps pending approval | dc8cf6a + this commit | Built, tested and verified locally. NOT applied to x-core: sql/042, secrets, function deploys, smoke test (see below). |
+| 1 | Keys + gateway | ◐ code done · SQL live · secrets/deploy/smoke pending | dc8cf6a, ec85dc4 + this commit | sql/042 applied and verified. Secrets, function deploys and smoke test not yet run (see below). |
 | 2 | Photo + voice capture | ☐ | | |
 | 3 | Documents + onboarding | ☐ | | |
 | 4 | OBD + repairs | ☐ | | |
@@ -44,7 +44,7 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 ## Edge Functions / SQL deployed to x-core
 | Date | Item | Name | Result |
 |------|------|------|--------|
-| 2026-11-03 | SQL | sql/042_ai_gateway.sql | **Local only**: local-rls scenario_042 (31 checks) + whole suite pass, applied twice. **Not applied to x-core**: the prod apply was blocked by the permission classifier; run `node tools/apply-sql.mjs sql/042_ai_gateway.sql` |
+| 2026-11-03 | SQL | sql/042_ai_gateway.sql | **Applied to x-core** (HTTP 201, carguy only, no --shared) after Xaviel's explicit go-ahead. Local: local-rls scenario_042 (31 checks) + whole suite. Live: `node tools/verify-ai-gateway.mjs` 8/8 PASS (5 RPCs and 2 tables exist, anon refused). `lib/cloud/database.types.ts` regenerated from the live schema (additive). |
 | 2026-11-03 | Secrets | ANTHROPIC_API_KEY, GOOGLE_MAPS_API_KEY, CG_MODEL_VISION, CG_MODEL_REASON | **Not set.** `--dry-run` OK: both key files found and valid (lengths 108 / 39), names + lengths only. Run `node tools/set-ai-secrets.mjs --apply` |
 | 2026-11-03 | Edge Functions | cg-ai-status, cg-ai-ping | **Not deployed.** Wrapper dry-run OK. Run `node tools/deploy-edge.mjs cg-ai-status cg-ai-ping` |
 
