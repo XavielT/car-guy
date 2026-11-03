@@ -7,7 +7,7 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 |-------|--------|--------|-----------|-------|
 | 0 | Kickoff + diagnosis | ✔ | (this commit) | docs only; zero product change; zero secret read. Numbers confirmed. |
 | 1 | Keys + gateway | ◐ code, SQL, functions, secrets live · smoke test pending | dc8cf6a, ec85dc4 + this commit | sql/042 applied and verified. Secrets (blocked by the permission classifier even with the go-ahead: Xaviel runs `node tools/set-ai-secrets.mjs --apply`) and the smoke test remain. |
-| 2 | Photo + voice capture | ☐ | | |
+| 2 | Photo + voice capture | ◐ partial | c0ad556 … (this commit) | DONE: cg-ai-read (6 kinds), cg-ai-intent, cg-stt (server, tested); fill-up capture; Fuel Express (screen, card logic, offline queue v13, notification). NOT DONE: servicio/gasto/odómetro capture wiring, voice client (VoiceButton, mic in ADR-59 registry, expo-audio, app.json, vercel.json), evals, browser E2E. NOT DEPLOYED: cg-ai-read, cg-ai-intent, cg-stt (classifier blocked the prod deploy). |
 | 3 | Documents + onboarding | ☐ | | |
 | 4 | OBD + repairs | ☐ | | |
 | 5 | Prediction + alerts | ☐ | | |
@@ -49,6 +49,7 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 | Date | Item | Name | Result |
 |------|------|------|--------|
 | 2026-11-03 | SQL | sql/042_ai_gateway.sql | **Applied to x-core** (HTTP 201, carguy only, no --shared) after Xaviel's explicit go-ahead. Local: local-rls scenario_042 (31 checks) + whole suite. Live: `node tools/verify-ai-gateway.mjs` 8/8 PASS (5 RPCs and 2 tables exist, anon refused). `lib/cloud/database.types.ts` regenerated from the live schema (additive). |
+| 2026-11-03 | Edge Functions | cg-ai-read, cg-ai-intent, cg-stt | **Not deployed**: blocked by the permission classifier. Run `node tools/deploy-edge.mjs cg-ai-read cg-ai-intent cg-stt --yes` |
 | 2026-11-03 | Secrets | ANTHROPIC_API_KEY, GOOGLE_MAPS_API_KEY, CG_MODEL_VISION, CG_MODEL_REASON | **Set on x-core by Xaviel** (`! node tools/set-ai-secrets.mjs --apply`; the permission classifier blocked it for the agent). `--check`: all required names present; STT_*/CG_ALLOWED_ORIGINS absent (voice off until an STT key is exported). Live `cg-ai-status` now `configured:true`. Values never shown. |
 | 2026-11-03 | Edge Functions | cg-ai-status, cg-ai-ping | **Deployed to x-core** (new names, `--no-verify-jwt`, self-authenticating) with `--yes` after Xaviel's go-ahead. Live probes: status signed-out → 200 `{enabled:true, configured:false}`; ping without token → 401 `no_auth`; CORS preflight → 204 with the Vercel origin. `configured:false` is expected until the secrets are set. |
 
