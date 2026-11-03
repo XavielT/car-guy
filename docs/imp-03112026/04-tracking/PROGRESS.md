@@ -30,6 +30,8 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 | 2026-11-03 | 0 | D-05 Tests/scripts run under Node 22.22.3 (nvm); build via bash form of the script; baseline reds recorded, not fixed | Machine default is Node 20; repo needs ≥ 22 |
 | 2026-11-03 | 0 | D-06 Voice = `expo-audio ~57.0.5`, no background recording; `microphone` joins ADR-59 registry; `Permissions-Policy` → `microphone=(self)`; release is an APK | Expo 57 docs; fingerprint changes |
 | 2026-11-03 | 0 | D-07 Screenshot baselines taken from dev server + `/dev/seed` (prod build cannot seed) | Realistic data needed for before/after |
+| 2026-11-03 | 0 | D-09 SGC and Car Guy use maps differently (Google map vs MapLibre): do not port SGC's `reverse-geocode`, `routing-directions`, `snap-to-roads`, `resolve-maps-link`; trip naming via MapTiler Geocoding; any reused Google key restricted to Places API (New); SGC's browser key never copied | User reminder 2026-11-03; Google ToS "no use with a non-Google map" for Geocoding/Directions/Roads/Places |
+| 2026-11-03 | 0 | D-10 Full review of `sgc-ai-reference.md` and `ai-workflow-map.md` done; fixed expense-category names, the media-role claim (media is polymorphic; it needs a role, not an owner link), the Haiku-4.5 default and the Azure row in the SGC reference | Review requested by Xaviel |
 | 2026-11-03 | 0 | D-08 Heavy reading delegated to 3 read-only subagents (SGC reference, workflow map, terms+models); Google clauses re-verified by me against the live page | Parallel, independent work |
 
 ## Edge Functions / SQL deployed to x-core

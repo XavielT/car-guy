@@ -15,6 +15,19 @@ Source: https://cloud.google.com/maps-platform/terms/maps-service-terms — "(La
 **Decision (logged in PROGRESS):** `FEATURE_GOOGLE_PLACES` default = **OFF**. If Xaviel later turns it on, only the "list-only" variant below ships: results screen without any map, Google attribution, "Open in Google Maps" link, store `place_id` only plus fields the person types; details re-fetched at display time. Default alternative for "find a gomera/taller": MapTiler Geocoding (allowed with MapLibre) or OSM Overpass (ODbL, attribute OpenStreetMap contributors).
 
 
+## How SGC and Car Guy use maps - they are NOT the same (added after Xaviel's reminder)
+| | SGC (`C:\dev\SGC`) | Car Guy |
+|---|---|---|
+| Map you see | Google Maps JS (`google-maps-loader.service.ts`, `mini-mapa`, `seguimiento`, `trayectoria-modal`). History: first Leaflet+OSM with Google Directions behind it (its own `docs/mapas-google-vs-leaflet.md`), then all-Google | **MapLibre + MapTiler** (`components/map/*`), never Google tiles |
+| Google server calls | Geocoding (`reverse-geocode`), Directions (`routing-directions`), Places (`places-search`, `resolve-maps-link`), Roads (`snap-to-roads`) - all shown on a Google map, so "no use with a non-Google map" does not bite | Every one of those calls is **"in conjunction with a non-Google map"** the moment its result sits next to or on a MapLibre map |
+| Keys | A server key (Supabase secret) **and** a browser key (referrer-restricted, served by an RPC); its checklist says the server key started as one unrestricted general key | Only a server key could ever apply; the browser key is bound to SGC's domains and is never copied |
+
+Consequences for Car Guy (apply in every phase):
+1. **Do not port** `reverse-geocode`, `routing-directions`, `snap-to-roads` or `resolve-maps-link`. Their ToS clauses forbid use with a non-Google map (Geocoding, Directions, Roads, Routes: same wording as Places §14.2). Car Guy needs none of them: trip naming uses MapTiler Geocoding; speed and route lines are computed from the device's own GPS (SPEC-I).
+2. **Places** is the only Google service Car Guy could ever use, and only as a list screen without a map (§14.1). Default OFF (decision D-04).
+3. If Xaviel does reuse `GOOGLE_MAPS_API_KEY`, SGC's own checklist says create a **new** key and restrict it to the needed APIs; a Car Guy key should be restricted to **Places API (New) only**, so a leaked or misused key cannot call Directions or Geocoding on the company's bill.
+4. The key's value to Car Guy is therefore small: the "reuse the Google Maps key" note (P1) is met by evaluating and documenting it, not by wiring it into the map.
+
 ## (a) Google content with a non-Google map
 - Historical 2018 ToS s10.4(e): "You must not use the Content in a Maps API Implementation that contains a non-Google map." (https://developers.google.com/maps/terms-20180207, last updated 2018-02-07 - OLD.)
 - Current Service Specific Terms snippet, Android Geocoder SDK s3.2: "No use with a non-Google map." Current Places-specific wording NOT verified. The Places Policies page says nothing requiring a Google map and nothing forbidding a non-Google one; its closest line: "Don't misrepresent Google Maps by attributing it with non-Google Maps Platform content."

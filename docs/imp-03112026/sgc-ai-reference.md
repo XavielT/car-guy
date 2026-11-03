@@ -1,7 +1,7 @@
 # SGC AI reference — pattern for Car Guy to copy
 
 Source (read-only): `C:\dev\SGC` (web + Supabase edge functions, Deno) and `C:\dev2\csd-app` (Capacitor app, child of SGC).
-Everything below was read from code and docs. No `.env*` / key file was opened. Secret NAMES come from `Deno.env.get("…")`, `process.env.*` and `csd-app/.env.example` (names only).
+Everything below was read from code and docs (PROMPT-00 session re-verified model ids, `max_tokens`, STT providers, rate-limit keys, resize 1600 px/0.85 and the gitleaks shape against the SGC source; no values were read). No `.env*` / key file was opened. Secret NAMES come from `Deno.env.get("…")`, `process.env.*` and `csd-app/.env.example` (names only).
 SGC user-facing strings are Spanish; the schema is `sgc.*`. Car Guy will use its own schema and names.
 
 ---------------------------------------------------------------------------------------------------
@@ -192,9 +192,9 @@ Reusable = a Car Guy-owned copy of the same provider key can be set in Car Guy's
 |---|---|---|---|
 | `ANTHROPIC_API_KEY` | all `leer-*`, `bitacora-ia`, `resumir-reporte`, `assistant`, GitHub Action secret of the Escriba | **YES** | Same provider, billing is per key; set it as a Car Guy edge secret (ideally a separate key). Local file name in SGC root: `ANTHROPIC_API_KEY.env` (not read). |
 | `ASSISTANT_MODEL`, `LEER_RECIBO_MODEL`, `LEER_DOCUMENTO_FLOTA_MODEL`, `LEER_DOCUMENTO_PERSONAL_MODEL`, `LEER_COTIZACION_MODEL`, `LEER_FORMULARIO_MODEL`, `LEER_SPECS_EQUIPO_MODEL`, `BITACORA_IA_MODEL`, `RESUMIR_REPORTE_MODEL` | model overrides | **YES (pattern)** | Not secret, just model ids; Car Guy needs its own (e.g. `LEER_RECIBO_MODEL`). |
-| `GOOGLE_MAPS_API_KEY` | `reverse-geocode`, `routing-directions`, `places-search`, `resolve-maps-link`, `snap-to-roads` | **YES (server key)** | Server-side Maps key; restrict by API and ideally create a Car Guy key. Local file name: `maps_platform_api_key.env` (not read). Never ship it in the app bundle. |
+| `GOOGLE_MAPS_API_KEY` | `reverse-geocode`, `routing-directions`, `places-search`, `resolve-maps-link`, `snap-to-roads` | **YES, but only for Places and only as a list (see `google-terms-verdict.md`)** | SGC draws Google maps, so its Geocoding/Directions/Roads/Places edges are compliant there. Car Guy draws MapLibre, where those terms forbid use "in conjunction with a non-Google map": do NOT port `reverse-geocode`, `routing-directions`, `snap-to-roads`, `resolve-maps-link`. If reused at all: a new key restricted to Places API (New) only. Local file name: `maps_platform_api_key.env` (not read). Never ship it in the app bundle. SGC's separate **browser** key (`parametros.google_maps_browser_key`) is referrer-bound to SGC and must never be copied. |
 | `STT_PROVIDER`, `STT_API_KEY`, `STT_MODEL`, `OPENAI_API_KEY` (fallback) | `_shared/stt.ts` (OpenAI / Groq) | **YES** | Voice -> text provider key. (`STT_SYNC_SECRET` is NOT reusable, see below.) |
-| `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` | SGC `.env.local`, tutorial-video narration scripts only | **YES (if wanted)** | Azure Speech F0 resource; used for TTS narration at build time, not in edges. Car Guy would need its own resource anyway. |
+| `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` | SGC `.env.local`, tutorial-video narration scripts only | **NO for STT (skip)** | Azure Speech is used only for TTS narration at build time, not in any edge, so it is not an STT path. PROMPT-00 decision D-02: Car Guy's `cg-stt` uses the `STT_*` secrets. (BRIEF/SPEC-A originally listed Azure as reusable; corrected.) |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (and `*_DEV`, `*_PROD`, `SUPABASE_SECRET_KEY`, `SUPABASE_PROJECT_REF`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF_DEV`, `SGC_SUPABASE_URL`, `SGC_SUPABASE_SERVICE_ROLE_KEY`, `AGENTE_ESCRIBA_SUPABASE_URL`, `AGENTE_ESCRIBA_SUPABASE_SERVICE_ROLE_KEY`) | everything | **NEVER** | Prod/dev keys of the SGC databases (full data access). Car Guy has its own project. |
 | `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_CALENDAR_DELEGATED_USER`, `FCM_SERVICE_ACCOUNT_JSON` | Calendar, FCM push | **NEVER** | SGC service accounts (company Workspace / Firebase project). |
 | `WHATSAPP_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ASSISTANT_SECRET`, `WHATSAPP_GRAPH_VERSION`, `*_DEV` variants | `whatsapp-webhook`, `assistant` | **NEVER** | Meta Business number of SGC; `WHATSAPP_GRAPH_VERSION` is only a version string. |
@@ -239,7 +239,7 @@ COPY
 3. `uso_ia` table + `uso_ia_resumen` RPC + RLS (only admin reads); store only metadata.
 4. Pure `parsearX()` + `SYSTEM` in a separate file with unit tests; whitelist enums/dates; tolerant JSON extraction.
 5. Client resize (1600 px, JPEG 0.85) before sending; images never stored by the edge.
-6. `envRequerido` and the model-per-function env var with a Haiku-4.5 default.
+6. `envRequerido` and the model-per-function env var. (SGC defaults to Haiku 4.5; **Car Guy defaults differ**: `CG_MODEL_VISION=claude-haiku-5-5`, `CG_MODEL_REASON=claude-sonnet-5-5` — PROGRESS D-03, `models-and-prices.md`.)
 7. `clasificarRendimiento` as a pure TS function with the thresholds above, config-driven (50 km min, 10-35 km/gal, 20 % / 40 %, 3 baseline records), with `motivo` text and `direccion`.
 8. Data-and-third-parties inventory doc + gitleaks default config with a minimal anon-key allow-list.
 9. Closed allow-list for any future agent actions; AI proposes, human confirms.

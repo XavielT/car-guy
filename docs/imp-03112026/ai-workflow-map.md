@@ -7,13 +7,13 @@ Rules applied to every block (ADR-67/68, BRIEF "Honest notes"):
 - **Numbers are computed by pure code**; the model only phrases, classifies or reads a photo.
 - Actions come from the **closed list**: `create_reminder`, `open_obd`, `log_fuel`, `open_service`, `open_document`, `add_task`.
 - Needs **account + connection**; signed-out/offline leaves the manual form untouched.
-- Verified today: **no AI code exists in the repo** (no `cg-*`, `useAiStatus`, or Anthropic reference in `app/`, `components/`, `lib/`).
+- Verified today (grep for `anthropic|cg-ai|useAiStatus` over `app components lib hooks`: 0 hits): **no AI code exists in the repo** (no `cg-*`, `useAiStatus`, or Anthropic reference in `app/`, `components/`, `lib/`).
 - Convention: "(verified)" = read in code; fields are the form's real state names. `Fx` = SPEC section.
 
 Reality checks that change the SPECs (found while auditing):
 1. SPEC-E E1 plans a new `predict.ts` with `kmPerDay` and projected due dates. **Both already exist**: `lib/domain/odometer.ts` `kmPerDay()` (median, 90-day window, `buena|estimada|baja`, `FALLBACK_KM_PER_DAY = 35`) and `lib/domain/reminders.ts` `evaluate()` returns `predictedDueDate`, `confidence`, `dueKm`. `predict.ts` should wrap/extend them, not re-implement them.
 2. SPEC-C lists `doc_revision`, but `DocumentKind` (`lib/db/types.ts:340`) is `seguro | marbete | matricula | licencia | factura | garantia | otro` and `documentOps.ts` only links `seguro/marbete/licencia` to reminders. `revision_tecnica` exists as a `LegalKind` and seed reminder but has no document kind: either add the kind (additive) or map it to `otro`.
-3. SPEC-B/Fuel Express mention an `odometer_photo` media role. `media` has **no role column**; roles exist only on `service_media` (`before|after|invoice|other`, CHECK in `migrationV12.ts`), `mod_media` and `album_item.role`. A fuel log has no photo link at all today, so the receipt/dashboard photo needs a new owner link (schema v13), not just an enum value.
+3. SPEC-B/Fuel Express mention an `odometer_photo` media role. `media` is **polymorphic** (`owner_table`, `owner_id`, `kind: 'photo'|'pdf'`; no CHECK on `owner_table` locally or in `sql/002`), so a fuel photo can attach today as `owner_table='fuel_log'` with **no new link table**. What it lacks is a **role** (receipt vs dashboard): `kind` is only photo/pdf, and roles exist only on `service_media` (`before|after|invoice|other`, `migrationV12.ts`), `mod_media` and `album_item.role`. So v13 needs one role mechanism (a nullable `media.role` column plus additive cloud `sql/044`), not a new owner link. (First draft said a new owner link was needed; corrected after checking `lib/db/migrations.ts:248` and `lib/db/types.ts:353`.)
 4. SPEC-D "close the loop" is **partly built**: `lib/db/diyQueries.ts` already has `createRepairForDtc`, `linkDtcRepair`, `setDtcResolved`, `repairsFor`.
 5. SPEC-D4 warranty watcher: `lib/domain/repairs.ts` already has `warrantyEnd`, `warrantyState`, `isWarrantySoon` (verified exports). The banner for a *new* repair in the same system is the missing part.
 
@@ -113,7 +113,7 @@ Reality checks that change the SPECs (found while auditing):
 - **Proposed AI touchpoint**: SPEC-D §D1 explain-this-code (cached in `ai_insights`; bundled lookup stays the offline answer), §D2 warning-light photo, §D3 scanner screenshot to `VehicleDtcEvent`s to confirm. Actions: `open_obd`, `add_task`, `create_reminder` (re-scan), "Create repair" via existing `createRepairForDtc`.
 
 ### 7. Expense
-- **Workflow / screen(s)**: `app/gasto/nuevo.tsx`, `app/gasto/[id].tsx`; types `EXPENSE_CATEGORIES` (`maintenance, repair, insurance, tax, toll, parking, wash, other`); `domain/costs.ts`.
+- **Workflow / screen(s)**: `app/gasto/nuevo.tsx`, `app/gasto/[id].tsx`; types `EXPENSE_CATEGORIES` in `lib/db/types.ts` (`seguro, marbete, impuesto, multa, peaje, parqueo, lavado, financiamiento, accesorio, grua, otro` - corrected in the PROMPT-00 review; the first draft listed English names that do not exist); `domain/costs.ts`.
 - **Fields typed by hand today**: `category`, `amount`, `date`, `odometer`, `description`, `vendor`, `photoMediaId` (verified).
 - **Data that already exists**: current odometer (`currentKm`), recent vendors/categories, monthly spend (`stats.ts`).
 - **Privacy sensitivity**: med (receipts: vendor, partial card digits, NCF).
@@ -264,7 +264,7 @@ Reality checks that change the SPECs (found while auditing):
 - **Fields typed by hand today**: `notes`; `start_label`/`end_label` (`trip` table).
 - **Data that already exists**: `trip` (distance, duration, moving, avg/max, speed buckets, polyline, bbox), privacy zones.
 - **Privacy sensitivity**: HIGH (location is the most sensitive data the app holds; SPEC-G3 itself records "AI over GPS traces rejected").
-- **Proposed AI touchpoint**: SPEC-G §G3 only: text-only name from a place list (needs `cg-places`; coordinates rounded ~500 m). Summaries/eco tips and purpose labels are deterministic (SPEC-H/I/J have no AI).
+- **Proposed AI touchpoint**: SPEC-G §G3 only: text-only trip name from a place label. **Map rule (PROMPT-00 review):** this screen shows a MapLibre trip map, so Google Geocoding/Places results must NOT be used for the label (Geocoding and Places ToS: "must not use ... in conjunction with a non-Google map"). Source the label from MapTiler Geocoding (allowed with MapLibre) or the person's own saved places; coordinates rounded ~500 m. Summaries/eco tips and purpose labels are deterministic (SPEC-H/I/J have no AI).
 
 ### 29. Drive mode
 - **Workflow / screen(s)**: `app/conducir.tsx`; `lib/trips/{live,liveStore,driveTrail,myPosition,gpsNotice,auto,task}.ts`, `components/drive/CompactSpeed.tsx`.
@@ -306,7 +306,7 @@ Reality checks that change the SPECs (found while auditing):
 - **Fields typed by hand today**: `name`, `kind`, `phone`, `whatsapp`, `address`, `rating`, `notes`, `links`.
 - **Data that already exists**: `contact` table; contact links to services/mods.
 - **Privacy sensitivity**: med (third-party phone/address).
-- **Proposed AI touchpoint**: SPEC-G §G4 "Add as contact" from a `cg-places` result; **NEW N6** (low priority): business-card photo or invoice header -> `name`, `kind`, `phone`, `address`.
+- **Proposed AI touchpoint**: SPEC-G §G4 "Add as contact" from a place-search result - but Google Places terms do not allow persisting name/phone/address, so with `FEATURE_GOOGLE_PLACES` OFF (default) the result source is MapTiler Geocoding / OSM Overpass (ODbL) behind the same UI; Google only in the list-only variant (see `google-terms-verdict.md`); **NEW N6** (low priority): business-card photo or invoice header -> `name`, `kind`, `phone`, `address`.
 
 ### 35. Juntes, community, profiles
 - **Workflow / screen(s)**: `app/juntes/*`, `app/junte/[code].tsx`, `app/comunidad.tsx`, `app/perfil.tsx`, `app/u/[handle].tsx`; `lib/junte/*`, `lib/social/*`.
@@ -424,6 +424,9 @@ BRIEF's "workflows that exist" list omits these (each verified in code). SPECs B
 | Fuel economy "anomaly" generated by the model | Must be the 4-state pure rule over `partialEconomy`; model only phrases the reason. |
 | Garage list, badges, telltale lamps | Derived deterministically (`garage.ts`); no benefit. |
 | Account/auth/permissions/deletion flows | Security-sensitive, no AI. |
+
+## Review log (PROMPT-00, full read + code checks)
+All cited file paths exist (bare filenames resolved to `components/*` or `lib/*`; `predict.ts` is a planned file, not an existing one). Reality checks 1, 2, 4, 5 verified against code (`kmPerDay`, `predictedDueDate`, `DocumentKind`, `createRepairForDtc`/`linkDtcRepair`/`setDtcResolved`/`repairsFor`, warranty helpers). Form field lists spot-checked against `useState` names in `FillUpForm`, `gasto/nuevo`, `precios/nuevo`, `odometro`, `tarea/nueva` - match. Two errors fixed: expense categories (#7) and the media-role claim (check 3). Counts (111 / 44 / 25 / 10 / 5) re-counted - match. Fields in the other blocks were not each re-verified line by line.
 
 ## Counts
 
