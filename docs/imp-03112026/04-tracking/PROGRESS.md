@@ -39,6 +39,10 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 | 2026-11-03 | 1 | D-15 Forced tool_use for structured output, with ONE fallback retry on `tool_choice: auto` if the API rejects a forced tool (adaptive-thinking models); unverified against the live API until the deploy | Cannot call the API from here |
 | 2026-11-03 | 1 | D-16 Privacy policy text now mentions AI / Anthropic / STT / Google but LEGAL_VERSION is NOT bumped (a bump re-asks every user); bump in PROMPT-08 with the first shipped AI action | Avoid re-consent for a feature that has no action yet |
 | 2026-11-03 | 1 | D-17 Smoke test needs an admin Car Guy account (`cg-ai-ping` is admin-only; caps via `set_app_config`): `SMOKE_EMAIL`/`SMOKE_PASSWORD` | Documented in tools/smoke-ai.mjs |
+| 2026-11-03 | 2 | D-18 Local schema v13 = `ai_queue` (PROMPT-02 ran first); PROMPT-10's speed_factor/odo_factor become **v14**; existing tests that pinned "current = 12" updated to 13 | Two prompts claimed v13 |
+| 2026-11-03 | 2 | D-19 STT containers: no client-side WAV conversion; webm/mp4/m4a/ogg/mp3/wav go straight to the OpenAI/Groq endpoint (unverified live until an STT key exists) | Both providers document those containers |
+| 2026-11-03 | 2 | D-20 Fill-up photos attach as media with owner `fuel_log` (media is polymorphic); the receipt-vs-dashboard role needs a role column (later), so both are plain photos for now | Reality check 3 of the workflow map |
+| 2026-11-03 | 2 | D-21 Duplicate check + review extracted to `lib/fillUpSave.ts`, shared by the manual form and Fuel Express (one save path) | Behaviour-preserving refactor |
 | 2026-11-03 | 0 | D-08 Heavy reading delegated to 3 read-only subagents (SGC reference, workflow map, terms+models); Google clauses re-verified by me against the live page | Parallel, independent work |
 
 ## Edge Functions / SQL deployed to x-core

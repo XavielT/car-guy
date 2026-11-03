@@ -8,19 +8,13 @@ import { FillUpReviewSheet } from '@/components/FillUpReviewSheet';
 import type { DraftPhoto } from '@/lib/ai/draft';
 import { recordReportable } from '@/lib/diagnostics';
 import { storePhoto } from '@/lib/media';
-import { reviewFillUp, type FillUpReview } from '@/lib/domain/economy';
-import { findRecentDuplicate } from '@/lib/domain/fillupDedupe';
-import { fuelCfgFor, partialEconomy, type SeriesPoint } from '@/lib/domain/partialEconomy';
-import { perFillEconomyOf } from '@/lib/domain/perFillEconomy';
-import { economyNumber, economyValue } from '@/lib/format';
-import { economyLabel } from '@/lib/fuel';
+import { evaluateFillUp, type SaveResult } from '@/lib/fillUpSave';
 import { Alert } from '@/lib/alert';
 import { t } from '@/lib/i18n';
 import { defaultFuelForNewLoad, useOdometerHint, useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
-import type { FillUp, FuelType } from '@/lib/types';
 
-type Result = { id: string; review: FillUpReview; fuelType: FuelType; missedPrevious: boolean; estimate: SeriesPoint | null; perFillLine: string | null };
+type Result = SaveResult & { id: string };
 
 export default function CargarScreen() {
   const router = useRouter();
@@ -46,44 +40,21 @@ export default function CargarScreen() {
           lastOdo={lastOdo}
           submitLabel={t.fuel.save}
           onSubmit={(draft, extras) => {
-            const dup = findRecentDuplicate(draft, data.fillups);
-            if (dup) {
+            // The duplicate check and the review are shared with Fuel Express (lib/fillUpSave.ts): one save path.
+            const evaluation = evaluateFillUp(draft, { allFillups: data.fillups, vehicleFillups, vehicle: activeVehicle });
+            if (evaluation.duplicate) {
+              const dup = evaluation.duplicate;
               Alert.alert(t.fuel.duplicateTitle, t.fuel.duplicateBody, [
                 { text: t.common.cancel, style: 'cancel' },
                 { text: t.fuel.duplicateOpen, onPress: () => openSaved(dup.id) },
               ]);
               return false;
             }
-            // Reviewed against the fill-ups that existed *before* this one, so
-            // the comparison is with history rather than with itself.
-            const current: FillUp = {
-              ...draft,
-              id: 'review',
-              createdAt: new Date().toISOString(),
-            };
-            const review = reviewFillUp(current, vehicleFillups);
-            // Note 4: the gauge estimate for this fill-up, when it is a partial with readings.
-            const partial = partialEconomy([...vehicleFillups.filter((f) => f.id !== current.id), current], fuelCfgFor(activeVehicle.detail));
-            const estimate = partial.segments.find((s) => s.fillUpId === current.id) ?? null;
-            // Note 9: km since the previous log over what was added now, approximate.
-            const pf = perFillEconomyOf(current.id, [...vehicleFillups, current]);
-            const volumeUnit = activeVehicle.detail?.volumeUnit ?? 'gal';
-            const economyUnit = draft.fuelType === 'gnv' ? null : activeVehicle.detail?.economyUnit;
-            const perFillLine = pf && review.kmPerUnit == null
-              ? t.perFill.line(economyNumber(economyValue(pf.kmPerUnit, volumeUnit, economyUnit)), economyLabel(draft.fuelType, volumeUnit, economyUnit))
-              : null;
             const savedId = upsertFillUp(draft);
             // The photos the AI read stay with the record (IMP 03112026 ADR-67). Best effort: a photo that fails to store never undoes a saved fill-up.
             attachPhotos(savedId, activeVehicle.id, extras?.photos);
             impact();
-            setResult({
-              id: savedId,
-              review,
-              fuelType: draft.fuelType,
-              missedPrevious: Boolean(draft.missedPrevious),
-              estimate,
-              perFillLine,
-            });
+            setResult({ id: savedId, ...evaluation.result });
           }}
         />
       </View>

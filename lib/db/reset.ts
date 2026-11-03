@@ -22,6 +22,8 @@ export async function resetDatabase(): Promise<void> {
     // v6's local scratch first: trip_point points at trip.
     await db.runAsync('DELETE FROM trip_point');
     await db.runAsync('DELETE FROM trip_state');
+    // IMP 03112026: the Fuel Express offline queue is local scratch too.
+    await db.runAsync('DELETE FROM ai_queue');
     // v8's MICM cache: refilled from the cloud on the next launch.
     await db.runAsync('DELETE FROM fuel_price_ref');
     // v10's caches of cloud-only rows (follows, juntes): another account must not see them.

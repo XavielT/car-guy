@@ -60,7 +60,7 @@ describe('fresh install: 0 → 2', () => {
   for (const m of MIGRATIONS) run(db, m.up);
 
   it('is the latest version', () => {
-    expect(LATEST_VERSION).toBe(12);
+    expect(LATEST_VERSION).toBe(13);
   });
 
   it('creates every v2 table', () => {
