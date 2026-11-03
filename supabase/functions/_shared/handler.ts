@@ -43,12 +43,18 @@ export type Ctx = {
   userId: string;
   body: unknown;
   env: EnvGetter;
+  /** The injected fetch (tests) or the global one; for providers other than Anthropic (speech to text). */
+  fetch: typeof fetch;
   /** callClaude with the key and the injected fetch already in place. */
   call(args: Omit<CallArgs, 'apiKey' | 'fetchImpl' | 'sleep'>): Promise<CallResult>;
 };
 export type HandlerResult = { body: Record<string, unknown>; usage?: Usage; vehicleId?: string };
 export type Handler = (ctx: Ctx) => Promise<HandlerResult>;
-export type Options = { adminOnly?: boolean };
+export type Options = {
+  adminOnly?: boolean;
+  /** What "configured" means for this function. Default: the Anthropic key exists. cg-stt: a speech-to-text key exists. */
+  configured?: (env: EnvGetter) => boolean;
+};
 
 export function reply(req: Request, env: EnvGetter, status: number, body: unknown): Response {
   const headers = {
@@ -106,7 +112,7 @@ export async function handleAi(req: Request, fn: string, handler: Handler, deps:
     return refuse(req, env, 'internal');
   }
   const apiKey = env('ANTHROPIC_API_KEY');
-  const refusal = evaluateGate(snapshot, fn, !!apiKey);
+  const refusal = evaluateGate(snapshot, fn, opts.configured ? opts.configured(env) : !!apiKey);
   if (refusal) return refuse(req, env, refusal);
 
   let body: unknown;
@@ -122,7 +128,8 @@ export async function handleAi(req: Request, fn: string, handler: Handler, deps:
     userId: uid,
     body,
     env,
-    call: (args) => callClaude({ ...args, apiKey: apiKey as string, fetchImpl: deps.fetchImpl, sleep: deps.sleep }),
+    fetch: deps.fetchImpl ?? fetch,
+    call: (args) => callClaude({ ...args, apiKey: apiKey ?? '', fetchImpl: deps.fetchImpl, sleep: deps.sleep }),
   };
 
   const log = async (u: Usage | undefined, ok: boolean, errorCode: string | null, vehicleId: string | null) => {

@@ -33,3 +33,18 @@ export function costUsd(model: string, inputTokens: number, outputTokens: number
   const usd = (Math.max(0, inputTokens) * inRate + Math.max(0, outputTokens) * outRate) / 1_000_000;
   return Math.ceil(usd * 1_000_000) / 1_000_000;
 }
+
+/**
+ * Speech-to-text has no tokens: it bills by audio minute. We do not decode the clip, so the duration is estimated from
+ * its size (phone voice codecs run ~12 kB/s), capped at the 30 s the app records. USD per minute from SGC's
+ * docs/PROPUESTA-TRANSCRIPCION-VOZ.md (OpenAI gpt-4o-mini-transcribe ~0.003, Groq whisper-large-v3-turbo ~0.0007).
+ * An estimate that errs high keeps the daily cap honest.
+ */
+export const STT_USD_PER_MIN: Record<string, number> = { openai: 0.006, groq: 0.002 };
+export const STT_BYTES_PER_SEC = 8_000;
+
+export function sttCostUsd(provider: string, bytes: number): number {
+  const seconds = Math.min(30, Math.max(1, bytes / STT_BYTES_PER_SEC));
+  const rate = STT_USD_PER_MIN[provider] ?? STT_USD_PER_MIN.openai;
+  return Math.ceil((seconds / 60) * rate * 1_000_000) / 1_000_000;
+}
