@@ -8,7 +8,7 @@
  *     environment (SUPABASE_ACCESS_TOKEN), never argv, never a log line.
  *
  *   node tools/deploy-edge.mjs cg-ai-status cg-ai-ping --dry-run
- *   node tools/deploy-edge.mjs cg-ai-status cg-ai-ping
+ *   node tools/deploy-edge.mjs cg-ai-status cg-ai-ping --yes     (--yes = confirm the hosted deploy, required by the CLI)
  *
  * Functions authenticate themselves (the user's JWT is checked in code, the SGC pattern), so they deploy with
  * --no-verify-jwt: that keeps cg-ai-status answerable signed out and avoids the legacy-JWT-secret gateway check.
@@ -23,6 +23,9 @@ const PROJECT_REF = 'nakgrkcqyuycadeuenuw';
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
+// The Supabase CLI refuses a non-interactive hosted deploy unless it is confirmed with --yes. We never add it
+// implicitly: the person running this tool (or the one who asked for it) opts in with `--yes`.
+const confirmed = args.includes('--yes');
 const names = args.filter((a) => !a.startsWith('--'));
 
 if (names.length === 0) {
@@ -50,7 +53,7 @@ function token() {
 }
 
 for (const n of names) {
-  const cmd = ['--yes', 'supabase@latest', 'functions', 'deploy', n, '--project-ref', PROJECT_REF, '--use-api', '--no-verify-jwt'];
+  const cmd = ['--yes', 'supabase@latest', 'functions', 'deploy', n, '--project-ref', PROJECT_REF, '--use-api', '--no-verify-jwt', ...(confirmed ? ['--yes'] : [])];
   console.log(`${dryRun ? 'would deploy' : 'deploying   '} ${n} → ${PROJECT_REF}   (npx ${cmd.join(' ')})`);
   if (dryRun) continue;
   const r = spawnSync('npx', cmd, {
