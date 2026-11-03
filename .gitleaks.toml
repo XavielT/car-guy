@@ -1,0 +1,28 @@
+# gitleaks config for Car Guy (IMP 03112026, ADR-65). Modelled on csd-app's .gitleaks.toml.
+#
+#   gitleaks detect --source . --redact          # whole history
+#   gitleaks detect --source . --redact --log-opts="origin/main..HEAD"   # a branch
+#
+# The default ruleset catches Anthropic (sk-ant-), Google (AIza), generic API keys, private keys, JWTs and cloud
+# tokens. The company's Anthropic / Google / STT keys must exist ONLY as Supabase Edge Function secrets.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public-by-design values (not secrets)"
+# The Supabase ANON key ships in every client bundle and in eas.json build.base.env; it is protected by RLS
+# (sql/003_rls.sql). Allowlisted by its stable JWT signature. The service-role key must NEVER match this.
+regexes = [
+  '''83aqu6TlnXDs4eg-waT0FQlycvFc6hQinwgg42SSCwE''',
+]
+paths = [
+  '''eas\.json''',
+  '''\.env\.example''',
+  # Firebase Android client config: its API key is public by design (restricted in the Firebase console, shipped in every APK).
+  '''google-services\.json''',
+  # Redaction test fixtures: fake tokens that prove redactText() scrubs them.
+  '''__tests__/feedback/payload\.test\.ts''',
+  # Generated and vendored output that can contain look-alike strings (never real secrets):
+  '''^dist/''',
+  '''package-lock\.json''',
+]

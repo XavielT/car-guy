@@ -86,3 +86,12 @@ public/maplibre/
 # Service-account keys (FCM v1 etc.): local only, never committed, never packed by EAS (it follows .gitignore).
 credentials/
 *-firebase-adminsdk-*.json
+
+# IMP 03112026 (ADR-65): AI/Maps/STT keys live ONLY as x-core Edge Function secrets. Any key file or env file that
+# is not the committed example stays out of the repo (and out of EAS packs, which follow this file).
+*api_key*
+*API_KEY*
+*.env
+!.env.example
+.env.*
+!.env.example
