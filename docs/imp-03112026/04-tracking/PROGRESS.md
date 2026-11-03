@@ -6,7 +6,7 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 | Phase | Prompt | Status | Commit(s) | Notes |
 |-------|--------|--------|-----------|-------|
 | 0 | Kickoff + diagnosis | ✔ | (this commit) | docs only; zero product change; zero secret read. Numbers confirmed. |
-| 1 | Keys + gateway | ☐ | | |
+| 1 | Keys + gateway | ◐ code done · prod steps pending approval | dc8cf6a + this commit | Built, tested and verified locally. NOT applied to x-core: sql/042, secrets, function deploys, smoke test (see below). |
 | 2 | Photo + voice capture | ☐ | | |
 | 3 | Documents + onboarding | ☐ | | |
 | 4 | OBD + repairs | ☐ | | |
@@ -32,11 +32,21 @@ Claude Code updates this file at the end of every phase. Never write a secret va
 | 2026-11-03 | 0 | D-07 Screenshot baselines taken from dev server + `/dev/seed` (prod build cannot seed) | Realistic data needed for before/after |
 | 2026-11-03 | 0 | D-09 SGC and Car Guy use maps differently (Google map vs MapLibre): do not port SGC's `reverse-geocode`, `routing-directions`, `snap-to-roads`, `resolve-maps-link`; trip naming via MapTiler Geocoding; any reused Google key restricted to Places API (New); SGC's browser key never copied | User reminder 2026-11-03; Google ToS "no use with a non-Google map" for Geocoding/Directions/Roads/Places |
 | 2026-11-03 | 0 | D-10 Full review of `sgc-ai-reference.md` and `ai-workflow-map.md` done; fixed expense-category names, the media-role claim (media is polymorphic; it needs a role, not an owner link), the Haiku-4.5 default and the Azure row in the SGC reference | Review requested by Xaviel |
+| 2026-11-03 | 1 | D-11 Supabase MCP in this session points at project bzhokbcvfkipqimifrrq, not x-core (nakgrkcqyuycadeuenuw): never used for Car Guy SQL/deploys | Wrong project; Car Guy uses its own tools (apply-sql, set-ai-secrets, deploy-edge) |
+| 2026-11-03 | 1 | D-12 `tools/set-ai-secrets.mjs` writes ONLY with `--apply`; no flags prints usage (after a no-flag call would have written) | Safe by design; the classifier also blocked the unintended write |
+| 2026-11-03 | 1 | D-13 Gateway order: JWT → admin (if needed) → kill switch → provider configured → consent → hour limit → user day cap → global day cap; `>=` so 0 stops everything; nothing recorded for refusals, one `ai_usage` row per provider call (incl. billed failures) | ADR-66; SGC counted only successes and cut the day in UTC |
+| 2026-11-03 | 1 | D-14 Day cut in America/Santo_Domingo, not UTC | SGC lesson |
+| 2026-11-03 | 1 | D-15 Forced tool_use for structured output, with ONE fallback retry on `tool_choice: auto` if the API rejects a forced tool (adaptive-thinking models); unverified against the live API until the deploy | Cannot call the API from here |
+| 2026-11-03 | 1 | D-16 Privacy policy text now mentions AI / Anthropic / STT / Google but LEGAL_VERSION is NOT bumped (a bump re-asks every user); bump in PROMPT-08 with the first shipped AI action | Avoid re-consent for a feature that has no action yet |
+| 2026-11-03 | 1 | D-17 Smoke test needs an admin Car Guy account (`cg-ai-ping` is admin-only; caps via `set_app_config`): `SMOKE_EMAIL`/`SMOKE_PASSWORD` | Documented in tools/smoke-ai.mjs |
 | 2026-11-03 | 0 | D-08 Heavy reading delegated to 3 read-only subagents (SGC reference, workflow map, terms+models); Google clauses re-verified by me against the live page | Parallel, independent work |
 
 ## Edge Functions / SQL deployed to x-core
 | Date | Item | Name | Result |
 |------|------|------|--------|
+| 2026-11-03 | SQL | sql/042_ai_gateway.sql | **Local only**: local-rls scenario_042 (31 checks) + whole suite pass, applied twice. **Not applied to x-core**: the prod apply was blocked by the permission classifier; run `node tools/apply-sql.mjs sql/042_ai_gateway.sql` |
+| 2026-11-03 | Secrets | ANTHROPIC_API_KEY, GOOGLE_MAPS_API_KEY, CG_MODEL_VISION, CG_MODEL_REASON | **Not set.** `--dry-run` OK: both key files found and valid (lengths 108 / 39), names + lengths only. Run `node tools/set-ai-secrets.mjs --apply` |
+| 2026-11-03 | Edge Functions | cg-ai-status, cg-ai-ping | **Not deployed.** Wrapper dry-run OK. Run `node tools/deploy-edge.mjs cg-ai-status cg-ai-ping` |
 
 ## Round-2 evidence tables (Claude Code fills)
 ### Speed replay — old vs new

@@ -20,13 +20,14 @@
 - **Fotos y archivos**: del vehículo, recibos, documentos y tu foto de perfil.
 - **Cuenta** (solo si creas una): tu correo, un identificador de usuario y, si los pones, tu nombre y avatar.
 - **Comentarios** que nos envías desde la app: el mensaje, una captura de pantalla si la adjuntas, el correo si lo escribes y **información del dispositivo** (modelo, versión del sistema, versión de la app, pantalla en la que estabas y datos técnicos de diagnóstico, sin placas, VIN ni tu correo de sesión). No usamos el identificador de publicidad.
+- **Lo que envías a la IA**, solo si activas la IA (Cuenta → Privacidad): la foto, el audio o el texto de esa acción. De cada uso guardamos solo el conteo, la función y el costo, no el contenido.
 - **Aceptación de estos textos**: versión, fecha, idioma y plataforma.
 - **Ajustes** de la app (idioma, unidades, preferencias).
 
 ## 4. Para qué y con qué base
 
 - Para **prestar el servicio** que pides: guardar tu historial, sincronizarlo, compartirlo con quien tú elijas y responder tus comentarios.
-- Con tu **consentimiento** para la ubicación (que la app te pide antes de activarla), las fotos y los comentarios. Puedes retirarlo cuando quieras desde la app o los ajustes del teléfono.
+- Con tu **consentimiento** para la ubicación (que la app te pide antes de activarla), las fotos, los comentarios y el uso de la IA (que activas tú y puedes apagar cuando quieras en Cuenta → Privacidad). Puedes retirarlo cuando quieras desde la app o los ajustes del teléfono.
 
 ## 5. Dónde se guardan
 
@@ -37,6 +38,7 @@
 ## 6. Terceros que intervienen
 
 - **Supabase** y **Vercel**, como proveedores que guardan y sirven los datos por nosotros.
+- **Anthropic** (proveedor de IA, Estados Unidos), **solo si activas la IA**: recibe la foto, el audio transcrito o el texto que eliges enviar, para devolverte los campos de un formulario. Según sus términos comerciales vigentes no retiene por defecto lo que se envía por su API. Un servicio de **voz a texto** recibe el audio solo si usas el micrófono, y **Google** solo recibiría una búsqueda de lugares si esa función se activa. No enviamos tu ubicación en segundo plano ni tus viajes a ninguno de ellos.
 - **OpenFreeMap / OpenStreetMap**: los mapas se descargan de sus servidores; esas solicitudes **exponen tu dirección IP** y la zona del mapa que estás viendo.
 - **GitHub**: el APK de Android se descarga de GitHub Releases, que ve tu dirección IP.
 - **Las personas que tú eliges**: los miembros de un garaje compartido ven ese carro, y una ficha pública la ve cualquiera con el link (con lo que tú decidas mostrar).
@@ -51,6 +53,7 @@ Los servidores están **fuera de la República Dominicana** (Estados Unidos). Al
 
 - **En el dispositivo**: hasta que los borres (en la app, con "Borrar datos locales", o al desinstalarla). Los **puntos GPS de cada viaje se guardan 30 días** en el dispositivo; el resumen del viaje se queda.
 - **En el servidor**: mientras tengas la cuenta. Al **eliminar la cuenta** se borran tus datos, tus archivos y tu acceso; pueden quedar en las copias de seguridad automáticas del proveedor hasta que esas copias se renuevan.
+- **Fotos, audio y texto enviados a la IA**: no se guardan en nuestro servidor. Solo se guarda el conteo de usos y su costo, hasta 90 días, para poner límites y detectar abusos.
 - **Comentarios**: mientras sean útiles para arreglar o mejorar la app; los enviados con tu cuenta se borran al eliminarla.
 
 ## 9. Tus derechos (Ley 172-13)

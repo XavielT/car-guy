@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AiPrivacyCard } from '@/components/ai/AiPrivacyCard';
 import { Avatar } from '@/components/Avatar';
 import { Field } from '@/components/Field';
 import { SignupConsent } from '@/components/legal/SignupConsent';
@@ -241,6 +242,9 @@ export default function CuentaScreen() {
 
             {/* The photo quota (IMP 28092026 Phase 3): used / 300 MB, warns at 90 %. */}
             {FEATURE_ALBUM ? <StorageMeter style={{ marginBottom: space.md }} /> : null}
+
+            {/* IMP 03112026: Privacidad > Usar IA (consent is checked server-side on every call). */}
+            <AiPrivacyCard />
 
             <GhostButton label={t.account.signOut} onPress={handleSignOut} />
 

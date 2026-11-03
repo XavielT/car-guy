@@ -2,6 +2,7 @@ import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { AiAdminPanel } from '@/components/ai/AiAdminPanel';
 import { Field } from '@/components/Field';
 import { AdminPanelSkeleton } from '@/components/skeletons/AdminSkeleton';
 import { T } from '@/components/T';
@@ -129,6 +130,9 @@ export default function UsoScreen() {
       ) : (
         <AdminPanelSkeleton />
       )}
+
+      {/* IMP 03112026 (ADR-66): AI spend, limits and the kill switch. */}
+      <AiAdminPanel />
 
       {note ? (
         <T face="body" accessibilityLiveRegion="polite" style={{ color: theme.accent, fontSize: 13, marginBottom: space.md }}>

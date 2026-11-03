@@ -3791,6 +3791,10 @@ export type Database = {
       }
       admin_stats: { Args: never; Returns: Json }
       admin_usage: { Args: never; Returns: Json }
+      admin_ai_usage: { Args: never; Returns: Json }
+      ai_usage_prune: { Args: { p_days?: number }; Returns: number }
+      my_ai_consent: { Args: never; Returns: boolean }
+      set_ai_consent: { Args: { p_on: boolean; p_version?: string }; Returns: boolean }
       admin_users: {
         Args: { p_limit?: number }
         Returns: {

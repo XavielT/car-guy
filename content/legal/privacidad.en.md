@@ -20,13 +20,14 @@
 - **Photos and files**: of the vehicle, receipts, documents and your profile picture.
 - **Account** (only if you create one): your e-mail, a user identifier and, if you add them, your name and avatar.
 - **Feedback** you send from the app: the message, a screenshot if you attach one, the e-mail if you type it, and **device information** (model, OS version, app version, the screen you were on and technical diagnostics, with no plates, VINs or your session e-mail). We do not use the advertising ID.
+- **What you send to AI**, only if you turn AI on (Account → Privacy): the photo, audio or text of that action. For each use we keep only the count, the function and the cost, not the content.
 - **Acceptance of these texts**: version, date, language and platform.
 - App **settings** (language, units, preferences).
 
 ## 4. Why, and on what basis
 
 - To **provide the service** you ask for: keep your history, sync it, share it with whoever you choose and answer your feedback.
-- With your **consent** for location (the app asks before turning it on), photos and feedback. You can withdraw it at any time in the app or in the phone's settings.
+- With your **consent** for location (the app asks before turning it on), photos, feedback and the use of AI (which you turn on yourself and can switch off at any time in Account → Privacy). You can withdraw it at any time in the app or in the phone's settings.
 
 ## 5. Where it is stored
 
@@ -37,6 +38,7 @@
 ## 6. Third parties involved
 
 - **Supabase** and **Vercel**, as providers that store and serve the data on our behalf.
+- **Anthropic** (AI provider, United States), **only if you turn AI on**: it receives the photo, transcribed audio or text you choose to send, to give you back the fields of a form. Under its current commercial terms it does not retain what is sent through its API by default. A **speech-to-text** service receives audio only if you use the microphone, and **Google** would only receive a place search if that feature is turned on. We do not send your background location or your trips to any of them.
 - **OpenFreeMap / OpenStreetMap**: maps are downloaded from their servers; those requests **expose your IP address** and the map area you are viewing.
 - **GitHub**: the Android APK is downloaded from GitHub Releases, which sees your IP address.
 - **The people you choose**: members of a shared garage see that car, and a public page is visible to anyone with the link (showing only what you decide).
@@ -51,6 +53,7 @@ The servers are **outside the Dominican Republic** (United States). By creating 
 
 - **On the device**: until you delete it (in the app, with "Delete local data", or by uninstalling). **Each trip's GPS points are kept for 30 days** on the device; the trip summary stays.
 - **On the server**: while you have the account. **Deleting the account** removes your data, your files and your login; copies may remain in the provider's automatic backups until those backups roll over.
+- **Photos, audio and text sent to AI**: not stored on our server. Only the count of uses and their cost are kept, for up to 90 days, to set limits and spot abuse.
 - **Feedback**: while it is useful for fixing or improving the app; feedback sent with your account is deleted with it.
 
 ## 9. Your rights (Law 172-13)
