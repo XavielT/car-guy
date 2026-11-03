@@ -1,13 +1,19 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { FuelPicker } from '@/components/FuelPicker';
+import { AiFieldMark, aiOutline } from '@/components/ai/AiFieldMark';
+import { CaptureButton } from '@/components/ai/CaptureButton';
 import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, ToggleRow } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { clearAiDraft, peekAiDraft, withoutMark, type DraftPhoto } from '@/lib/ai/draft';
+import { fuelPrefillFrom, type AiMarks, type FuelPrefill } from '@/lib/ai/fuelMap';
+import type { ReadResult } from '@/lib/ai/read';
+import { MI_TO_KM, firstFlagByField, fuelSanity, type SanityFlag } from '@/lib/domain/fuelSanity';
 import { completeAmounts, odometerBounds, parseDecimal } from '@/lib/domain/economy';
 import { FUEL_CATALOG, perUnitLabelFor, unitLabelFor } from '@/lib/fuel';
 import { PickerField, SearchSheet, type SearchItem } from '@/components/pickers';
@@ -48,25 +54,38 @@ export function FillUpForm({
    * Return `false` when the save was refused (a duplicate): the button comes back.
    * Anything else leaves it disabled — the screen moves on (note 8).
    */
-  onSubmit: (draft: FillDraft) => void | boolean;
+  onSubmit: (draft: FillDraft, extras?: { photos: DraftPhoto[] }) => void | boolean;
   onDelete?: () => void;
 }) {
   const { theme } = useTheme();
   const { data } = useStore();
 
+  // IMP 03112026 (ADR-67): a draft from a photo or a sentence pre-fills the fields below; the person saves as always.
+  const [aiDraft] = useState(() => (initial ? null : peekAiDraft('fuel')));
+  const pf = (aiDraft?.prefill ?? {}) as FuelPrefill;
+  useEffect(() => {
+    if (aiDraft) clearAiDraft('fuel');
+    // Once, on mount: the draft is consumed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [marks, setMarks] = useState<AiMarks>((aiDraft?.marks ?? {}) as AiMarks);
+  const [photos, setPhotos] = useState<DraftPhoto[]>(aiDraft?.photos ?? []);
+  const [milesRead, setMilesRead] = useState(Boolean(pf.odoUnitMi));
+  const unmark = (k: keyof AiMarks) => setMarks((m) => withoutMark(m as Record<string, number>, k) as AiMarks);
+
   // Note 8: one save per tap. The ref blocks a second tap before the disabled button re-renders.
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
-  const [date, setDate] = useState(initial ? dateInputFromIso(initial.occurredAt) : todayIsoDate());
-  const [odo, setOdo] = useState(initial ? String(initial.odometerKm) : '');
-  const [fuel, setFuel] = useState<FuelType>(initial?.fuelType ?? defaultFuel);
-  const [vol, setVol] = useState(initial ? String(initial.volume) : '');
-  const [typedPrice, setPrice] = useState(initial ? String(initial.pricePerUnit) : '');
+  const [date, setDate] = useState(initial ? dateInputFromIso(initial.occurredAt) : (pf.date ?? todayIsoDate()));
+  const [odo, setOdo] = useState(initial ? String(initial.odometerKm) : (pf.odo ?? ''));
+  const [fuel, setFuel] = useState<FuelType>(initial?.fuelType ?? pf.fuel ?? defaultFuel);
+  const [vol, setVol] = useState(initial ? String(initial.volume) : (pf.vol ?? ''));
+  const [typedPrice, setPrice] = useState(initial ? String(initial.pricePerUnit) : (pf.price ?? ''));
   // Note 1 (Phase 5): a new fill-up starts with the board's price for its fuel, in the
   // vehicle's unit; it follows the fuel chips until the person types a price of their own.
-  const [priceTyped, setPriceTyped] = useState(Boolean(initial));
+  const [priceTyped, setPriceTyped] = useState(Boolean(initial) || pf.price != null);
   const { board } = usePriceData();
-  const [total, setTotal] = useState(initial ? String(initial.totalDop) : '');
+  const [total, setTotal] = useState(initial ? String(initial.totalDop) : (pf.total ?? ''));
   const [full, setFull] = useState(initial?.isFullTank ?? true);
   const [missedPrevious, setMissedPrevious] = useState(initial?.missedPrevious ?? false);
   // Note 4: the gauge before and after pumping, both optional. v10: as fractions 0..1 on the car's own grid;
@@ -84,7 +103,7 @@ export function FillUpForm({
   };
   const [inReserve, setInReserve] = useState(initial?.inReserve ?? false);
   // A saved log keeps the station text it had ("Otra" from before 2.3.1 reads as none).
-  const [station, setStation] = useState(initial?.station && initial.station !== 'Otra' ? initial.station : '');
+  const [station, setStation] = useState(initial?.station && initial.station !== 'Otra' ? initial.station : (pf.station ?? ''));
   const [stationOpen, setStationOpen] = useState(false);
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
@@ -94,6 +113,26 @@ export function FillUpForm({
   // v10 (ADR-51): the dash this car has; the needle until FEATURE_GAUGE_SEGMENTS.
   const gaugeCfg: GaugeCfg = FEATURE_GAUGE_SEGMENTS ? gaugeCfgOf(detail) : { type: 'needle8' };
   const meta = { unitLabel: unitLabelFor(fuel, volumeUnit), perUnitLabel: perUnitLabelFor(fuel, volumeUnit) };
+  /** A photo was read: fill what it carries (never a field it did not read), keep its confidence as a mark, keep the photo. */
+  function applyRead(result: ReadResult, photo: { uri: string }, role: DraftPhoto['role']) {
+    const { prefill: p, marks: m } = fuelPrefillFrom(result, volumeUnit);
+    if (p.date) setDate(p.date);
+    if (p.odo) {
+      setOdo(p.odo);
+      setMilesRead(Boolean(p.odoUnitMi));
+    }
+    if (p.fuel) setFuel(p.fuel);
+    if (p.vol) setVol(p.vol);
+    if (p.price) {
+      setPriceTyped(true);
+      setPrice(p.price);
+    }
+    if (p.total) setTotal(p.total);
+    if (p.station) setStation(p.station);
+    setMarks((cur) => ({ ...cur, ...m }));
+    setPhotos((cur) => [...cur, { uri: photo.uri, role }]);
+  }
+  const aiFilled = Object.keys(marks).length;
   const prefill = initial ? null : prefillPrice(board, fuel, volumeUnit);
   // Until typed, the field shows the board's price (derived, so it follows the fuel and the board).
   const prefilled = prefill != null && !priceTyped;
@@ -150,6 +189,45 @@ export function FillUpForm({
   };
   const fuelForLiters = (v: number) => v * fuelCfg.unitL;
 
+  // Deterministic checks (ADR-68) shown inline once the AI has filled something; the form's own checks still run on Save.
+  const flags: SanityFlag[] = useMemo(() => {
+    if (aiFilled === 0) return [];
+    const mine = data.fillups.filter((f) => f.vehicleId === vehicleId);
+    const lastPrice = mine.length ? [...mine].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)).at(-1)!.pricePerUnit : null;
+    return fuelSanity(
+      { odometerKm: parseDecimal(odo), odoUnitMi: milesRead, volume: parseDecimal(vol), pricePerUnit: parseDecimal(price), total: parseDecimal(total), date },
+      {
+        lastOdometerKm: lastOdo,
+        tankVolume: fuelCfgFor(detail).capacityL ? Number(fromLiters(fuelCfgFor(detail).capacityL!, volumeUnit).toFixed(1)) : null,
+        referencePrice: prefill?.price ?? lastPrice,
+        today: todayIsoDate(),
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiFilled, odo, milesRead, vol, price, total, date, lastOdo, vehicleId, volumeUnit]);
+  const flagBy = firstFlagByField(flags);
+  const flagText = (f: SanityFlag | undefined) => {
+    if (!f) return null;
+    const d = f.detail;
+    switch (f.code) {
+      case 'odo_below_last': return t.ai.sanity.odo_below_last(d.last);
+      case 'odo_miles': return t.ai.sanity.odo_miles(d.read, d.km);
+      case 'total_mismatch': return t.ai.sanity.total_mismatch(d.expected, d.total);
+      case 'date_old': return t.ai.sanity.date_old(d.days);
+      case 'date_future': return t.ai.sanity.date_future(d.days);
+      case 'vol_over_tank': return t.ai.sanity.vol_over_tank(d.volume, d.tank);
+      case 'price_band': return t.ai.sanity.price_band(d.price, d.reference);
+    }
+  };
+  const flagLine = (field: SanityFlag['field']) => {
+    const text = flagText(flagBy[field]);
+    return text ? (
+      <T face="body" accessibilityLiveRegion="polite" style={{ color: theme.accent, fontSize: 13, lineHeight: 18, marginTop: -6, marginBottom: space.sm }}>
+        {text}
+      </T>
+    ) : null;
+  };
+
   function save() {
     const odometerKm = parseDecimal(odo);
     if (odometerKm == null) {
@@ -193,7 +271,7 @@ export function FillUpForm({
       notes: notes.trim(),
       ...gaugeFields(),
       inReserve,
-    });
+    }, photos.length ? { photos } : undefined);
     if (accepted === false) {
       savingRef.current = false;
       setSaving(false);
@@ -212,43 +290,85 @@ export function FillUpForm({
         {t.fuel.intro(t.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
       </T>
 
-      <DateField label={t.fuel.date} value={date} onChange={setDate} noFuture />
+      {/* IMP 03112026 SPEC-B §B2: start from a photo; the form below stays the way to type it by hand. */}
+      {initial ? null : (
+        <View style={{ marginBottom: space.sm }}>
+          <CaptureButton kind="fuel_receipt" label={t.ai.capture.scanReceipt} onRead={(r, ph) => applyRead(r, ph, 'invoice')} />
+          <CaptureButton kind="odometer" icon="speedometer-outline" label={t.ai.capture.dashboardPhoto} onRead={(r, ph) => applyRead(r, ph, 'odometer_photo')} />
+          {aiFilled > 0 ? (
+            <T face="body" accessibilityLiveRegion="polite" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 18 }}>
+              {t.ai.capture.filledNote(aiFilled)}
+            </T>
+          ) : null}
+        </View>
+      )}
+
+      <AiFieldMark confidence={marks.date} />
+      <DateField label={t.fuel.date} value={date} onChange={(v) => { setDate(v); unmark('date'); }} noFuture />
+      {flagLine('date')}
+      <AiFieldMark confidence={marks.odo} />
       <Field
         label={t.fuel.odometer}
         keyboardType="decimal-pad"
         value={odo}
-        onChangeText={setOdo}
+        style={aiOutline(marks.odo, theme.accent)}
+        onChangeText={(v) => { setOdo(v); setMilesRead(false); unmark('odo'); }}
         placeholder={lastOdo != null ? String(lastOdo) : '45210'}
         hint={lastOdo != null ? t.fuel.odometerHint(`${lastOdo.toLocaleString('es-DO')} km`) : undefined}
       />
+      {flagLine('odo')}
+      {milesRead && parseDecimal(odo) != null ? (
+        <Pressable
+          onPress={() => {
+            setOdo(String(Math.round(parseDecimal(odo)! * MI_TO_KM)));
+            setMilesRead(false);
+          }}
+          accessibilityRole="button"
+          style={{ alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center', marginBottom: space.sm }}>
+          <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
+            {t.ai.capture.useKm}
+          </T>
+        </Pressable>
+      ) : null}
 
-      <FuelPicker label={t.fuel.type} value={fuel} onChange={setFuel} />
+      <AiFieldMark confidence={marks.fuel} />
+      <FuelPicker label={t.fuel.type} value={fuel} onChange={(v) => { setFuel(v); unmark('fuel'); }} />
 
+      <AiFieldMark confidence={marks.vol} />
       <Field
         label={t.fuel.volume(meta.unitLabel)}
         keyboardType="decimal-pad"
         value={vol}
-        onChangeText={setVol}
+        style={aiOutline(marks.vol, theme.accent)}
+        onChangeText={(v) => { setVol(v); unmark('vol'); }}
         placeholder="8.4"
       />
+      {flagLine('vol')}
+      <AiFieldMark confidence={marks.price} />
       <Field
         label={meta.perUnitLabel}
         keyboardType="decimal-pad"
         value={price}
+        style={aiOutline(marks.price, theme.accent)}
         onChangeText={(v) => {
           setPriceTyped(true);
           setPrice(v);
+          unmark('price');
         }}
         placeholder="307.50"
         hint={prefilled && prefill ? t.fuelPricesUi.prefillHint(boardSourceLabel(prefill.entry)) : undefined}
       />
+      {flagLine('price')}
+      <AiFieldMark confidence={marks.total} />
       <Field
         label={t.fuel.total}
         keyboardType="decimal-pad"
         value={total}
-        onChangeText={setTotal}
+        style={aiOutline(marks.total, theme.accent)}
+        onChangeText={(v) => { setTotal(v); unmark('total'); }}
         placeholder="2583.00"
       />
+      {flagLine('total')}
       {amounts ? (
         <View style={[styles.calc, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
           <T face="monoBold" style={[styles.calcTxt, { color: theme.text.primary }]}>
@@ -316,6 +436,7 @@ export function FillUpForm({
       <ToggleRow label={t.fuel.missedPrevious} hint={t.fuel.missedPreviousHint(t.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))} value={missedPrevious} onChange={setMissedPrevious} />
 
       {/* Note 7: the car's recent stations, then the brands for this fuel, then Otra (free text). */}
+      <AiFieldMark confidence={marks.station} />
       <PickerField
         label={t.fuel.station}
         value={station || null}
@@ -330,6 +451,7 @@ export function FillUpForm({
         otherLabel={t.fuel.stationOther}
         onPick={(pick) => {
           setStation('other' in pick ? normaliseStation(pick.other) : pick.label);
+          unmark('station');
           setStationOpen(false);
         }}
         onClose={() => setStationOpen(false)}

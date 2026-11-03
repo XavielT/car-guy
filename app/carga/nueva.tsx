@@ -5,6 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FillUpForm } from '@/components/FillUpForm';
 import { FillUpReviewSheet } from '@/components/FillUpReviewSheet';
+import type { DraftPhoto } from '@/lib/ai/draft';
+import { recordReportable } from '@/lib/diagnostics';
+import { storePhoto } from '@/lib/media';
 import { reviewFillUp, type FillUpReview } from '@/lib/domain/economy';
 import { findRecentDuplicate } from '@/lib/domain/fillupDedupe';
 import { fuelCfgFor, partialEconomy, type SeriesPoint } from '@/lib/domain/partialEconomy';
@@ -42,7 +45,7 @@ export default function CargarScreen() {
           defaultFuel={defaultFuelForNewLoad(activeVehicle)}
           lastOdo={lastOdo}
           submitLabel={t.fuel.save}
-          onSubmit={(draft) => {
+          onSubmit={(draft, extras) => {
             const dup = findRecentDuplicate(draft, data.fillups);
             if (dup) {
               Alert.alert(t.fuel.duplicateTitle, t.fuel.duplicateBody, [
@@ -70,6 +73,8 @@ export default function CargarScreen() {
               ? t.perFill.line(economyNumber(economyValue(pf.kmPerUnit, volumeUnit, economyUnit)), economyLabel(draft.fuelType, volumeUnit, economyUnit))
               : null;
             const savedId = upsertFillUp(draft);
+            // The photos the AI read stay with the record (IMP 03112026 ADR-67). Best effort: a photo that fails to store never undoes a saved fill-up.
+            attachPhotos(savedId, activeVehicle.id, extras?.photos);
             impact();
             setResult({
               id: savedId,
@@ -104,6 +109,13 @@ export default function CargarScreen() {
       />
     </SafeAreaView>
   );
+}
+
+/** The receipt / dashboard photos of an AI read, stored as media of the new fill-up (owner `fuel_log`). */
+function attachPhotos(fillUpId: string, vehicleId: string, photos: DraftPhoto[] | undefined) {
+  for (const photo of photos ?? []) {
+    void storePhoto({ uri: photo.uri, width: null, takenAt: new Date().toISOString() }, { ownerTable: 'fuel_log', ownerId: fillUpId, vehicleId }).catch((e) => recordReportable('ai-photo-attach', e));
+  }
 }
 
 /** Light tap on save. Native only — the web build must not reach for haptics. */
