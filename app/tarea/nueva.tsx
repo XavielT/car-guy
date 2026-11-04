@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+
+import { useAiDraftOnce } from '@/lib/ai/draft';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,7 +24,8 @@ export default function NuevaTareaScreen() {
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
 
-  const [title, setTitle] = useState('');
+  const draft = useAiDraftOnce('task');
+  const [title, setTitle] = useState(String((draft?.prefill as { title?: string } | undefined)?.title ?? ''));
   const [kind, setKind] = useState<ServiceKind>('reparacion');
   const [priority, setPriority] = useState<Task['priority']>('normal');
   const [cost, setCost] = useState('');

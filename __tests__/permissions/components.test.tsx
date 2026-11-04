@@ -35,6 +35,7 @@ jest.mock('@/lib/permissions/impl', () => {
       location_background: make(),
       notifications: make(),
       camera: make(),
+      microphone: make(),
       photos: make(),
       battery_unrestricted: make(),
       storage_persist: make(),

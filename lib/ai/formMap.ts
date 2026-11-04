@@ -151,7 +151,7 @@ export function invoicePrefillFrom(r: ReadResult, fallbackDate: string): { prefi
 // ───────────────────────── invoice → expense form ─────────────────────────
 
 export type ExpensePrefill = { amount?: string; date?: string; vendor?: string; noteLines: string[] };
-export type ExpenseMarks = Partial<Record<'amount' | 'date' | 'vendor', number>>;
+export type ExpenseMarks = Partial<Record<'amount' | 'date' | 'vendor' | 'category', number>>;
 
 /** A receipt or invoice → the expense form (amount, date, who). The category is never guessed: the person picks it. */
 export function expensePrefillFrom(r: ReadResult): { prefill: ExpensePrefill; marks: ExpenseMarks } {

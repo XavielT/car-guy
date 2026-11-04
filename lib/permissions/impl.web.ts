@@ -43,11 +43,41 @@ function askGeolocation(): Promise<PermissionSnapshot> {
   });
 }
 
+function micSupported(): boolean {
+  return typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia) && (typeof window === 'undefined' || window.isSecureContext !== false);
+}
+
+/** Reads the state without a dialog where the browser can (Chrome, Firefox, Safari 16+); `unknown` until asked elsewhere. */
+async function queryMicrophone(): Promise<PermissionSnapshot> {
+  if (!micSupported()) return { status: 'unavailable' };
+  try {
+    const q = await navigator.permissions?.query?.({ name: 'microphone' as PermissionName });
+    return fromWebQuery(q?.state);
+  } catch {
+    return { status: 'unknown' };
+  }
+}
+
+/** Shows the browser's dialog (it needs a gesture); the stream is closed at once, the recorder opens its own. */
+async function askMicrophone(): Promise<PermissionSnapshot> {
+  if (!micSupported()) return { status: 'unavailable' };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    return { status: 'granted' };
+  } catch (e) {
+    const name = (e as { name?: string })?.name;
+    // Refused or blocked: a page cannot ask twice. No microphone at all is not a refusal.
+    return name === 'NotFoundError' || name === 'OverconstrainedError' ? { status: 'unavailable' } : { status: 'denied_blocked' };
+  }
+}
+
 export const impl: Record<PermissionId, PermissionImpl> = {
   location_foreground: { check: queryGeolocation, request: askGeolocation },
   location_background: none,
   notifications: none,
   camera: none,
+  microphone: { check: queryMicrophone, request: askMicrophone },
   photos: none,
   battery_unrestricted: none,
   install_unknown_apps: none,

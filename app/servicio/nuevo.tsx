@@ -30,7 +30,7 @@ import { offerUndo } from '@/lib/db/resolvedPendingStore';
 import { linkDtcRepair } from '@/lib/db/diyQueries';
 import { askForLabor, askForShop } from '@/lib/domain/repairs';
 import { saveMilestone } from '@/lib/db/albumQueries';
-import { withoutMark } from '@/lib/ai/draft';
+import { useAiDraftOnce, withoutMark } from '@/lib/ai/draft';
 import { invoicePrefillFrom, type InvoiceMarks } from '@/lib/ai/formMap';
 import { recordError, recordReportable } from '@/lib/diagnostics';
 import { storePhoto } from '@/lib/media';
@@ -101,22 +101,26 @@ export default function NuevoServicioScreen() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // IMP 03112026 (ADR-67): a dictated sentence pre-fills the form it routed to; the person saves as always.
+  const draft = useAiDraftOnce(params.kind === 'reparacion' ? 'repair' : 'service');
+  const dp = (draft?.prefill ?? {}) as Record<string, string | undefined>;
+  const dm = (draft?.marks ?? {}) as Record<string, number | undefined>;
   const [kind, setKind] = useState<ServiceKind>(
     KINDS.includes(params.kind as ServiceKind) ? (params.kind as ServiceKind) : 'mantenimiento',
   );
   const [date, setDateRaw] = useState(
-    params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : dateInputFromIso(todayIso()),
+    params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : (dp.date ?? dateInputFromIso(todayIso())),
   );
-  const [odometer, setOdometer] = useState(params.km ?? '');
-  const [title, setTitle] = useState(params.title ?? '');
-  const [titleTouched, setTitleTouched] = useState(Boolean(params.title));
+  const [odometer, setOdometer] = useState(params.km ?? dp.odometer ?? '');
+  const [title, setTitle] = useState(params.title ?? dp.title ?? '');
+  const [titleTouched, setTitleTouched] = useState(Boolean(params.title ?? dp.title));
   const [selected, setSelected] = useState<string[]>(params.serviceTypeId ? [params.serviceTypeId] : []);
   const [search, setSearch] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(dp.description ?? '');
   const [costParts, setCostPartsRaw] = useState('');
   const [costLabor, setCostLaborRaw] = useState('');
-  const [totalOverride, setTotalOverrideRaw] = useState<string | null>(null);
-  const [shop, setShopRaw] = useState('');
+  const [totalOverride, setTotalOverrideRaw] = useState<string | null>(dp.total ?? null);
+  const [shop, setShopRaw] = useState(dp.shop ?? '');
   const [contactId, setContactId] = useState<string | null>(null);
   const [showWarranty, setShowWarranty] = useState(false);
   const [warrantyDate, setWarrantyDateRaw] = useState('');
@@ -133,7 +137,11 @@ export default function NuevoServicioScreen() {
   const [sourceInspectionId, setSourceInspectionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // IMP 03112026 (ADR-67): an invoice photo fills these; the person reviews and saves as always. Editing a field clears its mark.
-  const [marks, setMarks] = useState<InvoiceMarks>({});
+  const [marks, setMarks] = useState<InvoiceMarks>(() => ({
+    ...(dm.date != null ? { date: dm.date } : {}),
+    ...(dm.shop != null ? { shop: dm.shop } : {}),
+    ...(dm.total != null ? { total: dm.total } : {}),
+  }));
   const unmark = (k: keyof InvoiceMarks) => setMarks((m) => withoutMark(m as Record<string, number>, k) as InvoiceMarks);
   const setDate = (v: string) => { setDateRaw(v); unmark('date'); };
   const setCostParts = (v: string) => { setCostPartsRaw(v); unmark('costParts'); };

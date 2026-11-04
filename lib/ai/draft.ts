@@ -5,7 +5,7 @@
  * (`takeAiDraft` clears it) and never persisted: if the app closes, it is gone, and the form was never saved anyway.
  * Nothing in this module saves anything.
  */
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 export type DraftForm = 'fuel' | 'service' | 'repair' | 'expense' | 'odometer' | 'reminder' | 'task' | 'event';
 
@@ -72,6 +72,20 @@ const subscribe = (l: () => void) => {
 /** Re-renders when a draft for this form is set or consumed (the capture button navigates; the form reads on mount). */
 export function useHasAiDraft(form: DraftForm): boolean {
   return useSyncExternalStore(subscribe, () => drafts.has(form), () => false);
+}
+
+/**
+ * The draft for a form, read once on the first render (so state initialisers can use it) and consumed after mount.
+ * Reading it in an initialiser, not an effect, keeps React from setting state in an effect and survives StrictMode.
+ */
+export function useAiDraftOnce(form: DraftForm): AiDraft | null {
+  const [draft] = useState(() => peekAiDraft(form));
+  useEffect(() => {
+    if (draft) clearAiDraft(form);
+    // Once, on mount: the draft is consumed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return draft;
 }
 
 /** Editing a field removes its mark: the person's value is theirs now. */

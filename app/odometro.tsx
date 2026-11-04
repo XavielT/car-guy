@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AiFieldMark, aiOutline } from '@/components/ai/AiFieldMark';
+import { useAiDraftOnce } from '@/lib/ai/draft';
 import { CaptureButton } from '@/components/ai/CaptureButton';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
@@ -31,12 +32,15 @@ export default function OdometroScreen() {
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
 
-  const [value, setValue] = useState('');
-  const [date, setDate] = useState(todayIsoDate());
+  // A dictated sentence ("el carro marca 84,300") pre-fills this form; the person taps Guardar.
+  const draft = useAiDraftOnce('odometer');
+  const dp = (draft?.prefill ?? {}) as Record<string, string | undefined>;
+  const [value, setValue] = useState(dp.value ?? '');
+  const [date, setDate] = useState(dp.date ?? todayIsoDate());
   const [current, setCurrent] = useState<number | null>(null);
   const [readings, setReadings] = useState<{ occurredAt: string; valueKm: number }[]>([]);
   // IMP 03112026 (ADR-67): a dashboard photo fills the number; the person still taps Guardar.
-  const [aiMark, setAiMark] = useState<number | undefined>(undefined);
+  const [aiMark, setAiMark] = useState<number | undefined>(draft?.marks?.value);
   const [milesRead, setMilesRead] = useState(false);
 
   useEffect(() => {

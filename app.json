@@ -50,6 +50,13 @@
       "expo-sqlite",
       "expo-font",
       "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Car Guy usa el micrófono solo cuando mantienes el botón para dictar un gasto o una carga.",
+          "recordAudioAndroid": true
+        }
+      ],
       "@react-native-community/datetimepicker",
       [
         "expo-media-library",

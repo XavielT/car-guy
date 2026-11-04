@@ -7,6 +7,7 @@ export type PermissionId =
   | 'location_background'
   | 'notifications'
   | 'camera'
+  | 'microphone'
   | 'photos'
   | 'battery_unrestricted'
   | 'storage_persist'

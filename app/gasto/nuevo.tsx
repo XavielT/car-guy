@@ -24,7 +24,7 @@ import { dateInputFromIso, isoFromDateInput, todayIsoDate } from '@/lib/format';
 import { storePhoto } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
-import { withoutMark } from '@/lib/ai/draft';
+import { useAiDraftOnce, withoutMark } from '@/lib/ai/draft';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -41,19 +41,32 @@ export default function NuevoGastoScreen() {
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
 
-  const [category, setCategory] = useState<ExpenseCategory>('marbete');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(todayIsoDate());
-  const [odometer, setOdometer] = useState('');
-  const [description, setDescription] = useState('');
-  const [vendor, setVendor] = useState('');
+  const draft = useAiDraftOnce('expense');
+  const dp = (draft?.prefill ?? {}) as Record<string, string | undefined>;
+  const dm = (draft?.marks ?? {}) as Record<string, number | undefined>;
+  const draftCategory = EXPENSE_CATEGORIES.find((c) => c === dp.category);
+  const [category, setCategoryRaw] = useState<ExpenseCategory>(draftCategory ?? 'marbete');
+  const [amount, setAmount] = useState(dp.amount ?? '');
+  const [date, setDate] = useState(dp.date ?? todayIsoDate());
+  const [odometer, setOdometer] = useState(dp.odometer ?? '');
+  const [description, setDescription] = useState(dp.description ?? '');
+  const [vendor, setVendor] = useState(dp.vendor ?? '');
   const [photoMediaId, setPhotoMediaId] = useState<string | null>(null);
   const [currentKm, setCurrentKm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expenseId] = useState(() => editingId ?? `exp_${Date.now()}`);
   // IMP 03112026 (ADR-67): a receipt photo fills amount, date and vendor (never the category); the person saves as always.
-  const [marks, setMarks] = useState<ExpenseMarks>({});
+  const [marks, setMarks] = useState<ExpenseMarks>(() => ({
+    ...(dm.amount != null ? { amount: dm.amount } : {}),
+    ...(dm.date != null ? { date: dm.date } : {}),
+    ...(dm.vendor != null ? { vendor: dm.vendor } : {}),
+    ...(draftCategory && dm.category != null ? { category: dm.category } : {}),
+  }));
   const unmark = (k: keyof ExpenseMarks) => setMarks((m) => withoutMark(m as Record<string, number>, k) as ExpenseMarks);
+  const setCategory = (c: ExpenseCategory) => {
+    setCategoryRaw(c);
+    unmark('category');
+  };
 
   const vehicleId = activeVehicle?.id;
 
@@ -82,7 +95,7 @@ export default function NuevoGastoScreen() {
       const photos = await mediaRepo.listWhere({ ownerTable: 'expense', ownerId: editingId });
       if (cancelled) return;
 
-      setCategory(row.category);
+      setCategoryRaw(row.category);
       setAmount(String(row.amountDop));
       setDate(dateInputFromIso(row.occurredAt));
       setOdometer(row.odometerKm != null ? String(Math.round(row.odometerKm)) : '');
@@ -137,6 +150,7 @@ export default function NuevoGastoScreen() {
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {t.expense.category}
         </T>
+        <AiFieldMark confidence={marks.category} />
         <View style={styles.row}>
           {EXPENSE_CATEGORIES.map((c) => {
             const on = category === c;

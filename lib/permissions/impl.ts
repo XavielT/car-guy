@@ -20,6 +20,7 @@ import type { PermissionId, PermissionImpl, PermissionSnapshot } from './types';
 // Loaded when used: they are native modules, and the registry is imported by half the app (and by its tests).
 const imagePicker = () => import('expo-image-picker');
 const mediaLibrary = () => import('expo-media-library');
+const audio = () => import('expo-audio');
 
 const unavailable = (): PermissionSnapshot => ({ status: 'unavailable' });
 const openAppSettings = () => Linking.openSettings();
@@ -97,6 +98,16 @@ export const impl: Record<PermissionId, PermissionImpl> = {
     },
     async request() {
       return fromResponse(await (await imagePicker()).requestCameraPermissionsAsync(), 'native');
+    },
+    openSettings: openAppSettings,
+  },
+  // Voice notes (IMP 03112026 SPEC-B §B3): foreground recording only; there is no background recording and no RECORD_AUDIO use beyond it.
+  microphone: {
+    async check() {
+      return fromResponse(await (await audio()).getRecordingPermissionsAsync(), 'native');
+    },
+    async request() {
+      return fromResponse(await (await audio()).requestRecordingPermissionsAsync(), 'native');
     },
     openSettings: openAppSettings,
   },

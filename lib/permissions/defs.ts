@@ -11,6 +11,7 @@ export const DEFS: PermissionDef[] = [
   { id: 'location_background', platforms: ['android'], icon: 'navigate-circle-outline', usedBy: ['auto'] },
   { id: 'notifications', platforms: ['android'], icon: 'notifications-outline', usedBy: ['reminders', 'auto'] },
   { id: 'camera', platforms: ['android'], icon: 'camera-outline', usedBy: ['photos', 'profile'] },
+  { id: 'microphone', platforms: ['android', 'web'], icon: 'mic-outline', usedBy: ['voice'] },
   { id: 'photos', platforms: ['android'], icon: 'images-outline', usedBy: ['album'] },
   { id: 'battery_unrestricted', platforms: ['android'], icon: 'battery-charging-outline', usedBy: ['auto'] },
   { id: 'install_unknown_apps', platforms: ['android'], icon: 'download-outline', usedBy: ['updates'] },

@@ -1,5 +1,6 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { DictateSheet } from '@/components/ai/DictateSheet';
 import { HomeNudge } from '@/components/features/HomeNudge';
 import { useOpenDtcCount, useOpenFeature } from '@/components/features/useFeatures';
 import { featureForTelltale, LAMP_TELLTALE } from '@/lib/features/registry';
@@ -82,6 +83,8 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const { activeVehicle, vehicleFillups, vehicleExpenses, data, setActiveVehicle } = useStore();
 
+  // IMP 03112026 (ADR-67): one sentence, spoken or typed, opens the right form pre-filled.
+  const [dictateOpen, setDictateOpen] = useState(false);
   const [odometerKm, setOdometerKm] = useState<number | null>(null);
   // ADR-30: the number on the LCD may be a trip's GPS estimate (shown with "≈").
   const [odometerEstimated, setOdometerEstimated] = useState(false);
@@ -367,6 +370,14 @@ export default function HomeScreen() {
             hitSlop={4}
             style={[styles.headerBtn, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
             <Ionicons name="search-outline" size={20} color={theme.accent} />
+          </Pressable>
+          <Pressable
+            onPress={() => setDictateOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t.ai.voice.open}
+            hitSlop={4}
+            style={[styles.headerBtn, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
+            <Ionicons name="mic-outline" size={20} color={theme.accent} />
           </Pressable>
           <Pressable
             onPress={() => router.push('/cuenta')}
@@ -667,6 +678,7 @@ export default function HomeScreen() {
         </Pressable>
       </ScrollView>
       {location.sheet}
+      <DictateSheet visible={dictateOpen} onClose={() => setDictateOpen(false)} />
     </SafeAreaView>
   );
 }
