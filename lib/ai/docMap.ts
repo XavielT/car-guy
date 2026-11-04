@@ -153,10 +153,16 @@ function compare(doc: DocVehicleRef, v: Pick<GuardVehicle, 'plate' | 'vin'>): { 
   let differ = 0;
   const dp = normPlate(doc.plate);
   const vp = normPlate(v.plate);
-  if (dp && vp) dp === vp ? equal++ : differ++;
+  if (dp && vp) {
+    if (dp === vp) equal++;
+    else differ++;
+  }
   const dv = normVin(doc.vin);
   const vv = normVin(v.vin);
-  if (dv && vv) dv === vv ? equal++ : differ++;
+  if (dv && vv) {
+    if (dv === vv) equal++;
+    else differ++;
+  }
   return { equal, differ };
 }
 

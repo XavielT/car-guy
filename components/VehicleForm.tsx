@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { radius, space } from '@/constants/theme';
 import { FuelPicker } from '@/components/FuelPicker';
+import { AiFieldMark } from '@/components/ai/AiFieldMark';
+import { CaptureButton } from '@/components/ai/CaptureButton';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { SelectField } from '@/components/pickers';
@@ -14,6 +16,11 @@ import { DEFAULT_SEGMENTS, GaugeTypeSection, type GaugeTypeValue } from '@/compo
 import { PhotosSection } from '@/components/vehicle/PhotosSection';
 import type { GaugeType } from '@/lib/domain/gauge';
 import { FEATURE_GAUGE_SEGMENTS } from '@/lib/flagsV10';
+import { Alert } from '@/lib/alert';
+import { mergeVpic, vehiclePrefillFrom, type MergeConflict, type VehicleMarks } from '@/lib/ai/docMap';
+import type { ReadResult } from '@/lib/ai/read';
+import { matchColor, matchMakeModel } from '@/lib/ai/vehicleMatch';
+import { checkVin, decodeVin } from '@/lib/domain/vpic';
 import { parseDecimal } from '@/lib/domain/economy';
 import { normalizeGallery, type Gallery } from '@/lib/domain/gallery';
 import { bodyTypeFromLegacy, bodyTypes, colors, legacyTypeFor } from '@/lib/domain/refdata';
@@ -167,6 +174,78 @@ export function VehicleForm({
   );
   const [error, setError] = useState<string | null>(null);
 
+  // IMP 03112026 SPEC-C §C2 (ADR-67): a photo of the matrícula or the VIN plate fills this form, then vPIC completes the
+  // specs from the VIN. The person reviews and saves as always; editing a field clears its "IA" mark.
+  const [aiMarks, setAiMarks] = useState<VehicleMarks>({});
+  const [scanNotes, setScanNotes] = useState<{ vpicFilled: number; conflicts: MergeConflict[]; frame: boolean; offline: boolean }>({ vpicFilled: 0, conflicts: [], frame: false, offline: false });
+  const unmarkAi = (...keys: (keyof VehicleMarks)[]) =>
+    setAiMarks((m) => {
+      const next = { ...m };
+      for (const k of keys) delete next[k];
+      return next;
+    });
+
+  async function applyScan(result: ReadResult) {
+    const { prefill, marks } = vehiclePrefillFrom(result);
+    if (!Object.keys(prefill).length) {
+      Alert.alert(t.ai.consent.title, t.ai.capture.nothingRead);
+      return;
+    }
+    let work = { ...prefill } as ReturnType<typeof mergeVpic>['merged'];
+    const notes = { vpicFilled: 0, conflicts: [] as MergeConflict[], frame: Boolean(prefill.chassisNumber), offline: false };
+    // Deterministic enrichment AFTER the read: only a real 17-character VIN is decoded. vPIC wins the specs, the paper wins plate and colour.
+    if (prefill.vin && checkVin(prefill.vin).ok) {
+      const res = await decodeVin(prefill.vin);
+      if (res.ok) {
+        const merged = mergeVpic(prefill, res.decoded);
+        work = merged.merged;
+        notes.vpicFilled = merged.filled.length;
+        notes.conflicts = merged.conflicts;
+      } else if (res.reason !== 'not_decoded') {
+        notes.offline = true;
+      }
+    }
+    // What the person already typed is never overwritten by a value only vPIC knew.
+    setMmy((cur) => {
+      const make = prefill.make != null || !cur.make.trim() ? work.make : undefined;
+      const model = prefill.model != null || !cur.model.trim() ? work.model : undefined;
+      const year = prefill.year != null || !cur.year.trim() ? work.year : undefined;
+      const hit = matchMakeModel(make ?? cur.make, model ?? cur.model);
+      return { ...cur, ...hit, year: year != null ? String(year) : cur.year };
+    });
+    if (work.color) {
+      const hit = matchColor(work.color);
+      setColor(hit ? { id: hit.id, label: hit.es } : { id: null, label: work.color });
+    }
+    if (work.plate) setPlate(work.plate);
+    if (work.vin) setVin(work.vin);
+    if (work.fuel) setFuel(work.fuel);
+    if (work.chassisNumber || work.transmission || work.drivetrain || work.engineModel) {
+      setIdentity((i) => ({
+        ...i,
+        chassisNumber: i.chassisNumber || work.chassisNumber || '',
+        transmission: i.transmission ?? work.transmission ?? null,
+        drivetrain: i.drivetrain ?? work.drivetrain ?? null,
+        engineCode: i.engineCode || work.engineModel || '',
+      }));
+      setShowIdentity(true);
+    }
+    setAiMarks((cur) => ({ ...cur, ...marks }));
+    setScanNotes(notes);
+  }
+
+  /** The person prefers the paper's value over vPIC's for one spec: put it back and stop showing the conflict. */
+  function restoreDocument(c: MergeConflict) {
+    setMmy((cur) =>
+      c.field === 'year'
+        ? { ...cur, year: String(c.document) }
+        : { ...cur, ...matchMakeModel(c.field === 'make' ? String(c.document) : cur.make, c.field === 'model' ? String(c.document) : cur.model) },
+    );
+    setScanNotes((n) => ({ ...n, conflicts: n.conflicts.filter((x) => x.field !== c.field) }));
+  }
+  const aiCount = Object.keys(aiMarks).length;
+  const mmyMark = [aiMarks.make, aiMarks.model, aiMarks.year].filter((c): c is number => c != null);
+
   // A stable owner id so a photo picked before the vehicle is saved still has
   // somewhere to belong. Created once (useState initializer), never re-keyed.
   const [draftId] = useState(() => initial?.id ?? `veh_${Date.now()}`);
@@ -267,12 +346,54 @@ export function VehicleForm({
         {initial?.id ? t.vehicle.editTitle : t.vehicle.newTitle}
       </T>
 
+      {/* IMP 03112026 SPEC-C §C2: scan the matrícula, or the VIN plate; nothing is saved until Guardar. */}
+      <CaptureButton kind="doc_matricula" icon="document-text-outline" label={t.ai.vehicleScan.scanMatricula} onRead={(r) => void applyScan(r)} />
+      <CaptureButton kind="vin_plate" icon="barcode-outline" label={t.ai.vehicleScan.scanVin} onRead={(r) => void applyScan(r)} />
+      <T face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17, marginBottom: space.md }}>
+        {t.ai.documents.privacyNote}
+      </T>
+      {aiCount ? (
+        <T face="body" accessibilityLiveRegion="polite" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 18, marginBottom: space.sm }}>
+          {t.ai.vehicleScan.filled(aiCount)}
+          {scanNotes.vpicFilled ? ` ${t.ai.vehicleScan.vpicFilled(scanNotes.vpicFilled)}` : ''}
+        </T>
+      ) : null}
+      {scanNotes.conflicts.map((c) => (
+        <View key={c.field} style={{ marginBottom: space.sm }}>
+          <T face="body" style={{ color: theme.statusText.proximo, fontSize: 13, lineHeight: 18 }}>
+            {t.ai.vehicleScan.conflict(t.ai.vehicleScan.fields[c.field], String(c.document), String(c.vpic))}
+          </T>
+          <Pressable onPress={() => restoreDocument(c)} accessibilityRole="button" style={{ alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center' }}>
+            <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
+              {t.ai.vehicleScan.useDocument}
+            </T>
+          </Pressable>
+        </View>
+      ))}
+      {scanNotes.frame ? (
+        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 18, marginBottom: space.sm }}>
+          {t.ai.vehicleScan.frameNote}
+        </T>
+      ) : null}
+      {scanNotes.offline ? (
+        <T face="body" style={{ color: theme.text.muted, fontSize: 13, lineHeight: 18, marginBottom: space.sm }}>
+          {t.ai.vehicleScan.vpicOffline}
+        </T>
+      ) : null}
+
       {/* 1 · Nombre, Fotos */}
       <Field label={t.vehicle.name} placeholder={t.vehicle.namePlaceholder} value={name} onChangeText={setName} />
       <PhotosSection gallery={gallery} onChange={setGallery} vehicleId={draftId} />
 
       {/* 2 · Marca, Modelo, Año */}
-      <MakeModelYear value={mmy} onChange={setMmy} />
+      <AiFieldMark confidence={mmyMark.length ? Math.min(...mmyMark) : undefined} />
+      <MakeModelYear
+        value={mmy}
+        onChange={(v) => {
+          setMmy(v);
+          unmarkAi('make', 'model', 'year');
+        }}
+      />
 
       {/* 3 · Tipo */}
       <SelectField<string | null>
@@ -284,13 +405,17 @@ export function VehicleForm({
       />
 
       {/* 4 · Color, Interior */}
+      <AiFieldMark confidence={aiMarks.color} />
       <SelectField<string | null>
         label={t.vehicleForm.color}
         variant="swatch"
         value={color.id}
         options={swatchOptions('exterior')}
         other={{ onOther: (text) => setColor({ id: null, label: text }), current: color.id ? null : color.label }}
-        onChange={(id) => setColor({ id, label: colorLabel('exterior', id) })}
+        onChange={(id) => {
+          setColor({ id, label: colorLabel('exterior', id) });
+          unmarkAi('color');
+        }}
       />
       <SelectField<string | null>
         label={t.vehicleForm.interior}
@@ -310,15 +435,18 @@ export function VehicleForm({
 
       <View style={styles.pair}>
         <View style={styles.half}>
-          <Field label={t.vehicle.plate} placeholder="A123456" autoCapitalize="characters" value={plate} onChangeText={setPlate} />
+          <AiFieldMark confidence={aiMarks.plate} />
+          <Field label={t.vehicle.plate} placeholder="A123456" autoCapitalize="characters" value={plate} onChangeText={(v) => (setPlate(v), unmarkAi('plate'))} />
         </View>
         <View style={styles.half}>
-          <Field label={t.vehicle.vin} autoCapitalize="characters" value={vin} onChangeText={setVin} />
+          <AiFieldMark confidence={aiMarks.vin} />
+          <Field label={t.vehicle.vin} autoCapitalize="characters" value={vin} onChangeText={(v) => (setVin(v), unmarkAi('vin'))} />
         </View>
       </View>
 
       {/* 5 · Combustible, Tanque (gal | L), Odómetro */}
-      <FuelPicker label={t.vehicle.fuel} value={fuel} onChange={setFuel} />
+      <AiFieldMark confidence={aiMarks.fuel} />
+      <FuelPicker label={t.vehicle.fuel} value={fuel} onChange={(v) => (setFuel(v), unmarkAi('fuel'))} />
 
       <View style={styles.pair}>
         <View style={styles.half}>
