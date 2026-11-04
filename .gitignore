@@ -95,3 +95,7 @@ credentials/
 !.env.example
 .env.*
 !.env.example
+
+# AI evals: results and your own real photos are never committed
+evals/ai/results/
+evals/ai/real/

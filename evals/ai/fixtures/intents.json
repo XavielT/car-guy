@@ -1,0 +1,40 @@
+{
+  "context": {
+    "vehicles": [{ "id": "v-elantra", "name": "Elantra" }],
+    "today": "2026-11-04",
+    "lastOdometer": 84300,
+    "fuelType": "premium",
+    "features": ["fuel", "service", "expense", "odometer", "repair", "obd", "cifras", "album"]
+  },
+  "twoCars": [{ "id": "v-elantra", "name": "Elantra" }, { "id": "v-ds3", "name": "DS3" }],
+  "cases": [
+    { "id": "fuel-1", "text": "eché 12 galones de premium a 2,150 en el Shell, 84,300 km", "expected": { "target": "fuel", "fields": { "gallons": 12, "total": 2150, "station": "Shell", "odometer": 84300 } } },
+    { "id": "fuel-2", "text": "llené el tanque con 1,800 pesos de regular en Texaco", "expected": { "target": "fuel", "fields": { "total": 1800, "station": "Texaco", "gallons": null } } },
+    { "id": "fuel-3", "text": "echó gasolina ayer, 9 galones, 3,100 pesos", "expected": { "target": "fuel", "fields": { "gallons": 9, "total": 3100, "date": "2026-11-03" } } },
+    { "id": "fuel-4", "text": "puse diésel, 15 galones", "expected": { "target": "fuel", "fields": { "gallons": 15, "total": null } } },
+    { "id": "service-1", "text": "cambié aceite y filtro con Taller Pérez, 3,800 pesos", "expected": { "target": "service", "fields": { "shop": "Taller Pérez", "total": 3800 } } },
+    { "id": "service-2", "text": "le hice el servicio de los 90 mil, me costó 7 mil", "expected": { "target": "service", "fields": { "total": 7000, "shop": null } } },
+    { "id": "repair-1", "text": "me pusieron los frenos nuevos en la gomera de Juan, 9 mil", "expected": { "target": "repair", "fields": { "total": 9000, "shop": "gomera de Juan" } } },
+    { "id": "repair-2", "text": "arreglé el aire acondicionado, 4,500 pesos en AutoClima", "expected": { "target": "repair", "fields": { "total": 4500, "shop": "AutoClima" } } },
+    { "id": "repair-3", "text": "cambié el alternador el lunes por 12,000", "expected": { "target": "repair", "fields": { "total": 12000, "date": "2026-11-02" } } },
+    { "id": "expense-1", "text": "pagué el peaje, 80 pesos", "expected": { "target": "expense", "fields": { "total": 80, "category": "peaje" } } },
+    { "id": "expense-2", "text": "lavé el carro, 500 pesos", "expected": { "target": "expense", "fields": { "total": 500, "category": "lavado" } } },
+    { "id": "expense-3", "text": "pagué el seguro, 18 mil pesos", "expected": { "target": "expense", "fields": { "total": 18000, "category": "seguro" } } },
+    { "id": "expense-4", "text": "me pusieron una multa de 2,000", "expected": { "target": "expense", "fields": { "total": 2000, "category": "multa" } } },
+    { "id": "expense-5", "text": "renové el marbete, 1,500", "expected": { "target": "expense", "fields": { "total": 1500, "category": "marbete" } } },
+    { "id": "odometer-1", "text": "el carro marca 84,512 kilómetros", "expected": { "target": "odometer", "fields": { "odometer": 84512 } } },
+    { "id": "odometer-2", "text": "anota el kilometraje: 90100", "expected": { "target": "odometer", "fields": { "odometer": 90100 } } },
+    { "id": "reminder-1", "text": "recuérdame el marbete el 15 de diciembre", "expected": { "target": "reminder", "fields": { "due_date": "2026-12-15" } } },
+    { "id": "reminder-2", "text": "avísame para el cambio de aceite el 20 de noviembre", "expected": { "target": "reminder", "fields": { "due_date": "2026-11-20" } } },
+    { "id": "task-1", "text": "tengo que revisar la batería", "expected": { "target": "task", "fields": {} } },
+    { "id": "task-2", "text": "pendiente: llevar el carro a alinear", "expected": { "target": "task", "fields": {} } },
+    { "id": "event-1", "text": "me chocaron en el parqueo, rayón en la puerta", "expected": { "target": "event", "fields": {} } },
+    { "id": "obd-1", "text": "me salió el código P0301", "expected": { "target": "obd", "fields": { "dtc_code": "P0301" } } },
+    { "id": "nav-1", "text": "llévame a cifras", "expected": { "target": "navigate", "fields": { "navigate_to": "cifras" } } },
+    { "id": "nav-2", "text": "abre el álbum", "expected": { "target": "navigate", "fields": { "navigate_to": "album" } } },
+    { "id": "two-cars-named", "cars": "two", "text": "eché 10 galones al DS3, 1,900 pesos", "expected": { "target": "fuel", "vehicle": "v-ds3", "fields": { "gallons": 10, "total": 1900 } } },
+    { "id": "two-cars-ambiguous", "cars": "two", "text": "eché 10 galones, 1,900 pesos", "expected": { "target": "fuel", "vehicle": null, "choices": true, "fields": {} } },
+    { "id": "no-invent-1", "text": "cambié aceite", "expected": { "target": "service", "fields": { "total": null, "shop": null, "odometer": null } } },
+    { "id": "no-invent-2", "text": "pagué un gasto", "expected": { "target": "expense", "fields": { "total": null, "category": null } } }
+  ]
+}

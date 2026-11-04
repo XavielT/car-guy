@@ -1,0 +1,27 @@
+{
+  "note": "Synthetic photos rendered by make-fixtures.mjs: a FLOOR for the reader, not a claim about real-world accuracy.",
+  "cases": [
+    { "id": "receipt-shell-premium", "kind": "fuel_receipt", "images": ["img/receipt-shell-premium.jpg"], "critical": ["total", "gallons", "unit_price", "date"],
+      "expected": { "total": 2580, "gallons": 7.5, "unit_price": 344, "product": "GASOLINA PREMIUM", "station": "SHELL LOS PRADOS", "date": "2026-11-02", "time": "17:42", "ncf": "B0200004512", "pump": "04" } },
+    { "id": "receipt-thousands", "kind": "fuel_receipt", "images": ["img/receipt-thousands.jpg"], "critical": ["total", "gallons", "unit_price", "date"],
+      "expected": { "total": 1236.9, "gallons": 3.8, "unit_price": 325.5, "product": "GASOLINA REGULAR", "station": "TEXACO CHURCHILL", "date": "2026-10-29", "ncf": "B0200001977", "pump": "11" } },
+    { "id": "receipt-no-station-no-ncf", "kind": "fuel_receipt", "images": ["img/receipt-no-station-no-ncf.jpg"], "critical": ["total", "gallons", "unit_price", "date"],
+      "expected": { "total": 4200, "gallons": 15, "unit_price": 280, "product": "GASOIL OPTIMO", "station": null, "date": "2026-11-03", "ncf": null, "pump": "02" } },
+    { "id": "receipt-sunoco-eslash", "kind": "fuel_receipt", "images": ["img/receipt-sunoco-eslash.jpg"], "critical": ["total", "gallons", "unit_price", "date"],
+      "expected": { "total": 3182, "gallons": 9.25, "unit_price": 344, "product": "GASOLINA PREMIUM", "station": "SUNOCO 27 DE FEBRERO", "date": "2026-11-01", "ncf": "E310000000123", "pump": "07" } },
+    { "id": "dash-km", "kind": "odometer", "images": ["img/dash-km.jpg"], "critical": ["odometer", "unit"],
+      "expected": { "odometer": 84830, "unit": "km", "trip_a": 312.4, "trip_b": null } },
+    { "id": "dash-miles", "kind": "odometer", "images": ["img/dash-miles.jpg"], "critical": ["odometer", "unit"],
+      "expected": { "odometer": 52500, "unit": "mi", "trip_a": 88, "trip_b": null } },
+    { "id": "invoice-brakes", "kind": "invoice", "images": ["img/invoice-brakes.jpg"], "critical": ["total", "date", "rnc"],
+      "expected": { "shop": "Frenos y Suspensión Díaz", "rnc": "131234567", "ncf": "B0100000123", "date": "2026-11-02", "subtotal": 8600, "itbis": 1548, "total": 10148, "warranty_text": { "contains": "6 meses" }, "items_count": 3 } },
+    { "id": "invoice-simple", "kind": "invoice", "images": ["img/invoice-simple.jpg"], "critical": ["total", "date", "rnc"],
+      "expected": { "shop": "Gomera El Rápido", "rnc": "102345678", "ncf": "B0200000456", "date": "2026-10-30", "subtotal": 300, "itbis": 0, "total": 300, "warranty_text": null, "items_count": 1 } },
+    { "id": "express-dash-then-receipt", "kind": "fuel_express", "images": ["img/dash-km.jpg", "img/receipt-shell-premium.jpg"], "critical": ["odometer", "total", "gallons"],
+      "expected": { "odometer": 84830, "unit": "km", "total": 2580, "gallons": 7.5, "unit_price": 344, "date": "2026-11-02", "station": "SHELL LOS PRADOS" } },
+    { "id": "express-receipt-then-dash", "kind": "fuel_express", "images": ["img/receipt-shell-premium.jpg", "img/dash-km.jpg"], "critical": ["odometer", "total", "gallons"],
+      "expected": { "odometer": 84830, "unit": "km", "total": 2580, "gallons": 7.5, "unit_price": 344, "date": "2026-11-02", "station": "SHELL LOS PRADOS" } },
+    { "id": "express-miles-dash-and-receipt", "kind": "fuel_express", "images": ["img/dash-miles.jpg", "img/receipt-thousands.jpg"], "critical": ["odometer", "unit", "total"],
+      "expected": { "odometer": 52500, "unit": "mi", "total": 1236.9, "gallons": 3.8, "unit_price": 325.5, "date": "2026-10-29", "station": "TEXACO CHURCHILL" } }
+  ]
+}
