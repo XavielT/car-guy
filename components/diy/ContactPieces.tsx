@@ -171,6 +171,8 @@ export function ContactPicker({
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [other, setOther] = useState(Boolean(text && !contactId));
+  // A name that arrives after mount (a photo of an invoice read the shop, IMP 03112026) must be visible too.
+  const showOther = other || Boolean(text && !contactId);
 
   useEffect(() => {
     void listContacts().then(setContacts);
@@ -180,7 +182,7 @@ export function ContactPicker({
     <View>
       <SelectField<string | null>
         label={t.contacts.picker}
-        value={contactId ?? (other ? OTHER : null)}
+        value={contactId ?? (showOther ? OTHER : null)}
         options={[
           { value: null, label: t.contacts.pickerNone },
           ...contacts.map((c) => ({ value: c.id as string | null, label: c.name })),
@@ -198,7 +200,17 @@ export function ContactPicker({
           onChange(c ? { contactId: c.id, text: c.name } : { contactId: null, text: '' });
         }}
       />
-      {other && !contactId ? <Field label={textLabel ?? t.contacts.name} value={text ?? ''} onChangeText={(t) => onChange({ contactId: null, text: t })} /> : null}
+      {showOther && !contactId ? (
+        <Field
+          label={textLabel ?? t.contacts.name}
+          value={text ?? ''}
+          onChangeText={(t) => {
+            // Sticky: clearing the text must not make the box vanish under the person's fingers.
+            setOther(true);
+            onChange({ contactId: null, text: t });
+          }}
+        />
+      ) : null}
     </View>
   );
 }

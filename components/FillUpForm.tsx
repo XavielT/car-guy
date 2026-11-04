@@ -85,7 +85,9 @@ export function FillUpForm({
   const [typedPrice, setPrice] = useState(initial ? String(initial.pricePerUnit) : (pf.price ?? ''));
   // Note 1 (Phase 5): a new fill-up starts with the board's price for its fuel, in the
   // vehicle's unit; it follows the fuel chips until the person types a price of their own.
-  const [priceTyped, setPriceTyped] = useState(Boolean(initial) || pf.price != null);
+  // An AI read that gave gallons AND total (a sentence, a pump photo) lets the price be derived; the board's price must
+  // not sit next to two amounts that contradict it.
+  const [priceTyped, setPriceTyped] = useState(Boolean(initial) || pf.price != null || (pf.vol != null && pf.total != null));
   const { board } = usePriceData();
   const [total, setTotal] = useState(initial ? String(initial.totalDop) : (pf.total ?? ''));
   const [full, setFull] = useState(initial?.isFullTank ?? true);
@@ -128,6 +130,10 @@ export function FillUpForm({
     if (p.price) {
       setPriceTyped(true);
       setPrice(p.price);
+    } else if (p.vol && p.total) {
+      // Gallons and total without a price: derive it, do not keep the board's price beside them.
+      setPriceTyped(true);
+      setPrice('');
     }
     if (p.total) setTotal(p.total);
     if (p.station) setStation(p.station);

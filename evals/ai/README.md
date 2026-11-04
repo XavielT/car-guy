@@ -50,3 +50,20 @@ PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core [CHROMIUM_PATH=/path/to/ch
 - **Voice.** There is no audio fixture: speech-to-text needs recordings of real voices, and `STT_API_KEY` is not set
   yet. Record a few sentences into `real/` when it is.
 - **Cost per call** is read from `ai_usage` (`admin_ai_usage` RPC, Cuenta > Admin > Uso de IA), not from this script.
+
+## Browser check (mocked network)
+
+`e2e/ai-web.mjs` drives the **web build** in Chromium with a fake signed-in session and **canned** AI answers: capture →
+the request that would be sent → prefill and "IA" marks → the normal Save, for the fill-up, repair invoice, odometer,
+Fuel Express (including the duplicate guard) and dictation (typed, and spoken through Chromium's fake microphone so
+`expo-audio` really records). It proves the **app side**. It does **not** prove the model reads anything (the answers are
+written in the script). 22 checks.
+
+```bash
+# a dev server (the seed route is __DEV__ only) with the public cloud config, so the app thinks cloud is configured
+EXPO_PUBLIC_SUPABASE_URL=… EXPO_PUBLIC_SUPABASE_ANON_KEY=… npx expo start --web --port 8100
+PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core [CHROMIUM_PATH=/path/to/chrome] node evals/ai/e2e/ai-web.mjs [out-dir]
+```
+
+Restart the dev server after editing app code: a long-running Metro here served stale modules once. Screenshots go to
+`out-dir` (gitignored).

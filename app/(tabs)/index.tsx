@@ -372,14 +372,6 @@ export default function HomeScreen() {
             <Ionicons name="search-outline" size={20} color={theme.accent} />
           </Pressable>
           <Pressable
-            onPress={() => setDictateOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={t.ai.voice.open}
-            hitSlop={4}
-            style={[styles.headerBtn, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
-            <Ionicons name="mic-outline" size={20} color={theme.accent} />
-          </Pressable>
-          <Pressable
             onPress={() => router.push('/cuenta')}
             accessibilityRole="button"
             accessibilityLabel={t.routes.account}
@@ -388,6 +380,18 @@ export default function HomeScreen() {
             <Avatar size={36} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName} decorative />
           </Pressable>
         </View>
+
+        {/* IMP 03112026 (ADR-67): one sentence, spoken or typed, opens the right form pre-filled. Its own row: the header has no room. */}
+        <Pressable
+          onPress={() => setDictateOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t.ai.voice.title}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: space.md, marginTop: space.sm, borderWidth: 1, borderRadius: radius.chip, borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }}>
+          <Ionicons name="mic-outline" size={18} color={theme.accent} />
+          <T face="semibold" style={{ color: theme.text.primary, fontSize: 13 }}>
+            {t.ai.voice.title}
+          </T>
+        </Pressable>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcher}>
           {data.vehicles.filter((v) => !v.isArchived).map((v) => {

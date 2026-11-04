@@ -99,3 +99,5 @@ credentials/
 # AI evals: results and your own real photos are never committed
 evals/ai/results/
 evals/ai/real/
+evals/ai/e2e-out/
+e2e-out/
