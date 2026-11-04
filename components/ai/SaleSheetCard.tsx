@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { T } from '@/components/T';
@@ -10,13 +10,15 @@ import { askSale } from '@/lib/ai/sale';
 import { documents as documentRepo } from '@/lib/db/repos';
 import { localRawDossier } from '@/lib/db/shareQueries';
 import { recordReportable } from '@/lib/diagnostics';
-import { buildSaleFacts, carLabel, mergeSale, saleSheetText, templateSale, type Lang, type SaleFact, type SaleSheet } from '@/lib/domain/saleSheet';
+import { buildSaleFacts, carLabel, mergeSale, saleSheetText, templateSale, type Lang, type SaleFact, type SaleSheet, type SaleText } from '@/lib/domain/saleSheet';
 import { FEATURE_AI_SALE_SUMMARY } from '@/lib/flagsAi';
 import { todayIsoDate } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import type { ShareFlags } from '@/lib/share/dossier';
 import { useTheme } from '@/lib/theme/useTheme';
 import { useAiGate } from './useAiGate';
+
+const EMPTY_EDITS: Record<string, string> = {};
 
 export type SaleForBook = { title: string; sections: { heading: string; text: string }[] };
 
@@ -30,10 +32,16 @@ export function SaleSheetCard({ vehicleId, flags, from, to, onSheet }: { vehicle
   const { theme } = useTheme();
   const { ready, sheet: consentSheet, featureOff } = useAiGate();
   const [lang, setLang] = useState<Lang>('es');
-  const [facts, setFacts] = useState<SaleFact[] | null>(null);
+  // `v` changes every time the facts are rebuilt, so what depends on them (the AI paragraphs, the person's edits) goes stale with them.
+  const [factsState, setFactsState] = useState<{ v: number; list: SaleFact[] } | null>(null);
+  const facts = factsState?.list ?? null;
   const [label, setLabel] = useState('');
-  const [sheet, setSheet] = useState<SaleSheet | null>(null);
-  const [edited, setEdited] = useState<Record<string, string>>({});
+  const key = factsState ? `${factsState.v}|${lang}` : '';
+  const [aiState, setAiState] = useState<{ key: string; parts: SaleText[] }>({ key: '', parts: [] });
+  const [editedState, setEditedState] = useState<{ key: string; map: Record<string, string> }>({ key: '', map: {} });
+  const edited = editedState.key === key ? editedState.map : EMPTY_EDITS;
+  const base = useMemo<SaleSheet | null>(() => (facts ? templateSale(facts, lang) : null), [facts, lang]);
+  const sheet = useMemo<SaleSheet | null>(() => (base ? mergeSale(base, aiState.key === key ? aiState.parts : []) : null), [base, aiState, key]);
   const [include, setInclude] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -50,9 +58,8 @@ export function SaleSheetCard({ vehicleId, flags, from, to, onSheet }: { vehicle
       if (!raw || !live) return;
       const docs = (await documentRepo.listWhere({ vehicleId })).map((d) => ({ title: d.title, kind: d.kind, issuedAt: d.issuedAt, expiresAt: d.expiresAt }));
       if (!live) return;
-      setFacts(buildSaleFacts(raw, docs, todayIsoDate()));
+      setFactsState({ v: Date.now(), list: buildSaleFacts(raw, docs, todayIsoDate()) });
       setLabel(carLabel(raw.vehicle));
-      setEdited({});
       setNote(null);
     })().catch((e) => recordReportable('sale-facts', e));
     return () => {
@@ -61,12 +68,6 @@ export function SaleSheetCard({ vehicleId, flags, from, to, onSheet }: { vehicle
     // `flags` is represented by flagKey.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicleId, flagKey, from, to]);
-
-  // The template follows the language; AI paragraphs stay until the language or the facts change (then they are stale).
-  useEffect(() => {
-    if (facts) setSheet(templateSale(facts, lang));
-    setEdited({});
-  }, [facts, lang]);
 
   const shown = sheet?.sections.map((s) => ({ ...s, text: edited[s.section] ?? s.text })) ?? [];
   useEffect(() => {
@@ -82,8 +83,7 @@ export function SaleSheetCard({ vehicleId, flags, from, to, onSheet }: { vehicle
     try {
       const a = await askSale(label, lang, facts);
       if (!alive.current) return;
-      const merged = mergeSale(sheet, a.sections);
-      setSheet(merged);
+      setAiState({ key, parts: a.sections });
       // A paragraph the person already edited is theirs: the model never overwrites it.
       const n = a.sections.filter((s) => edited[s.section] == null && sheet.sections.some((x) => x.section === s.section)).length;
       setNote(n === 0 ? t.ai.sale.kept : a.dropped.length ? `${t.ai.sale.improved(n)} ${t.ai.sale.someKept(a.dropped.length)}` : t.ai.sale.improved(n));
@@ -135,7 +135,7 @@ export function SaleSheetCard({ vehicleId, flags, from, to, onSheet }: { vehicle
               </T>
               <TextInput
                 value={s.text}
-                onChangeText={(v) => setEdited((e) => ({ ...e, [s.section]: v }))}
+                onChangeText={(v) => setEditedState((e) => ({ key, map: { ...(e.key === key ? e.map : {}), [s.section]: v } }))}
                 multiline
                 accessibilityLabel={s.heading}
                 style={[styles.input, { color: theme.text.primary, borderColor: theme.line, backgroundColor: theme.bg.raised }]}

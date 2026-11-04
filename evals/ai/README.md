@@ -94,3 +94,6 @@ PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core [CHROMIUM_PATH=/path/to/ch
 
 Restart the dev server after editing app code: a long-running Metro here served stale modules once. Screenshots go to
 `out-dir` (gitignored).
+
+## Smart search (SPEC-G §G1)
+`fixtures/intents.json` now carries 30 es-DO questions (`query-01`..`query-30`): each expects `target: query`, a `query_kind` from the closed list, the keyword and, when the phrase names one, the period. `--only intent` scores them with the rest. The answers themselves (numbers, dates) are computed on the device and unit-tested in `__tests__/domain/smartQuery.test.ts`, so the live run only measures whether the model classified the question.
