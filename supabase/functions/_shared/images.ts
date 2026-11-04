@@ -6,6 +6,8 @@
 export type ImageIn = { data: string; mime: string };
 
 export const MAX_IMAGES = 4;
+/** The most any kind may ask for (the album batch, SPEC-G §G2). A kind says its own limit; nothing goes above this. */
+export const ABSOLUTE_MAX_IMAGES = 12;
 export const MAX_IMAGE_BYTES = 1_500_000;
 export const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -16,9 +18,10 @@ export function base64Bytes(b64: string): number {
 }
 
 /** null = fine, otherwise a short English reason for the log (never shown to the person; the code is bad_input). */
-export function validateImages(images: unknown): string | null {
+export function validateImages(images: unknown, max: number = MAX_IMAGES): string | null {
+  const limit = Math.min(max, ABSOLUTE_MAX_IMAGES);
   if (!Array.isArray(images) || images.length === 0) return 'no images';
-  if (images.length > MAX_IMAGES) return `more than ${MAX_IMAGES} images`;
+  if (images.length > limit) return `more than ${limit} images`;
   for (const [i, im] of images.entries()) {
     if (!im || typeof im !== 'object') return `image ${i} is not an object`;
     const { data, mime } = im as ImageIn;

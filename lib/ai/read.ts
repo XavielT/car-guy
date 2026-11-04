@@ -23,7 +23,11 @@ export type ReadKind =
   | 'vin_plate'
   // IMP 03112026 SPEC-D / PROMPT-04: warning lights and scanner screenshots.
   | 'dash_lights'
-  | 'scanner';
+  | 'scanner'
+  // IMP 03112026 SPEC-G / PROMPT-06: checklist photo, accident photos, album batch.
+  | 'check_photo'
+  | 'damage_photos'
+  | 'album_batch';
 
 export type ReadField = { value: string | number | null; confidence: number };
 export type ReadItem = Record<string, ReadField>;
@@ -35,6 +39,8 @@ export type ReadResult = {
   fields: Record<string, ReadField>;
   items?: ReadItem[];
   per_image?: PerImage[];
+  /** Workflow kinds: how many values the server removed or softened (a count, never the text). */
+  adjusted?: number;
   /** Documents only: how many personal values the server removed (a count, never the values). */
   privacy_removed?: number;
   model: string | null;
@@ -46,8 +52,9 @@ export type PreparedImage = { data: string; mime: 'image/jpeg' | 'image/png' | '
 /** Below this a field is shown with the amber "check this" outline (SPEC-B §B2). */
 export const LOW_CONFIDENCE = 0.6;
 
-export async function readImages(kind: ReadKind, images: PreparedImage[]): Promise<ReadResult> {
-  return callAi<ReadResult>('cg-ai-read', { kind, images });
+/** `extra` carries the closed-list context some kinds need (check_photo: `{ item }`). */
+export async function readImages(kind: ReadKind, images: PreparedImage[], extra?: Record<string, string>): Promise<ReadResult> {
+  return callAi<ReadResult>('cg-ai-read', { kind, images, ...(extra ?? {}) });
 }
 
 /** Typed accessors: null when the field is absent or not a number/string of that type. */

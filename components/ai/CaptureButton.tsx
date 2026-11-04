@@ -32,6 +32,7 @@ export function CaptureButton({
   onRead,
   icon = 'scan-outline',
   style,
+  extra,
 }: {
   kind: ReadKind;
   label: string;
@@ -39,6 +40,8 @@ export function CaptureButton({
   onRead: (result: ReadResult, photo: { uri: string }) => void;
   icon?: keyof typeof Ionicons.glyphMap;
   style?: object;
+  /** Closed-list context for the kind (check_photo: the item). */
+  extra?: Record<string, string>;
 }) {
   const { theme } = useTheme();
   const ai = useAiStatus();
@@ -79,7 +82,7 @@ export function CaptureButton({
     setBusy(true);
     try {
       const image = await prepareForAi(candidate.uri, { sourceWidth: candidate.width });
-      const result = await readImages(kind, [image]);
+      const result = await readImages(kind, [image], extra);
       if (mounted.current) onRead(result, { uri: candidate.uri });
     } catch (e) {
       if (!mounted.current) return;

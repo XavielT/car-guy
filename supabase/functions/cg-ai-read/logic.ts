@@ -15,9 +15,10 @@
 import { AiCallError } from '../_shared/anthropic.ts';
 import { modelVision } from '../_shared/env.ts';
 import type { Handler } from '../_shared/handler.ts';
-import { MAX_IMAGES, validateImages, type ImageIn } from '../_shared/images.ts';
+import { ABSOLUTE_MAX_IMAGES, validateImages, type ImageIn } from '../_shared/images.ts';
 import { KINDS, TOOL_NAME, normalizeRead, toolFor } from './kinds.ts';
 import { anyValueLeft, applyPrivacy } from './privacy.ts';
+import { CHECK_GUIDE, CHECK_ITEMS, finalizeWorkflow, type CheckItem } from './workflowKinds.ts';
 
 export const readHandler: Handler = async (ctx) => {
   const body = (ctx.body ?? {}) as { kind?: unknown; images?: unknown };
@@ -25,10 +26,18 @@ export const readHandler: Handler = async (ctx) => {
   const def = KINDS[kind];
   if (!def) throw new AiCallError('bad_input');
 
-  const problem = validateImages(body.images);
+  const problem = validateImages(body.images, def.maxImages);
   if (problem) throw new AiCallError('bad_input');
   const images = body.images as ImageIn[];
-  if (images.length > Math.min(def.maxImages, MAX_IMAGES)) throw new AiCallError('bad_input');
+  if (images.length > Math.min(def.maxImages, ABSOLUTE_MAX_IMAGES)) throw new AiCallError('bad_input');
+
+  // check_photo: the item under review is part of the question, from a closed list (never free text into the prompt).
+  let itemNote = '';
+  if (kind === 'check_photo') {
+    const item = (body as { item?: unknown }).item;
+    if (typeof item !== 'string' || !(CHECK_ITEMS as readonly string[]).includes(item)) throw new AiCallError('bad_input');
+    itemNote = `Elemento que se revisa: ${item}. Qué mirar: ${CHECK_GUIDE[item as CheckItem]}`;
+  }
 
   const content: Array<Record<string, unknown>> = [];
   images.forEach((im, i) => {
@@ -36,6 +45,7 @@ export const readHandler: Handler = async (ctx) => {
     content.push({ type: 'text', text: hint });
     content.push({ type: 'image', source: { type: 'base64', media_type: im.mime, data: im.data } });
   });
+  if (itemNote) content.push({ type: 'text', text: itemNote });
   content.push({ type: 'text', text: `Lee lo que se ve y responde llamando a la herramienta ${TOOL_NAME}. No inventes nada que no se vea.` });
 
   const result = await ctx.call({
@@ -46,13 +56,16 @@ export const readHandler: Handler = async (ctx) => {
     maxTokens: def.items ? 2048 : 1024,
   });
 
-  const read = normalizeRead(kind, result.toolInput);
-  if (!read) throw new AiCallError('unreadable', result.usage);
+  const parsed = normalizeRead(kind, result.toolInput);
+  if (!parsed) throw new AiCallError('unreadable', result.usage);
+  // The workflow kinds (check / accident / album) get their hedging and claim filters here, after validation.
+  const wf = finalizeWorkflow(kind, parsed);
+  const read = wf.read;
   if (def.privacy) {
     // Second wall after the prompt and the schema: personal data never leaves, and only a COUNT of what was removed does.
     const safe = applyPrivacy(read);
     if (!anyValueLeft(safe.read)) throw new AiCallError('unreadable', result.usage);
-    return { body: { ...safe.read, privacy_removed: safe.removed }, usage: result.usage };
+    return { body: { ...safe.read, privacy_removed: safe.removed, ...(wf.adjusted ? { adjusted: wf.adjusted } : {}) }, usage: result.usage };
   }
-  return { body: { ...read }, usage: result.usage };
+  return { body: { ...read, ...(wf.adjusted ? { adjusted: wf.adjusted } : {}) }, usage: result.usage };
 };

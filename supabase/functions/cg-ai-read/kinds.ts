@@ -14,6 +14,7 @@
 import { normalizeField, type Field, type FieldSpec, type FieldType } from '../_shared/fields.ts';
 import { DOC_KINDS } from './docKinds.ts';
 import { OBD_KINDS } from './obdKinds.ts';
+import { WORKFLOW_KINDS } from './workflowKinds.ts';
 export { normalizeField };
 export type { Field, FieldSpec, FieldType };
 
@@ -160,6 +161,9 @@ export const KINDS: Record<string, KindDef> = {
 
   // IMP 03112026 SPEC-D / PROMPT-04: warning-light photos and scanner screenshots (obdKinds.ts).
   ...OBD_KINDS,
+
+  // IMP 03112026 SPEC-G / PROMPT-06: checklist photos, accident photos, album batches (workflowKinds.ts).
+  ...WORKFLOW_KINDS,
 };
 
 export const KIND_IDS = Object.keys(KINDS);

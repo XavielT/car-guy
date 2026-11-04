@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
 
+import { DamageAssist } from '@/components/ai/DamageAssist';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { useFormSkeleton } from '@/components/skeletons/FormLoading';
@@ -326,6 +327,17 @@ export function EventForm({
         <GhostButton label={t.events.addPhotos} onPress={() => void addNew()} style={{ flex: 1 }} />
       </View>
       {isHito ? null : <GhostButton label={t.events.attachPdf} onPress={() => void addPdf()} />}
+
+      {isHito ? null : (
+        <DamageAssist
+          vehicleId={vehicleId}
+          eventType={eventType}
+          photoIds={photoIds}
+          story={story}
+          onUseDescription={(text, mode) => setStory((cur) => (mode === 'append' && cur.trim() ? cur.trim() + '\n' + text : text))}
+          onUseSeverity={setSeverity}
+        />
+      )}
 
       {isHito ? null : (
         <>

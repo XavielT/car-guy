@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CheckPhotoAi } from '@/components/ai/CheckPhotoAi';
 import { CheckPhotoStrip } from '@/components/checks/CheckPhotoStrip';
 import { Field } from '@/components/Field';
 import { CheckRunSkeleton } from '@/components/skeletons/CheckSkeleton';
@@ -26,6 +27,9 @@ import { FEATURE_DIY } from '@/lib/flags';
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { id as newId } from '@/lib/format';
 import { todayIso } from '@/lib/domain/dates';
+import { noteFromObservation } from '@/lib/domain/workflowPhotos';
+import { recordReportable } from '@/lib/diagnostics';
+import { storePhoto } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import { catalogLabel, catalogText } from '@/lib/i18n/catalog';
 import { parseDecimal } from '@/lib/math';
@@ -137,6 +141,26 @@ export default function RunScreen() {
     return acc;
   }, {});
 
+  /**
+   * The person tapped "Marcar …" on a photo suggestion (SPEC-G §G6): it sets the answer exactly as tapping the verdict would, so the
+   * item's own "if it fails" action still applies at save. A watch/fail keeps the photo with the result and starts the note (marked AI).
+   */
+  function applySuggestion(item: InspectionItem, v: Verdict, observation: string, uri: string) {
+    setActions((p) => {
+      const next = { ...p };
+      delete next[item.id];
+      return next;
+    });
+    setAnswers((p) => ({ ...p, [item.id]: v }));
+    if (!needsDetail(v)) return;
+    setNotes((p) => ((p[item.id] ?? '').trim() ? p : { ...p, [item.id]: noteFromObservation(observation, t.ai.checkPhoto.notePrefix) }));
+    void storePhoto({ uri, width: null, takenAt: new Date().toISOString() }, { ownerTable: 'inspection_result', ownerId: resultIdFor(inspectionId, item.id), vehicleId: activeVehicle!.id })
+      .then((saved) => {
+        if (saved) setPhotos((p) => ({ ...p, [item.id]: [...(p[item.id] ?? []), saved.id] }));
+      })
+      .catch((e) => recordReportable('ai-check-photo', e));
+  }
+
   function finish() {
     const failures = items.filter((i) => answers[i.id] === 'falla');
     const missingNote = failures.find((i) => !(notes[i.id] ?? '').trim());
@@ -242,6 +266,7 @@ export default function RunScreen() {
                       {item.warning ? `\n\n${catalogLabel('checkItem', item, 'warning')}` : ''}
                     </T>
                   ) : null}
+                  <CheckPhotoAi label={item.label} current={verdict} onUse={(v, obs, uri) => applySuggestion(item, v, obs, uri)} />
                   {FEATURE_DIY && isTirePressureItem(item.label) && (psi.f != null || psi.r != null) ? (
                     <T face="mono" style={{ color: theme.accent, fontSize: 12, marginTop: 6 }}>
                       {t.fluids.oem(psi.f != null ? String(psi.f) : '—', psi.r != null ? String(psi.r) : '—')}
