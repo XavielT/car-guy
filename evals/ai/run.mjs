@@ -34,7 +34,8 @@ const FALSE_FILL_MAX = 0.1;
 const eas = JSON.parse(readFileSync(join(here, '../../eas.json'), 'utf8')).build.base.env;
 const URL_ = eas.EXPO_PUBLIC_SUPABASE_URL;
 const ANON = eas.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-const { SMOKE_EMAIL, SMOKE_PASSWORD } = process.env;
+const SMOKE_EMAIL = process.env.SMOKE_EMAIL;
+const SMOKE_PASSWORD = process.env.SMOKE_PASSWORD;
 if (!SMOKE_EMAIL || !SMOKE_PASSWORD) {
   console.error('usage: SMOKE_EMAIL=<test account> SMOKE_PASSWORD=<password> node evals/ai/run.mjs [--only read|intent] [--real]');
   process.exit(2);
