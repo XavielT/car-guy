@@ -13,10 +13,12 @@
 
 import { normalizeField, type Field, type FieldSpec, type FieldType } from '../_shared/fields.ts';
 import { DOC_KINDS } from './docKinds.ts';
+import { OBD_KINDS } from './obdKinds.ts';
 export { normalizeField };
 export type { Field, FieldSpec, FieldType };
 
-export type ItemSpec = { fields: Record<string, FieldSpec>; max: number };
+/** `key` is the field an item must have to count (default `description`, the invoice's); items without it are dropped. */
+export type ItemSpec = { fields: Record<string, FieldSpec>; max: number; key?: string };
 
 export type KindDef = {
   /** What the person sees named in logs and errors (never shown as text to the model's output). */
@@ -155,6 +157,9 @@ export const KINDS: Record<string, KindDef> = {
 
   // IMP 03112026 SPEC-C / PROMPT-03: vehicle documents and VIN plates (docKinds.ts).
   ...DOC_KINDS,
+
+  // IMP 03112026 SPEC-D / PROMPT-04: warning-light photos and scanner screenshots (obdKinds.ts).
+  ...OBD_KINDS,
 };
 
 export const KIND_IDS = Object.keys(KINDS);
@@ -251,7 +256,7 @@ export function normalizeRead(kindId: string, input: unknown): ReadResult | null
         const o = (it ?? {}) as Record<string, unknown>;
         return Object.fromEntries(Object.entries(def.items!.fields).map(([k, spec]) => [k, normalizeField(o[k], spec)])) as ReadItem;
       })
-      .filter((it) => it.description?.value != null);
+      .filter((it) => it[def.items!.key ?? 'description']?.value != null);
   }
 
   if (def.perImage) {

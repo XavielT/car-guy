@@ -20,7 +20,10 @@ export type ReadKind =
   | 'doc_licencia'
   | 'doc_revision'
   | 'doc_garantia'
-  | 'vin_plate';
+  | 'vin_plate'
+  // IMP 03112026 SPEC-D / PROMPT-04: warning lights and scanner screenshots.
+  | 'dash_lights'
+  | 'scanner';
 
 export type ReadField = { value: string | number | null; confidence: number };
 export type ReadItem = Record<string, ReadField>;

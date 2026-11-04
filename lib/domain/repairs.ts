@@ -117,3 +117,114 @@ export function askForShop(doneBy: DoneBy): boolean {
 export function askForLabor(doneBy: DoneBy): boolean {
   return doneBy !== 'self';
 }
+
+// ── "Is this price fair?" — against the person's OWN history only (SPEC-D §D4) ──────────────────────────────
+
+export type PriceVerdict = 'no_baseline' | 'higher' | 'similar' | 'lower';
+export type PriceComparison = {
+  verdict: PriceVerdict;
+  /** How many earlier repairs make up the baseline. */
+  n: number;
+  last: { total: number; date: string; title: string } | null;
+  median: number | null;
+  /** +38 means 38 % more than the last one; negative = cheaper. Whole percent. */
+  vsLastPct: number | null;
+  vsMedianPct: number | null;
+};
+
+/** Within ± this share of the baseline it is "similar". */
+export const SIMILAR_BAND = 0.1;
+/** With at least this many earlier repairs the median is the baseline; with fewer, the last one is. */
+export const MEDIAN_FROM = 3;
+
+const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const words = (s: string) => new Set(fold(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
+const sharesWord = (a: string, b: string) => {
+  const wb = words(b);
+  for (const w of words(a)) if (wb.has(w)) return true;
+  return false;
+};
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+const pct = (now: number, base: number) => (base > 0 ? Math.round(((now - base) / base) * 100) : null);
+
+/**
+ * Compares a repair's total with the SAME person's earlier repairs of the same system (and, when some of them share a word
+ * with the title, only those: "frenos" next to "pastillas de frenos"). No market figure is ever invented: with nothing to
+ * compare against the answer is `no_baseline` and the screen says so.
+ */
+export function priceVsHistory(
+  candidate: { id?: string; system: ServiceCategory | null; title: string; totalDop: number; occurredAt: string },
+  history: readonly ServiceRecord[],
+): PriceComparison {
+  const none: PriceComparison = { verdict: 'no_baseline', n: 0, last: null, median: null, vsLastPct: null, vsMedianPct: null };
+  if (!(candidate.totalDop > 0)) return none;
+
+  const earlier = repairsOf(history).filter((r) => r.id !== candidate.id && r.totalDop > 0 && r.occurredAt < candidate.occurredAt);
+  const sameSystem = candidate.system ? earlier.filter((r) => r.system === candidate.system) : earlier;
+  const sameThing = sameSystem.filter((r) => sharesWord(r.title, candidate.title));
+  const base = sameThing.length ? sameThing : candidate.system ? sameSystem : [];
+  if (!base.length) return none;
+
+  const last = base[0]; // repairsOf sorts newest first
+  const med = median(base.map((r) => r.totalDop));
+  const vsLastPct = pct(candidate.totalDop, last.totalDop);
+  const vsMedianPct = base.length >= MEDIAN_FROM ? pct(candidate.totalDop, med) : null;
+  const against = vsMedianPct ?? vsLastPct;
+  const verdict: PriceVerdict = against == null ? 'no_baseline' : Math.abs(against) <= SIMILAR_BAND * 100 ? 'similar' : against > 0 ? 'higher' : 'lower';
+  return { verdict, n: base.length, last: { total: last.totalDop, date: last.occurredAt.slice(0, 10), title: last.title }, median: base.length >= MEDIAN_FROM ? med : null, vsLastPct, vsMedianPct };
+}
+
+// ── Warranty watcher (SPEC-D §D4) ────────────────────────────────────────────────────────────────────────
+
+export type WarrantyBanner = {
+  recordId: string;
+  title: string;
+  shop: string | null;
+  untilDate: string | null;
+  untilKm: number | null;
+  /** Days left, or null when the warranty is counted only in km. */
+  daysLeft: number | null;
+  /** Km left, or null when the odometer is unknown or the warranty has no km limit. */
+  kmLeft: number | null;
+};
+
+/**
+ * Earlier repairs of the SAME system whose warranty is still running, so a new repair in that system can say "this part may
+ * still be under warranty (Taller Pérez, until 12 Jan)". A warranty "6 months OR 10,000 km" ends at whichever comes first:
+ * it is active only while NEITHER limit has been passed. A repair with no system never matches (nothing to compare).
+ */
+export function activeWarrantiesFor(
+  system: ServiceCategory | null,
+  history: readonly ServiceRecord[],
+  today: string,
+  odometerKm: number | null,
+  excludeId?: string,
+): WarrantyBanner[] {
+  if (!system) return [];
+  const out: WarrantyBanner[] = [];
+  for (const r of repairsOf(history)) {
+    if (r.id === excludeId || r.system !== system) continue;
+    if (!r.warrantyUntilDate && r.warrantyUntilKm == null) continue;
+    const date = r.warrantyUntilDate ? warrantyState(r.warrantyUntilDate, today) : null;
+    if (date && date.state === 'expired') continue;
+    const kmLeft = r.warrantyUntilKm != null && odometerKm != null ? r.warrantyUntilKm - odometerKm : null;
+    if (kmLeft != null && kmLeft < 0) continue;
+    out.push({ recordId: r.id, title: r.title, shop: shopKey(r), untilDate: r.warrantyUntilDate, untilKm: r.warrantyUntilKm, daysLeft: date ? date.days : null, kmLeft });
+  }
+  return out.sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
+}
+
+// ── Closing the loop from an OBD code (SPEC-D §D4) ───────────────────────────────────────────────────────
+
+export const RESCAN_DAYS = 3;
+
+/** The reminder offered after a repair that came from a code: scan again in a few days to see it stayed away. */
+export function rescanReminder(code: string, today: string, days = RESCAN_DAYS): { title: string; dueDate: string } {
+  const d = new Date(`${today.slice(0, 10)}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return { title: `Volver a escanear ${code}`, dueDate: d.toISOString().slice(0, 10) };
+}
