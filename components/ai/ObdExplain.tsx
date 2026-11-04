@@ -40,7 +40,6 @@ export function ObdExplain({ codes, vehicleId, freezeFrame }: { codes: string[];
   const [errorText, setErrorText] = useState<string | null>(null);
   const [rescanned, setRescanned] = useState(false);
   const alive = useRef(true);
-  const key = `${vehicleId ?? ''}|${codes.join(',')}`;
 
   useEffect(() => {
     alive.current = true;
@@ -50,6 +49,8 @@ export function ObdExplain({ codes, vehicleId, freezeFrame }: { codes: string[];
   }, []);
 
   const vehicle = data.vehicles.find((v) => v.id === (vehicleId ?? activeVehicle?.id)) ?? null;
+  // The question: which car (it may only be known once the store has loaded) and which codes. A new key re-reads the cache.
+  const key = `${vehicle?.id ?? ''}|${codes.join(',')}`;
 
   /** The request, from this device's own data. */
   const buildRequest = useCallback(async (): Promise<ObdRequest | null> => {

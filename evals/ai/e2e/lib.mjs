@@ -1,5 +1,6 @@
 // Shared bits of the mocked-network browser checks for the AI flows (no real model call, no real account).
 // See evals/ai/README.md > "Browser check".
+import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -34,6 +35,8 @@ export async function launch({ canned = {}, viewport = { width: 390, height: 844
   const errors = [];
   // `net.offline = true` makes every AI function call fail like a dead connection (fetch rejects).
   const net = { offline: false };
+  // The ai_insights cache (sql/043) as an in-memory table keyed by input_hash: GET returns the stored row or null, POST stores.
+  const insights = new Map();
   await ctx.addInitScript(
     ([key, session]) => {
       try {
@@ -59,6 +62,16 @@ export async function launch({ canned = {}, viewport = { width: 390, height: 844
     if (url.pathname.endsWith('/auth/v1/user')) return json(200, user);
     // The app only accepts a session after carguy.is_app_user() says yes (lib/cloud/membership.ts).
     if (url.pathname.endsWith('/rpc/is_app_user') || url.pathname.endsWith('/rpc/set_ai_consent') || url.pathname.endsWith('/rpc/my_ai_consent')) return json(200, true);
+    if (url.pathname.endsWith('/rest/v1/ai_insights')) {
+      if (req.method() === 'POST') {
+        let row = null;
+        try { row = JSON.parse(req.postData() ?? 'null'); } catch {}
+        if (row?.input_hash) insights.set(row.input_hash, { payload: row.payload, status: row.status ?? 'new', created_at: new Date().toISOString() });
+        return route.fulfill({ status: 201, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '[]' });
+      }
+      const wanted = (url.searchParams.get('input_hash') ?? '').replace(/^eq\./, '');
+      return json(200, insights.get(wanted) ?? null);
+    }
     if (url.pathname.includes('/rest/v1/')) return json(200, []);
     return route.abort();
   });
@@ -71,7 +84,7 @@ export async function launch({ canned = {}, viewport = { width: 390, height: 844
   });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 200)));
-  return { browser, ctx, page, calls, errors, net };
+  return { browser, ctx, page, calls, errors, net, insights };
 }
 
 /** Seeds the garage the same way the phase-0 screenshots did (/dev/seed → "Acepto" → "sembrar garaje"). */

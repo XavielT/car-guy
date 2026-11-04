@@ -131,7 +131,7 @@ export function ObdIntake({ vehicleId }: { vehicleId: string | null }) {
             {def ? (
               <Pressable onPress={() => router.push(featureHref(def, target) as never)} accessibilityRole="button" style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}>
                 <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
-                  {`${t.ai.obdIntake.openFeature}: ${def.id}`}
+                  {`${t.ai.obdIntake.openFeature}: ${t.features.items[def.id].title}`}
                 </T>
               </Pressable>
             ) : null}

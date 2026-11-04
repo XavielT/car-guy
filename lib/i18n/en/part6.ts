@@ -1064,7 +1064,7 @@ export const enPart6: Pick<
       guidance: 'This is guidance, not a diagnosis. A mechanic with the car in front of them has the last word.',
       canDrive: { yes: 'OK to drive', careful: 'Drive carefully', no: 'Do not drive it' },
       causesTitle: 'Possible causes',
-      likelihood: { probable: 'Probable', possible: 'Possible', rare: 'Rare' },
+      likelihood: { probable: 'Likely', possible: 'Possible', rare: 'Rare' },
       recently: 'Already repaired recently',
       checksTitle: 'Check first',
       historyTitle: 'In your car’s history',

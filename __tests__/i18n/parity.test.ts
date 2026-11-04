@@ -26,6 +26,8 @@ const SAME_OK = new Set([
   'Juntes', 'Chat',
   // Phase 4: OBD and the check-engine lamp are the same words in both.
   'OBD', 'Check engine',
+  // IMP 03112026 Phase 4: warning-light and freeze-frame labels that are the same abbreviation in both languages.
+  'ABS', 'RPM',
 ]);
 
 /** Proper nouns that contain Spanish words; removed before the leftover check. */

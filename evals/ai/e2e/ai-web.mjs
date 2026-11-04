@@ -16,6 +16,20 @@ const model = 'claude-haiku-5-5';
 // vPIC's answer for the Hilux VIN below (the matrícula says 2011, the VIN decodes to 2012: a conflict on purpose).
 const VPIC = { Results: [{ Make: 'TOYOTA', Model: 'Hilux', ModelYear: '2012', EngineCylinders: '4', DisplacementL: '2.4', FuelTypePrimary: 'Diesel', TransmissionStyle: 'Manual/Standard', DriveType: 'RWD', EngineModel: '2KD-FTV', ErrorCode: '0', ErrorText: '' }] };
 let docFields = {};
+// What cg-ai-obd would answer (the safety floor is proven in the unit tests; here we prove the app shows and uses it).
+const obdAnswer = (b) => ({
+  codes: b.codes,
+  can_drive: b.codes.includes('C0035') ? 'careful' : 'yes',
+  can_drive_reason: 'Se puede manejar, pero revísalo pronto.',
+  safety_override: b.codes.includes('C0035') ? 'Por seguridad no te digo que se puede manejar tranquilo: frenos, ABS o estabilidad.' : null,
+  history_note: b.history?.repairs?.length ? 'En tu historial hay una reparación reciente del motor.' : null,
+  causes: [
+    { title: 'Catalizador gastado', likelihood: 'probable', why: 'Por los kilómetros del carro.', parts: ['catalizador'], diy_or_shop: 'shop', cost_rd: { min: 18000, max: 42000 }, recently_repaired: false },
+    { title: 'Sensor de oxígeno trasero', likelihood: 'possible', why: 'Puede dar una lectura falsa.', parts: ['sensor de oxígeno trasero'], diy_or_shop: 'either', cost_rd: { min: 3000, max: 7000 }, recently_repaired: false },
+  ],
+  first_checks: ['Revisa si hay fugas en el escape'], diy_or_shop: 'shop', cost_range_rd: { min: 3000, max: 42000 },
+  stop_and_tow_when: 'Si el carro pierde fuerza o huele a azufre fuerte.', related_codes: ['P0430'], sanitized: 0,
+});
 
 let odoRead = { odometer: f(52500), unit: f('mi') };
 let expressOdo = 53100;
@@ -34,6 +48,8 @@ const canned = {
         ],
       };
     if (b.kind === 'document' || b.kind === 'doc_matricula') return { ok: true, kind: b.kind, model, fields: docFields, privacy_removed: 0 };
+    if (b.kind === 'dash_lights') return { ok: true, kind: b.kind, model, fields: {}, items: [{ light: f('tire_pressure'), color: f('amber') }, { light: f('oil_pressure'), color: f('red') }, { light: f('check_engine'), color: f('amber') }] };
+    if (b.kind === 'scanner') return { ok: true, kind: b.kind, model, fields: { rpm: f(3100), coolant_c: f(null, 0), load_pct: f(null, 0), speed_kmh: f(null, 0) }, items: [{ code: f('P0301') }, { code: f('P0302') }] };
     if (b.kind === 'vin_plate') return { ok: true, kind: b.kind, model, fields: { vin: f('MR0FX22G001234567'), make: f('Toyota'), year: f(2012), color: f(null, 0) }, privacy_removed: 0 };
     if (b.kind === 'fuel_express')
       return {
@@ -44,6 +60,7 @@ const canned = {
     return { ok: false };
   },
   'cg-ai-intent': () => ({ ok: true, target: 'fuel', target_confidence: 0.95, fields: { gallons: f(6), total: f(2064), station: f('Shell'), odometer: f(52900) }, vehicle: null, choices: null, model }),
+  'cg-ai-obd': (b) => obdAnswer(b),
   'cg-stt': () => ({ ok: true, text: 'eché doce galones de premium a dos mil ciento cincuenta' }),
 };
 
@@ -237,6 +254,95 @@ async function pickWith(page, buttonName, file) {
   await page.getByText('Usar aquí igual', { exact: true }).first().click();
   await page.waitForTimeout(1200);
   check('H9 "Usar aquí igual" applies it to this car anyway (marbete, expiry 2027-03-31)', (await values(page)).includes('2027-03-31'));
+
+  // I. OBD and repairs (PROMPT-04), on the DS3: it has a brake repair with a running warranty and a motor repair in its history
+  await go(page, '/');
+  await page.getByRole('button', { name: /DS3/ }).first().click();
+  await page.waitForTimeout(800);
+
+  await go(page, '/servicio/nuevo?kind=reparacion');
+  await page.getByText('Ninguno', { exact: true }).first().click();
+  await page.waitForTimeout(500);
+  await page.getByText('Frenos', { exact: true }).first().click();
+  await page.waitForTimeout(500);
+  await page.getByPlaceholder(/alternador/i).fill('Pastillas de frenos');
+  await page.locator('text=/^Partes \\(RD\\$\\)$/i').first().locator('xpath=following::input[1]').fill('6900');
+  await page.waitForTimeout(700);
+  const tR = await text(page);
+  await page.screenshot({ path: `${OUT}/e2e-I1-repair-price.png` });
+  check('I1 price vs the person’s OWN history: "38 % más que tu último trabajo parecido (RD$ 5,000…)"', /38 % más que tu último trabajo parecido \(RD\$ 5,000/.test(tR), (tR.match(/[^\n]*trabajo parecido[^\n]*/) ?? ['(no line)'])[0]);
+  check('I2 warranty watcher: "Esta pieza puede seguir en garantía (Taller de ejemplo, hasta …)"', /Esta pieza puede seguir en garantía \(Taller de ejemplo, hasta/.test(tR), (tR.match(/[^\n]*garantía \(Taller[^\n]*/) ?? ['(no banner)'])[0]);
+
+  await go(page, '/obd/P0420');
+  const obdBefore = calls.filter((c) => c.fn === 'cg-ai-obd').length;
+  await page.getByRole('button', { name: /Explicar para mi carro/ }).first().click();
+  await page.waitForTimeout(3500);
+  const obdCall = calls.filter((c) => c.fn === 'cg-ai-obd')[obdBefore];
+  const tO = await text(page);
+  await page.screenshot({ path: `${OUT}/e2e-I3-obd-answer.png`, fullPage: true });
+  check('I3 explain: ONE cg-ai-obd call with the code, the car, and the car’s history; nothing identifying', !!obdCall && JSON.stringify(obdCall.body.codes) === '["P0420"]' && /Citro|DS3/i.test(JSON.stringify(obdCall.body.vehicle)) && obdCall.body.history.repairs.some((r) => /Bomba de agua/.test(r.title)) && !/plate|vin|placa/i.test(JSON.stringify(obdCall.body)), obdCall ? JSON.stringify(Object.keys(obdCall.body)) : 'no call');
+  check('I4 the answer shows: can-drive line, causes with likelihood, an RD$ ESTIMATE, first checks, tow rule, and the guidance disclaimer', /Se puede manejar/.test(tO) && /Catalizador gastado · Probable/.test(tO) && /Estimado: RD\$ 18,000–42,000/.test(tO) && /Revisa si hay fugas/.test(tO) && /Para y llama una grúa/i.test(tO) && /no un diagnóstico/.test(tO) && !/US\$|USD/.test(tO));
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(3000);
+  const afterReload = calls.filter((c) => c.fn === 'cg-ai-obd').length;
+  check('I5 re-opening the same code shows the saved explanation WITHOUT a new call (cache)', afterReload === obdBefore + 1 && /Catalizador gastado/.test(await text(page)) && /Explicación guardada/.test(await text(page)));
+  await page.getByRole('button', { name: /^Actualizar$/ }).first().click();
+  await page.waitForTimeout(3000);
+  check('I6 Actualizar asks again (one more call)', calls.filter((c) => c.fn === 'cg-ai-obd').length === obdBefore + 2);
+
+  await go(page, '/obd/C0035');
+  await page.getByRole('button', { name: /Explicar para mi carro/ }).first().click();
+  await page.waitForTimeout(3000);
+  const tS = await text(page);
+  check('I7 a safety code: "Maneja con cuidado" and the sentence that says it was raised for safety', /Maneja con cuidado/i.test(tS) && /Por seguridad no te digo que se puede manejar tranquilo/i.test(tS));
+  await page.screenshot({ path: `${OUT}/e2e-I7-safety.png`, fullPage: true });
+
+  // scanner text → codes → confirm → explained TOGETHER, then the repair, then closing the loop
+  await go(page, '/obd');
+  await page.getByPlaceholder('P0301 P0420 …').fill('Stored: P0420\nPending: P0171\nCoolant Temp 92 °C\nEngine RPM 2,450 rpm');
+  await page.getByRole('button', { name: /^Buscar códigos$/ }).first().click();
+  await page.waitForTimeout(600);
+  const tP = await text(page);
+  check('I8 pasted scanner text is parsed OFFLINE (no AI call): 2 codes and the freeze frame', /Encontré 2 códigos/.test(tP) && /Datos congelados/.test(tP) && /RPM 2450/.test(tP) && /Refrigerante 92/.test(tP) && !calls.some((c) => c.fn === 'cg-ai-read' && c.body.kind === 'scanner'));
+  await page.screenshot({ path: `${OUT}/e2e-I8-scanner.png`, fullPage: true });
+  await page.getByRole('button', { name: /Anotar y explicar juntos/ }).first().click();
+  await page.waitForTimeout(2500);
+  const beforeTogether = calls.filter((c) => c.fn === 'cg-ai-obd').length;
+  await page.getByRole('button', { name: /Explicar para mi carro/ }).first().click();
+  await page.waitForTimeout(3500);
+  const together = calls.filter((c) => c.fn === 'cg-ai-obd')[beforeTogether];
+  check('I9 codes read together are explained together (one call, both codes, the freeze frame)', /2 códigos leídos juntos|P0420/.test(await text(page)) && !!together && JSON.stringify(together.body.codes) === '["P0420","P0171"]' && together.body.freezeFrame?.rpm === 2450 && together.body.freezeFrame?.coolantC === 92, together ? JSON.stringify([together.body.codes, together.body.freezeFrame]) : 'no call');
+  await page.getByRole('button', { name: /Crear reparación con esto/ }).first().click();
+  await page.waitForTimeout(2500);
+  const vRep = await values(page);
+  check('I10 "Crear reparación con esto" opens the repair form pre-filled with the top suspect (nothing saved yet)', /servicio\/nuevo/.test(page.url()) && vRep.some((v) => /Catalizador gastado/.test(v)) && /dtcEvent=/.test(page.url()), page.url());
+  await page.getByRole('button', { name: /^Guardar/i }).first().click();
+  await page.waitForTimeout(3000);
+  const tLoop = await text(page);
+  check('I11 closing the loop: the code is marked resolved and the app offers a re-scan reminder', /¿Se fue la luz\?/i.test(tLoop) && /Marqué P0420 como resuelto/i.test(tLoop), tLoop.slice(0, 160).replace(/\n/g, ' | '));
+  await page.screenshot({ path: `${OUT}/e2e-I11-loop.png` });
+  await page.getByText('Recordármelo', { exact: true }).first().click().catch(() => {});
+  await page.waitForTimeout(1000);
+
+  // warning-light photo
+  await go(page, '/obd');
+  const lightsPicked = await pickWith(page, /Foto de la luz/i, img('dash-km.jpg'));
+  await page.waitForTimeout(3500);
+  const tL = await text(page);
+  await page.screenshot({ path: `${OUT}/e2e-I12-lights.png`, fullPage: true });
+  check('I12 warning-light photo: lights NAMED, most urgent first (oil pressure red → stop), and where each leads', lightsPicked && tL.indexOf('Presión de aceite') > -1 && tL.indexOf('Presión de aceite') < tL.indexOf('Check engine') && tL.indexOf('Presión de aceite') < tL.indexOf('Presión de gomas') && /Para y revísalo/.test(tL) && /Revísalo pronto/.test(tL) && /Abrir: /.test(tL), tL.slice(tL.indexOf('FOTO DE UNA LUZ'), tL.indexOf('FOTO DE UNA LUZ') + 260).replace(/\n/g, ' | '));
+  // scanner screenshot
+  const shot = await pickWith(page, /Foto o captura del escáner/i, img('dash-km.jpg'));
+  await page.waitForTimeout(3500);
+  const tSc = await text(page);
+  check('I13 scanner screenshot (the only path that calls the AI): codes and a freeze-frame value come back', shot && calls.some((c) => c.fn === 'cg-ai-read' && c.body.kind === 'scanner') && /P0301/.test(tSc) && /P0302/.test(tSc) && /RPM 3100/.test(tSc));
+
+  // offline: the bundled lookup stays the answer, and the AI part says it needs a connection (SPEC-D §D5)
+  net.offline = true;
+  await go(page, '/obd/P0171');
+  const tOff = await text(page);
+  net.offline = false;
+  check('I14 offline: the bundled description is still there and the AI explanation says it needs a connection', /P0171/.test(tOff) && /Código genérico|No está en la tabla|Mezcla|pobre|lean/i.test(tOff) && /necesita conexión/i.test(tOff), tOff.slice(0, 200).replace(/\n/g, ' | '));
 
   console.log('errors (main):', errors.slice(0, 5));
   await browser.close();
