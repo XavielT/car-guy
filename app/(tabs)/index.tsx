@@ -1,6 +1,7 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DictateSheet } from '@/components/ai/DictateSheet';
+import { QueueNotice } from '@/components/ai/QueueNotice';
 import { HomeNudge } from '@/components/features/HomeNudge';
 import { useOpenDtcCount, useOpenFeature } from '@/components/features/useFeatures';
 import { featureForTelltale, LAMP_TELLTALE } from '@/lib/features/registry';
@@ -392,6 +393,7 @@ export default function HomeScreen() {
             {t.ai.voice.title}
           </T>
         </Pressable>
+        <QueueNotice />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcher}>
           {data.vehicles.filter((v) => !v.isArchived).map((v) => {

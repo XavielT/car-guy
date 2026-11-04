@@ -15,6 +15,7 @@ const values = (page) => page.locator('input, textarea').evaluateAll((els) => el
 const model = 'claude-haiku-5-5';
 
 let odoRead = { odometer: f(52500), unit: f('mi') };
+let expressOdo = 53100;
 const canned = {
   'cg-ai-read': (b) => {
     if (b.kind === 'fuel_receipt') return { ok: true, kind: b.kind, model, fields: { total: f(2580), gallons: f(7.5), unit_price: f(344), product: f('GASOLINA PREMIUM'), station: f('SHELL LOS PRADOS'), date: f('2026-11-02'), ncf: f('B0200004512', 0.5) } };
@@ -32,7 +33,7 @@ const canned = {
     if (b.kind === 'fuel_express')
       return {
         ok: true, kind: b.kind, model,
-        fields: { odometer: f(53100), unit: f('km'), fuel_level: f(0.6, 0.4), total: f(2580), gallons: f(7.5), unit_price: f(344), product: f('GASOLINA PREMIUM'), station: f('SHELL LOS PRADOS'), date: f('2026-11-02') },
+        fields: { odometer: f(expressOdo), unit: f('km'), fuel_level: f(0.6, 0.4), total: f(2580), gallons: f(7.5), unit_price: f(344), product: f('GASOLINA PREMIUM'), station: f('SHELL LOS PRADOS'), date: f('2026-11-02') },
         per_image: [{ index: 0, kind: 'dashboard', readable: true }, { index: 1, kind: 'receipt', readable: true }],
       };
     return { ok: false };
@@ -52,7 +53,7 @@ async function pickWith(page, buttonName, file) {
 
 // ───────────── main browser (typed dictation, captures) ─────────────
 {
-  const { browser, page, calls, errors } = await launch({ canned });
+  const { browser, page, calls, errors, net } = await launch({ canned });
   await seed(page);
 
   // A. fill-up: scan → prefill → odometer typed → Guardar
@@ -132,6 +133,37 @@ async function pickWith(page, buttonName, file) {
   await page.waitForTimeout(2500);
   check('D5 confirming the identical read again shows "esta echada ya se guardó" instead of saving twice', /ya se guard/i.test(await text(page)));
   await page.screenshot({ path: `${OUT}/e2e-D5-duplicate.png` });
+
+  // G. offline queue: photos taken without a connection wait, then are read when it is back, then confirmed in one tap
+  expressOdo = 53500;
+  const readsBeforeG = calls.filter((c) => c.fn === 'cg-ai-read').length;
+  await go(page, '/carga/express');
+  net.offline = true;
+  await pickWith(page, /Elegir foto/i, img('dash-km.jpg'));
+  await page.waitForTimeout(1200);
+  await pickWith(page, /Elegir foto/i, img('receipt-shell-premium.jpg'));
+  await page.waitForTimeout(4500);
+  await go(page, '/');
+  const tG1 = await text(page);
+  check('G1 offline: the photos are kept and Hoy says one is waiting for a connection', /esperando conexi/i.test(tG1) && calls.filter((c) => c.fn === 'cg-ai-read').length === readsBeforeG, tG1.slice(0, 200).replace(/\n/g, ' | '));
+  await page.screenshot({ path: `${OUT}/e2e-G1-waiting.png` });
+  net.offline = false;
+  await go(page, '/');
+  await page.waitForTimeout(3000);
+  const tG2 = await text(page);
+  check('G2 back online: coming to Hoy reads the queued photos ONCE and offers to confirm', /lista para confirmar/i.test(tG2) && calls.filter((c) => c.fn === 'cg-ai-read').length === readsBeforeG + 1, tG2.slice(0, 200).replace(/\n/g, ' | '));
+  await page.screenshot({ path: `${OUT}/e2e-G2-ready.png` });
+  await page.getByRole('button', { name: /lista para confirmar/i }).first().click().catch(() => {});
+  await page.waitForTimeout(2500);
+  const tG3 = await text(page);
+  await page.screenshot({ path: `${OUT}/e2e-G3-opened.png` });
+  check('G3 Abrir shows the confirmation card with the queued read (53,500 km)', /confirmar carga/i.test(tG3) && /53,500/.test(tG3), `${page.url()} ${tG3.slice(0, 220).replace(/\n/g, ' | ')}`);
+  await page.getByRole('button', { name: /^Confirmar$/i }).first().click().catch(() => {});
+  await page.waitForTimeout(3000);
+  const tG4 = await text(page);
+  check('G4 one tap saves it (result sheet, no duplicate), and Hoy no longer lists it', /km\/gal/i.test(tG4) && !/ya se guard/i.test(tG4));
+  await go(page, '/');
+  check('G5 the queue notice is gone once confirmed', !/lista para confirmar|esperando conexi/i.test(await text(page)));
 
   // E. dictate by typing
   await go(page, '/');

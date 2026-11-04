@@ -55,9 +55,9 @@ PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core [CHROMIUM_PATH=/path/to/ch
 
 `e2e/ai-web.mjs` drives the **web build** in Chromium with a fake signed-in session and **canned** AI answers: capture →
 the request that would be sent → prefill and "IA" marks → the normal Save, for the fill-up, repair invoice, odometer,
-Fuel Express (including the duplicate guard) and dictation (typed, and spoken through Chromium's fake microphone so
+Fuel Express (including the duplicate guard and the offline queue: photos taken offline wait, are read once when the connection is back, and are confirmed in one tap) and dictation (typed, and spoken through Chromium's fake microphone so
 `expo-audio` really records). It proves the **app side**. It does **not** prove the model reads anything (the answers are
-written in the script). 22 checks.
+written in the script). 27 checks.
 
 ```bash
 # a dev server (the seed route is __DEV__ only) with the public cloud config, so the app thinks cloud is configured

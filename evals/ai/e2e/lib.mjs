@@ -32,6 +32,8 @@ export async function launch({ canned = {}, viewport = { width: 390, height: 844
   const ctx = await browser.newContext({ viewport, locale: 'es-DO', permissions: fakeMic ? ['microphone'] : [] });
   const calls = [];
   const errors = [];
+  // `net.offline = true` makes every AI function call fail like a dead connection (fetch rejects).
+  const net = { offline: false };
   await ctx.addInitScript(
     ([key, session]) => {
       try {
@@ -46,6 +48,7 @@ export async function launch({ canned = {}, viewport = { width: 390, height: 844
     const fn = url.pathname.match(/\/functions\/v1\/([\w-]+)/)?.[1];
     const json = (status, body) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: JSON.stringify(body) });
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
+    if (fn && net.offline) return route.abort('internetdisconnected');
     if (fn === 'cg-ai-status') return json(200, STATUS);
     if (fn && canned[fn]) {
       let body = null;
@@ -61,7 +64,7 @@ export async function launch({ canned = {}, viewport = { width: 390, height: 844
   });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 200)));
-  return { browser, ctx, page, calls, errors };
+  return { browser, ctx, page, calls, errors, net };
 }
 
 /** Seeds the garage the same way the phase-0 screenshots did (/dev/seed → "Acepto" → "sembrar garaje"). */
