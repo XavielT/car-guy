@@ -32,6 +32,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_insights: {
+        Row: {
+          created_at: string
+          id: string
+          input_hash: string
+          kind: string
+          payload: Json
+          status: string
+          updated_at: string
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_hash: string
+          kind: string
+          payload: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_hash?: string
+          kind?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           cost_usd: number
