@@ -66,6 +66,10 @@ run whatever the pass rate (and `__tests__/ai/evals-fixtures.test.ts` ties each 
 uses). After the run it reads **your own** `ai_usage` rows for `cg-ai-obd` and prints the average **cost per explanation**.
 Synthetic cars and histories; a floor, not a claim about your car.
 
+## Insights (`insights.json`, PROMPT-05)
+
+10 fact sets for `cg-ai-insights`, **generated from the real engine**: `node --experimental-strip-types evals/ai/make-insights.mjs` (Node 22; `predict.ts` imports nothing). `__tests__/ai/insights-fixtures.test.ts` fails if the engine's output drifts from the stored facts, so regenerate then. Run with `--only insights`: it reports passed/total (every `mustCover` act-level fact cited, no insight without a fact or citing an unknown one, ≤5), the **template fallback rate** (how often the server's number check replaced the model's wording) and cost per call. Not run live yet.
+
 ## Not covered here
 
 - **Voice.** There is no audio fixture: speech-to-text needs recordings of real voices, and `STT_API_KEY` is not set
