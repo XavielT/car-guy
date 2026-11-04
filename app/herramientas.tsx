@@ -13,6 +13,7 @@ import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { FEATURE_SECTIONS } from '@/lib/features/ids';
 import { activeFeatures, type FeatureDef } from '@/lib/features/registry';
+import { SmartSearch } from '@/components/ai/SmartSearch';
 import { searchFeatures } from '@/lib/features/search';
 import { FEEDBACK_ROUTE } from '@/lib/feedback';
 import { t } from '@/lib/i18n';
@@ -59,6 +60,8 @@ export default function ToolsScreen() {
       </T>
 
       <Field label={t.features.searchLabel} placeholder={t.features.search} value={query} onChangeText={setQuery} autoCorrect={false} autoFocus={focus === 'search'} returnKeyType="search" />
+
+      <SmartSearch query={query} matches={results?.length ?? 0} onQuery={setQuery} />
 
       {vehicles.length > 1 ? (
         <SelectField

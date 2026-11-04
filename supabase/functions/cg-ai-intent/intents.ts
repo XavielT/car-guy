@@ -6,8 +6,15 @@
  */
 import { normalizeField, type Field, type FieldSpec } from '../_shared/fields.ts';
 
-export const TARGETS = ['fuel', 'service', 'repair', 'expense', 'odometer', 'reminder', 'task', 'event', 'obd', 'navigate'] as const;
+export const TARGETS = ['fuel', 'service', 'repair', 'expense', 'odometer', 'reminder', 'task', 'event', 'obd', 'navigate', 'query'] as const;
 export type Target = (typeof TARGETS)[number];
+
+/**
+ * SPEC-G §G1: a QUESTION about the person's own records. The model only classifies it into this closed list and says which
+ * period / keyword it is about; the ANSWER (a number, a date) is computed by the app from its own data, never produced by the model.
+ */
+export const QUERY_KINDS = ['fuel_spend', 'total_spend', 'last_service', 'next_due', 'show_repairs'] as const;
+export type QueryKind = (typeof QUERY_KINDS)[number];
 
 export const EXPENSE_CATEGORIES = ['seguro', 'marbete', 'impuesto', 'multa', 'peaje', 'parqueo', 'lavado', 'financiamiento', 'accesorio', 'grua', 'otro'] as const;
 
@@ -27,6 +34,10 @@ export const FIELDS: Record<string, FieldSpec> = {
   dtc_code: { type: 'string', desc: 'Código OBD como P0301', clean: (s) => s.replace(/\s+/g, '').toUpperCase(), pattern: /^[PBCU][0-9A-F]{4}$/, maxLen: 5 },
   system: { type: 'string', desc: 'Sistema del carro (motor, frenos, suspensión, eléctrico…)', maxLen: 30 },
   navigate_to: { type: 'string', desc: 'Id de la sección a abrir; SOLO uno de la lista que se te da', maxLen: 40 },
+  query_kind: { type: 'enum', desc: 'Solo con target query: fuel_spend (cuánto gasté en combustible), total_spend (cuánto gasté en total), last_service (cuándo fue la última vez que hice algo), next_due (cuándo vence algo), show_repairs (muéstrame reparaciones)', values: QUERY_KINDS },
+  period_from: { type: 'date', desc: 'Solo con target query: inicio del período preguntado (YYYY-MM-DD). "en octubre" = el primer día de octubre del año en curso (o del anterior si octubre aún no llega).' },
+  period_to: { type: 'date', desc: 'Solo con target query: fin del período preguntado (YYYY-MM-DD), inclusive.' },
+  keyword: { type: 'string', desc: 'Solo con target query: de qué cosa se pregunta, una o dos palabras (aceite, marbete, seguro, frenos, gomas…)', maxLen: 30 },
 };
 
 export const SYSTEM = `Eres el intérprete de Car Guy, una app dominicana para llevar el historial de un carro. Recibes UNA frase de la persona (escrita o dictada) y decides a qué formulario corresponde y con qué campos, llamando a la herramienta.
@@ -41,6 +52,7 @@ Destinos (cerrados, no hay otros):
 - task: algo pendiente por hacer sin fecha.
 - event: algo que le pasó al carro (choque, avería, un hito).
 - obd: un código de la luz del tablero ("me salió el P0301").
+- query: hace una PREGUNTA sobre sus propios registros ("cuándo vence mi marbete", "cuánto gasté en gasolina en octubre", "cuándo cambié el aceite", "enséñame las reparaciones de frenos"). Solo clasifica la pregunta en query_kind y di el período o la palabra clave: NUNCA respondas la pregunta ni inventes cifras, la app calcula la respuesta.
 - navigate: solo quiere ABRIR una sección ("llévame a cifras"); navigate_to debe ser uno de los ids de la lista dada.
 Si nada encaja, usa target "none".
 
@@ -150,6 +162,16 @@ export function normalizeIntent(input: unknown, ctx: IntentContext): IntentResul
   // navigate_to must be one of the ids the app sent; a navigate with nowhere to go is nothing.
   if (fields.navigate_to.value !== null && !ctx.features.includes(String(fields.navigate_to.value))) fields.navigate_to = { value: null, confidence: 0 };
   if (target === 'navigate' && fields.navigate_to.value === null) return null;
+  // A question needs its kind (from the closed list); a period that ends before it starts is no period.
+  if (target === 'query') {
+    if (fields.query_kind.value === null) return null;
+    const a = fields.period_from.value;
+    const z = fields.period_to.value;
+    if (typeof a === 'string' && typeof z === 'string' && z < a) {
+      fields.period_from = { value: null, confidence: 0 };
+      fields.period_to = { value: null, confidence: 0 };
+    }
+  }
 
   const names = Array.isArray(raw.vehicle_candidates) ? raw.vehicle_candidates.filter((x): x is string => typeof x === 'string') : [];
   const matched: { id: string; name: string }[] = [];

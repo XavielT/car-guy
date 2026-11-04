@@ -54,7 +54,7 @@ describe('normalizeIntent — closed list', () => {
     expect(r.choices).toBeNull();
   });
   it('every target in the closed list is accepted; anything else is nothing', () => {
-    for (const t of TARGETS) expect(normalizeIntent(base({ target: t, navigate_to: f('cifras') }), CTX)).not.toBeNull();
+    for (const t of TARGETS) expect(normalizeIntent(base({ target: t, navigate_to: f('cifras'), query_kind: f('fuel_spend') }), CTX)).not.toBeNull();
     for (const t of ['chat', 'delete_all', 'none', '', undefined, 7]) expect(normalizeIntent(base({ target: t }), CTX)).toBeNull();
   });
   it('navigate needs a destination from the list the app sent', () => {

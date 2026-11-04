@@ -7,7 +7,7 @@ import type { DraftForm } from './draft';
 import type { ReadField } from './read';
 import type { VolumeUnit } from '../domain/units';
 
-export type IntentTarget = 'fuel' | 'service' | 'repair' | 'expense' | 'odometer' | 'reminder' | 'task' | 'event' | 'obd' | 'navigate';
+export type IntentTarget = 'fuel' | 'service' | 'repair' | 'expense' | 'odometer' | 'reminder' | 'task' | 'event' | 'obd' | 'navigate' | 'query';
 
 /** The body `cg-ai-intent` answers (supabase/functions/cg-ai-intent/intents.ts). */
 export type IntentResult = {
