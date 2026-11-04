@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AiFieldMark } from '@/components/ai/AiFieldMark';
+import { CaptureButton } from '@/components/ai/CaptureButton';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
@@ -28,7 +30,10 @@ import { offerUndo } from '@/lib/db/resolvedPendingStore';
 import { linkDtcRepair } from '@/lib/db/diyQueries';
 import { askForLabor, askForShop } from '@/lib/domain/repairs';
 import { saveMilestone } from '@/lib/db/albumQueries';
-import { recordError } from '@/lib/diagnostics';
+import { withoutMark } from '@/lib/ai/draft';
+import { invoicePrefillFrom, type InvoiceMarks } from '@/lib/ai/formMap';
+import { recordError, recordReportable } from '@/lib/diagnostics';
+import { storePhoto } from '@/lib/media';
 import type { DoneBy, ServiceCategory, ServiceKind, ServiceType, VehicleSpecsheet } from '@/lib/db/types';
 import { suggestionsFor } from '@/lib/domain/carMemory';
 import { todayIso } from '@/lib/domain/dates';
@@ -99,7 +104,7 @@ export default function NuevoServicioScreen() {
   const [kind, setKind] = useState<ServiceKind>(
     KINDS.includes(params.kind as ServiceKind) ? (params.kind as ServiceKind) : 'mantenimiento',
   );
-  const [date, setDate] = useState(
+  const [date, setDateRaw] = useState(
     params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : dateInputFromIso(todayIso()),
   );
   const [odometer, setOdometer] = useState(params.km ?? '');
@@ -108,14 +113,14 @@ export default function NuevoServicioScreen() {
   const [selected, setSelected] = useState<string[]>(params.serviceTypeId ? [params.serviceTypeId] : []);
   const [search, setSearch] = useState('');
   const [description, setDescription] = useState('');
-  const [costParts, setCostParts] = useState('');
-  const [costLabor, setCostLabor] = useState('');
-  const [totalOverride, setTotalOverride] = useState<string | null>(null);
-  const [shop, setShop] = useState('');
+  const [costParts, setCostPartsRaw] = useState('');
+  const [costLabor, setCostLaborRaw] = useState('');
+  const [totalOverride, setTotalOverrideRaw] = useState<string | null>(null);
+  const [shop, setShopRaw] = useState('');
   const [contactId, setContactId] = useState<string | null>(null);
   const [showWarranty, setShowWarranty] = useState(false);
-  const [warrantyDate, setWarrantyDate] = useState('');
-  const [warrantyKm, setWarrantyKm] = useState('');
+  const [warrantyDate, setWarrantyDateRaw] = useState('');
+  const [warrantyKm, setWarrantyKmRaw] = useState('');
   const [showParts, setShowParts] = useState(false);
   const [parts, setParts] = useState<PartDraft[]>([]);
   const [photoMediaId, setPhotoMediaId] = useState<string | null>(null);
@@ -127,6 +132,16 @@ export default function NuevoServicioScreen() {
   const [sourceTaskId, setSourceTaskId] = useState<string | null>(params.taskId ?? null);
   const [sourceInspectionId, setSourceInspectionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // IMP 03112026 (ADR-67): an invoice photo fills these; the person reviews and saves as always. Editing a field clears its mark.
+  const [marks, setMarks] = useState<InvoiceMarks>({});
+  const unmark = (k: keyof InvoiceMarks) => setMarks((m) => withoutMark(m as Record<string, number>, k) as InvoiceMarks);
+  const setDate = (v: string) => { setDateRaw(v); unmark('date'); };
+  const setCostParts = (v: string) => { setCostPartsRaw(v); unmark('costParts'); };
+  const setCostLabor = (v: string) => { setCostLaborRaw(v); unmark('costLabor'); };
+  const setTotalOverride = (v: string | null) => { setTotalOverrideRaw(v); unmark('total'); };
+  const setShop = (v: string) => { setShopRaw(v); unmark('shop'); };
+  const setWarrantyDate = (v: string) => { setWarrantyDateRaw(v); unmark('warranty'); };
+  const setWarrantyKm = (v: string) => { setWarrantyKmRaw(v); unmark('warranty'); };
   // The Aceite block per oil item, and the previous oil offered for each (note 16).
   const [oil, setOil] = useState<Record<string, OilFields>>({});
   const [lastOil, setLastOil] = useState<Record<string, OilFields | null>>({});
@@ -184,26 +199,26 @@ export default function NuevoServicioScreen() {
       if (cancelled) return;
 
       setKind(row.kind);
-      setDate(dateInputFromIso(row.occurredAt));
+      setDateRaw(dateInputFromIso(row.occurredAt));
       setOdometer(row.odometerKm != null ? String(Math.round(row.odometerKm)) : '');
       setTitle(row.title);
       setTitleTouched(true);
       setSelected(items.map((i) => i.serviceTypeId));
       setOil(Object.fromEntries(items.map((i) => [i.serviceTypeId, normalizeOil(i)])));
       setDescription(row.description);
-      setCostParts(row.costPartsDop ? String(row.costPartsDop) : '');
-      setCostLabor(row.costLaborDop ? String(row.costLaborDop) : '');
+      setCostPartsRaw(row.costPartsDop ? String(row.costPartsDop) : '');
+      setCostLaborRaw(row.costLaborDop ? String(row.costLaborDop) : '');
       // There is no "was overridden" flag on the row, so we infer it: a total
       // that matches parts + labour is one the form computed, and must keep
       // recomputing as those are edited. Anything else the user typed by hand.
       const computed = roundMoney(row.costPartsDop + row.costLaborDop);
-      setTotalOverride(row.totalDop === computed ? null : String(row.totalDop));
-      setShop(row.shop);
+      setTotalOverrideRaw(row.totalDop === computed ? null : String(row.totalDop));
+      setShopRaw(row.shop);
       setContactId(row.contactId ?? null);
       if (row.warrantyUntilDate || row.warrantyUntilKm != null) {
         setShowWarranty(true);
-        setWarrantyDate(row.warrantyUntilDate ? dateInputFromIso(row.warrantyUntilDate) : '');
-        setWarrantyKm(row.warrantyUntilKm != null ? String(row.warrantyUntilKm) : '');
+        setWarrantyDateRaw(row.warrantyUntilDate ? dateInputFromIso(row.warrantyUntilDate) : '');
+        setWarrantyKmRaw(row.warrantyUntilKm != null ? String(row.warrantyUntilKm) : '');
       }
       if (partRows.length) {
         setShowParts(true);
@@ -366,8 +381,43 @@ export default function NuevoServicioScreen() {
     })();
   }
 
+  /** An invoice was read: fill what it carries (never a field it did not read), keep its confidence, keep the photo as the invoice. */
+  function applyInvoice(result: Parameters<typeof invoicePrefillFrom>[0], photo: { uri: string }) {
+    const { prefill: p, marks: m } = invoicePrefillFrom(result, date);
+    const filled = p.shop || p.date || p.costParts || p.totalOverride || p.warrantyDate || p.warrantyKm || p.parts.length;
+    if (!filled) {
+      Alert.alert(t.ai.consent.title, t.ai.capture.nothingRead);
+      return;
+    }
+    if (p.shop) setShop(p.shop);
+    if (p.date) setDate(p.date);
+    if (p.costParts) setCostParts(p.costParts);
+    if (p.costLabor) setCostLabor(p.costLabor);
+    if (p.costParts || p.totalOverride) setTotalOverride(p.totalOverride ?? null);
+    if (p.parts.length) {
+      setParts(p.parts);
+      setShowParts(true);
+    }
+    if (p.warrantyDate || p.warrantyKm) {
+      setWarrantyDate(p.warrantyDate ?? '');
+      setWarrantyKm(p.warrantyKm ?? '');
+      setShowWarranty(true);
+    }
+    if (!isRepair && p.noteLines.length && !description.trim()) setDescription(p.noteLines.join(' · '));
+    // Marks last: the setters above clear marks, these are the new ones.
+    setMarks((cur) => ({ ...cur, ...m }));
+    void storePhoto({ uri: photo.uri, width: null, takenAt: new Date().toISOString() }, { ownerTable: 'service_record', ownerId: recordId, vehicleId: activeVehicle!.id })
+      .then((media) => {
+        if (!media) return;
+        if (isRepair) setPhotos((cur) => (cur.invoice ? cur : { ...cur, invoice: media.id }));
+        else setPhotoMediaId((cur) => cur ?? media.id);
+      })
+      .catch((e) => recordReportable('ai-photo-attach', e));
+  }
+  const invoiceCapture = <CaptureButton kind="invoice" label={t.ai.capture.scanInvoice} onRead={applyInvoice} />;
   const dateOdo = (
     <>
+        <AiFieldMark confidence={marks.date} />
         <DateField label={t.service.date} value={date} onChange={setDate} noFuture />
         <Field
           label={t.service.odometer}
@@ -470,6 +520,7 @@ export default function NuevoServicioScreen() {
         <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
           {t.service.costs}
         </T>
+        <AiFieldMark confidence={marks.costParts ?? marks.total} />
         <View style={styles.pair}>
           <View style={styles.half}>
             <Field label={t.service.costParts} keyboardType="decimal-pad" value={costParts} onChangeText={setCostParts} />
@@ -490,6 +541,7 @@ export default function NuevoServicioScreen() {
   );
   const shopBlock = (
     <>
+        <AiFieldMark confidence={marks.shop} />
         {FEATURE_DIY ? (
           // The shop is a contact now (call / WhatsApp from it), with free text for a one-off.
           <ContactPicker
@@ -535,6 +587,7 @@ export default function NuevoServicioScreen() {
         </Pressable>
         {showWarranty ? (
           <>
+            <AiFieldMark confidence={marks.warranty} />
             <DateField label={t.service.warrantyDate} value={warrantyDate} onChange={setWarrantyDate} />
             <Field label={t.service.warrantyKm} keyboardType="number-pad" value={warrantyKm} onChangeText={setWarrantyKm} />
           </>
@@ -600,6 +653,7 @@ export default function NuevoServicioScreen() {
   // parts and costs (no labour if it was you), warranty, photos with a role, and the Pendiente it closes.
   const repairBody = (
     <>
+      {invoiceCapture}
       <Field
         label={t.repair.whatLabel}
         placeholder={t.repair.whatPlaceholder}
@@ -617,6 +671,7 @@ export default function NuevoServicioScreen() {
       <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
         {t.service.costs}
       </T>
+      <AiFieldMark confidence={marks.costParts ?? marks.total} />
       {askForLabor(doneBy) ? (
         <View style={styles.pair}>
           <View style={styles.half}>
@@ -688,6 +743,7 @@ export default function NuevoServicioScreen() {
           repairBody
         ) : (
           <>
+            {invoiceCapture}
             {dateOdo}
             {items}
             {titleDesc}

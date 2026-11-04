@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AiFieldMark, aiOutline } from '@/components/ai/AiFieldMark';
+import { CaptureButton } from '@/components/ai/CaptureButton';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
@@ -16,9 +18,13 @@ import {
 } from '@/lib/db/repos';
 import { saveExpense } from '@/lib/db/serviceOps';
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from '@/lib/db/types';
+import { expensePrefillFrom, type ExpenseMarks } from '@/lib/ai/formMap';
+import { recordReportable } from '@/lib/diagnostics';
 import { dateInputFromIso, isoFromDateInput, todayIsoDate } from '@/lib/format';
+import { storePhoto } from '@/lib/media';
 import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
+import { withoutMark } from '@/lib/ai/draft';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -45,6 +51,9 @@ export default function NuevoGastoScreen() {
   const [currentKm, setCurrentKm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expenseId] = useState(() => editingId ?? `exp_${Date.now()}`);
+  // IMP 03112026 (ADR-67): a receipt photo fills amount, date and vendor (never the category); the person saves as always.
+  const [marks, setMarks] = useState<ExpenseMarks>({});
+  const unmark = (k: keyof ExpenseMarks) => setMarks((m) => withoutMark(m as Record<string, number>, k) as ExpenseMarks);
 
   const vehicleId = activeVehicle?.id;
 
@@ -149,8 +158,32 @@ export default function NuevoGastoScreen() {
           })}
         </View>
 
-        <Field label={t.expense.amount} keyboardType="decimal-pad" value={amount} onChangeText={setAmount} />
-        <DateField label={t.expense.date} value={date} onChange={setDate} noFuture />
+        <CaptureButton
+          kind="invoice"
+          label={t.ai.capture.scanReceipt}
+          onRead={(result, photo) => {
+            const { prefill, marks: m } = expensePrefillFrom(result);
+            if (prefill.amount == null && !prefill.date && !prefill.vendor) {
+              Alert.alert(t.ai.consent.title, t.ai.capture.nothingRead);
+              return;
+            }
+            if (prefill.amount) setAmount(prefill.amount);
+            if (prefill.date) setDate(prefill.date);
+            if (prefill.vendor) setVendor(prefill.vendor);
+            if (prefill.noteLines.length && !description.trim()) setDescription(prefill.noteLines.join(' · '));
+            setMarks((cur) => ({ ...cur, ...m }));
+            // The photo stays as the expense's picture, unless the person already added one.
+            if (!photoMediaId) {
+              void storePhoto({ uri: photo.uri, width: null, takenAt: new Date().toISOString() }, { ownerTable: 'expense', ownerId: expenseId, vehicleId: activeVehicle!.id })
+                .then((media) => media && setPhotoMediaId(media.id))
+                .catch((e) => recordReportable('ai-photo-attach', e));
+            }
+          }}
+        />
+        <AiFieldMark confidence={marks.amount} />
+        <Field label={t.expense.amount} keyboardType="decimal-pad" value={amount} style={aiOutline(marks.amount, theme.accent)} onChangeText={(v) => { setAmount(v); unmark('amount'); }} />
+        <AiFieldMark confidence={marks.date} />
+        <DateField label={t.expense.date} value={date} onChange={(v) => { setDate(v); unmark('date'); }} noFuture />
         <Field
           label={t.expense.odometer}
           keyboardType="number-pad"
@@ -159,7 +192,8 @@ export default function NuevoGastoScreen() {
           placeholder={currentKm != null ? String(Math.round(currentKm)) : undefined}
         />
         <Field label={t.expense.description} value={description} onChangeText={setDescription} />
-        <Field label={t.expense.vendor} value={vendor} onChangeText={setVendor} />
+        <AiFieldMark confidence={marks.vendor} />
+        <Field label={t.expense.vendor} value={vendor} style={aiOutline(marks.vendor, theme.accent)} onChangeText={(v) => { setVendor(v); unmark('vendor'); }} />
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {t.expense.photo}

@@ -1,16 +1,21 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AiFieldMark, aiOutline } from '@/components/ai/AiFieldMark';
+import { CaptureButton } from '@/components/ai/CaptureButton';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
 import { LcdDigits, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { currentOdometer as currentOdometerQuery, odometer as odometerRepo } from '@/lib/db/repos';
+import { odometerFrom } from '@/lib/ai/formMap';
+import { MI_TO_KM } from '@/lib/domain/fuelSanity';
 import { odometerWarning } from '@/lib/domain/odometer';
 import { isoFromDateInput, km as fmtKm, todayIsoDate } from '@/lib/format';
+import { Alert } from '@/lib/alert';
 import { t } from '@/lib/i18n';
 import { parseDecimal } from '@/lib/math';
 import { useStore } from '@/lib/store';
@@ -30,6 +35,9 @@ export default function OdometroScreen() {
   const [date, setDate] = useState(todayIsoDate());
   const [current, setCurrent] = useState<number | null>(null);
   const [readings, setReadings] = useState<{ occurredAt: string; valueKm: number }[]>([]);
+  // IMP 03112026 (ADR-67): a dashboard photo fills the number; the person still taps Guardar.
+  const [aiMark, setAiMark] = useState<number | undefined>(undefined);
+  const [milesRead, setMilesRead] = useState(false);
 
   useEffect(() => {
     if (!activeVehicle) return;
@@ -59,14 +67,53 @@ export default function OdometroScreen() {
           <LcdDigits value={parsed ?? (current != null ? Math.round(current) : null)} height={40} />
         </View>
 
+        <CaptureButton
+          kind="odometer"
+          icon="speedometer-outline"
+          label={t.ai.capture.dashboardPhoto}
+          onRead={(result) => {
+            const read = odometerFrom(result);
+            if (!read) {
+              Alert.alert(t.ai.consent.title, t.ai.capture.nothingRead);
+              return;
+            }
+            setValue(read.value);
+            setMilesRead(read.milesRead);
+            setAiMark(read.confidence);
+          }}
+        />
+        <AiFieldMark confidence={aiMark} />
         <Field
+          style={aiOutline(aiMark, theme.accent)}
           label={t.odometerSheet.value}
           placeholder={current != null ? String(Math.round(current)) : '51676'}
           keyboardType="number-pad"
           value={value}
-          onChangeText={setValue}
+          onChangeText={(v) => {
+            setValue(v);
+            setAiMark(undefined);
+            setMilesRead(false);
+          }}
           hint={current != null ? t.odometerSheet.lastReading(fmtKm(Math.round(current))) : undefined}
         />
+        {milesRead && parsed != null ? (
+          <>
+            <T face="body" style={{ color: theme.statusText.proximo, fontSize: 13, lineHeight: 19, marginBottom: 4 }}>
+              {t.ai.capture.unitMiles(parsed, Math.round(parsed * MI_TO_KM))}
+            </T>
+            <Pressable
+              onPress={() => {
+                setValue(String(Math.round(parsed * MI_TO_KM)));
+                setMilesRead(false);
+              }}
+              accessibilityRole="button"
+              style={{ alignSelf: 'flex-start', minHeight: 40, justifyContent: 'center', marginBottom: space.sm }}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
+                {t.ai.capture.useKm}
+              </T>
+            </Pressable>
+          </>
+        ) : null}
         <DateField label={t.odometerSheet.date} value={date} onChange={setDate} noFuture />
 
         {warning ? (
