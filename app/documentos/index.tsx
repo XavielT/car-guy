@@ -8,10 +8,13 @@ import { T } from '@/components/T';
 import { EmptyState, PrimaryButton, StatusPill, Surface } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { Alert } from '@/lib/alert';
+import { createDocumentReminder } from '@/lib/db/documentOps';
 import { documents as documentRepo } from '@/lib/db/repos';
 import type { VehicleDocument } from '@/lib/db/types';
 import { daysBetween, todayIso } from '@/lib/domain/dates';
-import { dateLabel } from '@/lib/format';
+import { suggestExpiryReminders } from '@/lib/domain/documentExpiry';
+import { dateLabel, todayIsoDate } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -19,7 +22,7 @@ import { useTheme } from '@/lib/theme/useTheme';
 export default function DocumentosScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { activeVehicle, data } = useStore();
+  const { activeVehicle, data, refresh } = useStore();
   const [rows, setRows] = useState<VehicleDocument[]>([]);
   // The empty state waits for the first read instead of flashing (ADR-40).
   const [loaded, setLoaded] = useState(false);
@@ -44,6 +47,8 @@ export default function DocumentosScreen() {
   }, [vehicleId, data]);
 
   const showSkeleton = useDelayedLoading(!loaded);
+  // C3 (IMP 03112026 SPEC-C): a document with an expiry and no reminder gets a "Crear recordatorio" suggestion.
+  const suggestions = suggestExpiryReminders(rows, todayIsoDate()).slice(0, 3);
 
   if (!activeVehicle) return null;
 
@@ -56,6 +61,34 @@ export default function DocumentosScreen() {
         <T face="body" style={[styles.sub, { color: theme.text.secondary }]}>
           {t.documents.subtitle}
         </T>
+
+        {suggestions.map((s) => (
+          <Surface key={s.documentId} style={{ marginBottom: space.sm }}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 14 }}>
+              {t.ai.documents.suggestTitle}
+            </T>
+            <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 18, marginTop: 2 }}>
+              {s.status === 'expired' ? t.ai.documents.suggestExpired(s.title, dateLabel(s.expiresAt)) : t.ai.documents.suggestBody(s.title, dateLabel(s.expiresAt))}
+            </T>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                const doc = rows.find((r) => r.id === s.documentId);
+                if (!doc) return;
+                void createDocumentReminder(doc).then(async (id) => {
+                  if (id) {
+                    await refresh();
+                    Alert.alert(t.documents.title, t.ai.documents.reminderCreated);
+                  }
+                });
+              }}
+              style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginTop: 4 }}>
+              <T face="semibold" style={{ color: theme.accent, fontSize: 14 }}>
+                {t.ai.documents.createReminder}
+              </T>
+            </Pressable>
+          </Surface>
+        ))}
 
         {showSkeleton ? (
           <ListCardsSkeleton n={4} pill />

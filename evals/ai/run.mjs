@@ -3,12 +3,14 @@
  * AI evals against the DEPLOYED functions (IMP 03112026 SPEC-B §B8). Reads photos and sentences, calls the real
  * `cg-ai-read` / `cg-ai-intent` with a test account's own session, scores with score.cjs and prints the accuracy.
  *
- *   SMOKE_EMAIL=… SMOKE_PASSWORD=… node evals/ai/run.mjs [--only read|intent] [--real] [--bar 0.9] [--delay 400]
+ *   SMOKE_EMAIL=… SMOKE_PASSWORD=… node evals/ai/run.mjs [--only read|documents|intent] [--real] [--bar 0.9] [--delay 400]
  *
  * · The account needs AI consent ON (Cuenta > Privacidad, or tools/smoke-ai.mjs turns it on). This script does not
  *   change consent, caps or any setting.
  * · It spends real money (a few cents for the whole set) and counts against the per-hour limit (30 by default: the
- *   full set is ~39 calls, so run `--only read` and `--only intent` in different hours or raise the limit).
+ *   full set is ~47 calls, so run `--only read`, `--only documents` and `--only intent` in different hours or raise it).
+ * · `documents` also checks PRIVACY: each case lists `forbidden` strings (a fake cédula, owner, address) that must
+ *   never appear anywhere in the response. Any leak fails the run, whatever the accuracy.
  * · A rate limit / cap / kill switch stops the run and the report says it is PARTIAL.
  * · `--real` adds evals/ai/real/manifest.json (your own photos; gitignored; same shape as fixtures/manifest.json).
  * · Exit code 1 when the critical-field accuracy or the false-fill bar is missed. Writes evals/ai/results/<time>.json
@@ -21,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const { scoreCase, scoreIntent, summarize } = require('./score.cjs');
+const { fold, scoreCase, scoreIntent, summarize } = require('./score.cjs');
 
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);
@@ -71,6 +73,8 @@ const wrong = (verdicts) =>
     .map(([k, v]) => `${k}:${v.verdict}`);
 
 class Stop extends Error {}
+/** Strings that leaked into a response (privacy). Printed truncated: the run itself must not spread them. */
+const leaked = [];
 
 async function runRead(token, manifestPath, baseDir, label) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
@@ -87,9 +91,13 @@ async function runRead(token, manifestPath, baseDir, label) {
       const got = { ...json.fields };
       if ('items_count' in c.expected) got.items_count = { value: (json.items ?? []).length, confidence: 1 };
       const verdicts = scoreCase(c.expected, got);
-      cases.push({ id: c.id, kind: c.kind, critical: c.critical, verdicts, model: json.model });
+      // Privacy: nothing the case forbids may appear ANYWHERE in the response (field values, keys, items).
+      const wire = fold(JSON.stringify(json));
+      const leaks = (c.forbidden ?? []).filter((x) => wire.includes(fold(x)));
+      leaked.push(...leaks.map((x) => `${c.id}: ${x.length > 3 ? `${x.slice(0, 3)}…` : x}`));
+      cases.push({ id: c.id, kind: c.kind, critical: c.critical, verdicts, model: json.model, leaks: leaks.length, privacyRemoved: json.privacy_removed });
       const bad = wrong(verdicts);
-      console.log(`  ${label}/${c.id.padEnd(34)} ${bad.length ? bad.join(' ') : 'all fields right'}`);
+      console.log(`  ${label}/${c.id.padEnd(34)} ${bad.length ? bad.join(' ') : 'all fields right'}${leaks.length ? `  PRIVACY LEAK x${leaks.length}` : ''}${typeof json.privacy_removed === 'number' ? `  (removed ${json.privacy_removed})` : ''}`);
     }
     await sleep(delay);
   }
@@ -128,7 +136,7 @@ async function runIntent(token) {
   return { cases, targetOk, total: fx.cases.length };
 }
 
-const report = { at: new Date().toISOString(), partial: null, read: null, intent: null };
+const report = { at: new Date().toISOString(), partial: null, read: null, documents: null, intent: null };
 let failed = false;
 try {
   const token = await signIn();
@@ -138,6 +146,11 @@ try {
     const real = join(here, 'real/manifest.json');
     if (flag('--real') && existsSync(real)) cases.push(...(await runRead(token, real, join(here, 'real'), 'real')));
     report.read = { summary: summarize(cases), cases };
+  }
+  if (only === 'all' || only === 'documents') {
+    console.log('DOCUMENTS (cg-ai-read: document, vin_plate)');
+    const cases = await runRead(token, join(here, 'documents.json'), join(here, 'fixtures'), 'docs');
+    report.documents = { summary: summarize(cases), cases, leaks: leaked.length, privacyRemoved: cases.reduce((n, c) => n + (c.privacyRemoved ?? 0), 0) };
   }
   if (only === 'all' || only === 'intent') {
     console.log('INTENT (cg-ai-intent)');
@@ -160,6 +173,15 @@ if (report.read) {
   const s = report.read.summary;
   console.log(`read    fields in photo ${s.fields} · accuracy ${pct(s.accuracy)} · confident-only ${pct(s.confidentAccuracy)} · critical ${pct(s.criticalAccuracy)} · false fills ${pct(s.falseFillRate)}`);
   for (const [k, v] of Object.entries(s.perField).sort()) console.log(`        ${k.padEnd(14)} ${v.correct}/${v.n}`);
+  if (s.criticalAccuracy != null && s.criticalAccuracy < bar) failed = true;
+  if (s.falseFillRate != null && s.falseFillRate > FALSE_FILL_MAX) failed = true;
+}
+if (report.documents) {
+  const s = report.documents.summary;
+  console.log(`docs    fields in paper ${s.fields} · accuracy ${pct(s.accuracy)} · critical ${pct(s.criticalAccuracy)} · false fills ${pct(s.falseFillRate)} · server removed ${report.documents.privacyRemoved} personal value(s)`);
+  for (const [k, v] of Object.entries(s.perField).sort()) console.log(`        ${k.padEnd(14)} ${v.correct}/${v.n}`);
+  console.log(`        PRIVACY: ${report.documents.leaks === 0 ? 'no forbidden string in any response' : `${report.documents.leaks} LEAK(S): ${leaked.join('; ')}`}`);
+  if (report.documents.leaks > 0) failed = true;
   if (s.criticalAccuracy != null && s.criticalAccuracy < bar) failed = true;
   if (s.falseFillRate != null && s.falseFillRate > FALSE_FILL_MAX) failed = true;
 }

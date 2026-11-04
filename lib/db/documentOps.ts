@@ -65,3 +65,45 @@ export async function saveDocument(draft: DocumentDraft): Promise<{ id: string; 
 
   return { id: documentId, linked };
 }
+
+/**
+ * The C3 "Crear recordatorio" suggestion (IMP 03112026 SPEC-C §C3): a document with an expiry and no reminder gets one.
+ * A legal kind (seguro, marbete, licencia) re-arms the legal reminder the app already tracks, exactly as `saveDocument`
+ * does, so it can never create a duplicate of it; any other kind gets its own one-off date reminder due on the expiry.
+ * Returns the reminder id, or null when the document has no expiry.
+ */
+export async function createDocumentReminder(doc: { id: string; vehicleId: string; kind: DocumentKind; title: string; expiresAt: string | null }): Promise<string | null> {
+  if (!doc.expiresAt) return null;
+  return enqueue(async (db) => {
+    const legalKind = LEGAL_BY_KIND[doc.kind];
+    let reminderId: string | null = null;
+    if (legalKind) {
+      const existing = (await reminderRepo.listWhere({ vehicleId: doc.vehicleId, legalKind }))[0];
+      if (existing) {
+        await reminderRepo.upsert({ id: existing.id, dueDate: doc.expiresAt, isEnabled: true }, db);
+        reminderId = existing.id;
+      }
+    }
+    if (!reminderId) {
+      const saved = await reminderRepo.upsert(
+        {
+          vehicleId: doc.vehicleId,
+          title: doc.title,
+          serviceTypeId: null,
+          metric: 'date',
+          dueDate: doc.expiresAt,
+          dueKm: null,
+          isRecurring: false,
+          thresholdDays: 30,
+          notes: '',
+          isEnabled: true,
+          snoozedUntil: null,
+        },
+        db,
+      );
+      reminderId = saved.id;
+    }
+    await documentRepo.upsert({ id: doc.id, reminderId }, db);
+    return reminderId;
+  });
+}

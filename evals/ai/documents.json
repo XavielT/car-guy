@@ -1,0 +1,45 @@
+{
+  "note": "Synthetic Dominican-style papers rendered by make-fixtures.mjs with FAKE personal data on purpose. `forbidden` lists values that must NEVER appear anywhere in the response (the privacy contract, SPEC-C §C1). A floor for the reader, not a claim about real documents: see README for real photos.",
+  "cases": [
+    {
+      "id": "doc-matricula", "kind": "document", "images": ["img/doc-matricula.jpg"], "critical": ["doc_kind", "plate", "vin"],
+      "forbidden": ["001-1234567-8", "00112345678", "JUAN", "PÉREZ", "PEREZ", "MARTÍNEZ", "MARTINEZ", "Duarte", "Prados"],
+      "expected": { "doc_kind": "matricula", "plate": "A123456", "vin": "MR0FX22G001234567", "make": "Toyota", "model": "Hilux", "year": 2012, "color": "Blanco", "fuel": "diesel", "engine_cc": 2494, "seats": 5, "issued_date": "2021-03-15", "doc_number": "2021045678" }
+    },
+    {
+      "id": "doc-seguro", "kind": "document", "images": ["img/doc-seguro.jpg"], "critical": ["doc_kind", "expires_date", "policy_number"],
+      "forbidden": ["001-1234567-8", "00112345678", "JUAN", "PÉREZ", "PEREZ", "MARTÍNEZ", "MARTINEZ", "Duarte", "Prados"],
+      "expected": { "doc_kind": "seguro", "insurer": "Seguros Universal", "policy_number": "POL2026000123", "coverage_type": { "contains": "ley" }, "premium": 18400, "plate": "A123456", "issued_date": "2026-01-10", "expires_date": "2027-01-10" }
+    },
+    {
+      "id": "doc-marbete", "kind": "document", "images": ["img/doc-marbete.jpg"], "critical": ["doc_kind", "expires_date", "plate"],
+      "forbidden": ["001-1234567-8", "00112345678", "JUAN", "PÉREZ", "PEREZ", "MARTÍNEZ", "MARTINEZ"],
+      "expected": { "doc_kind": "marbete", "plate": "A123456", "expires_date": "2027-03-31", "vin": null, "insurer": null, "policy_number": null }
+    },
+    {
+      "id": "doc-licencia", "kind": "document", "images": ["img/doc-licencia.jpg"], "critical": ["doc_kind", "expires_date"],
+      "forbidden": ["001-1234567-8", "00112345678", "JUAN", "PÉREZ", "PEREZ", "MARTÍNEZ", "MARTINEZ", "Duarte", "Prados", "1985-05-12", "12/05/1985"],
+      "expected": { "doc_kind": "licencia", "license_category": "2", "issued_date": "2023-06-20", "expires_date": "2027-06-20", "plate": null, "vin": null }
+    },
+    {
+      "id": "doc-revision", "kind": "document", "images": ["img/doc-revision.jpg"], "critical": ["doc_kind", "expires_date", "plate"],
+      "forbidden": ["JUAN", "PÉREZ", "PEREZ", "MARTÍNEZ", "MARTINEZ"],
+      "expected": { "doc_kind": "revision", "center": { "contains": "Autopista" }, "result": { "contains": "aprob" }, "plate": "A123456", "issued_date": "2026-05-01", "expires_date": "2027-05-01" }
+    },
+    {
+      "id": "doc-garantia", "kind": "document", "images": ["img/doc-garantia.jpg"], "critical": ["doc_kind", "expires_date"],
+      "forbidden": ["001-1234567-8", "00112345678", "JUAN", "PÉREZ", "PEREZ", "MARTÍNEZ", "MARTINEZ"],
+      "expected": { "doc_kind": "garantia", "issuer": { "contains": "AutoParts" }, "item": { "contains": "bater" }, "expiry_km": 40000, "issued_date": "2026-08-03", "expires_date": "2028-08-03" }
+    },
+    {
+      "id": "vin-plate", "kind": "vin_plate", "images": ["img/doc-vin-plate.jpg"], "critical": ["vin"],
+      "forbidden": [],
+      "expected": { "vin": "MR0FX22G001234567", "make": "Toyota", "year": 2012, "color": null }
+    },
+    {
+      "id": "vin-plate-jdm-frame", "kind": "vin_plate", "images": ["img/doc-jdm-frame.jpg"], "critical": ["vin"],
+      "forbidden": [],
+      "expected": { "vin": "AE85-5012345", "make": "Toyota", "year": null, "color": null }
+    }
+  ]
+}

@@ -37,6 +37,39 @@ describe('read fixtures', () => {
   });
 });
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const docs = require('../../evals/ai/documents.json') as { cases: { id: string; kind: string; images: string[]; critical: string[]; forbidden: string[]; expected: Record<string, unknown> }[] };
+
+describe('document fixtures (PROMPT-03)', () => {
+  it('ids are unique and every image exists', () => {
+    const ids = docs.cases.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const c of docs.cases) for (const img of c.images) expect(existsSync(join(root, 'fixtures', img))).toBe(true);
+  });
+  it.each(docs.cases.map((c) => [c.id, c] as const))('%s: a privacy kind, expected fields are real, critical fields are expected', (_id, c) => {
+    const kind = KINDS[c.kind];
+    expect(kind?.privacy).toBe(true);
+    expect(c.images.length).toBeLessThanOrEqual(kind.maxImages);
+    for (const k of Object.keys(c.expected)) expect(k in kind.fields).toBe(true);
+    for (const k of c.critical) expect(k in c.expected).toBe(true);
+  });
+  it('the personal papers forbid the fake cédula, owner and address (and no forbidden value is also an expected one)', () => {
+    const personal = docs.cases.filter((c) => ['doc-matricula', 'doc-seguro', 'doc-licencia'].includes(c.id));
+    expect(personal).toHaveLength(3);
+    for (const c of personal) {
+      expect(c.forbidden).toEqual(expect.arrayContaining(['001-1234567-8', 'JUAN']));
+      const wanted = JSON.stringify(c.expected).toLowerCase();
+      for (const x of c.forbidden) expect(wanted).not.toContain(x.toLowerCase());
+    }
+  });
+  it('covers every document kind, a JDM frame number, and fields that are NOT on the paper', () => {
+    const kinds = new Set(docs.cases.map((c) => (c.expected.doc_kind as string | undefined) ?? c.kind));
+    for (const k of ['matricula', 'seguro', 'marbete', 'licencia', 'revision', 'garantia', 'vin_plate']) expect(kinds.has(k)).toBe(true);
+    expect(docs.cases.some((c) => c.expected.vin === 'AE85-5012345')).toBe(true);
+    expect(docs.cases.flatMap((c) => Object.values(c.expected)).filter((v) => v === null).length).toBeGreaterThanOrEqual(5);
+  });
+});
+
 describe('intent fixtures', () => {
   it('ids are unique, targets are in the closed list, expected fields are real', () => {
     const ids = intents.cases.map((c) => c.id);

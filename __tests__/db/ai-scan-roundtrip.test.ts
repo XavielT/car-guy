@@ -13,7 +13,7 @@ import type { VehicleDraft } from '@/components/VehicleForm';
 import { documentPrefillFrom, mergeVpic, vehiclePrefillFrom } from '@/lib/ai/docMap';
 import type { ReadResult } from '@/lib/ai/read';
 import { matchColor, matchMakeModel } from '@/lib/ai/vehicleMatch';
-import { saveDocument } from '@/lib/db/documentOps';
+import { createDocumentReminder, saveDocument } from '@/lib/db/documentOps';
 import { documents as documentRepo, reminders as reminderRepo, vehicles as vehicleRepo, currentOdometer } from '@/lib/db/repos';
 import { seedCatalog } from '@/lib/db/seed';
 import { vehicleGallery } from '@/lib/db/tripOps';
@@ -171,5 +171,33 @@ describe('document photo → document + reminder (C4)', () => {
     const saved = (await documentRepo.getById('doc_rev'))!;
     expect(saved.notes).toBe('Centro: Inspección Autopista\nResultado: Aprobado');
     expect(new Date(saved.expiresAt!).toLocaleDateString('en-CA')).toBe('2027-05-01');
+  });
+});
+
+describe('C3 — "Crear recordatorio" for a document with an expiry and no reminder', () => {
+  it('an "otro" document gets its own one-off date reminder on the expiry day, and the document links to it', async () => {
+    const doc = (await documentRepo.getById('doc_rev'))!;
+    expect(doc.reminderId).toBeNull();
+    const id = await createDocumentReminder(doc);
+    expect(id).toBeTruthy();
+    const r = (await reminderRepo.getById(id!))!;
+    expect(r).toMatchObject({ vehicleId: 'veh_doc', title: 'Revisión técnica · Inspección Autopista', metric: 'date', isEnabled: true, isRecurring: false });
+    expect(new Date(r.dueDate!).toLocaleDateString('en-CA')).toBe('2027-05-01');
+    expect((await documentRepo.getById('doc_rev'))!.reminderId).toBe(id);
+  });
+
+  it('a legal kind re-arms the reminder the app already tracks: no duplicate', async () => {
+    const before = (await reminderRepo.listWhere({ vehicleId: 'veh_doc', legalKind: 'marbete' })).length;
+    expect(before).toBe(1);
+    await documentRepo.upsert({ id: 'doc_marbete', vehicleId: 'veh_doc', kind: 'marbete', title: 'Marbete', issuedAt: null, expiresAt: isoFromDateInput('2027-03-31'), reminderId: null, mediaId: null, notes: '' });
+    const id = await createDocumentReminder((await documentRepo.getById('doc_marbete'))!);
+    const after = await reminderRepo.listWhere({ vehicleId: 'veh_doc', legalKind: 'marbete' });
+    expect(after).toHaveLength(1);
+    expect(after[0].id).toBe(id);
+    expect(new Date(after[0].dueDate!).toLocaleDateString('en-CA')).toBe('2027-03-31');
+  });
+
+  it('a document with no expiry has nothing to remind', async () => {
+    expect(await createDocumentReminder({ id: 'x', vehicleId: 'veh_doc', kind: 'otro', title: 'x', expiresAt: null })).toBeNull();
   });
 });

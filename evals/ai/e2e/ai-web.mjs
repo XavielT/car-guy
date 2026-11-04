@@ -13,6 +13,9 @@ const check = (name, ok, detail = '') => {
 };
 const values = (page) => page.locator('input, textarea').evaluateAll((els) => els.map((e) => e.value));
 const model = 'claude-haiku-5-5';
+// vPIC's answer for the Hilux VIN below (the matrícula says 2011, the VIN decodes to 2012: a conflict on purpose).
+const VPIC = { Results: [{ Make: 'TOYOTA', Model: 'Hilux', ModelYear: '2012', EngineCylinders: '4', DisplacementL: '2.4', FuelTypePrimary: 'Diesel', TransmissionStyle: 'Manual/Standard', DriveType: 'RWD', EngineModel: '2KD-FTV', ErrorCode: '0', ErrorText: '' }] };
+let docFields = {};
 
 let odoRead = { odometer: f(52500), unit: f('mi') };
 let expressOdo = 53100;
@@ -30,6 +33,8 @@ const canned = {
           { description: f('Mano de obra frenos'), qty: f(1), unit_price: f(1500), kind: f('labour') },
         ],
       };
+    if (b.kind === 'document' || b.kind === 'doc_matricula') return { ok: true, kind: b.kind, model, fields: docFields, privacy_removed: 0 };
+    if (b.kind === 'vin_plate') return { ok: true, kind: b.kind, model, fields: { vin: f('MR0FX22G001234567'), make: f('Toyota'), year: f(2012), color: f(null, 0) }, privacy_removed: 0 };
     if (b.kind === 'fuel_express')
       return {
         ok: true, kind: b.kind, model,
@@ -53,7 +58,7 @@ async function pickWith(page, buttonName, file) {
 
 // ───────────── main browser (typed dictation, captures) ─────────────
 {
-  const { browser, page, calls, errors, net } = await launch({ canned });
+  const { browser, page, calls, errors, net } = await launch({ canned, vpic: VPIC });
   await seed(page);
 
   // A. fill-up: scan → prefill → odometer typed → Guardar
@@ -181,6 +186,58 @@ async function pickWith(page, buttonName, file) {
   const tE = await text(page);
   check('E3 opens the fill-up form pre-filled (6 gal, 2064, Shell) with the price DERIVED (344), not the board price', /carga\/nueva/.test(page.url()) && vE.includes('6') && vE.some((v) => /2064/.test(v)) && /Shell/.test(tE) && !vE.includes('343.8') && /344\.00\/gal/.test(tE) && /\bIA\b/.test(tE), `${page.url()} ${JSON.stringify(vE.filter(Boolean))}`);
   await page.screenshot({ path: `${OUT}/e2e-E3-dictated-form.png`, fullPage: true });
+  // H. vehicle from a matrícula (+ vPIC), then documents against that car, with the wrong-car guard
+  docFields = { plate: f('A123456'), vin: f('MR0FX22G001234567'), make: f('TOYOTA'), model: f('HILUX'), year: f(2011), color: f('Blanco'), fuel: f('diesel'), engine_cc: f(2494), seats: f(5), doc_kind: f('matricula') };
+  await go(page, '/vehiculo/nuevo');
+  const scanned = await pickWith(page, /Escanear matr[ií]cula/i, img('doc-matricula.jpg'));
+  await page.waitForTimeout(5000);
+  const tH = await text(page);
+  const vH = await values(page);
+  const matriculaCall = calls.find((c) => c.fn === 'cg-ai-read' && c.body.kind === 'doc_matricula');
+  check('H1 matrícula scan: ONE doc_matricula call with the photo only, and the privacy note is on screen', scanned && !!matriculaCall && Object.keys(matriculaCall.body).sort().join() === 'images,kind' && /cédula/i.test(tH));
+  check('H2 vehicle form filled: plate, VIN, make/model/year, with IA marks', vH.includes('A123456') && vH.includes('MR0FX22G001234567') && /Toyota/.test(tH) && /Hilux/i.test(tH) && /\bIA\b/.test(tH) && /La IA llenó/.test(tH), JSON.stringify(vH.filter(Boolean)));
+  check('H3 vPIC was asked for that VIN and its year wins, with the conflict shown and a way back', calls.some((c) => c.fn === 'vpic' && /MR0FX22G001234567/.test(c.body)) && /el papel dice 2011, el VIN dice 2012/.test(tH) && /Usar el del papel/.test(tH));
+  await page.screenshot({ path: `${OUT}/e2e-H1-vehicle-scan.png` });
+  await page.getByText('Usar el del papel', { exact: true }).first().click();
+  await page.waitForTimeout(600);
+  const tH2 = await text(page);
+  check('H4 "Usar el del papel" restores 2011 and clears that conflict line', /2011/.test(tH2) && !/el papel dice 2011/.test(tH2));
+  await page.getByRole('textbox').first().fill('Hilux E2E');
+  await page.getByRole('button', { name: /Agregar veh[ií]culo/i }).first().click();
+  await page.waitForTimeout(3500);
+
+  // The new car is now active and has plate A123456.
+  docFields = { doc_kind: f('seguro'), insurer: f('Seguros Universal'), policy_number: f('POL2026000123'), coverage_type: f('Ley + daños'), premium: f(18400), plate: f('A123456'), issued_date: f('2026-01-10'), expires_date: f('2027-01-10') };
+  await go(page, '/documento/nuevo');
+  const pickedDoc = await pickWith(page, /Escanear documento/i, img('doc-seguro.jpg'));
+  await page.waitForTimeout(4500);
+  const vD = await values(page);
+  const tD2 = await text(page);
+  check('H5 seguro for the SAME car: no guard, kind + title + both dates + notes filled', pickedDoc && !/¿Es de este carro\?/i.test(tD2) && vD.some((v) => /Seguro · Seguros Universal/.test(v)) && vD.includes('2027-01-10') && vD.includes('2026-01-10') && vD.some((v) => /Póliza: POL2026000123/.test(v)), JSON.stringify(vD.filter(Boolean)).slice(0, 260));
+  await page.screenshot({ path: `${OUT}/e2e-H5-document.png` });
+  await page.getByRole('button', { name: /^Guardar documento/i }).first().click();
+  await page.waitForTimeout(2500);
+  check('H6 saving it moves the seguro reminder ("Ajustamos el recordatorio a esa fecha")', /Ajustamos el recordatorio/.test(await text(page)));
+  await page.getByRole('button', { name: /^(OK|Aceptar|Listo)$/i }).first().click().catch(() => {});
+
+  // another car's plate: the guard asks BEFORE anything is applied
+  docFields = { doc_kind: f('marbete'), plate: f('G654321'), expires_date: f('2027-03-31') };
+  await go(page, '/documento/nuevo');
+  await pickWith(page, /Escanear documento/i, img('doc-marbete.jpg'));
+  await page.waitForTimeout(4500);
+  const tG = await text(page);
+  const vG = await values(page);
+  check('H7 a paper with ANOTHER plate raises the guard ("¿Es de este carro?" + G654321) and has applied nothing yet', /¿Es de este carro\?/i.test(tG) && /G654321/.test(tG) && !vG.includes('2027-03-31'), tG.slice(0, 200).replace(/\n/g, ' | '));
+  await page.screenshot({ path: `${OUT}/e2e-H7-guard.png` });
+  await page.getByText('Cancelar', { exact: true }).first().click();
+  await page.waitForTimeout(800);
+  check('H8 Cancelar drops the read: the form is still empty', !(await values(page)).includes('2027-03-31'));
+  await pickWith(page, /Escanear documento/i, img('doc-marbete.jpg'));
+  await page.waitForTimeout(4500);
+  await page.getByText('Usar aquí igual', { exact: true }).first().click();
+  await page.waitForTimeout(1200);
+  check('H9 "Usar aquí igual" applies it to this car anyway (marbete, expiry 2027-03-31)', (await values(page)).includes('2027-03-31'));
+
   console.log('errors (main):', errors.slice(0, 5));
   await browser.close();
 }

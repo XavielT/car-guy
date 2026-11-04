@@ -24,7 +24,7 @@ export const STATUS = { ok: true, signed_in: true, enabled: true, configured: tr
 export const f = (value, confidence = 0.95) => ({ value, confidence });
 
 /** canned: { 'cg-ai-read': (body)=>json, 'cg-ai-intent': ..., 'cg-stt': ... } → records every call in `calls`. */
-export async function launch({ canned = {}, viewport = { width: 390, height: 844 }, fakeMic = false } = {}) {
+export async function launch({ canned = {}, viewport = { width: 390, height: 844 }, fakeMic = false, vpic = null } = {}) {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
     args: fakeMic ? ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] : [],
@@ -61,6 +61,13 @@ export async function launch({ canned = {}, viewport = { width: 390, height: 844
     if (url.pathname.endsWith('/rpc/is_app_user') || url.pathname.endsWith('/rpc/set_ai_consent') || url.pathname.endsWith('/rpc/my_ai_consent')) return json(200, true);
     if (url.pathname.includes('/rest/v1/')) return json(200, []);
     return route.abort();
+  });
+  // NHTSA vPIC (the VIN decoder the vehicle form calls after a scan): canned, or unreachable when `vpic` is null.
+  await ctx.route('https://vpic.nhtsa.dot.gov/**', (route) => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' } });
+    if (!vpic) return route.abort('internetdisconnected');
+    calls.push({ fn: 'vpic', body: route.request().url() });
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(vpic) });
   });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 200)));
