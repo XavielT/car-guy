@@ -3,7 +3,7 @@
  * AI evals against the DEPLOYED functions (IMP 03112026 SPEC-B §B8). Reads photos and sentences, calls the real
  * `cg-ai-read` / `cg-ai-intent` with a test account's own session, scores with score.cjs and prints the accuracy.
  *
- *   SMOKE_EMAIL=… SMOKE_PASSWORD=… node evals/ai/run.mjs [--only read|documents|intent] [--real] [--bar 0.9] [--delay 400]
+ *   SMOKE_EMAIL=… SMOKE_PASSWORD=… node evals/ai/run.mjs [--only read|documents|obd|insights|intent] [--real] [--bar 0.9] [--delay 400]
  *
  * · The account needs AI consent ON (Cuenta > Privacidad, or tools/smoke-ai.mjs turns it on). This script does not
  *   change consent, caps or any setting.
@@ -96,6 +96,37 @@ async function runObd(token) {
   return results;
 }
 
+/** PROMPT-05: cg-ai-insights over the 10 fact sets from the real engine. Reports how often the server's number check replaced the model's wording, and whether every act-level fact was covered. */
+async function runInsights(token) {
+  const fx = JSON.parse(readFileSync(join(here, 'insights.json'), 'utf8'));
+  const results = [];
+  for (const c of fx.cases) {
+    const { status, json } = await call(token, 'cg-ai-insights', { vehicleLabel: 'Toyota Corolla', lang: 'es', facts: c.facts });
+    if (!(status === 200 && json.ok)) {
+      const code = json.error_code ?? `http_${status}`;
+      console.log(`  insights/${c.id}: ${code}`);
+      if (STOP_CODES.has(code)) throw new Stop(code);
+      results.push({ id: c.id, fails: [`call failed: ${code}`], insights: 0, fallbacks: 0 });
+    } else {
+      const list = json.insights ?? [];
+      const known = new Set(c.facts.map((f) => f.id));
+      const cited = new Set(list.flatMap((i) => i.fact_ids ?? []));
+      const fails = [];
+      for (const id of c.mustCover) if (!cited.has(id)) fails.push(`act fact not covered: ${id}`);
+      for (const i of list) {
+        if (!i.fact_ids?.length) fails.push('insight without a fact');
+        else if (i.fact_ids.some((x) => !known.has(x))) fails.push(`unknown fact cited: ${i.fact_ids.join(',')}`);
+        if (!i.headline || !i.why) fails.push('empty text');
+      }
+      if (list.length > 5) fails.push(`${list.length} insights (max 5)`);
+      results.push({ id: c.id, fails, insights: list.length, fallbacks: json.fallbacks ?? 0, dropped: json.dropped ?? 0 });
+      console.log(`  insights/${c.id.padEnd(24)} ${String(list.length).padStart(2)} insight(s), ${json.fallbacks ?? 0} template fallback(s), ${json.dropped ?? 0} dropped  ${fails.length ? `FAIL: ${fails.join('; ')}` : 'ok'}`);
+    }
+    await sleep(delay);
+  }
+  return results;
+}
+
 /** The person's OWN ai_usage rows for a function since a moment: cost per call, from the gateway's own ledger. */
 async function ownCost(token, fn, sinceIso) {
   const r = await fetch(`${URL_}/rest/v1/ai_usage?select=cost_usd,ok&function=eq.${fn}&created_at=gte.${encodeURIComponent(sinceIso)}`, {
@@ -168,7 +199,7 @@ async function runIntent(token) {
   return { cases, targetOk, total: fx.cases.length };
 }
 
-const report = { at: new Date().toISOString(), partial: null, read: null, documents: null, obd: null, intent: null };
+const report = { at: new Date().toISOString(), partial: null, read: null, documents: null, obd: null, insights: null, intent: null };
 let failed = false;
 try {
   const token = await signIn();
@@ -189,6 +220,12 @@ try {
     const startedAt = new Date(Date.now() - 2000).toISOString();
     const results = await runObd(token);
     report.obd = { results, passed: results.filter((r) => !r.fails.length).length, total: results.length, overrides: results.filter((r) => r.override).length, cost: await ownCost(token, 'cg-ai-obd', startedAt).catch(() => null) };
+  }
+  if (only === 'all' || only === 'insights') {
+    console.log('INSIGHTS (cg-ai-insights)');
+    const startedAt = new Date(Date.now() - 2000).toISOString();
+    const results = await runInsights(token);
+    report.insights = { results, passed: results.filter((r) => !r.fails.length).length, total: results.length, insights: results.reduce((n, r) => n + r.insights, 0), fallbacks: results.reduce((n, r) => n + r.fallbacks, 0), cost: await ownCost(token, 'cg-ai-insights', startedAt).catch(() => null) };
   }
   if (only === 'all' || only === 'intent') {
     console.log('INTENT (cg-ai-intent)');
@@ -230,6 +267,13 @@ if (report.obd) {
   if (o.passed / o.total < bar) failed = true;
   // A safety code answered "yes" is never acceptable, whatever the pass rate.
   if (o.results.some((r) => r.safety && r.canDrive === 'yes')) failed = true;
+}
+if (report.insights) {
+  const o = report.insights;
+  const rate = o.insights ? o.fallbacks / o.insights : null;
+  console.log(`insights passed ${o.passed}/${o.total} · template fallback rate ${pct(rate)} (${o.fallbacks}/${o.insights} insights where the number check replaced the model)${o.cost ? ` · cost per call US$ ${o.cost.avgUsd.toFixed(4)} over ${o.cost.calls} calls` : ' · cost: not readable'}`);
+  for (const r of o.results.filter((x) => x.fails.length)) console.log(`        FAIL ${r.id}: ${r.fails.join('; ')}`);
+  if (o.passed / o.total < bar) failed = true;
 }
 if (report.intent) {
   const t = report.intent;
