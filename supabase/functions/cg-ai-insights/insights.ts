@@ -173,14 +173,28 @@ export function templateFor(f: Fact, lang: Lang): { headline: string; why: strin
   const d = f.data;
   const es = lang === 'es';
   switch (f.kind) {
-    case 'reminder_projection':
+    case 'reminder_projection': {
+      // The km limit is already behind you (the projection is today): say so, instead of "in 0 days".
+      const passed = typeof d.kmLeft === 'number' && d.kmLeft < 0;
+      if (d.daysLeft === 0) {
+        return es
+          ? { headline: `${d.title} ya toca`, why: passed ? `Ya pasaste el límite de ${n(d.dueKm)} km por ${n(Math.abs(d.kmLeft as number))} km.` : `Estás por llegar al límite de ${n(d.dueKm)} km.` }
+          : { headline: `${d.title} is due now`, why: passed ? `You passed the ${n(d.dueKm)} km limit by ${n(Math.abs(d.kmLeft as number))} km.` : `You are about to reach the ${n(d.dueKm)} km limit.` };
+      }
       return es
         ? { headline: `${d.title} toca en ${n(d.daysLeft)} días`, why: `A tu ritmo (${n(d.kmPerDay)} km al día) llegarás al límite de ${n(d.dueKm)} km alrededor del ${n(d.projectedDueAt)}.` }
         : { headline: `${d.title} is due in ${n(d.daysLeft)} days`, why: `At your pace (${n(d.kmPerDay)} km a day) you will reach the ${n(d.dueKm)} km limit around ${n(d.projectedDueAt)}.` };
+    }
     case 'fuel_anomaly':
+      // Out of the possible range (a typo in gallons or odometer is the usual cause): there is no baseline deviation to quote.
+      if (d.reason === 'out_of_range' || typeof d.deviationPct !== 'number' || typeof d.baseline !== 'number' || !d.baseline) {
+        return es
+          ? { headline: 'Tu última carga no cuadra', why: `Salió ${n(d.kmPerGal)} km por galón, fuera de lo posible para este tipo de carro. Revisa los galones y el odómetro.` }
+          : { headline: 'Your last fill-up does not add up', why: `It came out at ${n(d.kmPerGal)} km per gallon, outside what is possible for this kind of car. Check the gallons and the odometer.` };
+      }
       return es
-        ? { headline: 'Tu última carga rindió distinto', why: `Rindió ${n(d.deviationPct)} % frente a tu promedio de ${n(d.baseline)}. Revisa la carga y el carro.` }
-        : { headline: 'Your last fill-up was off', why: `It was ${n(d.deviationPct)}% against your average of ${n(d.baseline)}. Check the fill-up and the car.` };
+        ? { headline: 'Tu última carga rindió distinto', why: `Rindió ${n(Math.abs(d.deviationPct))} % ${d.deviationPct < 0 ? 'menos' : 'más'} que tu promedio de ${n(d.baseline)}. Revisa la carga y el carro.` }
+        : { headline: 'Your last fill-up was off', why: `It was ${n(Math.abs(d.deviationPct))}% ${d.deviationPct < 0 ? 'below' : 'above'} your average of ${n(d.baseline)}. Check the fill-up and the car.` };
     case 'cost_per_km':
       return es
         ? { headline: 'Cuánto te cuesta cada kilómetro', why: `En el último mes: ${pesos(d.perKm30)} por km.` }

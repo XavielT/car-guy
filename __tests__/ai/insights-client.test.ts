@@ -143,3 +143,51 @@ describe('the cache never breaks the card', () => {
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ kind: 'insight', input_hash: 'hash1234', vehicle_id: 'v1' }), { onConflict: 'user_id,vehicle_id,kind,input_hash' });
   });
 });
+
+describe('insightsFor — one paid call per (car, facts-hash) per session', () => {
+  const answer: InsightsAnswer = { insights: [{ id: 'a', headline: 'h', why: 'w', fact_ids: [oil.id], severity: 'watch', action: null, source: 'ai' }], fallbacks: 0, dropped: 0 };
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  it('three simultaneous askers share ONE call, and a later asker reuses the result', async () => {
+    mockFrom.mockReturnValue({ select: () => ({ eq: function () { return this; }, maybeSingle: async () => ({ data: null, error: null }) }), upsert: async () => ({ error: null }) });
+    const calls = jest.fn(async () => answer);
+    jest.doMock('@/lib/ai/client', () => ({ callAi: calls }));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const m = require('@/lib/ai/insights') as typeof import('@/lib/ai/insights');
+    m.resetInsightsSession();
+    const [a, b, c] = await Promise.all([1, 2, 3].map(() => m.insightsFor('v1', 'h1', [oil], 'Corolla', 'es')));
+    expect(calls).toHaveBeenCalledTimes(1);
+    expect(a).toEqual(answer);
+    expect(b).toBe(a);
+    expect(c).toBe(a);
+    await m.insightsFor('v1', 'h1', [oil], 'Corolla', 'es');
+    expect(calls).toHaveBeenCalledTimes(1);
+    await m.insightsFor('v1', 'h2', [oil], 'Corolla', 'es'); // a changed car IS a new question
+    expect(calls).toHaveBeenCalledTimes(2);
+  });
+
+  it('a stored answer means NO call at all', async () => {
+    mockFrom.mockReturnValue({ select: () => ({ eq: function () { return this; }, maybeSingle: async () => ({ data: { payload: answer }, error: null }) }) });
+    const calls = jest.fn(async () => answer);
+    jest.doMock('@/lib/ai/client', () => ({ callAi: calls }));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const m = require('@/lib/ai/insights') as typeof import('@/lib/ai/insights');
+    m.resetInsightsSession();
+    expect(await m.insightsFor('v1', 'h1', [oil], 'Corolla', 'es')).toEqual(answer);
+    expect(calls).not.toHaveBeenCalled();
+  });
+
+  it('a failure resolves to null (the deterministic sentences stay) and is forgotten, so the next visit can try again', async () => {
+    mockFrom.mockReturnValue({ select: () => ({ eq: function () { return this; }, maybeSingle: async () => ({ data: null, error: null }) }), upsert: async () => ({ error: null }) });
+    const calls = jest.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(answer);
+    jest.doMock('@/lib/ai/client', () => ({ callAi: calls }));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const m = require('@/lib/ai/insights') as typeof import('@/lib/ai/insights');
+    m.resetInsightsSession();
+    expect(await m.insightsFor('v1', 'h1', [oil], 'Corolla', 'es')).toBeNull();
+    expect(await m.insightsFor('v1', 'h1', [oil], 'Corolla', 'es')).toEqual(answer);
+    expect(calls).toHaveBeenCalledTimes(2);
+  });
+});

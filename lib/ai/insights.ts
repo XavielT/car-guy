@@ -112,6 +112,37 @@ export async function saveCachedInsights(vehicleId: string, hash: string, answer
   }
 }
 
+const session = new Map<string, Promise<InsightsAnswer | null>>();
+
+/**
+ * The AI wording for (car, facts-hash): from the cache, else ONE call, shared by everything that asks for the same thing during
+ * this app session (two screens, a remount, a re-render): a paid call is made at most once per state of the car. A failure is
+ * forgotten so the next visit can try again; it resolves to null and the deterministic sentences stay.
+ */
+export function insightsFor(vehicleId: string, hash: string, facts: readonly Fact[], vehicleLabel: string, lang: 'es' | 'en'): Promise<InsightsAnswer | null> {
+  const k = `${vehicleId}:${hash}`;
+  let p = session.get(k);
+  if (!p) {
+    p = (async () => {
+      const cached = await readCachedInsights(vehicleId, hash);
+      if (cached) return cached;
+      const fresh = await askInsights(facts, vehicleLabel, lang);
+      void saveCachedInsights(vehicleId, hash, fresh);
+      return fresh;
+    })().catch(() => {
+      session.delete(k);
+      return null;
+    });
+    session.set(k, p);
+  }
+  return p;
+}
+
+/** Test hook: forget what this session has asked. */
+export function resetInsightsSession(): void {
+  session.clear();
+}
+
 /**
  * The AI's wording laid over the deterministic insights: an AI insight REPLACES the template ones for the same facts; the rest
  * stay as they are, so a partial answer never hides a fact. Actions are re-taken from the facts.

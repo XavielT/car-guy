@@ -61,6 +61,8 @@ const canned = {
   },
   'cg-ai-intent': () => ({ ok: true, target: 'fuel', target_confidence: 0.95, fields: { gallons: f(6), total: f(2064), station: f('Shell'), odometer: f(52900) }, vehicle: null, choices: null, model }),
   'cg-ai-obd': (b) => obdAnswer(b),
+  // Car Health: the model rewords the first two facts (every number here is from the fact's own data).
+  'cg-ai-insights': (b) => ({ ok: true, insights: b.facts.slice(0, 2).map((x) => ({ id: `ai-${x.id.length}`, headline: `Aviso IA · ${x.kind}`, why: 'Redactado por la IA.', fact_ids: [x.id], severity: x.severity, action: x.actions[0]?.type ?? null, source: 'ai' })), fallbacks: 0, dropped: 0 }),
   'cg-stt': () => ({ ok: true, text: 'eché doce galones de premium a dos mil ciento cincuenta' }),
 };
 
@@ -336,6 +338,40 @@ async function pickWith(page, buttonName, file) {
   await page.waitForTimeout(3500);
   const tSc = await text(page);
   check('I13 scanner screenshot (the only path that calls the AI): codes and a freeze-frame value come back', shot && calls.some((c) => c.fn === 'cg-ai-read' && c.body.kind === 'scanner') && /P0301/.test(tSc) && /P0302/.test(tSc) && /RPM 3100/.test(tSc));
+
+  // J. Car Health (PROMPT-05) on the DS3
+  const ds3Before = calls.filter((c) => c.fn === 'cg-ai-insights' && /ds3/.test(c.body.facts[0].vehicleId)).length;
+  await go(page, '/');
+  await page.getByRole('button', { name: /DS3/ }).first().click();
+  await page.waitForTimeout(5000);
+  const ds3Calls = () => calls.filter((c) => c.fn === 'cg-ai-insights' && /ds3/.test(c.body.facts[0].vehicleId)).length;
+  const tJ = await text(page);
+  await page.screenshot({ path: `${OUT}/e2e-J1-car-health.png` });
+  check('J1 Inicio shows "Salud del carro" with facts computed on the device (cost per km, biggest expense…) in plain words', /salud del carro/i.test(tJ) && /Tu gasto más grande reciente|Cuánto te cuesta cada kilómetro|rindió distinto/i.test(tJ), (tJ.match(/SALUD DEL CARRO[^]{0,260}/i) ?? ['(no card)'])[0].replace(/\n/g, ' | '));
+  const j2 = ds3Calls();
+  check('J2 the AI is asked at most ONCE for this state of the car (section I changed it, so one new call is legitimate), and its wording replaces the first two sentences', j2 - ds3Before <= 1 && /Aviso IA/.test(tJ) && /Redactado con IA/.test(tJ), `before=${ds3Before} now=${j2}`);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(5000);
+  check('J3 reopening an unchanged car asks the AI NO more times (cache + single flight)', ds3Calls() === j2 && /Aviso IA/.test(await text(page)), `calls=${ds3Calls()} (was ${j2})`);
+  await page.getByRole('button', { name: 'Descartar' }).first().click();
+  await page.waitForTimeout(600);
+  const afterDismiss = await page.getByRole('button', { name: 'Descartar' }).count();
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(4000);
+  const dismissedAfterReload = await page.getByRole('button', { name: 'Descartar' }).count();
+  check('J4 dismissing hides the insight, and it STAYS hidden after a reload (same state of the car)', afterDismiss >= 1 && dismissedAfterReload === afterDismiss, `before=3? after dismiss=${afterDismiss} after reload=${dismissedAfterReload}`);
+  net.offline = true;
+  await page.reload({ waitUntil: 'networkidle' }).catch(() => {});
+  await page.waitForTimeout(4000);
+  const tOffJ = await text(page);
+  net.offline = false;
+  check('J5 offline: the card is still there with the deterministic sentences (no AI needed), with no empty numbers', /salud del carro/i.test(tOffJ) && !/Rindiós+%/.test(tOffJ) && !/en 0 días/.test(tOffJ) && !/promedio de ./.test(tOffJ) && /\bRD\$ [\d,.]+/.test(tOffJ.slice(tOffJ.search(/salud del carro/i), tOffJ.search(/salud del carro/i) + 600)), tOffJ.slice(tOffJ.search(/salud del carro/i), tOffJ.search(/salud del carro/i) + 200).replace(/\n/g, ' | '));
+  const costBtn = page.getByRole('button', { name: /Ver los costos/ }).first();
+  if (await costBtn.count()) {
+    await costBtn.click();
+    await page.waitForTimeout(2000);
+    check('J6 an action opens the normal screen (costs), and writes nothing', /cifras/.test(page.url()), page.url());
+  } else check('J6 an action opens the normal screen (costs)', false, 'no "Ver los costos" button on the card');
 
   // offline: the bundled lookup stays the answer, and the AI part says it needs a connection (SPEC-D §D5)
   net.offline = true;

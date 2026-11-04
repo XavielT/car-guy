@@ -250,3 +250,31 @@ describe('cg-ai-insights handler', () => {
     expect(JSON.stringify(json)).not.toMatch(/US\s?\$/);
   });
 });
+
+describe('templates say the right thing for the awkward cases (found by the browser run on a real-looking car)', () => {
+  it('a fill-up that is abnormal only because it is out of range quotes its km/gal, never an empty "% of ."', () => {
+    const f: Fact = { ...fuel, data: { fillupId: 'f9', kmPerGal: 58, state: 'abnormal', reason: 'out_of_range', direction: 'above', deviationPct: null, baseline: null } };
+    const t = templateFor(f, 'es');
+    expect(t.headline).toBe('Tu última carga no cuadra');
+    expect(t.why).toContain('58 km por galón');
+    expect(t.why).not.toMatch(/%|de \./);
+    expect(strayNumber(`${t.headline} ${t.why}`, [f])).toBeNull();
+    expect(templateFor(f, 'en').why).toContain('58 km per gallon');
+  });
+  it('an abnormal fill-up against the baseline says less or more, with positive numbers', () => {
+    expect(templateFor(fuel, 'es').why).toBe('Rindió 45 % menos que tu promedio de 30. Revisa la carga y el carro.');
+    expect(templateFor({ ...fuel, data: { ...fuel.data, deviationPct: 45 } }, 'en').why).toBe('It was 45% above your average of 30. Check the fill-up and the car.');
+  });
+  it('a reminder whose km limit is already behind you says "ya toca" with how far, not "in 0 days"', () => {
+    const f: Fact = { ...oil, severity: 'act', data: { ...oil.data, daysLeft: 0, kmLeft: -140, projectedDueAt: '2026-11-04' } };
+    const t = templateFor(f, 'es');
+    expect(t.headline).toBe('Aceite ya toca');
+    expect(t.why).toBe('Ya pasaste el límite de 100,400 km por 140 km.');
+    expect(strayNumber(`${t.headline} ${t.why}`, [f])).toBeNull();
+    expect(templateFor(f, 'en').headline).toBe('Aceite is due now');
+  });
+  it('about to reach the limit (0 days, km still left) says so', () => {
+    const f: Fact = { ...oil, data: { ...oil.data, daysLeft: 0, kmLeft: 10 } };
+    expect(templateFor(f, 'es').why).toBe('Estás por llegar al límite de 100,400 km.');
+  });
+});

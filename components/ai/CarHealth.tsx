@@ -5,13 +5,16 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { T } from '@/components/T';
 import { Surface } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
-import { askInsights, actionFor, actionRoute, baseInsights, CARD_LIMIT, dismissedFor, dismissInsight, mergeAi, readCachedInsights, saveCachedInsights, withoutDismissed, type InsightsAnswer } from '@/lib/ai/insights';
+import { actionFor, actionRoute, baseInsights, CARD_LIMIT, dismissedFor, dismissInsight, insightsFor, mergeAi, withoutDismissed, type InsightsAnswer } from '@/lib/ai/insights';
 import { useAiStatus } from '@/lib/ai/useAiStatus';
 import { loadFacts, type CarFacts } from '@/lib/db/predictQueries';
 import type { FactAction } from '@/lib/domain/predict';
 import { currentLanguage, t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FillUp, Vehicle } from '@/lib/types';
+
+/** How long the facts must stay unchanged before the AI is asked (each transient hash would be a paid call). */
+const SETTLE_MS = 1500;
 
 const ACTION_LABEL: Record<FactAction['type'], () => string> = {
   open_reminder: () => t.ai.health.actions.open_reminder,
@@ -67,19 +70,20 @@ export function CarHealth({ vehicle, fillups, limit = CARD_LIMIT, showEmpty = fa
   const aiReady = ai.state === 'available';
   useEffect(() => {
     if (!aiReady || !hash || !factList?.length || asked.current === hash) return;
-    asked.current = hash;
     let live = true;
-    void (async () => {
-      const cached = await readCachedInsights(vehicleId, hash);
-      if (cached) return live && setAnswer(cached);
-      const fresh = await askInsights(factList, vehicle.name, currentLanguage() === 'en' ? 'en' : 'es');
-      if (live) setAnswer(fresh);
-      void saveCachedInsights(vehicleId, hash, fresh);
-    })().catch(() => {
-      // Offline, a cap, a switched-off AI: the deterministic sentences are already on screen.
-    });
+    // Wait until the facts have been the same for a moment: the store settles in several steps and every transient state has
+    // its own hash, which would be a paid call each. A cleanup (the hash moved again) cancels the wait.
+    const timer = setTimeout(() => {
+      asked.current = hash;
+      // One call per (car, hash) per app session, shared with any other instance; null = offline, a cap or AI off: the
+      // deterministic sentences are already on screen.
+      void insightsFor(vehicleId, hash, factList, vehicle.name, currentLanguage() === 'en' ? 'en' : 'es').then((a) => {
+        if (live && a) setAnswer(a);
+      });
+    }, SETTLE_MS);
     return () => {
       live = false;
+      clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiReady, hash, vehicleId]);
