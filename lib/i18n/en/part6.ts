@@ -1123,6 +1123,20 @@ export const enPart6: Pick<
       loopYes: 'Remind me',
       loopNo: 'No, thanks',
     },
+    fuelState: {
+      title: 'Consumption of this fill-up',
+      labels: { insufficient: 'Not enough data', optimal: 'Normal consumption', low: 'A bit off your usual', abnormal: 'Abnormal consumption' },
+      reasons: {
+        partial: 'This is a partial fill: it is not judged.',
+        short_distance: 'You drove under 50 km: not enough to judge.',
+        no_data: 'Gallons or kilometres are missing.',
+        no_baseline: 'You do not have 3 full fill-ups to compare with yet.',
+        out_of_range: 'That economy is not possible for this kind of car: check the data.',
+        below: (pct: number) => `${pct}% below your average.`,
+        above: (pct: number) => `${pct}% above your average.`,
+        within: 'Close to your average.',
+      },
+    },
     voice: {
       open: 'Dictate',
       title: 'Dictate or type',

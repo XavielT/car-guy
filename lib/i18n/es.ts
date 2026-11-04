@@ -4339,6 +4339,20 @@ export const es = {
       loopYes: 'Recordármelo',
       loopNo: 'No, gracias',
     },
+    fuelState: {
+      title: 'Consumo de esta carga',
+      labels: { insufficient: 'Sin datos suficientes', optimal: 'Consumo normal', low: 'Algo fuera de lo tuyo', abnormal: 'Consumo anormal' },
+      reasons: {
+        partial: 'Es una carga parcial: no se juzga.',
+        short_distance: 'Recorriste menos de 50 km: no alcanza para juzgar.',
+        no_data: 'Faltan galones o kilómetros.',
+        no_baseline: 'Aún no hay 3 cargas completas tuyas para comparar.',
+        out_of_range: 'Ese rendimiento no es posible para este tipo de carro: revisa los datos.',
+        below: (pct: number) => `${pct} % por debajo de tu promedio.`,
+        above: (pct: number) => `${pct} % por encima de tu promedio.`,
+        within: 'Parecido a tu promedio.',
+      },
+    },
     voice: {
       open: 'Dictar',
       title: 'Dictar o escribir',

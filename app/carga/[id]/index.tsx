@@ -13,6 +13,7 @@ import { Alert } from '@/lib/alert';
 import { reviewFillUp } from '@/lib/domain/economy';
 import { fuelCfgFor, partialEconomy } from '@/lib/domain/partialEconomy';
 import { perFillEconomyOf } from '@/lib/domain/perFillEconomy';
+import { fuelClassOf, vehicleClassOf } from '@/lib/domain/predictInput';
 import { dateLabel, economyNumber, economyValue, km, money, volume as fmtVol } from '@/lib/format';
 import { economyLabel, FUEL_CATALOG, perUnitLabelFor, unitLabelFor } from '@/lib/fuel';
 import { t } from '@/lib/i18n';
@@ -47,7 +48,9 @@ export default function CargaDetail() {
     const estimate = partial.segments.find((s) => s.fillUpId === fill.id) ?? null;
     // Note 9: every log with a previous one gets its "≈ por echada", full or partial.
     const perFill = perFillEconomyOf(fill.id, mine);
-    return { review, estimate, perFill };
+    // IMP 03112026 SPEC-E: the 4-state badge (insufficient / optimal / low / abnormal) against this car's own baseline.
+    const fuelClass = fuelClassOf(fill.id, mine, fuelCfgFor(vehicle?.detail), vehicleClassOf(vehicle?.detail?.type));
+    return { review, estimate, perFill, fuelClass };
   }, [fill, data.fillups, vehicle?.detail]);
 
   if (!fill || !computed) {
@@ -60,7 +63,17 @@ export default function CargaDetail() {
   }
 
   const volumeUnit = vehicle?.detail?.volumeUnit ?? 'gal';
-  const { review, estimate, perFill } = computed;
+  const { review, estimate, perFill, fuelClass } = computed;
+  const fuelReason = fuelClass
+    ? fuelClass.reason === 'below_baseline'
+      ? t.ai.fuelState.reasons.below(Math.abs(fuelClass.deviationPct ?? 0))
+      : fuelClass.reason === 'above_baseline'
+        ? t.ai.fuelState.reasons.above(Math.abs(fuelClass.deviationPct ?? 0))
+        : fuelClass.reason === 'within_band'
+          ? t.ai.fuelState.reasons.within
+          : t.ai.fuelState.reasons[fuelClass.reason as 'partial' | 'short_distance' | 'no_data' | 'no_baseline' | 'out_of_range']
+    : null;
+  const fuelTone = fuelClass?.state === 'abnormal' ? theme.statusText.vencido : fuelClass?.state === 'low' ? theme.statusText.proximo : fuelClass?.state === 'optimal' ? theme.statusText.ok : theme.text.muted;
   const economyUnit = fill.fuelType === 'gnv' ? null : vehicle?.detail?.economyUnit;
   // Only where there is no measured number (a partial): on a full tank it would repeat it.
   const perFillLine = perFill && review.kmPerUnit == null
@@ -118,6 +131,22 @@ export default function CargaDetail() {
             perFillLine={perFillLine}
           />
         </Surface>
+
+        {fuelClass ? (
+          <Surface padded style={{ marginTop: space.md }}>
+            <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+              {t.ai.fuelState.title}
+            </T>
+            <T face="semibold" accessibilityLiveRegion="polite" style={{ color: fuelTone, fontSize: 16, marginTop: 2 }}>
+              {t.ai.fuelState.labels[fuelClass.state]}
+            </T>
+            {fuelReason ? (
+              <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19 }}>
+                {fuelReason}
+              </T>
+            ) : null}
+          </Surface>
+        ) : null}
 
         {fill.inReserve || fill.gaugeBefore8 != null || fill.gaugeAfter8 != null || fill.gaugeBeforeRaw || fill.gaugeAfterRaw ? (
           <Surface padded style={{ marginTop: space.md }}>
