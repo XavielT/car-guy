@@ -2,7 +2,7 @@
  * IMP 03112026 SPEC-B §B8: the rules the evals judge by. If these drift, an accuracy number means something else.
  */
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { judge, same, scoreCase, scoreIntent, summarize } = require('../../evals/ai/score.cjs');
+const { checkObd, judge, same, scoreCase, scoreIntent, summarize } = require('../../evals/ai/score.cjs');
 
 const f = (value: unknown, confidence = 0.9) => ({ value, confidence });
 
@@ -74,5 +74,40 @@ describe('scoreIntent', () => {
     expect(r.verdicts.gallons.verdict).toBe('correct');
     expect(scoreIntent({ target: 'fuel', fields: {} }, { target: 'expense', fields: {} }).targetOk).toBe(false);
     expect(scoreIntent({ target: 'fuel', fields: {} }, null).targetOk).toBe(false);
+  });
+});
+
+describe('checkObd — the SPEC-D §D6 assertions', () => {
+  const cause = (over: Record<string, unknown> = {}) => ({ title: 'Catalizador gastado', likelihood: 'probable', why: 'Por el uso.', parts: ['catalizador'], diy_or_shop: 'shop', cost_rd: { min: 18000, max: 42000 }, recently_repaired: false, ...over });
+  const ok = (over: Record<string, unknown> = {}) => ({ can_drive: 'careful', causes: [cause()], first_checks: ['Revisa el escape'], history_note: null, ...over });
+
+  it('a good answer passes', () => {
+    expect(checkObd({ canDrive: ['yes', 'careful'] }, ok())).toEqual([]);
+  });
+  it('can_drive outside the accepted set fails (a safety code answered "yes")', () => {
+    expect(checkObd({ canDrive: ['careful', 'no'], safety: true }, ok({ can_drive: 'yes' }))[0]).toMatch(/not in \[careful, no\]/);
+  });
+  it('a bad shape fails', () => {
+    expect(checkObd({ canDrive: ['yes'] }, ok({ can_drive: 'maybe' })).length).toBeGreaterThan(0);
+    expect(checkObd({ canDrive: ['careful'] }, ok({ causes: [] })).join()).toMatch(/at least one cause/);
+    expect(checkObd({ canDrive: ['careful'] }, ok({ first_checks: 'x' })).join()).toMatch(/first_checks/);
+    expect(checkObd({ canDrive: ['careful'] }, null)).toEqual(['no answer']);
+  });
+  it('any dollar, euro or USD figure fails; RD$ passes', () => {
+    expect(checkObd({}, ok({ causes: [cause({ why: 'Cuesta US$ 600' })] })).join()).toMatch(/foreign-currency/);
+    expect(checkObd({}, ok({ causes: [cause({ why: 'Unos $300' })] })).join()).toMatch(/foreign-currency/);
+    expect(checkObd({}, ok({ causes: [cause({ why: 'Cuesta RD$ 18,000 a RD$ 42,000' })] }))).toEqual([]);
+  });
+  it('an invented part number fails; a common name passes', () => {
+    expect(checkObd({}, ok({ causes: [cause({ parts: ['NGK-ZFR6F-11'] })] })).join()).toMatch(/invented part number/);
+    expect(checkObd({}, ok({ causes: [cause({ parts: ['bobina del cilindro 3'] })] }))).toEqual([]);
+  });
+  it('causeMatches, historyCited and recentlyRepaired are enforced when asked', () => {
+    expect(checkObd({ causeMatches: 'catal' }, ok())).toEqual([]);
+    expect(checkObd({ causeMatches: 'termostato' }, ok()).join()).toMatch(/no cause matches/);
+    expect(checkObd({ historyCited: true }, ok()).join()).toMatch(/did not cite the history/);
+    expect(checkObd({ historyCited: true }, ok({ history_note: 'Salió en marzo.' }))).toEqual([]);
+    expect(checkObd({ recentlyRepaired: true }, ok()).join()).toMatch(/recently_repaired/);
+    expect(checkObd({ recentlyRepaired: true }, ok({ causes: [cause({ recently_repaired: true })] }))).toEqual([]);
   });
 });

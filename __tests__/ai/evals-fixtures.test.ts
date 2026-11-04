@@ -6,6 +6,8 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { FIELDS as INTENT_FIELDS, TARGETS } from '../../supabase/functions/cg-ai-intent/intents';
+import { normalizeCode as obdNormalize } from '../../supabase/functions/cg-ai-obd/obd';
+import { safetyFloor } from '../../supabase/functions/cg-ai-obd/safety';
 import { KINDS } from '../../supabase/functions/cg-ai-read/kinds';
 
 const root = join(__dirname, '../../evals/ai');
@@ -67,6 +69,39 @@ describe('document fixtures (PROMPT-03)', () => {
     for (const k of ['matricula', 'seguro', 'marbete', 'licencia', 'revision', 'garantia', 'vin_plate']) expect(kinds.has(k)).toBe(true);
     expect(docs.cases.some((c) => c.expected.vin === 'AE85-5012345')).toBe(true);
     expect(docs.cases.flatMap((c) => Object.values(c.expected)).filter((v) => v === null).length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const obd = require('../../evals/ai/obd.json') as { vehicles: Record<string, unknown>; cases: { id: string; codes: string[]; vehicle: string; history?: { repairs?: unknown[]; sameCode?: unknown[] }; expect: { safety?: boolean; canDrive: string[]; historyCited?: boolean; recentlyRepaired?: boolean } }[] };
+
+describe('OBD fixtures (PROMPT-04, SPEC-D §D6)', () => {
+  it('has 25 cases with unique ids, valid codes and known cars', () => {
+    expect(obd.cases).toHaveLength(25);
+    expect(new Set(obd.cases.map((c) => c.id)).size).toBe(25);
+    for (const c of obd.cases) {
+      expect(obd.vehicles[c.vehicle]).toBeDefined();
+      for (const code of c.codes) expect(obdNormalize(code)).toBe(code);
+    }
+  });
+  it("SAFETY: a case is flagged safety exactly when the server's own table has a floor for its codes, and a flagged case never accepts 'yes'", () => {
+    for (const c of obd.cases) {
+      const floor = safetyFloor(c.codes);
+      expect([c.id, Boolean(c.expect.safety)]).toEqual([c.id, floor != null]);
+      if (floor) {
+        expect(c.expect.canDrive).not.toContain('yes');
+        if (floor.floor === 'no') expect(c.expect.canDrive).toEqual(['no']);
+      }
+    }
+  });
+  it('every case that demands the history cited was given some history', () => {
+    for (const c of obd.cases.filter((x) => x.expect.historyCited || x.expect.recentlyRepaired)) {
+      expect((c.history?.repairs?.length ?? 0) + (c.history?.sameCode?.length ?? 0)).toBeGreaterThan(0);
+    }
+  });
+  it('covers the SPEC-D list: generic, safety, mixed, JDM, repeat-after-repair, injection', () => {
+    const ids = obd.cases.map((c) => c.id).join(' ');
+    for (const k of ['p0300', 'p0420', 'p0171', 'p0128', 'c0035', 'b0010', 'u0100', 'mixed', 'jdm', 'repeat-after', 'injection']) expect(ids).toContain(k);
   });
 });
 

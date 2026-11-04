@@ -88,3 +88,35 @@ function scoreIntent(expected, got) {
 }
 
 module.exports = { LOW, fold, same, judge, scoreCase, summarize, scoreIntent };
+
+// ───────────────────────── cg-ai-obd (SPEC-D §D6) ─────────────────────────
+
+const FOREIGN_MONEY = /(?:US\s?\$|USD|U\.S\.|d[oó]lar(?:es)?|dollar|euros?|€|£)|\$/i;
+const PART_NUMBER_LIKE = /\d{5,}|\b[A-Z0-9]{3,}[-–][A-Z0-9]{3,}(?:[-–][A-Z0-9]+)*\b|\b(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{8,}\b/;
+
+/**
+ * The assertions of one OBD case against the function's answer. Returns the list of failures (empty = pass):
+ *   · a valid shape (can_drive in the closed set, ≥ 1 cause with a title, first_checks an array)
+ *   · can_drive is one of the answers that pass for this case (a safety code may never be "yes")
+ *   · RD$ only: no dollar / euro / "USD" anywhere in the answer
+ *   · no invented part numbers in any suspected part
+ *   · optional: a cause matching a pattern; the history cited; a cause marked recently repaired
+ */
+function checkObd(expect, answer) {
+  const fails = [];
+  if (!answer || typeof answer !== 'object') return ['no answer'];
+  const causes = Array.isArray(answer.causes) ? answer.causes : [];
+  if (!['yes', 'careful', 'no'].includes(answer.can_drive)) fails.push(`can_drive "${answer.can_drive}" is not yes/careful/no`);
+  if (!causes.length || causes.some((c) => !c || typeof c.title !== 'string' || !c.title)) fails.push('needs at least one cause, each with a title');
+  if (!Array.isArray(answer.first_checks)) fails.push('first_checks is not a list');
+  if (expect.canDrive && !expect.canDrive.includes(answer.can_drive)) fails.push(`can_drive "${answer.can_drive}" not in [${expect.canDrive.join(', ')}]`);
+  const wire = JSON.stringify(answer).replace(/RD\s?\$/gi, '');
+  if (FOREIGN_MONEY.test(wire)) fails.push('a dollar / euro / foreign-currency figure appears');
+  for (const c of causes) for (const p of c.parts || []) if (PART_NUMBER_LIKE.test(String(p))) fails.push(`part "${p}" looks like an invented part number`);
+  if (expect.causeMatches && !causes.some((c) => new RegExp(expect.causeMatches, 'i').test(`${c.title} ${c.why} ${(c.parts || []).join(' ')}`))) fails.push(`no cause matches /${expect.causeMatches}/`);
+  if (expect.historyCited && !answer.history_note) fails.push('did not cite the history it was given (history_note is empty)');
+  if (expect.recentlyRepaired && !causes.some((c) => c.recently_repaired === true)) fails.push('no cause marked recently_repaired');
+  return fails;
+}
+
+module.exports.checkObd = checkObd;

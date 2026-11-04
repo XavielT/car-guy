@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const { fold, scoreCase, scoreIntent, summarize } = require('./score.cjs');
+const { checkObd, fold, scoreCase, scoreIntent, summarize } = require('./score.cjs');
 
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);
@@ -73,6 +73,38 @@ const wrong = (verdicts) =>
     .map(([k, v]) => `${k}:${v.verdict}`);
 
 class Stop extends Error {}
+
+/** SPEC-D §D6: cg-ai-obd cases. Each is a request (codes, car, history) and the answers that pass. */
+async function runObd(token) {
+  const fx = JSON.parse(readFileSync(join(here, 'obd.json'), 'utf8'));
+  const results = [];
+  for (const c of fx.cases) {
+    const body = { codes: c.codes, vehicle: fx.vehicles[c.vehicle], history: c.history, freezeFrame: c.freezeFrame ?? null };
+    const { status, json } = await call(token, 'cg-ai-obd', body);
+    if (!(status === 200 && json.ok !== false)) {
+      const code = json.error_code ?? `http_${status}`;
+      console.log(`  obd/${c.id}: ${code}`);
+      if (STOP_CODES.has(code)) throw new Stop(code);
+      results.push({ id: c.id, fails: [`call failed: ${code}`] });
+    } else {
+      const fails = checkObd(c.expect, json);
+      results.push({ id: c.id, fails, safety: Boolean(c.expect.safety), canDrive: json.can_drive, override: Boolean(json.safety_override), sanitized: json.sanitized ?? 0 });
+      console.log(`  obd/${c.id.padEnd(26)} ${json.can_drive.padEnd(7)}${json.safety_override ? ' (raised by the safety floor)' : ''}${json.sanitized ? `  [server sanitised ${json.sanitized}]` : ''}  ${fails.length ? `FAIL: ${fails.join('; ')}` : 'ok'}`);
+    }
+    await sleep(delay);
+  }
+  return results;
+}
+
+/** The person's OWN ai_usage rows for a function since a moment: cost per call, from the gateway's own ledger. */
+async function ownCost(token, fn, sinceIso) {
+  const r = await fetch(`${URL_}/rest/v1/ai_usage?select=cost_usd,ok&function=eq.${fn}&created_at=gte.${encodeURIComponent(sinceIso)}`, {
+    headers: { apikey: ANON, authorization: `Bearer ${token}`, 'accept-profile': 'carguy' },
+  });
+  const rows = r.ok ? await r.json() : [];
+  const ok = rows.filter((x) => x.ok);
+  return ok.length ? { calls: ok.length, avgUsd: ok.reduce((n, x) => n + Number(x.cost_usd), 0) / ok.length, totalUsd: ok.reduce((n, x) => n + Number(x.cost_usd), 0) } : null;
+}
 /** Strings that leaked into a response (privacy). Printed truncated: the run itself must not spread them. */
 const leaked = [];
 
@@ -136,7 +168,7 @@ async function runIntent(token) {
   return { cases, targetOk, total: fx.cases.length };
 }
 
-const report = { at: new Date().toISOString(), partial: null, read: null, documents: null, intent: null };
+const report = { at: new Date().toISOString(), partial: null, read: null, documents: null, obd: null, intent: null };
 let failed = false;
 try {
   const token = await signIn();
@@ -151,6 +183,12 @@ try {
     console.log('DOCUMENTS (cg-ai-read: document, vin_plate)');
     const cases = await runRead(token, join(here, 'documents.json'), join(here, 'fixtures'), 'docs');
     report.documents = { summary: summarize(cases), cases, leaks: leaked.length, privacyRemoved: cases.reduce((n, c) => n + (c.privacyRemoved ?? 0), 0) };
+  }
+  if (only === 'all' || only === 'obd') {
+    console.log('OBD (cg-ai-obd)');
+    const startedAt = new Date(Date.now() - 2000).toISOString();
+    const results = await runObd(token);
+    report.obd = { results, passed: results.filter((r) => !r.fails.length).length, total: results.length, overrides: results.filter((r) => r.override).length, cost: await ownCost(token, 'cg-ai-obd', startedAt).catch(() => null) };
   }
   if (only === 'all' || only === 'intent') {
     console.log('INTENT (cg-ai-intent)');
@@ -184,6 +222,14 @@ if (report.documents) {
   if (report.documents.leaks > 0) failed = true;
   if (s.criticalAccuracy != null && s.criticalAccuracy < bar) failed = true;
   if (s.falseFillRate != null && s.falseFillRate > FALSE_FILL_MAX) failed = true;
+}
+if (report.obd) {
+  const o = report.obd;
+  console.log(`obd     passed ${o.passed}/${o.total} (${pct(o.passed / o.total)}) · raised by the safety floor ${o.overrides}${o.cost ? ` · cost per explanation US$ ${o.cost.avgUsd.toFixed(4)} over ${o.cost.calls} calls` : ' · cost: not readable'}`);
+  for (const r of o.results.filter((x) => x.fails.length)) console.log(`        FAIL ${r.id}: ${r.fails.join('; ')}`);
+  if (o.passed / o.total < bar) failed = true;
+  // A safety code answered "yes" is never acceptable, whatever the pass rate.
+  if (o.results.some((r) => r.safety && r.canDrive === 'yes')) failed = true;
 }
 if (report.intent) {
   const t = report.intent;
