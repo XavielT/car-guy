@@ -12,6 +12,7 @@
  */
 
 import { normalizeField, type Field, type FieldSpec, type FieldType } from '../_shared/fields.ts';
+import { DOC_KINDS } from './docKinds.ts';
 export { normalizeField };
 export type { Field, FieldSpec, FieldType };
 
@@ -30,6 +31,8 @@ export type KindDef = {
   items?: ItemSpec;
   /** fuel_express: the model classifies each image. */
   perImage?: boolean;
+  /** Documents and VIN plates: the answer goes through the privacy post-filter (privacy.ts) before it leaves. */
+  privacy?: boolean;
 };
 
 const DIGITS = (s: string) => s.replace(/\D/g, '');
@@ -149,6 +152,9 @@ export const KINDS: Record<string, KindDef> = {
       pump_amount: { type: 'number', desc: 'Monto que muestra la bomba en RD$', min: 1, max: 200_000 },
     },
   },
+
+  // IMP 03112026 SPEC-C / PROMPT-03: vehicle documents and VIN plates (docKinds.ts).
+  ...DOC_KINDS,
 };
 
 export const KIND_IDS = Object.keys(KINDS);

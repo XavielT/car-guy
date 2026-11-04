@@ -88,7 +88,7 @@ describe('normalizeField — strings, formats and enums (Dominican formats)', ()
 
 describe('registry and tool schema', () => {
   it('has every kind SPEC-B needs', () => {
-    expect(KIND_IDS.sort()).toEqual(['fuel_express', 'fuel_receipt', 'invoice', 'odometer', 'part_label', 'pump']);
+    expect(KIND_IDS.sort()).toEqual(['doc_garantia', 'doc_licencia', 'doc_marbete', 'doc_matricula', 'doc_revision', 'doc_seguro', 'document', 'fuel_express', 'fuel_receipt', 'invoice', 'odometer', 'part_label', 'pump', 'vin_plate']);
   });
   it.each(KIND_IDS)('%s: the forced tool lists every field with value+confidence and requires readable', (id) => {
     const def = KINDS[id];

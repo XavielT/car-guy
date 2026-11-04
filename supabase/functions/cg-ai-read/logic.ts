@@ -17,6 +17,7 @@ import { modelVision } from '../_shared/env.ts';
 import type { Handler } from '../_shared/handler.ts';
 import { MAX_IMAGES, validateImages, type ImageIn } from '../_shared/images.ts';
 import { KINDS, TOOL_NAME, normalizeRead, toolFor } from './kinds.ts';
+import { anyValueLeft, applyPrivacy } from './privacy.ts';
 
 export const readHandler: Handler = async (ctx) => {
   const body = (ctx.body ?? {}) as { kind?: unknown; images?: unknown };
@@ -47,5 +48,11 @@ export const readHandler: Handler = async (ctx) => {
 
   const read = normalizeRead(kind, result.toolInput);
   if (!read) throw new AiCallError('unreadable', result.usage);
+  if (def.privacy) {
+    // Second wall after the prompt and the schema: personal data never leaves, and only a COUNT of what was removed does.
+    const safe = applyPrivacy(read);
+    if (!anyValueLeft(safe.read)) throw new AiCallError('unreadable', result.usage);
+    return { body: { ...safe.read, privacy_removed: safe.removed }, usage: result.usage };
+  }
   return { body: { ...read }, usage: result.usage };
 };
