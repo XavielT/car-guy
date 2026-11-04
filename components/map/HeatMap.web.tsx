@@ -3,14 +3,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { memo, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { cameraFit, heatFeatures, heatmapPaint } from '@/lib/trips/geojson';
+import { cameraFit, frequencyPaint, routeFrequency } from '@/lib/trips/geojson';
 
 import type { HeatMapProps } from './types';
 import { useMapStyle } from './useMapStyle';
 import { createMap, setSourceData, type GLMap } from './webMap';
 
-/** "Por dónde manejas", web half: the same heatmap as HeatMap.tsx on maplibre-gl (lazy chunk). */
-export const HeatMap = memo(function HeatMap({ points, height = 220, onUnavailable }: HeatMapProps) {
+/** "Por dónde manejas", web half: the same route-frequency lines as HeatMap.tsx on maplibre-gl (lazy chunk). No heatmap layer. */
+export const HeatMap = memo(function HeatMap({ routes, height = 220, onUnavailable }: HeatMapProps) {
   const box = useRef<View>(null);
   const mapRef = useRef<GLMap | null>(null);
   const [ready, setReady] = useState(false);
@@ -37,8 +37,10 @@ export const HeatMap = memo(function HeatMap({ points, height = 220, onUnavailab
       mapRef.current = m;
       m.on('load', () => {
         if (cancelled) return;
-        m.addSource('heat', { type: 'geojson', data: heatFeatures([]) as any });
-        m.addLayer({ id: 'heat', type: 'heatmap', source: 'heat', paint: heatmapPaint() as any });
+        const paint = frequencyPaint();
+        m.addSource('frequency', { type: 'geojson', data: routeFrequency([]) as any });
+        m.addLayer({ id: 'frequency-glow', type: 'line', source: 'frequency', layout: paint.layout as any, paint: paint.glow as any });
+        m.addLayer({ id: 'frequency-line', type: 'line', source: 'frequency', layout: paint.layout as any, paint: paint.line as any });
         setReady(true);
       });
     });
@@ -53,11 +55,11 @@ export const HeatMap = memo(function HeatMap({ points, height = 220, onUnavailab
   useEffect(() => {
     const m = mapRef.current;
     if (!ready || !m) return;
-    setSourceData(m, 'heat', heatFeatures(points));
+    setSourceData(m, 'frequency', routeFrequency(routes));
     const c = m.getContainer();
-    const fit = cameraFit(points, c.clientWidth, c.clientHeight, 20);
+    const fit = cameraFit(routes.flat(), c.clientWidth, c.clientHeight, 20);
     if (fit) m.fitBounds(fit.bounds, { padding: fit.padding, duration: 0 });
-  }, [ready, points]);
+  }, [ready, routes]);
 
   return <View ref={box} style={{ height, backgroundColor: '#0B0B0D' }} />;
 });

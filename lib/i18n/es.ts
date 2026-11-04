@@ -185,7 +185,7 @@ export const es = {
   /** Viajes (IMP 29092026 Phase 5). */
   trips: {
     title: 'Viajes',
-    lcd: { km: 'KM DEL VIAJE', time: 'MINUTOS', avg: 'MEDIA KM/H', max: 'MÁXIMA KM/H' },
+    lcd: { km: 'KM DEL VIAJE', time: 'MINUTOS', avg: 'MEDIA KM/H', max: 'MÁXIMA GPS KM/H' },
     /** The share sheet's title for a trip's GeoJSON. */
     geojsonDialog: 'Puntos GPS del viaje',
     /** Viajes → Ajustes → avanzado (IMP 01102026 Phase 0): what decides Automático, without positions. */
@@ -196,6 +196,9 @@ export const es = {
     gps: { good: 'GPS con buena señal', weak: 'GPS con señal débil', none: 'Sin señal de GPS' },
     recording: 'Grabando viaje',
     passenger: 'PASAJERO',
+    /** The needle has no Doppler speed behind it (web, iPhone, some Androids): it is read from the positions (SPEC-I §I1). */
+    estimated: 'ESTIMADA',
+    estimatedA11y: 'Velocidad estimada con las posiciones del GPS: el teléfono no da la velocidad directa.',
     gpsDisclaimer: 'GPS · no sustituye el velocímetro',
     odometerEstimated: '≈ Estimado por tus viajes · toca para anotar el real',
     start: 'Iniciar viaje',
@@ -240,7 +243,9 @@ export const es = {
     routeA11y: (km: string) => `Mapa de la ruta, ${km} km`,
     mapCredit: '© OpenStreetMap',
     exportHint: 'Mantén presionado para exportar los puntos GPS (GeoJSON).',
-    heatCaption: 'Por dónde manejas: donde la línea brilla más es la calle que más repites.',
+    heatCaption: 'Por dónde manejas: cuanto más roja es la línea, más veces pasaste por esa calle.',
+    frequencyFew: 'pocas veces',
+    frequencyMany: 'muchas veces',
     heatA11y: (n: number) => `Mapa con ${n} viajes superpuestos`,
     mapSetting: 'Mapa',
     mapSettingHint: 'En línea: el mapa de verdad (OpenFreeMap) bajo cada viaje; se mueve y hace zoom. Necesita internet. Apagado: solo la ruta sobre la tarjeta oscura.',

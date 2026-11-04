@@ -160,7 +160,7 @@ export const enPart1: Pick<
 
   trips: {
     title: 'Trips',
-    lcd: { km: 'TRIP KM', time: 'MINUTES', avg: 'AVG KM/H', max: 'MAX KM/H' },
+    lcd: { km: 'TRIP KM', time: 'MINUTES', avg: 'AVG KM/H', max: 'MAX GPS KM/H' },
     geojsonDialog: 'Trip GPS points',
     /** Trips → Settings → advanced (IMP 01102026 Phase 0): what decides Automatic, without positions. */
     diagnosticsExport: 'Export trip diagnostics',
@@ -170,6 +170,8 @@ export const enPart1: Pick<
     gps: { good: 'GPS signal good', weak: 'GPS signal weak', none: 'No GPS signal' },
     recording: 'Recording trip',
     passenger: 'PASSENGER',
+    estimated: 'ESTIMATED',
+    estimatedA11y: "Speed estimated from the GPS positions: this phone doesn't report a direct speed.",
     gpsDisclaimer: 'GPS · not a replacement for your speedometer',
     odometerEstimated: '≈ Estimated from your trips · tap to log the real one',
     start: 'Start trip',
@@ -212,7 +214,9 @@ export const enPart1: Pick<
     routeA11y: (km: string) => `Route map, ${km} km`,
     mapCredit: '© OpenStreetMap',
     exportHint: 'Long-press to export GPS points (GeoJSON).',
-    heatCaption: 'Where you drive: where the line glows brightest is the street you repeat most.',
+    heatCaption: 'Where you drive: the redder the line, the more times you went down that street.',
+    frequencyFew: 'a few times',
+    frequencyMany: 'many times',
     heatA11y: (n: number) => `Map with ${n} ${n === 1 ? 'trip' : 'trips'} overlaid`,
     mapSetting: 'Map',
     mapSettingHint: 'Online: the real map (OpenFreeMap) under every trip; pan and zoom it. Needs internet. Off: just the route on the dark card.',

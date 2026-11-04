@@ -3,7 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { committedLength, pointFeature, ROUTE_CASING_PAINT, ROUTE_LINE_LAYOUT, ROUTE_LINE_WIDTH, routeSegments, speedColorExpression, tailStart } from '@/lib/trips/geojson';
+import { committedLength, pointFeature, ROUTE_CASING_PAINT, ROUTE_LINE_LAYOUT, TRAIL_LINE_WIDTH, routeSegments, speedColorExpression, tailStart } from '@/lib/trips/geojson';
 
 import { OfflineMap } from './OfflineMap';
 import { Recenter } from './Recenter';
@@ -87,7 +87,7 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
         for (const id of ['trail-committed', 'trail-tail']) {
           m.addSource(id, { type: 'geojson', data: routeSegments([]) as any });
           m.addLayer({ id: `${id}-casing`, type: 'line', source: id, layout: ROUTE_LINE_LAYOUT as any, paint: ROUTE_CASING_PAINT as any });
-          m.addLayer({ id: `${id}-line`, type: 'line', source: id, layout: ROUTE_LINE_LAYOUT as any, paint: { 'line-color': speedColorExpression() as any, 'line-width': ROUTE_LINE_WIDTH + 1 } });
+          m.addLayer({ id: `${id}-line`, type: 'line', source: id, layout: ROUTE_LINE_LAYOUT as any, paint: { 'line-color': speedColorExpression() as any, 'line-width': TRAIL_LINE_WIDTH as any } });
         }
         m.addSource('car', { type: 'geojson', data: pointFeature(null) as any });
         m.addLayer({ id: 'car', type: 'circle', source: 'car', paint: { 'circle-radius': 8, 'circle-color': '#FFFFFF', 'circle-stroke-color': '#E10600', 'circle-stroke-width': 3 } });

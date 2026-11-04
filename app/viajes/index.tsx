@@ -9,6 +9,7 @@ import { TipCard } from '@/components/TipCard';
 import { T } from '@/components/T';
 import { listDoneTrips, TripRow, TripsHeatMap, TripsStrip, tripActions, AutoBlockedCard } from '@/components/trips/TripPieces';
 import { FilterBar } from '@/components/pickers';
+import { FrequencyLegend } from '@/components/trips/FrequencyLegend';
 import { EmptyState, GhostButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -16,7 +17,6 @@ import type { Trip } from '@/lib/db/types';
 import { FEATURE_MAP_V2 } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
 import { ATTRIBUTION_URL, mapAttribution } from '@/lib/map/config';
-import { sampleAlong } from '@/lib/trips/geojson';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 import { filterTrips, monthSummary, tripRoute, type TripFilter } from '@/lib/trips/present';
@@ -65,7 +65,8 @@ export default function TripsScreen() {
   const vehicles = data.vehicles.filter((v) => !v.isArchived);
   const nameOf = (id: string) => vehicles.find((v) => v.id === id)?.name ?? data.vehicles.find((v) => v.id === id)?.name;
   const shown = useMemo(() => (list ? filterTrips(list, filter) : []), [list, filter]);
-  const heatPoints = useMemo(() => sampleAlong(shown.slice(0, 200).map(tripRoute), 35), [shown]);
+  // The routes of the listed trips for the frequency lines (resampling and counting happen in routeFrequency, not here).
+  const heatRoutes = useMemo(() => shown.slice(0, 200).map(tripRoute).filter((r) => r.length > 1), [shown]);
   const reload = () => setVersion((v) => v + 1);
   // First load only: later reloads (a write, a scope change) keep the old list up.
   const showSkeleton = useDelayedLoading(list === null);
@@ -110,16 +111,17 @@ export default function TripsScreen() {
 
       {list && !showSkeleton ? <TripsStrip summary={monthSummary(list)} /> : null}
 
-      {map && shown.length && !showSkeleton && FEATURE_MAP_V2 && !heatDown && heatPoints.length ? (
+      {map && shown.length && !showSkeleton && FEATURE_MAP_V2 && !heatDown && heatRoutes.length ? (
         <View style={{ marginBottom: space.md }}>
           <View style={{ borderRadius: radius.card, overflow: 'hidden' }}>
-            <HeatMap points={heatPoints} height={Math.round((width - 2 * space.gutter) * 0.62)} onUnavailable={onHeatDown} />
+            <HeatMap routes={heatRoutes} height={Math.round((width - 2 * space.gutter) * 0.62)} onUnavailable={onHeatDown} />
           </View>
           <Pressable onPress={() => void Linking.openURL(ATTRIBUTION_URL)} accessibilityRole="link" style={{ marginTop: space.xs }}>
             <T face="body" style={{ color: theme.text.muted, fontSize: 11 }}>
               {mapAttribution()}
             </T>
           </Pressable>
+          <FrequencyLegend />
           <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.xs }}>
             {t.trips.heatCaption}
           </T>

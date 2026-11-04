@@ -2,7 +2,7 @@ import { Camera, GeoJSONSource, Layer, Map as MLMap, Marker } from '@maplibre/ma
 import { memo, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { committedLength, ROUTE_CASING_PAINT, ROUTE_LINE_LAYOUT, ROUTE_LINE_WIDTH, routeSegments, speedColorExpression, tailStart } from '@/lib/trips/geojson';
+import { committedLength, ROUTE_CASING_PAINT, ROUTE_LINE_LAYOUT, TRAIL_LINE_WIDTH, routeSegments, speedColorExpression, tailStart } from '@/lib/trips/geojson';
 
 import { OfflineMap } from './OfflineMap';
 import { Recenter } from './Recenter';
@@ -40,7 +40,7 @@ export const LiveMap = memo(function LiveMap({ trail, follow = true, insets, onU
   });
   // Only a fresh fix moves the camera; a stale one stays where it was drawn, greyed.
   const followMe = follow && tracking && (me?.fresh || me?.approx) ? me : null;
-  const paint = useMemo(() => ({ 'line-color': speedColorExpression() as any, 'line-width': ROUTE_LINE_WIDTH + 1 }), []);
+  const paint = useMemo(() => ({ 'line-color': speedColorExpression() as any, 'line-width': TRAIL_LINE_WIDTH as any }), []);
 
   if (!style.url) return style.checking ? <View style={styles.fill} /> : <OfflineMap me={me} onRetry={style.retry} />;
   return (

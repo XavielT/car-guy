@@ -64,7 +64,7 @@ export const TripMap = memo(function TripMap({ points, replay, height = 240, onL
         if (cancelled) return;
         m.addSource('route', { type: 'geojson', data: routeSegments([]) as any });
         m.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: ROUTE_LINE_LAYOUT as any, paint: ROUTE_CASING_PAINT as any });
-        m.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: ROUTE_LINE_LAYOUT as any, paint: { 'line-color': speedColorExpression() as any, 'line-width': ROUTE_LINE_WIDTH } });
+        m.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: ROUTE_LINE_LAYOUT as any, paint: { 'line-color': speedColorExpression() as any, 'line-width': ROUTE_LINE_WIDTH as any } });
         m.addSource('route-ends', { type: 'geojson', data: endpointFeatures([]) as any });
         m.addLayer({
           id: 'route-ends',

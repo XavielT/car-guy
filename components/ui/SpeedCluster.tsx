@@ -196,6 +196,14 @@ export function SpeedCluster({
             REC
           </T>
         </AnimatedView>
+        {trip?.estimated ? (
+          <View style={styles.lamp} accessibilityLabel={t.trips.estimatedA11y}>
+            <Ionicons name="help-circle-outline" size={15} color={ink.statusText.proximo} />
+            <T face="eyebrow" style={{ color: ink.statusText.proximo, fontSize: 10 }}>
+              {t.trips.estimated}
+            </T>
+          </View>
+        ) : null}
         {trip?.role === 'pasajero' ? (
           <View style={styles.lamp}>
             <Ionicons name="person" size={14} color={ink.text.secondary} />

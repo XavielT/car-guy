@@ -18,8 +18,8 @@ export type TripMapProps = {
 };
 
 export type HeatMapProps = {
-  /** Sampled points of many trips (every ~25–50 m). */
-  points: { lat: number; lng: number }[];
+  /** The routes of many trips, each a list of points (the frequency lines are built from them: lib/trips/geojson.ts routeFrequency). */
+  routes: { lat: number; lng: number }[][];
   height?: number;
   onUnavailable?: () => void;
 };

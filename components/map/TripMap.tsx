@@ -50,7 +50,7 @@ export const TripMap = memo(function TripMap({ points, replay, height = 240, onL
           <Camera initialViewState={{ bounds: fit.bounds, padding: fit.padding }} />
           <GeoJSONSource id="route" data={segments}>
             <Layer id="route-casing" type="line" layout={ROUTE_LINE_LAYOUT as any} paint={ROUTE_CASING_PAINT as any} />
-            <Layer id="route-line" type="line" layout={ROUTE_LINE_LAYOUT as any} paint={{ 'line-color': speedColorExpression() as any, 'line-width': ROUTE_LINE_WIDTH }} />
+            <Layer id="route-line" type="line" layout={ROUTE_LINE_LAYOUT as any} paint={{ 'line-color': speedColorExpression() as any, 'line-width': ROUTE_LINE_WIDTH as any }} />
           </GeoJSONSource>
           <GeoJSONSource id="route-ends" data={ends}>
             <Layer

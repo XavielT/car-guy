@@ -157,41 +157,105 @@ export function pointFeature(p: LatLng | null | undefined): FeatureCollection<Po
   return { type: 'FeatureCollection', features: p ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [p.lng, p.lat] } }] : [] };
 }
 
-/**
- * Points every `spacingM` along each route (research 01 §5: fixed spacing, so
- * dense GPS in slow traffic does not dominate the heat by itself). Each route's
- * first vertex is kept; the walk carries the remainder across vertices. Stops
- * at `maxPoints` overall.
- */
-export function sampleAlong(routes: readonly (readonly LatLng[])[], spacingM = 35, maxPoints = 20_000): LatLng[] {
-  const out: LatLng[] = [];
-  for (const r of routes) {
-    if (!r.length) continue;
-    if (out.length >= maxPoints) break;
-    out.push({ lat: r[0].lat, lng: r[0].lng });
-    let carry = 0; // metres walked since the last sample
-    for (let i = 1; i < r.length && out.length < maxPoints; i++) {
-      const a = r[i - 1];
-      const b = r[i];
-      const d = haversine(a, b);
-      if (!(d > 0)) continue;
-      let at = spacingM - carry; // distance along this segment of the next sample
-      while (at <= d && out.length < maxPoints) {
-        const k = at / d;
-        out.push({ lat: a.lat + (b.lat - a.lat) * k, lng: a.lng + (b.lng - a.lng) * k });
-        at += spacingM;
-      }
-      carry = d - (at - spacingM);
+/** A route-frequency edge: how many times a ~15 m stretch of road was driven (both directions together). */
+export type FrequencyProps = { count: number };
+
+/** Resolution of the frequency layer: points every 15 m, edges snapped to a 15 m grid. */
+export const FREQUENCY_STEP_M = 15;
+/** The most edges drawn: a garage's years of driving stays a few thousand short lines. */
+export const FREQUENCY_MAX_EDGES = 20_000;
+
+/** Points every `stepM` along one route (its first vertex kept). The walk carries the remainder across vertices. */
+function resample(route: readonly LatLng[], stepM: number): LatLng[] {
+  if (!route.length) return [];
+  const out: LatLng[] = [{ lat: route[0].lat, lng: route[0].lng }];
+  let carry = 0;
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1];
+    const b = route[i];
+    const d = haversine(a, b);
+    if (!(d > 0)) continue;
+    let at = stepM - carry;
+    while (at <= d) {
+      const k = at / d;
+      out.push({ lat: a.lat + (b.lat - a.lat) * k, lng: a.lng + (b.lng - a.lng) * k });
+      at += stepM;
     }
+    carry = d - (at - stepM);
   }
   return out;
 }
 
-/** Sampled points as a Point FeatureCollection for the heatmap layer. */
-export function heatFeatures(points: readonly LatLng[]): FeatureCollection<Point> {
+/**
+ * "Por dónde manejas" as FREQUENCY of road, not a blob of density (SPEC-I §I4, PROMPT-10 step 7): every route is resampled every 15 m, each
+ * sample is snapped to a ~15 m grid cell, and every pair of consecutive cells is an EDGE whose `count` is how many times it was driven.
+ * The two directions of a road are one edge (a commute there and back counts 2); a repeated cell is not an edge; and a cell's position is the
+ * mean of the samples that fell in it, so the lines follow the roads instead of stair-stepping along the grid. At most
+ * `FREQUENCY_MAX_EDGES` edges (a rarely driven stretch is dropped before a busy one is counted twice).
+ */
+export function routeFrequency(routes: readonly (readonly LatLng[])[], stepM = FREQUENCY_STEP_M, maxEdges = FREQUENCY_MAX_EDGES): FeatureCollection<LineString, FrequencyProps> {
+  const first = routes.find((r) => r.length)?.[0];
+  if (!first) return { type: 'FeatureCollection', features: [] };
+  const dLat = stepM / 111_194.9;
+  const dLng = stepM / (111_194.9 * Math.cos((first.lat * Math.PI) / 180));
+  const cellOf = (p: LatLng): [number, number] => [Math.round(p.lng / dLng), Math.round(p.lat / dLat)];
+  const keyOf = (c: [number, number]) => c[0] + ',' + c[1];
+  const sums = new Map<string, { lat: number; lng: number; n: number }>();
+  const edges = new Map<string, { a: string; b: string; count: number }>();
+  for (const route of routes) {
+    const pts = resample(route, stepM);
+    let prev: string | null = null;
+    for (const p of pts) {
+      const k = keyOf(cellOf(p));
+      const s = sums.get(k);
+      if (s) {
+        s.lat += p.lat;
+        s.lng += p.lng;
+        s.n += 1;
+      } else sums.set(k, { lat: p.lat, lng: p.lng, n: 1 });
+      if (prev != null && prev !== k) {
+        const [x, y] = prev < k ? [prev, k] : [k, prev];
+        const ek = x + '|' + y;
+        const e = edges.get(ek);
+        if (e) e.count += 1;
+        else if (edges.size < maxEdges) edges.set(ek, { a: x, b: y, count: 1 });
+      }
+      prev = k;
+    }
+  }
+  const at = (k: string): [number, number] => {
+    const s = sums.get(k)!;
+    return [s.lng / s.n, s.lat / s.n];
+  };
+  const features: Feature<LineString, FrequencyProps>[] = [];
+  for (const e of edges.values()) features.push({ type: 'Feature', properties: { count: e.count }, geometry: { type: 'LineString', coordinates: [at(e.a), at(e.b)] } });
+  return { type: 'FeatureCollection', features };
+}
+
+/** A line width that grows from `z10` to `z16` (px) and a little with how often the road was driven (+ up to 1 px by log count). */
+const byCount = ['min', 1, ['*', 0.35, ['ln', ['max', 1, ['get', 'count']]]]];
+const widthAt = (px: number) => ['+', px, byCount];
+
+/**
+ * Paint of the frequency layers (SPEC-I §I4). Thin: 0.8 px at z10 → 2.4 px at z16 for ONE pass, up to 1 px more by log(count); amber → orange → red by
+ * count; opacity rises with zoom (it does not fade out); and a faint glow underneath (the same geometry at 2.5× the width, blurred, 20 % opacity).
+ * No radius blobs, no casing. Typed loosely: the native and web style-spec typings differ.
+ */
+export function frequencyPaint(): { glow: Record<string, unknown>; line: Record<string, unknown>; layout: Record<string, unknown> } {
+  const color = ['interpolate', ['linear'], ['get', 'count'], 1, '#FFB300', 4, '#FF5F00', 10, '#E10600'];
   return {
-    type: 'FeatureCollection',
-    features: points.map((p) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [p.lng, p.lat] } })),
+    glow: {
+      'line-color': color,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 10, widthAt(0.8 * 2.5), 16, widthAt(2.4 * 2.5)],
+      'line-blur': ['interpolate', ['linear'], ['zoom'], 10, 2, 16, 3],
+      'line-opacity': 0.2,
+    },
+    line: {
+      'line-color': color,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 10, widthAt(0.8), 16, widthAt(2.4)],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.6, 16, 0.95],
+    },
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
   };
 }
 
@@ -210,32 +274,12 @@ export function tailStart(committedLen: number): number {
   return Math.max(0, committedLen - 1);
 }
 
-/** Paint shared by both halves — the casing under the coloured line, then the line. */
-export const ROUTE_CASING_PAINT = { 'line-color': '#000000', 'line-width': 8, 'line-opacity': 0.55 } as const;
-export const ROUTE_LINE_WIDTH = 4.5;
+/**
+ * Paint shared by both halves — the casing under the coloured line, then the line. One map language with the frequency layer (SPEC-I §I4):
+ * ~3 px of line over a ~5 px casing at street zoom, thinner when zoomed out, so a whole city of routes does not become a thick smear.
+ */
+export const ROUTE_CASING_PAINT = { 'line-color': '#000000', 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 3, 16, 5.5], 'line-opacity': 0.55 } as const;
+export const ROUTE_LINE_WIDTH = ['interpolate', ['linear'], ['zoom'], 10, 1.8, 16, 3.4] as const;
+/** The live trail is a touch heavier than a finished route: it is what you watch while driving. */
+export const TRAIL_LINE_WIDTH = ['interpolate', ['linear'], ['zoom'], 10, 2.4, 16, 4.2] as const;
 export const ROUTE_LINE_LAYOUT = { 'line-cap': 'round', 'line-join': 'round' } as const;
-
-/** heatmap layer paint: the JDM amber → red ramp; fades out at street zoom where the lines take over. */
-export function heatmapPaint(): Record<string, unknown> {
-  return {
-    'heatmap-weight': 1,
-    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 15, 1.6],
-    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 8, 12, 14, 15, 22],
-    'heatmap-color': [
-      'interpolate',
-      ['linear'],
-      ['heatmap-density'],
-      0,
-      'rgba(0,0,0,0)',
-      0.15,
-      'rgba(255,179,0,0.35)',
-      0.4,
-      '#FFB300',
-      0.7,
-      '#FF5F00',
-      1,
-      '#E10600',
-    ],
-    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.9, 16, 0.25],
-  };
-}

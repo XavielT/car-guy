@@ -12,7 +12,10 @@ import {
   routeBounds,
   routePointsFromDrawn,
   routeSegments,
-  sampleAlong,
+  frequencyPaint,
+  ROUTE_CASING_PAINT,
+  ROUTE_LINE_WIDTH,
+  routeFrequency,
   speedBucket,
   speedColorExpression,
   tailStart,
@@ -117,22 +120,92 @@ describe('bounds and camera fit', () => {
   });
 });
 
-describe('sampleAlong (heatmap)', () => {
-  it('samples every ~35 m along the route, carrying the remainder across vertices', () => {
-    // ~111 m per 0.001° of latitude: three 111 m segments = 333 m.
-    const route = [0, 1, 2, 3].map((i) => ({ lat: 18 + i * 0.001, lng: -70 }));
-    const total = haversine(route[0], route[3]);
-    const s = sampleAlong([route], 35);
-    expect(s.length).toBe(1 + Math.floor(total / 35));
-    for (let i = 1; i < s.length; i++) expect(haversine(s[i - 1], s[i])).toBeCloseTo(35, 0);
+describe('routeFrequency (the thin route lines)', () => {
+  // ~111 m per 0.001° of latitude, a straight road going north.
+  const road = (lng: number, n = 4, lat0 = 18) => Array.from({ length: n }, (_, i) => ({ lat: lat0 + i * 0.001, lng }));
+  const counts = (r: ReturnType<typeof routeFrequency>) => r.features.map((f) => f.properties.count);
+
+  it('one pass over a 333 m road makes ~22 edges of 15 m, each driven once', () => {
+    const r = routeFrequency([road(-70)]);
+    expect(r.features.length).toBeGreaterThan(18);
+    expect(r.features.length).toBeLessThan(26);
+    expect(new Set(counts(r))).toEqual(new Set([1]));
+    for (const f of r.features) expect(f.geometry.coordinates).toHaveLength(2);
   });
-  it('dense GPS does not multiply the samples; caps at maxPoints', () => {
-    const dense = Array.from({ length: 1001 }, (_, i) => ({ lat: 18 + i * 0.0000315, lng: -70 })); // ~3.5 m apart, ~3.5 km
-    const s = sampleAlong([dense], 35);
-    expect(s.length).toBeGreaterThan(95);
-    expect(s.length).toBeLessThan(105);
-    expect(sampleAlong([dense, dense], 35, 50)).toHaveLength(50);
-    expect(sampleAlong([[], [{ lat: 1, lng: 1 }]], 35)).toEqual([{ lat: 1, lng: 1 }]);
+
+  it('driving it again counts 2; there and back (the opposite direction) is the SAME edge', () => {
+    const there = road(-70);
+    const back = [...there].reverse();
+    const r = routeFrequency([there, back]);
+    expect(Math.max(...counts(r))).toBe(2);
+    // The number of edges did not double: the two directions merged.
+    expect(r.features.length).toBeLessThan(26);
+    expect(counts(r).filter((c) => c === 2).length).toBeGreaterThan(15);
+  });
+
+  it('a road driven 5 times beside a road driven once: counts differ, the lines stay apart', () => {
+    const r = routeFrequency([road(-70), road(-70), road(-70), road(-70), road(-70), road(-69.99)]);
+    expect(Math.max(...counts(r))).toBe(5);
+    expect(counts(r).filter((c) => c === 1).length).toBeGreaterThan(15);
+  });
+
+  it('dense GPS (3.5 m apart) does not multiply the edges: it is resampled to 15 m first', () => {
+    const dense = Array.from({ length: 1001 }, (_, i) => ({ lat: 18 + i * 0.0000315, lng: -70 })); // ~3.5 km
+    const r = routeFrequency([dense]);
+    expect(r.features.length).toBeGreaterThan(200);
+    expect(r.features.length).toBeLessThan(260);
+  });
+
+  it('the edge geometry follows the road (cell means), not a staircase on the grid: every vertex is within a few metres of the road', () => {
+    const r = routeFrequency([road(-70)]);
+    for (const f of r.features) for (const [lng] of f.geometry.coordinates) expect(Math.abs(lng - -70) * 111_320 * Math.cos((18 * Math.PI) / 180)).toBeLessThan(2);
+  });
+
+  it('caps the number of edges; a stationary or empty route has none', () => {
+    const long = Array.from({ length: 200 }, (_, i) => ({ lat: 18 + i * 0.001, lng: -70 })); // ~22 km
+    expect(routeFrequency([long], 15, 100).features).toHaveLength(100);
+    expect(routeFrequency([[{ lat: 1, lng: 1 }]]).features).toEqual([]);
+    expect(routeFrequency([[], []]).features).toEqual([]);
+    expect(routeFrequency([]).features).toEqual([]);
+  });
+});
+
+describe('frequency paint (thin, stylised, no heatmap)', () => {
+  const p = frequencyPaint();
+  const widths = (v: unknown) => JSON.stringify(v);
+  it('line width starts at 0.8 px at z10 and reaches 2.4 px at z16 for one pass (+ up to 1 px by log count)', () => {
+    const w = p.line['line-width'] as unknown[];
+    expect(w.slice(0, 3)).toEqual(['interpolate', ['linear'], ['zoom']]);
+    expect(w[3]).toBe(10);
+    expect(widths(w[4])).toContain('0.8');
+    expect(w[5]).toBe(16);
+    expect(widths(w[6])).toContain('2.4');
+    expect(widths(w[4])).toContain('"min",1');
+  });
+  it('a faint glow underneath: 2.5× the width, blurred, ~20 % opacity; round caps and joins; no casing', () => {
+    expect(widths(p.glow['line-width'])).toContain('2');
+    expect(p.glow['line-blur']).toBeDefined();
+    expect(p.glow['line-opacity']).toBeLessThanOrEqual(0.25);
+    expect(p.glow['line-opacity']).toBeGreaterThanOrEqual(0.18);
+    expect(p.layout).toEqual({ 'line-cap': 'round', 'line-join': 'round' });
+    expect(Object.keys(p)).toEqual(['glow', 'line', 'layout']);
+  });
+  it('amber → orange → red by count, and the opacity rises with zoom instead of fading out', () => {
+    expect(widths(p.line['line-color'])).toMatch(/#FFB300.*#FF5F00.*#E10600/);
+    const o = p.line['line-opacity'] as unknown[];
+    expect(o[4]).toBeLessThan(o[6] as number);
+  });
+  it('the individual route lines are slimmer: ~3 px over a ~5 px casing at street zoom', () => {
+    expect(widths(ROUTE_LINE_WIDTH)).toContain('3.4');
+    expect(widths(ROUTE_CASING_PAINT['line-width'])).toContain('5.5');
+  });
+  it('NO heatmap layer survives anywhere in the map components', () => {
+    const { readFileSync } = require('node:fs');
+    const { join } = require('node:path');
+    for (const f of ['components/map/HeatMap.tsx', 'components/map/HeatMap.web.tsx', 'lib/trips/geojson.ts']) {
+      const src: string = readFileSync(join(__dirname, '../..', f), 'utf8');
+      expect(src).not.toMatch(/type="heatmap"|type: 'heatmap'|heatmap-/);
+    }
   });
 });
 
