@@ -47,16 +47,16 @@ function IconButton({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyp
  * The contact form, with what the contact has done for the garage underneath.
  * Editing, its fields stay a `skeleton` (the screen's twin) until the contact is read.
  */
-export function ContactForm({ contactId, onDone, skeleton }: { contactId?: string; onDone: () => void; skeleton?: ReactNode }) {
+export function ContactForm({ contactId, onDone, skeleton, prefill }: { contactId?: string; onDone: () => void; skeleton?: ReactNode; /** From a nearby-places result (SPEC-G §G4): only the fields the source allows to be kept. */ prefill?: Partial<Pick<Contact, 'name' | 'kind' | 'phone' | 'address' | 'notes'>> }) {
   const router = useRouter();
   const { theme } = useTheme();
-  const [name, setName] = useState('');
-  const [kind, setKind] = useState<Contact['kind']>('mecanico');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useState(prefill?.name ?? '');
+  const [kind, setKind] = useState<Contact['kind']>(prefill?.kind ?? 'mecanico');
+  const [phone, setPhone] = useState(prefill?.phone ?? '');
   const [whatsapp, setWhatsapp] = useState('');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(prefill?.address ?? '');
   const [rating, setRating] = useState<number | null>(null);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(prefill?.notes ?? '');
   const [links, setLinks] = useState<ContactLink[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(!contactId);

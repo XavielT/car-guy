@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { NearbyPlaces } from '@/components/ai/NearbyPlaces';
 import { ContactButtons } from '@/components/diy/ContactPieces';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
@@ -40,6 +41,7 @@ export default function ContactsScreen() {
       <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 30, textTransform: 'uppercase', marginBottom: space.md }}>
         {t.contacts.title}
       </T>
+      <NearbyPlaces />
       {showSkeleton ? <ListCardsSkeleton section n={3} pad={space.md} r={radius.button} buttons={2} titleWidth="50%" style={{ marginBottom: space.md }} /> : null}
       {contacts && !contacts.length && !showSkeleton ? <EmptyState icon="people-outline" message={t.contacts.empty} /> : null}
       {CONTACT_KINDS.map((k) => {
