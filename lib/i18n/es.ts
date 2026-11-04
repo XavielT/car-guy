@@ -4353,6 +4353,16 @@ export const es = {
         within: 'Parecido a tu promedio.',
       },
     },
+    health: {
+      title: 'Salud del carro',
+      allGood: 'Todo en orden por ahora.',
+      dismiss: 'Descartar',
+      aiNote: 'Redactado con IA; los números salen de tus datos.',
+      actions: {
+        open_reminder: 'Ver el recordatorio', open_fillup: 'Ver la carga', new_service: 'Registrar el servicio', new_reminder: 'Crear recordatorio',
+        open_tires: 'Ver las gomas', open_costs: 'Ver los costos', open_obd: 'Abrir diagnóstico',
+      },
+    },
     voice: {
       open: 'Dictar',
       title: 'Dictar o escribir',

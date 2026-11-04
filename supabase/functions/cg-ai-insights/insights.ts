@@ -242,6 +242,9 @@ function fnv(s: string): string {
   return h.toString(16).padStart(8, '0');
 }
 
+/** The id of an insight: a stable hash of the set of facts it cites, so the same facts always give the same id (dismissals rely on it). */
+export const insightId = (factIds: readonly string[]): string => fnv([...factIds].sort().join('|'));
+
 export function normalizeInsights(raw: unknown, input: InsightsInput): InsightsAnswer | null {
   if (!raw || typeof raw !== 'object') return null;
   const list = (raw as { insights?: unknown }).insights;
@@ -285,7 +288,7 @@ export function normalizeInsights(raw: unknown, input: InsightsInput): InsightsA
     const wanted = typeof o.action === 'string' && (ACTION_TYPES as readonly string[]).includes(o.action) ? o.action : null;
     const action = wanted ? (cited.flatMap((f) => f.actions).find((a) => a.type === wanted) ?? null) : null;
 
-    out.push({ id: fnv(key), headline, why, fact_ids: ids, severity, action, source });
+    out.push({ id: insightId(ids), headline, why, fact_ids: ids, severity, action, source });
   }
 
   out.sort((a, b) => RANK[a.severity] - RANK[b.severity]);

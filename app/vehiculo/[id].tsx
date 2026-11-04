@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CarHealth } from '@/components/ai/CarHealth';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { MissingRecord } from '@/components/MissingRecord';
@@ -312,6 +313,11 @@ export default function VehicleHubScreen() {
           </View>
           {/* IMP 01102026 Phase 3: what is in the tank now, from the last reading. */}
           {FEATURE_GAUGE_SEGMENTS ? <TankLine vehicle={vehicle} fillups={data.fillups.filter((f) => f.vehicleId === vehicle.id)} odometerKm={odometerKm} /> : null}
+          {/* IMP 03112026 SPEC-E: what the engine knows about this car, up to five lines (the top three are on Inicio). */}
+          {(() => {
+            const mine = data.vehicles.find((v) => v.id === vehicle.id);
+            return mine ? <CarHealth vehicle={mine} fillups={data.fillups.filter((f) => f.vehicleId === vehicle.id)} limit={5} showEmpty /> : null;
+          })()}
         </View>
 
         {/* 1 — the shortcuts (SPEC-C §4) and the page tabs (sticky); the tabs fade where there is more (X4) */}

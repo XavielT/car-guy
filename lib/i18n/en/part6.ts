@@ -1137,6 +1137,16 @@ export const enPart6: Pick<
         within: 'Close to your average.',
       },
     },
+    health: {
+      title: 'Car health',
+      allGood: 'All good for now.',
+      dismiss: 'Dismiss',
+      aiNote: 'Worded with AI; the numbers come from your data.',
+      actions: {
+        open_reminder: 'See the reminder', open_fillup: 'See the fill-up', new_service: 'Log the service', new_reminder: 'Create a reminder',
+        open_tires: 'See the tyres', open_costs: 'See the costs', open_obd: 'Open diagnostics',
+      },
+    },
     voice: {
       open: 'Dictate',
       title: 'Dictate or type',

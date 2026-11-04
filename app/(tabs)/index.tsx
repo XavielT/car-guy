@@ -1,5 +1,6 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { CarHealth } from '@/components/ai/CarHealth';
 import { DictateSheet } from '@/components/ai/DictateSheet';
 import { QueueNotice } from '@/components/ai/QueueNotice';
 import { HomeNudge } from '@/components/features/HomeNudge';
@@ -598,6 +599,7 @@ export default function HomeScreen() {
           </Surface>
         ) : null}
 
+        <CarHealth vehicle={activeVehicle} fillups={vehicleFillups} />
         <HomeNudge hasVehicle fillups={vehicleFillups.length} />
 
         <QuickActions
