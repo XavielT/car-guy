@@ -5,7 +5,22 @@
  */
 import { callAi } from './client';
 
-export type ReadKind = 'fuel_receipt' | 'pump' | 'odometer' | 'invoice' | 'part_label' | 'fuel_express';
+export type ReadKind =
+  | 'fuel_receipt'
+  | 'pump'
+  | 'odometer'
+  | 'invoice'
+  | 'part_label'
+  | 'fuel_express'
+  // IMP 03112026 SPEC-C / PROMPT-03: vehicle documents (`document` classifies the paper itself) and the VIN plate.
+  | 'document'
+  | 'doc_matricula'
+  | 'doc_seguro'
+  | 'doc_marbete'
+  | 'doc_licencia'
+  | 'doc_revision'
+  | 'doc_garantia'
+  | 'vin_plate';
 
 export type ReadField = { value: string | number | null; confidence: number };
 export type ReadItem = Record<string, ReadField>;
@@ -17,6 +32,8 @@ export type ReadResult = {
   fields: Record<string, ReadField>;
   items?: ReadItem[];
   per_image?: PerImage[];
+  /** Documents only: how many personal values the server removed (a count, never the values). */
+  privacy_removed?: number;
   model: string | null;
 };
 
