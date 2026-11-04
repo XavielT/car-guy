@@ -15,7 +15,7 @@ What to expect: the dash 2–6 % above the GPS. If the dash is *below* the GPS, 
 1. Fill the tank and note the odometer. Record every drive with Iniciar viaje (or leave automatic trips on).
 2. Drive normally for ≥ 100 km. At the next fill-up note the odometer again.
 3. Compare the odometer difference with Car Guy's total GPS km for the same period. A GPS total 1–3 % *below* the dash is normal (tyre size, calibration, the odometer rounding up).
-4. After 3 intervals of ≥ 100 km the app suggests an odometer factor; with it, the odometer estimates after a trip stay closer to the dash.
+4. The rule for the odometer factor is built and tested (`proposeOdoFactor`: ≥ 3 intervals of ≥ 100 km, median of odometer ÷ GPS), but **there is no screen for it yet**: until there is, this step is a manual comparison.
 
 ## Replaying a bad trip
-Ajustes → Viajes → Avanzado → **Guardar los puntos GPS crudos** (off by default). With it on, the raw fixes of the last trips are kept and **Exportar** gives GeoJSON/CSV. A trip that looks wrong can then be replayed through `analyzeFixes` (`lib/trips/speed.ts`) and added to the replay tests as a new fixture.
+No extra switch is needed: the raw GPS points of a trip are kept for 30 days, and **a long press on the trip map** exports the trip as GeoJSON, with every fix's time, speed and accuracy. `fixesFromTripGeojson` (lib/trips/exportGeojson.ts) loads that file back, and `analyzeFixes` (lib/trips/speed.ts) replays it through the SpeedEngine; a trip that looks wrong can then be saved as a fixture in `__tests__/trips/`.

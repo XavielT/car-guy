@@ -2,7 +2,7 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
 
@@ -32,6 +32,40 @@ export const enPart6: Pick<
     pasteHint: 'You can also paste an image with Ctrl+V',
     print: 'Print',
     exportCsv: 'Download CSV',
+  },
+
+  calibration: {
+    title: 'Calibration',
+    intro: "A car's speedometer reads high on purpose (usually 2 to 6 %). The GPS is the truth. Here you learn how much yours reads high, so you can see the speed \"like your dash\" if you prefer. Saved trips always keep the GPS speed.",
+    showDash: 'Show speed like my dash',
+    showingGps: 'The real GPS speed is shown now.',
+    showingDash: (f: number) => `Showing GPS × ${f}, like your dash.`,
+    needFirst: 'Calibrate first (below) to be able to turn it on.',
+    speedTitle: 'Calibrate speed',
+    howTo: 'Find a straight, safe road. Hold a steady speed (cruise control helps): 60, 80 and 100 km/h. A passenger types what the dash says; the driver does not look at the phone.',
+    start: 'Start measuring',
+    stopWatching: 'Stop measuring',
+    dashLabel: 'What the dash says (km/h)',
+    takeSample: 'Save this sample',
+    holdSteady: 'Hold the speed steady for about 10 seconds.',
+    tooSlow: 'You need to be doing 30 km/h or more.',
+    changing: 'The speed is changing. Hold it steady.',
+    steadyNow: 'Steady speed. Type what the dash says.',
+    estimatedWarning: "This phone doesn't give a direct speed: it is an estimate and may wander. Better to repeat on an open road.",
+    samples: (n: number) => (n === 1 ? '1 SAMPLE' : `${n} SAMPLES`),
+    sampleLine: (dash: number, gps: number) => `Dash ${dash} · GPS ${gps}`,
+    moreSamples: (n: number) => (n === 1 ? '1 more sample needed.' : `${n} more samples needed.`),
+    dashHigher: (p: string) => `Your dash reads ${p} % higher than the GPS`,
+    dashLower: (p: string) => `Your dash reads ${p} % lower than the GPS (unusual: check what you typed)`,
+    agree: 'The samples agree.',
+    disagree: "The samples don't agree well. Take more, or repeat with a better GPS signal.",
+    apply: (f: number) => `Use factor ${f}`,
+    applied: 'Done. You can now turn on "Show speed like my dash".',
+    outOfRange: "That factor is too strange (outside 0.8–1.2). Repeat the measurement.",
+    resetButton: 'Clear the calibration',
+    reset: 'Calibration cleared: the real GPS speed is shown.',
+    open: 'Speed calibration',
+    openHint: 'How much your dash reads high.',
   },
 
   statusSince: (date: string) => `since ${date}`,

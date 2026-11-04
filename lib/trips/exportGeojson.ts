@@ -126,3 +126,28 @@ export function tripGeojson(trip: Trip, points: readonly Fix[]): string {
     features,
   });
 }
+
+/**
+ * The inverse of `tripGeojson` (PROMPT-10 step 6): the raw fixes of an exported trip, in time order, ready for `analyzeFixes`
+ * (lib/trips/speed.ts). A real bad trip exported from the trip map (long press) can be replayed through the SpeedEngine, or saved as a
+ * fixture in the replay tests, without any extra recording switch: the raw points are kept 30 days and every fix carries its time, speed
+ * and accuracy. Anything that is not a `fix` point is ignored; a malformed file gives an empty list, never an exception.
+ */
+export function fixesFromTripGeojson(json: string): Fix[] {
+  let doc: { features?: { geometry?: { type?: string; coordinates?: unknown }; properties?: Record<string, unknown> }[] };
+  try {
+    doc = JSON.parse(json);
+  } catch {
+    return [];
+  }
+  const out: Fix[] = [];
+  for (const f of doc.features ?? []) {
+    if (f.properties?.kind !== 'fix' || f.geometry?.type !== 'Point') continue;
+    const c = f.geometry.coordinates;
+    const t = typeof f.properties.t === 'string' ? Date.parse(f.properties.t) : NaN;
+    if (!Array.isArray(c) || typeof c[0] !== 'number' || typeof c[1] !== 'number' || !Number.isFinite(t)) continue;
+    const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    out.push({ t, lng: c[0], lat: c[1], speed: num(f.properties.speed), acc: num(f.properties.acc), alt: num(f.properties.alt), heading: num(f.properties.heading) });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}

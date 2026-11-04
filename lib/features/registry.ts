@@ -320,7 +320,7 @@ export const FEATURES: FeatureDef[] = [
     href: '/vehiculo/[id]?tab=ficha',
     section: 'vehiculo',
     needsVehicle: true,
-    covers: ['vehiculo/[id]/ficha'],
+    covers: ['vehiculo/[id]/ficha', 'vehiculo/[id]/calibracion'],
     enabled: FEATURE_DIY,
     keywords: {
       es: ['ficha', 'ficha tecnica', 'fluidos', 'torques', 'vin', 'chasis', 'memoria', 'especificaciones', 'aceite recomendado'],

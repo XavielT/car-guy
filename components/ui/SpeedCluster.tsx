@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -14,6 +14,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Polygon, Stop, Text as S
 
 import { fonts, palette, radius, space } from '@/constants/theme';
 import { t } from '@/lib/i18n';
+import { useSpeedFactor } from '@/lib/trips/calibrationStore';
 import { getLiveTrip, gpsNow, subscribeLiveTrip, useLiveTrip } from '@/lib/trips/liveStore';
 import { T } from '../T';
 import { LcdDigits } from './LcdDigits';
@@ -51,6 +52,12 @@ export function SpeedCluster({
 }) {
   const gradientId = `speed-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const trip = useLiveTrip();
+  // "Mostrar velocidad: como mi tablero" (SPEC-I §I2): GPS × the car's factor; 1 (GPS truth) unless the person chose it. Display only.
+  const factor = useSpeedFactor(trip?.vehicleId);
+  const factorRef = useRef(factor);
+  useEffect(() => {
+    factorRef.current = factor;
+  }, [factor]);
   const reduced = useReducedMotion();
   const [mode, setMode] = useState<LcdMode>('km');
   const [now, setNow] = useState(() => Date.now());
@@ -66,12 +73,12 @@ export function SpeedCluster({
   useEffect(() => {
     const update = () => {
       const t = getLiveTrip();
-      const target = Math.min(1, (t?.speedKmh ?? 0) / MAX_KMH);
+      const target = Math.min(1, ((t?.speedKmh ?? 0) * factorRef.current) / MAX_KMH);
       needle.value = reduced ? target : withTiming(target, { duration: 400, easing: Easing.out(Easing.quad) });
     };
     update();
     return subscribeLiveTrip(update);
-  }, [needle, reduced]);
+  }, [needle, reduced, factor]);
   const needleStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${START + SWEEP * needle.value}deg` }] }));
 
   // REC at 1 Hz while recording — stopped on unmount (the trip ended).
@@ -121,7 +128,7 @@ export function SpeedCluster({
   });
 
   const elapsedS = trip ? Math.max(0, Math.round((now - trip.startedAt) / 1000)) : 0;
-  const avgKmh = trip && trip.movingS > 0 ? trip.distanceM / 1000 / (trip.movingS / 3600) : 0;
+  const avgKmh = trip && trip.movingS > 0 ? (trip.distanceM / 1000 / (trip.movingS / 3600)) * factor : 0;
   const lcdValue =
     // Tenths of a km: the LCD's last digit is the red tenths drum, like a trip meter.
     mode === 'km'
@@ -130,7 +137,7 @@ export function SpeedCluster({
         ? Math.floor(elapsedS / 60)
         : mode === 'avg'
           ? Math.round(avgKmh)
-          : Math.round(trip?.maxKmh ?? 0);
+          : Math.round((trip?.maxKmh ?? 0) * factor);
   const gps = trip ? gpsNow(trip, now) : 'none';
   const gpsColor = gps === 'good' ? ink.statusText.ok : gps === 'weak' ? ink.statusText.proximo : ink.text.disabled;
   const needleLen = r - stroke / 2 - 6;

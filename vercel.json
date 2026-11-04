@@ -24,6 +24,7 @@
     { "source": "/ruedas/:setId", "destination": "/ruedas/[setId]" },
     { "source": "/goma/:id", "destination": "/goma/[id]" },
     { "source": "/vehiculo/:id/ficha", "destination": "/vehiculo/[id]/ficha" },
+    { "source": "/vehiculo/:id/calibracion", "destination": "/vehiculo/[id]/calibracion" },
     { "source": "/vehiculo/:id/fluidos", "destination": "/vehiculo/[id]/fluidos" },
     { "source": "/obd/:code", "destination": "/obd/[code]" },
     { "source": "/contactos/:id", "destination": "/contactos/[id]" },

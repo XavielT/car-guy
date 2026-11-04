@@ -483,6 +483,19 @@ export default function FichaScreen() {
               }
             />
 
+            <Pressable
+              onPress={() => router.push({ pathname: "/vehiculo/[id]/calibracion" as never, params: { id: vehicle.id } })}
+              accessibilityRole="button"
+              style={[styles.torque, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, marginTop: space.md }]}
+            >
+              <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+                {t.calibration.open}
+              </T>
+              <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
+                {t.calibration.openHint}
+              </T>
+            </Pressable>
+
             <T
               face="eyebrow"
               style={{

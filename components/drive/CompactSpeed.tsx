@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { T } from '@/components/T';
 import { palette } from '@/constants/theme';
 import { t } from '@/lib/i18n';
+import { useSpeedFactor } from '@/lib/trips/calibrationStore';
 import { useLiveTrip } from '@/lib/trips/liveStore';
 
 const ink = palette.dark;
@@ -26,7 +27,8 @@ export function CompactSpeed({ scale = 1 }: { scale?: number }) {
     return () => clearInterval(id);
   }, [trip]);
 
-  const speed = Math.round(trip?.speedKmh ?? 0);
+  const factor = useSpeedFactor(trip?.vehicleId);
+  const speed = Math.round((trip?.speedKmh ?? 0) * factor);
   const min = trip ? Math.max(0, Math.floor((now - trip.startedAt) / 60_000)) : 0;
 
   return (
@@ -47,7 +49,7 @@ export function CompactSpeed({ scale = 1 }: { scale?: number }) {
       </View>
       {trip ? (
         <T face="mono" style={{ color: ink.text.secondary, fontSize: 12 }}>
-          {t.drive.statsLine((trip.distanceM / 1000).toFixed(1), min, Math.round(trip.maxKmh))}
+          {t.drive.statsLine((trip.distanceM / 1000).toFixed(1), min, Math.round(trip.maxKmh * factor))}
         </T>
       ) : null}
     </View>

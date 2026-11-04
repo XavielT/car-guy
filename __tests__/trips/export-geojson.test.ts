@@ -35,3 +35,26 @@ it('without raw points (older than 30 days) it still exports the saved route', (
   expect(g.features).toHaveLength(1);
   expect(g.properties.diagnostics.pointCount).toBe(0);
 });
+
+describe('fixesFromTripGeojson (replaying an exported trip)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { fixesFromTripGeojson, tripGeojson } = require('@/lib/trips/exportGeojson');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { analyzeFixes } = require('@/lib/trips/speed');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { simulate } = require('../helpers/speed/simDrive');
+
+  it('round-trips the fixes (time, position, speed, accuracy) and the engine gives the same answer on them', () => {
+    const sim = simulate({ profile: 'city', seed: 3 });
+    const trip = { id: 't1', source: 'manual', status: 'done', startedAt: new Date(sim.fixes[0].t).toISOString(), endedAt: null, segments: 1, polyline: null, distanceM: 0 };
+    const back = fixesFromTripGeojson(tripGeojson(trip, sim.fixes));
+    expect(back).toHaveLength(sim.fixes.length);
+    expect(back[10]).toMatchObject({ t: sim.fixes[10].t, acc: sim.fixes[10].acc });
+    expect(back[10].lat).toBeCloseTo(sim.fixes[10].lat, 9);
+    expect(analyzeFixes(back).summary.topKmh).toBeCloseTo(analyzeFixes(sim.fixes).summary.topKmh, 6);
+  });
+  it('ignores everything that is not a fix, and a broken file is an empty list', () => {
+    expect(fixesFromTripGeojson('not json')).toEqual([]);
+    expect(fixesFromTripGeojson(JSON.stringify({ features: [{ properties: { kind: 'raw-track' }, geometry: { type: 'LineString', coordinates: [] } }, { properties: { kind: 'fix', t: 'nope' }, geometry: { type: 'Point', coordinates: [1, 2] } }] }))).toEqual([]);
+  });
+});
