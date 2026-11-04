@@ -1,7 +1,8 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { ObdIntake } from '@/components/ai/ObdIntake';
 import { DtcCard, DtcEventRow, DtcLogSheet } from '@/components/diy/DtcPieces';
 import { Field } from '@/components/Field';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
@@ -70,6 +71,11 @@ export default function ObdScreen() {
           <GhostButton label={code} onPress={() => router.push({ pathname: '/obd/[code]', params: { code, ...(vehicleId ? { vehicleId } : {}) } })} />
         </>
       ) : null}
+
+      {/* IMP 03112026 SPEC-D: a warning-light photo, and codes from a scanner (pasted or screenshot). */}
+      <View style={{ marginTop: space.lg }}>
+        <ObdIntake vehicleId={vehicleId ?? null} />
+      </View>
 
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
         {t.obd.events}

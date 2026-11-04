@@ -2,6 +2,7 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
+import { ObdExplain } from '@/components/ai/ObdExplain';
 import { DtcCard, DtcEventRow, DtcLogSheet } from '@/components/diy/DtcPieces';
 import { ListCardsSkeleton } from '@/components/skeletons/ListCardsSkeleton';
 import { T } from '@/components/T';
@@ -11,16 +12,26 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { listDtcEvents } from '@/lib/db/diyQueries';
 import type { VehicleDtcEvent } from '@/lib/db/types';
 import { lookup, normalizeCode } from '@/lib/domain/dtc';
+import type { FreezeFrame } from '@/lib/domain/dtcParse';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /** One code: its description and every time it showed up. */
 export default function ObdCodeScreen() {
-  const { code: raw, vehicleId } = useLocalSearchParams<{ code: string; vehicleId?: string }>();
+  // `codes` (comma list) and `ff` (JSON) arrive from the scanner intake: codes read together are explained together.
+  const { code: raw, vehicleId, codes: codesParam, ff } = useLocalSearchParams<{ code: string; vehicleId?: string; codes?: string; ff?: string }>();
   const { theme } = useTheme();
   const { data } = useStore();
   const code = normalizeCode(raw ?? '') ?? (raw ?? '').toUpperCase();
+  const together = (codesParam ?? '').split(',').map((c) => normalizeCode(c)).filter((c): c is string => !!c);
+  const explainCodes = together.length > 1 ? together : normalizeCode(code) ? [code] : [];
+  let freeze: FreezeFrame | null = null;
+  try {
+    freeze = ff ? (JSON.parse(ff) as FreezeFrame) : null;
+  } catch {
+    freeze = null;
+  }
   const [events, setEvents] = useState<VehicleDtcEvent[]>([]);
   const [logging, setLogging] = useState(false);
   // The "no codes logged" line waits for the first read instead of flashing (ADR-40).
@@ -46,6 +57,7 @@ export default function ObdCodeScreen() {
   return (
     <ScrollView style={{ backgroundColor: theme.bg.base }} contentContainerStyle={styles.pad}>
       <DtcCard dtc={lookup(code)} code={code} />
+      {explainCodes.length ? <ObdExplain codes={explainCodes} vehicleId={vehicleId ?? null} freezeFrame={freeze} /> : null}
       <PrimaryButton label={t.obd.log} onPress={() => setLogging(true)} />
       <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
         {t.obd.events}

@@ -3,6 +3,7 @@ import {
   contacts as contactRepo,
   dtcEvents,
   fluidGuide,
+  reminders,
   serviceRecords,
   specsheets,
   torqueSpecs,
@@ -13,7 +14,8 @@ import { jsonObject } from '../domain/album';
 import { applyPreset, FICHA_FIELDS, SPEC_PRESETS, type FichaValues } from '../domain/specPresets';
 import type { VinDecoded } from '../domain/vpic';
 import { normalizeCode } from '../domain/dtc';
-import { id as newId } from '../format';
+import { rescanReminder } from '../domain/repairs';
+import { id as newId, isoFromDateInput } from '../format';
 import { t } from '../i18n';
 
 /**
@@ -227,4 +229,27 @@ export async function contactLinks(contactId: string): Promise<ContactLink[]> {
     [contactId, contactId],
   );
   return rows.map((r) => ({ kind: r.kind, id: r.id, title: r.title, date: r.date, vehicleName: r.vehicle }));
+}
+
+// ------------------------------------------------- closing the loop (IMP 03112026 SPEC-D §D4) ---
+
+/**
+ * A repair saved from an OBD code: the event points at it AND is marked resolved (the pending → resolved link of ADR-61).
+ * Returns the event so the caller can name the code in the re-scan offer; null when it no longer exists.
+ */
+export async function resolveDtcFromRepair(eventId: string, recordId: string): Promise<VehicleDtcEvent | null> {
+  // Never upsert a partial row for an id that is not there: it would be a broken event, not a resolved one.
+  if (!(await dtcEvents.getById(eventId))) return null;
+  await dtcEvents.upsert({ id: eventId, repairRecordId: recordId, clearedAt: new Date().toISOString() });
+  return (await dtcEvents.getById(eventId)) ?? null;
+}
+
+/** The reminder "Volver a escanear P0420" a few days out: a one-off date reminder, enabled, no km side. */
+export async function createRescanReminder(vehicleId: string, code: string, today: string, days?: number): Promise<string> {
+  const { title, dueDate } = rescanReminder(code, today, days);
+  const saved = await reminders.upsert({
+    vehicleId, title, serviceTypeId: null, metric: 'date', dueDate: isoFromDateInput(dueDate), dueKm: null, isRecurring: false,
+    thresholdDays: 1, notes: '', isEnabled: true, snoozedUntil: null,
+  });
+  return saved.id;
 }

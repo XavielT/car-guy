@@ -27,19 +27,19 @@ import {
 import { lastOilFor } from '@/lib/db/oilQueries';
 import { loadServiceMedia, saveServiceRecord, shopSuggestions, type PartDraft } from '@/lib/db/serviceOps';
 import { offerUndo } from '@/lib/db/resolvedPendingStore';
-import { linkDtcRepair } from '@/lib/db/diyQueries';
-import { askForLabor, askForShop } from '@/lib/domain/repairs';
+import { createRescanReminder, repairsFor, resolveDtcFromRepair } from '@/lib/db/diyQueries';
+import { activeWarrantiesFor, askForLabor, askForShop, priceVsHistory, type PriceComparison, type WarrantyBanner } from '@/lib/domain/repairs';
 import { saveMilestone } from '@/lib/db/albumQueries';
 import { useAiDraftOnce, withoutMark } from '@/lib/ai/draft';
 import { invoicePrefillFrom, type InvoiceMarks } from '@/lib/ai/formMap';
 import { recordError, recordReportable } from '@/lib/diagnostics';
 import { storePhoto } from '@/lib/media';
-import type { DoneBy, ServiceCategory, ServiceKind, ServiceType, VehicleSpecsheet } from '@/lib/db/types';
+import type { DoneBy, ServiceCategory, ServiceKind, ServiceRecord, ServiceType, VehicleSpecsheet } from '@/lib/db/types';
 import { suggestionsFor } from '@/lib/domain/carMemory';
 import { todayIso } from '@/lib/domain/dates';
 import { EMPTY_OIL, isOilItem, normalizeOil, type OilFields } from '@/lib/domain/oil';
 import { odometerWarning } from '@/lib/domain/odometer';
-import { dateInputFromIso, isoFromDateInput } from '@/lib/format';
+import { dateInputFromIso, dateLabel, isoFromDateInput, todayIsoDate } from '@/lib/format';
 import { FEATURE_BUILD, FEATURE_DIY } from '@/lib/flags';
 import { ContactPicker } from '@/components/diy/ContactPieces';
 import { t } from '@/lib/i18n';
@@ -158,6 +158,19 @@ export default function NuevoServicioScreen() {
 
   const [catalog, setCatalog] = useState<ServiceType[]>([]);
   const [currentKm, setCurrentKm] = useState<number | null>(null);
+  // IMP 03112026 SPEC-D §D4: this car's earlier repairs, for the price comparison and the warranty watcher.
+  const [history, setHistory] = useState<ServiceRecord[]>([]);
+  useEffect(() => {
+    const id = activeVehicle?.id;
+    if (!id) return;
+    let live = true;
+    repairsFor(id)
+      .then((rows) => live && setHistory(rows))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [activeVehicle?.id]);
   const [readings, setReadings] = useState<{ occurredAt: string; valueKm: number }[]>([]);
   const [shops, setShops] = useState<string[]>([]);
   const [recordId] = useState(() => editingId ?? `svc_${Date.now()}`);
@@ -295,6 +308,17 @@ export default function NuevoServicioScreen() {
   const total = totalOverride != null ? (parseDecimal(totalOverride) ?? 0) : computedTotal;
 
   const parsedOdometer = odometer.trim() ? parseDecimal(odometer) : null;
+  // "Is this price fair?": only against THIS person's earlier repairs, never a market figure (SPEC-D §D4).
+  const price: PriceComparison | null = isRepair && total > 0 ? priceVsHistory({ id: editingId ?? undefined, system, title: effectiveTitle, totalDop: total, occurredAt: isoFromDateInput(date) }, history) : null;
+  const warranties: WarrantyBanner[] = isRepair ? activeWarrantiesFor(system, history, `${todayIsoDate()}T12:00:00.000Z`, parsedOdometer ?? currentKm, editingId ?? undefined) : [];
+  const priceText = (p: PriceComparison): string[] => {
+    if (p.verdict === 'no_baseline' || !p.last) return [t.ai.repairsAi.noBaseline];
+    const pct = p.vsMedianPct ?? p.vsLastPct ?? 0;
+    const last = p.last.total.toLocaleString('es-DO');
+    const date = dateLabel(p.last.date);
+    const main = p.verdict === 'similar' ? t.ai.repairsAi.priceSimilar(last, date) : p.verdict === 'higher' ? t.ai.repairsAi.priceHigher(Math.abs(pct), last, date) : t.ai.repairsAi.priceLower(Math.abs(pct), last, date);
+    return p.median != null ? [main, t.ai.repairsAi.priceMedian(p.n, p.median.toLocaleString('es-DO'))] : [main];
+  };
   const warning =
     parsedOdometer != null ? odometerWarning(parsedOdometer, isoFromDateInput(date), readings) : null;
 
@@ -347,7 +371,20 @@ export default function NuevoServicioScreen() {
         oil: Object.fromEntries(oilItems.map((t) => [t.id, oil[t.id] ?? EMPTY_OIL])),
         parts,
       });
-      if (params.dtcEvent) await linkDtcRepair(params.dtcEvent, result.id).catch((e) => recordError('dtc-link', e));
+      if (params.dtcEvent) {
+        // Closing the loop (SPEC-D §D4): the code's event points at this repair AND is marked resolved; offer to scan again.
+        const event = await resolveDtcFromRepair(params.dtcEvent, result.id).catch((e) => {
+          recordError('dtc-link', e);
+          return null;
+        });
+        if (event) {
+          const vehicleForReminder = activeVehicle!.id;
+          Alert.alert(t.ai.repairsAi.loopTitle, t.ai.repairsAi.loopBody(event.code), [
+            { text: t.ai.repairsAi.loopYes, onPress: () => void createRescanReminder(vehicleForReminder, event.code, todayIsoDate()) },
+            { text: t.ai.repairsAi.loopNo, style: 'cancel' },
+          ]);
+        }
+      }
       await refresh();
 
       if (isRepair) {
@@ -676,6 +713,12 @@ export default function NuevoServicioScreen() {
       <DoneBySelect value={doneBy} onChange={setDoneBy} />
       {askForShop(doneBy) ? shopBlock : null}
       {dateOdo}
+      {warranties.map((w) => (
+        <T key={w.recordId} face="body" accessibilityLiveRegion="polite" style={{ color: theme.statusText.proximo, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>
+          {t.ai.repairsAi.warranty(w.shop ?? t.ai.repairsAi.warrantyNoShop, w.untilDate ? dateLabel(w.untilDate) : `${(w.untilKm ?? 0).toLocaleString('es-DO')} km`)}
+          {w.kmLeft != null && w.untilDate ? ` ${t.ai.repairsAi.warrantyKm(w.kmLeft.toLocaleString('es-DO'))}` : ''}
+        </T>
+      ))}
       <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
         {t.service.costs}
       </T>
@@ -701,6 +744,15 @@ export default function NuevoServicioScreen() {
         onChangeText={setTotalOverride}
         hint={t.service.totalAuto}
       />
+      {price ? (
+        <View style={{ marginBottom: space.sm }}>
+          {priceText(price).map((line) => (
+            <T key={line} face="body" style={{ color: theme.text.muted, fontSize: 12, lineHeight: 17 }}>
+              {line}
+            </T>
+          ))}
+        </View>
+      ) : null}
       {partsBlock}
       <WarrantyPicker
         repairDate={date}
