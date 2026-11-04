@@ -18,6 +18,8 @@ import type { PreparedImage } from './read';
 export const AI_IMAGE = { width: 1600, quality: 0.8 };
 export const AI_IMAGE_EXPRESS = { width: 1280, quality: 0.8 };
 export const AI_IMAGE_SMALL = { width: 1280, quality: 0.6 };
+/** Album batches (SPEC-G §G2): up to 12 photos in one call, so each is small. Captions and angles do not need detail. */
+export const AI_IMAGE_ALBUM = { width: 768, quality: 0.7 };
 /** The server's per-image cap (supabase/functions/_shared/images.ts MAX_IMAGE_BYTES), decoded. */
 export const AI_MAX_BYTES = 1_500_000;
 
@@ -44,8 +46,8 @@ async function bytesOf(uri: string): Promise<string> {
 }
 
 /** `uri` is the picked photo (file:// on native, blob: / http on web). `express` uses the smaller long edge. */
-export async function prepareForAi(uri: string, opts: { express?: boolean; sourceWidth?: number | null } = {}): Promise<PreparedImage> {
-  const first = opts.express ? AI_IMAGE_EXPRESS : AI_IMAGE;
+export async function prepareForAi(uri: string, opts: { express?: boolean; album?: boolean; sourceWidth?: number | null } = {}): Promise<PreparedImage> {
+  const first = opts.album ? AI_IMAGE_ALBUM : opts.express ? AI_IMAGE_EXPRESS : AI_IMAGE;
   let out = await compressPhoto(uri, opts.sourceWidth ?? null, first);
   let data = await bytesOf(out.uri);
   if (base64Bytes(data) > AI_MAX_BYTES) {

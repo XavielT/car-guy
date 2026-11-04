@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AlbumAiCard } from '@/components/ai/AlbumAiCard';
 import { DateField } from '@/components/DateField';
 import { T } from '@/components/T';
 import { SelectField, selectOptions } from '@/components/pickers';
@@ -342,6 +343,7 @@ export default function ImportScreen() {
                 {t.importer.failed(progress.failed)}
               </T>
             ) : null}
+            <AlbumAiCard photos={(candidates ?? []).map((c) => ({ uri: c.uri, takenAt: c.takenAt }))} vehicleId={vehicleId} />
             <PrimaryButton
               label={t.importer.done}
               onPress={() => {

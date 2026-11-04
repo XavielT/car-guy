@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
+import { CaptureButton } from '@/components/ai/CaptureButton';
 import { PhotoThumb } from '@/components/album/PhotoThumb';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
@@ -11,6 +12,8 @@ import { GhostButton, PrimaryButton } from '@/components/ui';
 import { FormSkeleton } from '@/components/ui/Skeleton';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
+import { str as readStr, type ReadResult } from '@/lib/ai/read';
+import { FEATURE_AI_ALBUM } from '@/lib/flagsAi';
 import {
   addModPhotos,
   applyReminderReset,
@@ -177,6 +180,17 @@ export function ModForm({
     setPhotos((prev) => prev.map((x) => (x.id === p.id ? { ...x, role: next } : x)));
   }
 
+  /** SPEC-G §G2: a photo of the part's box or label fills brand, part number and spec, only where the field is still empty. */
+  function applyPartLabel(r: ReadResult) {
+    const b = readStr(r, 'brand');
+    const pn = readStr(r, 'part_number');
+    const spec = readStr(r, 'spec');
+    if (b && !brand.trim()) setBrand(b);
+    if (pn && !partNumber.trim()) setPartNumber(pn);
+    if (spec && !variant.trim()) setVariant(spec);
+    if (!name.trim()) setName([b, spec].filter(Boolean).join(' '));
+  }
+
   async function save() {
     if (!name.trim()) return setError(t.modForm.nameRequired);
     const cleaned = cleanSpecs(affects ? effects : {}).specs;
@@ -270,6 +284,7 @@ export function ModForm({
         </>
       ) : null}
 
+      {FEATURE_AI_ALBUM && !modId ? <CaptureButton kind="part_label" label={t.ai.partLabel.scan} onRead={applyPartLabel} /> : null}
       <Field label={t.modForm.name} placeholder={t.modForm.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
       <View style={styles.pair}>
         <View style={{ flex: 1, minWidth: 0 }}>
