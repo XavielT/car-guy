@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, space } from '@/constants/theme';
 import { t } from '@/lib/i18n';
+import { sheetPresentation } from '@/lib/theme/layout';
+import { useLayout } from '@/lib/theme/useLayout';
 import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
@@ -35,6 +37,8 @@ export function Sheet({
   avoidKeyboard?: boolean;
 }) {
   const { theme } = useTheme();
+  // From 768 px a sheet is a centred dialog (SPEC-F §F2); a phone keeps the bottom sheet exactly as it was.
+  const dialog = sheetPresentation(useLayout().layout) === 'dialog';
   // Android draws edge-to-edge: without the inset the last button sits on the
   // system navigation bar.
   const insets = useSafeAreaInsets();
@@ -73,7 +77,7 @@ export function Sheet({
             transform: [{ translateY }],
           },
         ]}>
-        <View style={[styles.grabber, { backgroundColor: theme.text.muted }]} />
+        {dialog ? null : <View style={[styles.grabber, { backgroundColor: theme.text.muted }]} />}
         {title ? (
           <T face="title" style={[styles.title, { color: theme.text.primary }]}>
             {title}
@@ -108,6 +112,7 @@ const styles = StyleSheet.create({
     paddingTop: space.md,
     paddingBottom: space.xxxl,
   },
+  dialog: { left: '50%', top: '10%', right: undefined, bottom: undefined, width: 560, maxWidth: '92%', maxHeight: '84%', marginLeft: -280, borderRadius: radius.sheet, borderBottomWidth: 1, paddingBottom: space.xl },
   grabber: {
     width: 36,
     height: 4,

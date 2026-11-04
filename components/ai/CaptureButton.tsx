@@ -10,6 +10,7 @@ import { prepareForAi, TooLargeError } from '@/lib/ai/prepareImage';
 import { readImages, type ReadKind, type ReadResult } from '@/lib/ai/read';
 import { useAiStatus } from '@/lib/ai/useAiStatus';
 import { recordReportable } from '@/lib/diagnostics';
+import { firstImage } from '@/lib/desktop/dropPaste';
 import { t } from '@/lib/i18n';
 import { pickCandidates } from '@/lib/media';
 import { useTheme } from '@/lib/theme/useTheme';
@@ -58,15 +59,68 @@ export function CaptureButton({
 
   const unavailable = ai.state !== 'available' && ai.state !== 'loading';
 
-  async function go(camera: boolean) {
+  // Desktop (SPEC-F §F3): drop a photo on the button, or paste one while the pointer is over it or it has focus. Same pipeline as a picked photo.
+  const box = useRef<View>(null);
+  const latest = useRef({ allowed, process, busy });
+  useEffect(() => {
+    latest.current = { allowed, process, busy };
+  });
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const el = box.current as unknown as HTMLElement | null;
+    if (!el || typeof el.addEventListener !== 'function') return;
+    let over = false;
+    const take = (files: FileList | null | undefined) => {
+      const file = firstImage(files);
+      const cur = latest.current;
+      if (!file || cur.busy || !cur.allowed()) return;
+      const url = URL.createObjectURL(file as File);
+      void cur.process(url, null).finally(() => setTimeout(() => URL.revokeObjectURL(url), 60_000));
+    };
+    const onOver = (e: DragEvent) => {
+      if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+    };
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      take(e.dataTransfer?.files);
+    };
+    const onEnter = () => (over = true);
+    const onLeave = () => (over = false);
+    const onPaste = (e: ClipboardEvent) => {
+      if (!over && !el.contains(document.activeElement)) return;
+      const typing = /^(INPUT|TEXTAREA)$/.test((e.target as HTMLElement | null)?.tagName ?? '');
+      if (typing) return;
+      take(e.clipboardData?.files);
+    };
+    el.addEventListener('dragover', onOver);
+    el.addEventListener('drop', onDrop);
+    el.addEventListener('mouseenter', onEnter);
+    el.addEventListener('mouseleave', onLeave);
+    window.addEventListener('paste', onPaste);
+    return () => {
+      el.removeEventListener('dragover', onOver);
+      el.removeEventListener('drop', onDrop);
+      el.removeEventListener('mouseenter', onEnter);
+      el.removeEventListener('mouseleave', onLeave);
+      window.removeEventListener('paste', onPaste);
+    };
+  }, []);
+
+  /** The same three steps in front of every AI call: consent first, then say why it cannot be used. */
+  function allowed(): boolean {
     if (ai.state === 'needs_consent') {
       setConsentSheet(true);
-      return;
+      return false;
     }
     if (ai.state !== 'available') {
       Alert.alert(t.ai.consent.title, ai.message);
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function go(camera: boolean) {
+    if (!allowed()) return;
     // The camera is asked with its primer first (ADR-59). Never an await before the picker on web (it needs the tap's gesture).
     if (camera && Platform.OS !== 'web' && !(await cameraPermission.ensure())) return;
     let candidate;
@@ -78,12 +132,16 @@ export function CaptureButton({
       return;
     }
     if (!candidate) return;
+    await process(candidate.uri, candidate.width);
+  }
 
+  /** Reads one photo (picked, dropped or pasted) and hands the result on. */
+  async function process(uri: string, sourceWidth: number | null) {
     setBusy(true);
     try {
-      const image = await prepareForAi(candidate.uri, { sourceWidth: candidate.width });
+      const image = await prepareForAi(uri, { sourceWidth });
       const result = await readImages(kind, [image], extra);
-      if (mounted.current) onRead(result, { uri: candidate.uri });
+      if (mounted.current) onRead(result, { uri });
     } catch (e) {
       if (!mounted.current) return;
       if (e instanceof TooLargeError) Alert.alert(t.ai.consent.title, t.ai.capture.tooLarge);
@@ -114,7 +172,7 @@ export function CaptureButton({
   );
 
   return (
-    <View style={[styles.wrap, style]}>
+    <View ref={box} style={[styles.wrap, style]}>
       {cameraPermission.sheet}
       {busy ? (
         <View style={[styles.action, { borderColor: theme.line, backgroundColor: theme.bg.raised }]} accessibilityLiveRegion="polite">

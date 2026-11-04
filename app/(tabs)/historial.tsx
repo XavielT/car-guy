@@ -25,6 +25,8 @@ import { t } from '@/lib/i18n';
 import { FEATURE_ALBUM, FEATURE_BUILD, FEATURE_DIY, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
 import { economyById } from '@/lib/math';
 import { useStore } from '@/lib/store';
+import { SplitPane } from '@/components/layout/SplitPane';
+import { useLayout } from '@/lib/theme/useLayout';
 import { useTheme } from '@/lib/theme/useTheme';
 import type { FillUp } from '@/lib/types';
 
@@ -61,6 +63,9 @@ export default function HistorialScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { activeVehicle, vehicleFillups, data } = useStore();
+  // SPEC-F master/detail: on a wide window a tap selects the record and shows it in the pane; on a phone it opens the screen as before.
+  const { wide } = useLayout();
+  const [selected, setSelected] = useState<HistoryEntry | null>(null);
 
   const [filter, setFilter] = useState<'todo' | RecordKind>('todo');
   const [query, setQuery] = useState('');
@@ -119,6 +124,7 @@ export default function HistorialScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
+      <SplitPane wide={wide} pane={<RecordPane entry={selected} meta={selected ? metaFor(selected, oilLines.get(selected.id)) : ''} onOpen={() => selected && openDetail(selected, router)} />}>
       <ScrollView contentContainerStyle={styles.pad} keyboardShouldPersistTaps="handled">
         <ScreenTitle
           title={t.history.title}
@@ -178,7 +184,7 @@ export default function HistorialScreen() {
                   meta={metaFor(entry, oilLines.get(entry.id))}
                   amount={entry.amountDop != null ? money(entry.amountDop) : null}
                   tag={tagFor(entry, economy, fillUpsById, activeVehicle.detail?.volumeUnit ?? 'gal', activeVehicle.detail?.economyUnit, perFillById)}
-                  onPress={() => openDetail(entry, router)}
+                  onPress={() => (wide ? setSelected(entry) : openDetail(entry, router))}
                 />
               ))}
             </View>
@@ -187,6 +193,7 @@ export default function HistorialScreen() {
 
         {hasMore && !showSkeleton ? <GhostButton label={t.history.loadMore} onPress={() => setLimit((l) => l + PAGE)} /> : null}
       </ScrollView>
+      </SplitPane>
 
       <Pressable
         onPress={() => setPickerOpen(true)}
@@ -284,6 +291,39 @@ function tagFor(
   }
   const point = economy.get(entry.id);
   return point && fill ? kmPerUnit(point.kmPerUnit, fill.fuelType, volumeUnit, economyUnit) : null;
+}
+
+/** The right-hand pane of the wide Historial: a summary of the selected record and the way into its screen. */
+function RecordPane({ entry, meta, onOpen }: { entry: HistoryEntry | null; meta: string; onOpen: () => void }) {
+  const { theme } = useTheme();
+  if (!entry) {
+    return (
+      <T face="body" style={{ color: theme.text.muted, fontSize: 14 }}>
+        {t.desktop.selectRecord}
+      </T>
+    );
+  }
+  return (
+    <View style={{ gap: 8 }}>
+      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+        {historySubtitle(entry)}
+      </T>
+      <T face="display" accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 24 }}>
+        {historyTitle(entry)}
+      </T>
+      {entry.amountDop != null ? (
+        <T face="mono" style={{ color: theme.text.primary, fontSize: 22 }}>
+          {money(entry.amountDop)}
+        </T>
+      ) : null}
+      {meta ? (
+        <T face="body" style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20 }}>
+          {meta}
+        </T>
+      ) : null}
+      <GhostButton label={t.desktop.openRecord} onPress={onOpen} />
+    </View>
+  );
 }
 
 function openDetail(entry: HistoryEntry, router: ReturnType<typeof useRouter>) {

@@ -15,7 +15,8 @@ import { dateAtPrecision, type DatePrecision } from '@/lib/domain/album';
 import { dateLabel, monthTitle } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { managePhotoAccess } from '@/lib/permissions/store';
-import { importCandidates, pickCandidates, saveOriginal, type Candidate, type ImportProgress } from '@/lib/media';
+import { allImages } from '@/lib/desktop/dropPaste';
+import { candidatesFromFiles, importCandidates, pickCandidates, saveOriginal, type Candidate, type ImportProgress } from '@/lib/media';
 import {
   candidatesFromLibrary,
   LIBRARY_AVAILABLE,
@@ -111,6 +112,26 @@ export default function ImportScreen() {
   async function openReview() {
     setCandidates(await candidatesFromLibrary([...selected.values()]));
   }
+
+  // Desktop (SPEC-F §F3): drop several photos anywhere on the page and they go straight to the confirmation sheet.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const over = (e: DragEvent) => {
+      if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      const files = allImages(Array.from(e.dataTransfer?.files ?? []));
+      if (!files.length) return;
+      e.preventDefault();
+      void candidatesFromFiles(files as File[]).then(setCandidates);
+    };
+    window.addEventListener('dragover', over);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('drop', drop);
+    };
+  }, []);
 
   async function pickOnWeb() {
     // Straight from the press: the browser only opens a file input inside a gesture.

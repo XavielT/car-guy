@@ -598,6 +598,8 @@ export const enPart5: Pick<
     stuckBody: 'If Chrome asks «Download file again?», tap «Download». If the download reaches the end and nothing happens, open the notification panel or Chrome’s menu ⋮ → Downloads: it is waiting there for the «File might be harmful» prompt. Tap it and go on to step 2.',
     updates: 'To update, download the new version from here and install it on top: your data stays.',
     pwaTitle: 'Also in your browser',
+    desktopTitle: 'On a computer (Chrome or Edge)',
+    desktopBody: 'Open Car Guy in Chrome or Edge and click the install icon at the right of the address bar (or menu ⋮ → «Install Car Guy»). It opens in its own window, with the side menu, keyboard shortcuts (press ?) and shortcuts for a new fill-up, dictating and scanning a receipt.',
     pwaBody: 'Car Guy works on the web. In Chrome: menu ⋮ → «Install app» (or «Add to Home screen»). On iPhone: Share → «Add to Home Screen».',
     portfolio: 'More apps by Xaviel',
     haveIt: 'You already have the app',

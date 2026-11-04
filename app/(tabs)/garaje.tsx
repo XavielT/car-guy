@@ -28,6 +28,7 @@ import { getMedia } from '@/lib/media';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { useStore } from '@/lib/store';
 import { FEATURE_GARAGE_V2, FEATURE_SHARE } from '@/lib/flags';
+import { useLayout } from '@/lib/theme/useLayout';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -67,6 +68,7 @@ const MODES: { key: GarageMode; icon: keyof typeof Ionicons.glyphMap }[] = [
 ];
 
 export default function GarajeScreen() {
+  const { wide } = useLayout();
   const router = useRouter();
   const { theme } = useTheme();
   const { data, setActiveVehicle } = useStore();
@@ -298,7 +300,7 @@ export default function GarajeScreen() {
             ))}
           </View>
         ) : shown.length ? (
-          <View style={styles.grid}>
+          <View style={[styles.grid, wide && { justifyContent: 'flex-start', columnGap: 16 }]}>
             {shown.map((c) => (
               <GridCard key={c.vehicle.id} card={c} pinned={current.pinned === c.vehicle.id} onPress={() => openCard(c)} onLongPress={() => setQuick(c)} />
             ))}
@@ -524,6 +526,7 @@ const GridCard = memo(function GridCard({ card, pinned, onPress, onLongPress }: 
   const badge = vehicleBadges(vehicle, facts).at(-1);
   const line = cardLine(card);
   const lineColor = useLineColor(line.tone);
+  const { wide } = useLayout();
 
   return (
     <Pressable
@@ -531,7 +534,7 @@ const GridCard = memo(function GridCard({ card, pinned, onPress, onLongPress }: 
       onLongPress={onLongPress}
       accessibilityRole="button"
       accessibilityLabel={`${title(vehicle)}, ${line.text}`}
-      style={[styles.small, { backgroundColor: theme.bg.surface, borderColor: pinned ? theme.accent : theme.lineStrong }]}>
+      style={[styles.small, wide && ({ width: 'calc((100% - 32px) / 3)' } as object), { backgroundColor: theme.bg.surface, borderColor: pinned ? theme.accent : theme.lineStrong }]}>
       <Cover card={card} height={110}>
         {badge ? (
           <View style={styles.badgeRowSmall}>

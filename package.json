@@ -84,6 +84,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "web:desktop": "node tools/web-desktop.mjs",
     "build": "EXPO_PUBLIC_GIT_SHA=\"$(git rev-parse --short HEAD 2>/dev/null || printf %.7s \"$VERCEL_GIT_COMMIT_SHA\")\" expo export -p web && node tools/finalize-web.mjs && node tools/check-bundle-env.mjs dist --forbidden-only",
     "test": "jest",
     "lint": "expo lint",

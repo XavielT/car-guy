@@ -113,6 +113,15 @@ export default function InstalarScreen() {
         </T>
       </Surface>
 
+      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
+        {t.install.desktopTitle.toUpperCase()}
+      </T>
+      <Surface padded>
+        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19 }}>
+          {t.install.desktopBody}
+        </T>
+      </Surface>
+
       <View style={{ marginTop: space.lg }}>
         <GhostButton label={t.install.portfolio} onPress={() => void Linking.openURL(PORTFOLIO_URL)} />
       </View>

@@ -14,7 +14,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { AppState, Platform, useWindowDimensions, View } from 'react-native';
+import { DesktopShell } from '@/components/layout/DesktopShell';
+import { AppState, Platform, View } from 'react-native';
 
 import { AlertHost } from '@/components/AlertHost';
 import { clearBootAttempts, DatabaseBoundary } from '@/components/BootError';
@@ -278,12 +279,10 @@ function Shell() {
 
   // On a desktop browser the app is a 560 px column in the middle of the page
   // (NEXT.md backlog): a phone layout stretched to 1400 px wide reads as broken.
-  const { width } = useWindowDimensions();
-  const column = Platform.OS === 'web' && width >= 900;
-
+  // SPEC-F (ADR-70): compact is untouched; regular is a centred column with the tab bar; wide gets the side rail (components/layout).
   return (
-    <View style={{ flex: 1, backgroundColor: column ? theme.bg.well : theme.bg.base }}>
-      <View style={column ? { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: theme.line } : { flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
+      <DesktopShell>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -417,7 +416,7 @@ function Shell() {
       <FirstSyncBanner />
       {/* Last child, so the dialog sits over every screen the Stack renders. */}
       <AlertHost />
-      </View>
+      </DesktopShell>
     </View>
   );
 }

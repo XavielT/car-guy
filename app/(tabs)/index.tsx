@@ -6,7 +6,7 @@ import { QueueNotice } from '@/components/ai/QueueNotice';
 import { HomeNudge } from '@/components/features/HomeNudge';
 import { useOpenDtcCount, useOpenFeature } from '@/components/features/useFeatures';
 import { featureForTelltale, LAMP_TELLTALE } from '@/lib/features/registry';
-import { useIsFocused, useRouter } from 'expo-router';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
@@ -65,6 +65,8 @@ import { t } from '@/lib/i18n';
 import { catalogLabel } from '@/lib/i18n/catalog';
 import { inMonth, latestEconomyInsight, sumSpend } from '@/lib/math';
 import { useStore } from '@/lib/store';
+import { DashCol, DashCols } from '@/components/layout/DashCols';
+import { useLayout } from '@/lib/theme/useLayout';
 import { useTheme } from '@/lib/theme/useTheme';
 
 /**
@@ -86,7 +88,9 @@ export default function HomeScreen() {
   const { activeVehicle, vehicleFillups, vehicleExpenses, data, setActiveVehicle } = useStore();
 
   // IMP 03112026 (ADR-67): one sentence, spoken or typed, opens the right form pre-filled.
-  const [dictateOpen, setDictateOpen] = useState(false);
+  // The PWA's "Dictar" shortcut (manifest) opens Inicio with ?dictar=1, so the sheet starts open in that case.
+  const { dictar } = useLocalSearchParams<{ dictar?: string }>();
+  const [dictateOpen, setDictateOpen] = useState(dictar === '1');
   const [odometerKm, setOdometerKm] = useState<number | null>(null);
   // ADR-30: the number on the LCD may be a trip's GPS estimate (shown with "≈").
   const [odometerEstimated, setOdometerEstimated] = useState(false);
@@ -123,6 +127,8 @@ export default function HomeScreen() {
   const [clusterLoaded, setClusterLoaded] = useState(false);
   const showClusterSkeleton = useDelayedLoading(!clusterLoaded);
   const { width } = useWindowDimensions();
+  // SPEC-F: from 1024 px the dashboard has two columns (the cluster on the left, everything else on the right); a phone is untouched.
+  const { wide } = useLayout();
   const reduced = useReducedMotion();
 
   // The account nudge: shown once the garage has something worth protecting,
@@ -440,6 +446,8 @@ export default function HomeScreen() {
           </Pressable>
         </ScrollView>
 
+        <DashCols wide={wide}>
+        <DashCol wide={wide} side="left">
         {tripNotice ? (
           <Surface style={{ marginBottom: space.md }}>
             <T face="body" accessibilityRole="alert" style={{ color: theme.text.secondary, fontSize: 14 }}>
@@ -490,6 +498,8 @@ export default function HomeScreen() {
         </ClusterHero>
         </Animated.View>
         )}
+        </DashCol>
+        <DashCol wide={wide} side="right">
 
         {/* Note 10: how this odometer rises — once, until "Entendido". */}
         <TipCard id="odometer" />
@@ -684,6 +694,8 @@ export default function HomeScreen() {
           </T>
         </Surface>
         </Pressable>
+        </DashCol>
+        </DashCols>
       </ScrollView>
       {location.sheet}
       <DictateSheet visible={dictateOpen} onClose={() => setDictateOpen(false)} />

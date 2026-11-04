@@ -57,6 +57,15 @@ export default function Root({ children }: { children: ReactNode }) {
 const responsiveBackground = `
 body {
   background-color: #121212;
+}
+/* Printing (SPEC-F §F3: Libro, Reporte, a vehicle sheet): no chrome, white paper, cards and rows are not split across pages. */
+@media print {
+  @page { margin: 14mm; }
+  html, body { background: #fff !important; height: auto !important; overflow: visible !important; }
+  [role="navigation"], [role="tablist"], [aria-label="Usar IA en Car Guy"] { display: none !important; }
+  * { box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  [role="button"], [role="link"] { break-inside: avoid; }
+  [role="heading"] { break-after: avoid; }
 }`;
 
 // Registered from the shell rather than from a component: it should run on

@@ -15,6 +15,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { T } from '@/components/T';
 import { fonts, palette } from '@/constants/theme';
 import { t } from '@/lib/i18n';
+import { useLayout } from '@/lib/theme/useLayout';
 import { useTheme } from '@/lib/theme/useTheme';
 import { useLiveTrip } from '@/lib/trips/liveStore';
 import { CENTRE, centreState, tabSlots } from './state';
@@ -44,9 +45,10 @@ export function CarGuyTabBar({ state, descriptors, navigation, insets }: BottomT
   const reduced = useReducedMotion();
   const centre = centreState(live != null, reduced);
   const keyboard = useKeyboardShown();
+  const { wide } = useLayout();
 
-  // tabBarHideOnKeyboard, as the stock bar did (Android resizes over it).
-  if (keyboard) return null;
+  // tabBarHideOnKeyboard, as the stock bar did (Android resizes over it). On a wide web window the side rail replaces the bar (SPEC-F §F2).
+  if (keyboard || wide) return null;
 
   const byName = new Map(state.routes.map((r, i) => [r.name, { route: r, index: i }]));
   const slots = tabSlots(state.routes.map((r) => r.name));

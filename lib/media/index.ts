@@ -206,6 +206,27 @@ export async function pickCandidates(opts: { multiple?: boolean; camera?: boolea
   );
 }
 
+/** Web: files dropped on the importer (SPEC-F §F3), as the same Candidates the picker makes: EXIF date first, then the file's own date. */
+export async function candidatesFromFiles(files: File[]): Promise<Candidate[]> {
+  return Promise.all(
+    files.map(async (file, i) => {
+      const exif = await readFileExifDate(file);
+      const resolved = resolveTakenAt({ exif, fileTimeMs: file.lastModified ?? null });
+      return {
+        key: `drop:${i}:${file.name}:${file.size}`,
+        uri: URL.createObjectURL(file),
+        width: null,
+        height: null,
+        takenAt: resolved.takenAt,
+        dateSource: resolved.source,
+        origin: 'picker' as const,
+        file,
+        fileName: file.name,
+      };
+    }),
+  );
+}
+
 export type ImportProgress = { done: number; total: number; imported: number; duplicates: number; failed: number; mediaIds: string[] };
 
 /**

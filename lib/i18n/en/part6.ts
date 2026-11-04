@@ -2,9 +2,37 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
+
+  desktop: {
+    railLabel: 'Main navigation',
+    collapse: 'Collapse the menu',
+    expand: 'Expand the menu',
+    vehicle: 'Car',
+    account: 'Account',
+    shortcutsHint: 'Press ? to see the shortcuts',
+    shortcuts: 'Keyboard shortcuts',
+    shortcutLabels: {
+      search: 'Search in Tools',
+      go_inicio: 'Go to Home',
+      go_garaje: 'Go to the Garage',
+      go_conducir: 'Go to Drive',
+      go_historial: 'Go to History',
+      go_herramientas: 'Go to Tools',
+      go_mas: 'Go to More',
+      new_fillup: 'New fuel fill-up',
+      cheatsheet: 'Show or hide this list',
+      close: 'Close',
+    },
+    selectRecord: 'Pick a record from the list to see its summary here.',
+    openRecord: 'Open the full record',
+    dropHere: 'Drop a photo or a PDF here',
+    pasteHint: 'You can also paste an image with Ctrl+V',
+    print: 'Print',
+    exportCsv: 'Download CSV',
+  },
 
   statusSince: (date: string) => `since ${date}`,
 
