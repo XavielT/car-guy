@@ -1157,7 +1157,7 @@ export const enPart6: Pick<
       useSeverity: (label: string, v: string) => `Use ${label.toLowerCase()}: ${v}`,
       guess: "An estimate from photos. It doesn't say who is at fault or what insurance covers.",
       severityNames: { leve: 'minor', moderado: 'moderate', grave: 'serious' },
-      areaNames: { front: 'front', rear: 'rear', left: 'left side', right: 'right side', roof: 'roof', hood: 'hood', trunk: 'trunk', bumper_front: 'front bumper', bumper_rear: 'rear bumper', door: 'door', fender: 'fender', windshield: 'windshield', window: 'window', light: 'light', wheel: 'wheel', mirror: 'mirror', interior: 'interior', undercarriage: 'underbody', other: 'other area' },
+      areaNames: { front: 'front', rear: 'rear', left: 'left side', right: 'right side', roof: 'roof', hood: 'hood', trunk: 'trunk', bumper_front: 'front bumper', bumper_rear: 'rear bumper', door: 'door', fender: 'fender', windshield: 'windshield', window: 'window', light: 'light', wheel: 'wheel', mirror: 'mirror', interior: 'cabin', undercarriage: 'underbody', other: 'other area' },
     },
     checkPhoto: {
       button: 'Check with a photo',
