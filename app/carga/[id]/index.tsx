@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FillUpReviewBody } from '@/components/FillUpReviewSheet';
 import { gaugeLabel } from '@/components/fuel/GaugePicker';
+import { PriceAssistCard } from '@/components/fuel/PriceAssistCard';
 import { MissingRecord } from '@/components/MissingRecord';
 import { T } from '@/components/T';
 import { GhostButton, KeyValueRow, PrimaryButton, Surface } from '@/components/ui';
@@ -26,7 +27,7 @@ import { useTheme } from '@/lib/theme/useTheme';
  * here; the editor is behind Editar (`./editar.tsx`).
  */
 export default function CargaDetail() {
-  const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>();
+  const { id, saved, recibo } = useLocalSearchParams<{ id: string; saved?: string; recibo?: string }>();
   const router = useRouter();
   const { theme } = useTheme();
   const { data, deleteFillUp } = useStore();
@@ -131,6 +132,8 @@ export default function CargaDetail() {
             perFillLine={perFillLine}
           />
         </Surface>
+
+        <PriceAssistCard fill={fill} volumeUnit={volumeUnit} settings={data.settings} fromReceipt={saved === '1' && recibo === '1'} />
 
         {fuelClass ? (
           <Surface padded style={{ marginTop: space.md }}>

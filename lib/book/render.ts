@@ -23,6 +23,8 @@ export type BookInput = {
   periodLabel: string | null;
   /** The "Eventos" chapter (ADR-44), already in words: "Accidente · Choque", "Moderado · RD$ 45,000 · …". */
   events?: { date: string; title: string; line: string }[] | null;
+  /** SPEC-G §G9: the owner's edited sale-ready summary, first on the first white page. Text only; nothing here is generated at print time. */
+  saleSheet?: { title: string; sections: { heading: string; text: string }[] } | null;
 };
 
 export type BookDeps = {
@@ -269,6 +271,15 @@ export async function renderBook(input: BookInput, deps: BookDeps): Promise<Uint
 
   const w = new Writer(doc, f, L.runningHead(d.name.toUpperCase()));
   w.newPage();
+
+  // ---- sale-ready summary (SPEC-G §G9), the owner's own edited text ----
+  if (input.saleSheet?.sections.length) {
+    w.heading(input.saleSheet.title);
+    for (const s of input.saleSheet.sections) {
+      w.eyebrow(s.heading);
+      w.para(s.text, { size: 11 });
+    }
+  }
 
   // ---- ficha + historia ----
   w.heading(L.ficha);

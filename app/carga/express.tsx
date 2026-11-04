@@ -64,7 +64,7 @@ export default function ExpressScreen() {
   const [card, setCard] = useState<ExpressCard | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [jobId, setJobId] = useState<string | null>(null);
-  const [saved, setSaved] = useState<(SaveResult & { id: string }) | null>(null);
+  const [saved, setSaved] = useState<(SaveResult & { id: string; receipt: boolean }) | null>(null);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -253,7 +253,7 @@ export default function ExpressScreen() {
       void storePhoto({ uri: p.uri, width: null, takenAt: new Date().toISOString() }, { ownerTable: 'fuel_log', ownerId: id, vehicleId: vehicle.id }).catch((e) => recordReportable('express-photo', e));
     }
     if (jobId) void dropAiJob(jobId);
-    setSaved({ id, ...evaluation.result });
+    setSaved({ id, receipt: Boolean(shots.receipt), ...evaluation.result });
   }
 
   // ------------------------------------------------------------------------------------------------ render
@@ -408,8 +408,9 @@ export default function ExpressScreen() {
           perFillLine={saved?.perFillLine ?? null}
           onClose={() => {
             const id = saved?.id;
+            const receipt = saved?.receipt ?? false;
             setSaved(null);
-            if (id) router.replace({ pathname: '/carga/[id]', params: { id, saved: '1' } });
+            if (id) router.replace({ pathname: '/carga/[id]', params: receipt ? { id, saved: '1', recibo: '1' } : { id, saved: '1' } });
           }}
           onSeeHistory={() => {
             setSaved(null);

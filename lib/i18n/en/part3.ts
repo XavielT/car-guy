@@ -18,6 +18,7 @@ export const enPart3: Pick<
   | 'export'
   | 'fuel'
   | 'fuelReview'
+  | 'priceAssist'
   | 'prices'
   | 'common'
   | 'identity'
@@ -661,6 +662,18 @@ export const enPart3: Pick<
       'You marked that an earlier fill-up was missing, so the economy count starts over from this one.',
     seeHistory: 'See history',
     close: 'Done',
+  },
+
+  priceAssist: {
+    above: (diff: string, ref: string, week: string) => `You paid ${diff} more per gallon than this week's reference (${ref}, ${week}).`,
+    below: (diff: string, ref: string, week: string) => `You paid ${diff} less per gallon than this week's reference (${ref}, ${week}).`,
+    same: (ref: string, week: string) => `You paid the same as this week's reference (${ref} per gallon, ${week}).`,
+    offerTitle: "Share the station's price",
+    offerBody: (station: string, price: string) => `The receipt says ${station} at ${price} per gallon. Add it to the prices? It is only saved if you say yes.`,
+    offerYes: 'Yes, add it',
+    offerNo: 'No, thanks',
+    offered: 'Done, it is in Prices as "Receipt".',
+    failed: "Couldn't save the price. Try again.",
   },
 
   prices: {

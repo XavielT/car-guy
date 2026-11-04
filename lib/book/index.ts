@@ -18,7 +18,7 @@ import { bookFileName, MAX_BOOK_PHOTOS, renderBook, type BookFonts } from './ren
  * numbers — falling back to Helvetica if a font will not load.
  */
 
-export type BookOptions = { flags: ShareFlags; photos: boolean; docs: boolean; from: string | null; to: string | null; periodLabel: string | null; /** "Lo que uso" (note 6). */ memory?: boolean };
+export type BookOptions = { flags: ShareFlags; photos: boolean; docs: boolean; from: string | null; to: string | null; periodLabel: string | null; /** "Lo que uso" (note 6). */ memory?: boolean; /** G9: the sale-ready summary the owner edited; printed first. */ saleSheet?: { title: string; sections: { heading: string; text: string }[] } | null };
 
 async function assetBytes(mod: number): Promise<Uint8Array> {
   const asset = Asset.fromModule(mod);
@@ -72,6 +72,7 @@ export async function generateBook(vehicleId: string, opts: BookOptions, onProgr
       generatedAt: new Date().toISOString(),
       periodLabel: opts.periodLabel,
       events,
+      saleSheet: opts.saleSheet ?? null,
     },
     { fonts, fontkit, image: (id, thumb) => localMediaBytes(id, { thumb }), onProgress },
   );

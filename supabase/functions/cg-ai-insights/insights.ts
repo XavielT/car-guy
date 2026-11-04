@@ -12,6 +12,8 @@
  * Pure: no Deno, no network. The fact shape mirrors lib/domain/predict.ts (a test pins that they agree).
  */
 
+import { allowedNumbersOf, hasForeignMoney, strayNumberIn } from '../_shared/numbers.ts';
+
 export const TOOL_NAME = 'report_insights';
 export const MAX_INSIGHTS = 5;
 export const MAX_FACTS = 30;
@@ -113,52 +115,11 @@ export function userMessage(input: InsightsInput): string {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────────────────── numbers
-/** Numbers written in a text: "1,234.5", "RD$ 2,580", "38 %", "5.36", also the digits of "2026-11-14". Thousands separators are removed. */
-export function numbersIn(text: string): string[] {
-  const out: string[] = [];
-  for (const m of text.matchAll(/\d[\d.,]*/g)) {
-    let s = m[0].replace(/[.,]+$/, '');
-    if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s = s.replace(/,/g, '');
-    else if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
-    else s = s.replace(',', '.');
-    out.push(normNum(s));
-  }
-  return out;
-}
-const normNum = (s: string): string => {
-  const n = Number(s);
-  return Number.isFinite(n) ? String(Math.round(n * 1e6) / 1e6) : s;
-};
-
-/** Every number a fact may be quoted with: its numeric values, the numbers inside its strings (dates, DOT codes), and the same rounded. */
-export function allowedNumbers(facts: readonly Fact[]): Set<string> {
-  const ok = new Set<string>();
-  const add = (n: number) => {
-    ok.add(normNum(String(n)));
-    ok.add(normNum(String(Math.round(n))));
-    ok.add(normNum(String(Math.round(n * 10) / 10)));
-    ok.add(normNum(String(Math.round(n * 100) / 100)));
-    ok.add(normNum(String(Math.abs(n))));
-  };
-  for (const f of facts) {
-    for (const v of Object.values(f.data)) {
-      if (typeof v === 'number') add(v);
-      else if (typeof v === 'string') for (const n of numbersIn(v)) ok.add(n);
-    }
-  }
-  return ok;
-}
-
+// The number checks live in _shared/numbers.ts (cg-ai-sale uses them too); the names stay exported from here.
+export { hasForeignMoney, numbersIn } from '../_shared/numbers.ts';
+export const allowedNumbers = (facts: readonly Fact[]): Set<string> => allowedNumbersOf(facts);
 /** The first number in `text` that is not allowed, or null when every number is backed by the facts. */
-export function strayNumber(text: string, facts: readonly Fact[]): string | null {
-  const ok = allowedNumbers(facts);
-  // The month day in a date is fine as "14" even when the fact says 2026-11-14 (numbersIn already splits it).
-  for (const n of numbersIn(text)) if (!ok.has(n)) return n;
-  return null;
-}
-
-const FOREIGN_MONEY = /(?:US\s?\$|USD|U\.S\.|d[oó]lar(?:es)?|dollar|euros?|€|£)|\$/i;
-export const hasForeignMoney = (s: string) => FOREIGN_MONEY.test(s.replace(/RD\s?\$/gi, ''));
+export const strayNumber = (text: string, facts: readonly Fact[]): string | null => strayNumberIn(text, facts);
 
 // ──────────────────────────────────────────────────────────────────────────────────────────── templates
 const n = (v: unknown): string => (typeof v === 'number' ? (Number.isInteger(v) ? v.toLocaleString('en-US') : String(v)) : String(v ?? ''));

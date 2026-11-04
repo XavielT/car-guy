@@ -1826,6 +1826,18 @@ export const es = {
     close: 'Listo',
   },
 
+  priceAssist: {
+    above: (diff: string, ref: string, week: string) => `Pagaste ${diff} más por galón que la referencia de la semana (${ref}, ${week}).`,
+    below: (diff: string, ref: string, week: string) => `Pagaste ${diff} menos por galón que la referencia de la semana (${ref}, ${week}).`,
+    same: (ref: string, week: string) => `Pagaste lo mismo que la referencia de la semana (${ref} por galón, ${week}).`,
+    offerTitle: 'Compartir el precio de la estación',
+    offerBody: (station: string, price: string) => `El recibo dice ${station} a ${price} por galón. ¿Lo sumamos a los precios? Solo se guarda si dices que sí.`,
+    offerYes: 'Sí, sumarlo',
+    offerNo: 'No, gracias',
+    offered: 'Listo, quedó en Precios como "Recibo".',
+    failed: 'No se pudo guardar el precio. Intenta de nuevo.',
+  },
+
   prices: {
     title: 'Precios MICM',
     intro:
@@ -4352,6 +4364,27 @@ export const es = {
         above: (pct: number) => `${pct} % por encima de tu promedio.`,
         within: 'Parecido a tu promedio.',
       },
+    },
+    sale: {
+      title: 'Hoja de venta',
+      intro: 'Un resumen de una página con lo que dicen tus registros: mantenimiento, reparaciones, modificaciones y documentos. Sale solo, sin IA; tú lo editas antes de usarlo.',
+      reviewNote: 'Revísalo: tiene que ser completo y verdadero. Un comprador puede preguntar por accidentes, y esos registros no entran aquí. No lleva placa, chasis ni precio.',
+      langEs: 'Español',
+      langEn: 'English',
+      empty: 'Todavía no hay suficientes registros para armar la hoja.',
+      improve: 'Mejorar la redacción con IA',
+      improving: 'Mejorando la redacción…',
+      improved: (n: number) => (n === 1 ? 'Se mejoró 1 párrafo.' : `Se mejoraron ${n} párrafos.`),
+      kept: 'No se pudo verificar la redacción de la IA, así que se quedó tu texto.',
+      someKept: (n: number) => (n === 1 ? 'Un párrafo se quedó como estaba porque no se pudo verificar.' : `${n} párrafos se quedaron como estaban porque no se pudieron verificar.`),
+      aiTag: 'IA',
+      editedTag: 'editado',
+      copy: 'Copiar texto',
+      copied: 'Copiado',
+      include: 'Incluir en el Libro',
+      includeHint: 'Va primero, en la primera página del PDF.',
+      offline: 'Sin conexión: la hoja sigue como está.',
+      tryAgain: 'No se pudo mejorar ahora. Intenta de nuevo.',
     },
     triage: {
       title: 'Borrador con IA',

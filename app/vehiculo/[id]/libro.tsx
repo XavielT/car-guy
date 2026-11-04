@@ -1,7 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 
+import { SaleSheetCard, type SaleForBook } from '@/components/ai/SaleSheetCard';
 import { VehicleSwitchesSkeleton } from '@/components/skeletons/VehicleSkeletons';
 import { T } from '@/components/T';
 import { SelectField, selectOptions } from '@/components/pickers';
@@ -43,6 +44,8 @@ export default function BookScreen() {
   const [period, setPeriod] = useState<Period>('todo');
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // SPEC-G §G9: the owner's edited sale-ready summary, when "Incluir en el Libro" is on.
+  const [sale, setSale] = useState<SaleForBook | null>(null);
   // True once the first read answered (ok or not).
   const [loaded, setLoaded] = useState(false);
   const showSkeleton = useDelayedLoading(!loaded);
@@ -63,6 +66,8 @@ export default function BookScreen() {
     };
   }, [id]);
 
+  const span = useMemo(() => range(period), [period]);
+
   // The period chips, then the flags plus "documentos" and "fotos".
   if (showSkeleton) return <VehicleSwitchesSkeleton rows={FLAG_KEYS.length + 4} />;
   if (!vehicle || !flags) return null;
@@ -78,7 +83,7 @@ export default function BookScreen() {
     setProgress({ done: 0, total: 1 });
     try {
       const r = range(period);
-      const book = await generateBook(id, { flags: flags!, photos, docs, memory, from: r.from, to: r.to, periodLabel: r.label }, (done, total) => setProgress({ done, total }));
+      const book = await generateBook(id, { flags: flags!, photos, docs, memory, from: r.from, to: r.to, periodLabel: r.label, saleSheet: sale }, (done, total) => setProgress({ done, total }));
       if (!book) return setNotice(t.book.failed);
       const how = await deliverBook(book.bytes, book.filename, t.book.dialog);
       setNotice(how === 'unavailable' ? t.book.unavailable : t.book.done(book.filename, Math.round(book.bytes.byteLength / 1024)));
@@ -130,6 +135,8 @@ export default function BookScreen() {
         {row(t.book.docs, docs, setDocs, t.book.docsHint)}
         {row(t.book.photos, photos, setPhotos, t.book.photosHint)}
       </View>
+
+      <SaleSheetCard vehicleId={id} flags={flags} from={span.from} to={span.to} onSheet={setSale} />
 
       <View style={{ height: space.lg }} />
       <PrimaryButton label={progress ? t.book.generating(progress.done, progress.total) : t.book.generate} disabled={Boolean(progress)} onPress={() => void generate()} />

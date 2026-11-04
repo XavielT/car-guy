@@ -14,7 +14,7 @@ import { t } from '@/lib/i18n';
 import { defaultFuelForNewLoad, useOdometerHint, useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
-type Result = SaveResult & { id: string };
+type Result = SaveResult & { id: string; receipt: boolean };
 
 export default function CargarScreen() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function CargarScreen() {
 
   // Note 8: after a save this screen is left for the fill-up's detail — the form
   // never stays up holding the values it just saved (no re-key on focus).
-  const openSaved = (fillId: string) => router.replace({ pathname: '/carga/[id]', params: { id: fillId, saved: '1' } });
+  const openSaved = (fillId: string, receipt = false) => router.replace({ pathname: '/carga/[id]', params: receipt ? { id: fillId, saved: '1', recibo: '1' } : { id: fillId, saved: '1' } });
 
   if (!activeVehicle) return null;
 
@@ -54,7 +54,7 @@ export default function CargarScreen() {
             // The photos the AI read stay with the record (IMP 03112026 ADR-67). Best effort: a photo that fails to store never undoes a saved fill-up.
             attachPhotos(savedId, activeVehicle.id, extras?.photos);
             impact();
-            setResult({ id: savedId, ...evaluation.result });
+            setResult({ id: savedId, receipt: Boolean(extras?.photos.some((p) => p.role === 'invoice')), ...evaluation.result });
           }}
         />
       </View>
@@ -70,8 +70,9 @@ export default function CargarScreen() {
         perFillLine={result?.perFillLine ?? null}
         onClose={() => {
           const savedId = result?.id;
+          const receipt = result?.receipt ?? false;
           setResult(null);
-          if (savedId) openSaved(savedId);
+          if (savedId) openSaved(savedId, receipt);
         }}
         onSeeHistory={() => {
           setResult(null);
