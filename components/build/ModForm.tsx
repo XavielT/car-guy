@@ -14,6 +14,7 @@ import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { str as readStr, type ReadResult } from '@/lib/ai/read';
 import { FEATURE_AI_ALBUM } from '@/lib/flagsAi';
+import { useAiStatus } from '@/lib/ai/useAiStatus';
 import {
   addModPhotos,
   applyReminderReset,
@@ -75,6 +76,7 @@ export function ModForm({
   const { theme } = useTheme();
   // Known before the first save, so photos can be attached right away.
   const [id] = useState(modId ?? newId());
+  const aiStatus = useAiStatus();
   const [categories, setCategories] = useState<ModCategory[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [others, setOthers] = useState<Mod[]>([]);
@@ -284,7 +286,7 @@ export function ModForm({
         </>
       ) : null}
 
-      {FEATURE_AI_ALBUM && !modId ? <CaptureButton kind="part_label" label={t.ai.partLabel.scan} onRead={applyPartLabel} /> : null}
+      {FEATURE_AI_ALBUM && !modId && !aiStatus.featureOff('album') ? <CaptureButton kind="part_label" label={t.ai.partLabel.scan} onRead={applyPartLabel} /> : null}
       <Field label={t.modForm.name} placeholder={t.modForm.namePlaceholder} value={name} onChangeText={(t) => (setName(t), setError(null))} />
       <View style={styles.pair}>
         <View style={{ flex: 1, minWidth: 0 }}>

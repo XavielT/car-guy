@@ -38,6 +38,11 @@ export async function setAiEnabled(enabled: boolean): Promise<boolean> {
   return setAppConfig(AI_CONFIG_KEYS.enabled, enabled, false);
 }
 
+/** Switches AI features off one by one (SPEC-G §G10): the whole list is written, so the server never holds a half-applied set. */
+export async function setAiFeaturesOff(ids: readonly string[]): Promise<boolean> {
+  return setAppConfig(AI_CONFIG_KEYS.featuresOff, [...ids], false);
+}
+
 /** Deletes usage rows older than `days` (the server never goes below 7). Returns how many, or null on failure. */
 export async function pruneAiUsage(days = 90): Promise<number | null> {
   const r = await rpc<number>('ai_usage_prune', { p_days: days });

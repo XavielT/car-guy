@@ -1353,6 +1353,16 @@ export const enPart6: Pick<
     admin: {
       title: 'AI: spend and limits',
       caption: 'What AI costs and the caps. If your friends use it, the company pays: set a limit.',
+      features: {
+        title: 'AI features',
+        hint: "Switch one feature off without touching the others. It is enforced on the server: an old app can't use it either.",
+        search: 'Smart search',
+        album: 'Album: understand photos and read parts',
+        places: 'Find places nearby',
+        check_photo: 'Check with a photo',
+        accident: 'Accident photos',
+        sale: 'Sale sheet (wording)',
+      },
       masterSwitch: 'AI on',
       masterHint: 'Off: nobody can use AI and the forms stay the same.',
       today: 'Today',

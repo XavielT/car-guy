@@ -18,11 +18,11 @@ import { CaptureButton } from './CaptureButton';
  * or ignores it and answers as always. Nothing changes without that tap, and a fail still goes through the item's own "if it fails"
  * action when the checklist is saved. A photo never measures: the card says so.
  */
-export function CheckPhotoAi({ label, current, onUse }: { label: string; current: Verdict | undefined; onUse: (verdict: Verdict, observation: string, photoUri: string) => void }) {
+export function CheckPhotoAi({ label, current, off, onUse }: { label: string; current: Verdict | undefined; /** The admin switched this feature off. */ off?: boolean; onUse: (verdict: Verdict, observation: string, photoUri: string) => void }) {
   const { theme } = useTheme();
   const [s, setS] = useState<{ suggestion: CheckSuggestion; observation: string; uri: string; low: boolean } | null>(null);
   const item = checkItemFor(label);
-  if (!FEATURE_AI_CHECK_PHOTO || item === 'other') return null;
+  if (!FEATURE_AI_CHECK_PHOTO || off || item === 'other') return null;
   const x = t.ai.checkPhoto;
 
   function read(r: ReadResult, photo: { uri: string }) {

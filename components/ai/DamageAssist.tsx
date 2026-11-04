@@ -40,7 +40,7 @@ export function DamageAssist({
   onUseSeverity: (s: Severity) => void;
 }) {
   const { theme } = useTheme();
-  const { ready, sheet } = useAiGate();
+  const { ready, sheet, featureOff } = useAiGate();
   const [checklist, setChecklist] = useState<ChecklistItem[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<DamageRead | null>(null);
@@ -117,7 +117,7 @@ export function DamageAssist({
         </Surface>
       ) : null}
 
-      {FEATURE_AI_ACCIDENT ? (
+      {FEATURE_AI_ACCIDENT && !featureOff('accident') ? (
         <Surface padded>
           <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
             {x.title}

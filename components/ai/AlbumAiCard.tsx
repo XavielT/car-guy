@@ -32,7 +32,7 @@ type Photo = { uri: string; takenAt: string | null };
 export function AlbumAiCard({ photos, vehicleId }: { photos: Photo[]; vehicleId: string }) {
   const { theme } = useTheme();
   const router = useRouter();
-  const { ready, sheet } = useAiGate();
+  const { ready, sheet, featureOff } = useAiGate();
   const [optIn, setOptIn] = useState<boolean | null>(null);
   const [phase, setPhase] = useState<'idle' | 'running' | 'done'>('idle');
   const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
@@ -47,7 +47,7 @@ export function AlbumAiCard({ photos, vehicleId }: { photos: Photo[]; vehicleId:
     void settings.get<boolean>(OPT_IN_KEY, false).then((v) => alive.current && setOptIn(v)).catch(() => alive.current && setOptIn(false));
   }, []);
 
-  if (!FEATURE_AI_ALBUM || photos.length === 0) return null;
+  if (!FEATURE_AI_ALBUM || featureOff('album') || photos.length === 0) return null;
   const x = t.ai.album;
   const analysed = Math.min(photos.length, MAX_ANALYSED);
 

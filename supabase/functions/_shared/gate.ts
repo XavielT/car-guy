@@ -20,6 +20,8 @@ import type { AiErrorCode } from './errors.ts';
 export type GateSnapshot = {
   enabled: boolean;
   consent: boolean;
+  /** Feature ids the admin switched off (sql/044). Missing = none: a gate answered by an older ai_gate() still works. */
+  features_off?: string[];
   limits: { user_hour: number; user_day_usd: number; global_day_usd: number; places_user_day: number };
   used: { user_hour: number; user_day_usd: number; global_day_usd: number; function_user_day: number };
   day_start?: string;
@@ -35,6 +37,11 @@ export function evaluateGate(s: GateSnapshot, fn: string, configured: boolean): 
   if (Number(s.used.global_day_usd) >= Number(s.limits.global_day_usd)) return 'cap_global_day';
   if (fn === 'cg-places' && Number(s.used.function_user_day) >= Number(s.limits.places_user_day)) return 'cap_user_day';
   return null;
+}
+
+/** True when the admin switched this feature off (SPEC-G §G10). Anything that is not an array of strings reads as "nothing off". */
+export function isFeatureOff(s: Pick<GateSnapshot, 'features_off'>, feature: string | null | undefined): boolean {
+  return !!feature && Array.isArray(s.features_off) && s.features_off.includes(feature);
 }
 
 /** What the app shows next to an AI button, with no provider call (cg-ai-status). */

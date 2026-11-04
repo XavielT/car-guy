@@ -10,7 +10,7 @@ import { AiConsentSheet } from './AiConsentSheet';
  * state that is not "available" → say why in plain words; otherwise the call may go ahead. `ready()` answers that, and `sheet`
  * is the consent sheet to render once in the component. The manual path underneath is never touched.
  */
-export function useAiGate(): { ai: AiStatus; ready: () => boolean; sheet: ReactNode } {
+export function useAiGate(): { ai: AiStatus; ready: () => boolean; sheet: ReactNode; featureOff: (id: string) => boolean } {
   const ai = useAiStatus();
   const [open, setOpen] = useState(false);
   const ready = useCallback((): boolean => {
@@ -35,5 +35,5 @@ export function useAiGate(): { ai: AiStatus; ready: () => boolean; sheet: ReactN
       }}
     />
   );
-  return { ai, ready, sheet };
+  return { ai, ready, sheet, featureOff: ai.featureOff };
 }

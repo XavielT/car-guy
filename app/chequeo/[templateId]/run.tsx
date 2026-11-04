@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CheckPhotoAi } from '@/components/ai/CheckPhotoAi';
+import { useAiStatus } from '@/lib/ai/useAiStatus';
 import { CheckPhotoStrip } from '@/components/checks/CheckPhotoStrip';
 import { Field } from '@/components/Field';
 import { CheckRunSkeleton } from '@/components/skeletons/CheckSkeleton';
@@ -49,6 +50,8 @@ export default function RunScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const { activeVehicle, refresh } = useStore();
+  // One status read for the whole run (every item's photo button shares it): the admin's switch for this feature.
+  const aiStatus = useAiStatus();
 
   const [template, setTemplate] = useState<InspectionTemplate | null>(null);
   const [items, setItems] = useState<InspectionItem[]>([]);
@@ -266,7 +269,7 @@ export default function RunScreen() {
                       {item.warning ? `\n\n${catalogLabel('checkItem', item, 'warning')}` : ''}
                     </T>
                   ) : null}
-                  <CheckPhotoAi label={item.label} current={verdict} onUse={(v, obs, uri) => applySuggestion(item, v, obs, uri)} />
+                  <CheckPhotoAi label={item.label} current={verdict} off={aiStatus.featureOff('check_photo')} onUse={(v, obs, uri) => applySuggestion(item, v, obs, uri)} />
                   {FEATURE_DIY && isTirePressureItem(item.label) && (psi.f != null || psi.r != null) ? (
                     <T face="mono" style={{ color: theme.accent, fontSize: 12, marginTop: 6 }}>
                       {t.fluids.oem(psi.f != null ? String(psi.f) : '—', psi.r != null ? String(psi.r) : '—')}

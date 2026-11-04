@@ -28,7 +28,7 @@ export type SaleForBook = { title: string; sections: { heading: string; text: st
  */
 export function SaleSheetCard({ vehicleId, flags, from, to, onSheet }: { vehicleId: string; flags: ShareFlags; from: string | null; to: string | null; onSheet: (s: SaleForBook | null) => void }) {
   const { theme } = useTheme();
-  const { ready, sheet: consentSheet } = useAiGate();
+  const { ready, sheet: consentSheet, featureOff } = useAiGate();
   const [lang, setLang] = useState<Lang>('es');
   const [facts, setFacts] = useState<SaleFact[] | null>(null);
   const [label, setLabel] = useState('');
@@ -151,7 +151,7 @@ export function SaleSheetCard({ vehicleId, flags, from, to, onSheet }: { vehicle
               {note}
             </T>
           ) : null}
-          <GhostButton label={busy ? x.improving : x.improve} onPress={() => void improve()} />
+          {featureOff('sale') ? null : <GhostButton label={busy ? x.improving : x.improve} onPress={() => void improve()} />}
           <GhostButton label={copied ? x.copied : x.copy} onPress={() => void Clipboard.setStringAsync(textNow).then(() => setCopied(true))} />
           <View style={styles.switchRow}>
             <View style={{ flex: 1 }}>

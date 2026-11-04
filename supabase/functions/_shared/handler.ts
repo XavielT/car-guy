@@ -12,7 +12,7 @@ import { AiCallError, callClaude, type CallArgs, type CallResult, type Usage } f
 import { corsHeaders, parseExtraOrigins } from './cors.ts';
 import type { EnvGetter } from './env.ts';
 import { AI_ERRORS, errorBody, type AiErrorCode } from './errors.ts';
-import { evaluateGate, type GateSnapshot } from './gate.ts';
+import { evaluateGate, isFeatureOff, type GateSnapshot } from './gate.ts';
 
 export type UsageRow = {
   user_id: string;
@@ -54,6 +54,8 @@ export type Options = {
   adminOnly?: boolean;
   /** What "configured" means for this function. Default: the Anthropic key exists. cg-stt: a speech-to-text key exists. */
   configured?: (env: EnvGetter) => boolean;
+  /** Which admin-switchable feature this request belongs to (SPEC-G §G10), from its body; null = no switch applies. */
+  feature?: (body: unknown) => string | null;
 };
 
 export function reply(req: Request, env: EnvGetter, status: number, body: unknown): Response {
@@ -121,6 +123,9 @@ export async function handleAi(req: Request, fn: string, handler: Handler, deps:
   } catch {
     body = {};
   }
+
+  // The admin's per-feature switch (sql/044): refused here, before any provider, with nothing recorded (nothing was spent).
+  if (isFeatureOff(snapshot, opts.feature?.(body))) return refuse(req, env, 'ai_disabled');
 
   const uid: string = userId;
   const ctx: Ctx = {

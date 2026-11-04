@@ -16,6 +16,7 @@ export type IntentContext = {
   features: string[];
 };
 
-export async function askIntent(text: string, context: IntentContext): Promise<IntentResult> {
-  return callAi<IntentResult>('cg-ai-intent', { text, context });
+/** `feature: 'search'` marks the smart search so the admin's switch for it applies on the server (SPEC-G §G10); dictation sends none. */
+export async function askIntent(text: string, context: IntentContext, feature?: 'search'): Promise<IntentResult> {
+  return callAi<IntentResult>('cg-ai-intent', { text, context, ...(feature ? { feature } : {}) });
 }

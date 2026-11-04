@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAiStatus } from '@/lib/ai/useAiStatus';
 import { NearbyPlaces } from '@/components/ai/NearbyPlaces';
 import { AiFieldMark } from '@/components/ai/AiFieldMark';
 import { CaptureButton } from '@/components/ai/CaptureButton';
@@ -176,6 +177,7 @@ export default function NuevoServicioScreen() {
   const [shops, setShops] = useState<string[]>([]);
   // SPEC-G §G4: after a repair, "who did it?" can suggest nearby shops when the shop field is still empty.
   const [showNearby, setShowNearby] = useState(false);
+  const aiStatus = useAiStatus();
   const [recordId] = useState(() => editingId ?? `svc_${Date.now()}`);
 
   const vehicleId = activeVehicle?.id;
@@ -619,7 +621,7 @@ export default function NuevoServicioScreen() {
             ))}
           </View>
         ) : null}
-        {isRepair && !shop.trim() && !contactId ? (
+        {isRepair && !shop.trim() && !contactId && !aiStatus.featureOff('places') ? (
           showNearby ? (
             <NearbyPlaces initialKind="taller" onPick={(p) => { setShop(p.name); setShowNearby(false); }} />
           ) : (

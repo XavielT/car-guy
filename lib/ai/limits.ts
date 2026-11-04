@@ -4,10 +4,10 @@
  * tests can pin the rules. A cap of 0 is valid and means "stop" (that is how the brakes are proven).
  */
 export type AiLimits = { userHour: number; userDayUsd: number; globalDayUsd: number; placesUserDay: number };
-export type AiConfig = AiLimits & { enabled: boolean };
+export type AiConfig = AiLimits & { enabled: boolean; /** Feature ids switched off one by one (sql/044). */ featuresOff: string[] };
 
 /** What sql/042 seeds; used when a key is missing so the screen never shows blanks. */
-export const DEFAULT_AI_CONFIG: AiConfig = { enabled: true, userHour: 30, userDayUsd: 0.5, globalDayUsd: 5, placesUserDay: 20 };
+export const DEFAULT_AI_CONFIG: AiConfig = { enabled: true, userHour: 30, userDayUsd: 0.5, globalDayUsd: 5, placesUserDay: 20, featuresOff: [] };
 
 export const AI_CONFIG_KEYS = {
   enabled: 'ai_enabled',
@@ -15,6 +15,7 @@ export const AI_CONFIG_KEYS = {
   userDayUsd: 'ai_cap_user_day_usd',
   globalDayUsd: 'ai_cap_global_day_usd',
   placesUserDay: 'ai_limit_places_user_day',
+  featuresOff: 'ai_features_off',
 } as const;
 
 /** "0,5" and "0.5" both work (Dominican keyboards); blank, negative, NaN or infinite is null. */
@@ -48,6 +49,7 @@ export function configFromRows(rows: Record<string, unknown> | null): AiConfig {
     userDayUsd: num(r[AI_CONFIG_KEYS.userDayUsd], DEFAULT_AI_CONFIG.userDayUsd),
     globalDayUsd: num(r[AI_CONFIG_KEYS.globalDayUsd], DEFAULT_AI_CONFIG.globalDayUsd),
     placesUserDay: num(r[AI_CONFIG_KEYS.placesUserDay], DEFAULT_AI_CONFIG.placesUserDay),
+    featuresOff: Array.isArray(r[AI_CONFIG_KEYS.featuresOff]) ? (r[AI_CONFIG_KEYS.featuresOff] as unknown[]).filter((x): x is string => typeof x === 'string') : [],
   };
 }
 

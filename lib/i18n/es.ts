@@ -4581,6 +4581,16 @@ export const es = {
     admin: {
       title: 'IA: gasto y límites',
       caption: 'Lo que cuesta la IA y los topes. Si la usan tus amigos, la paga la compañía: ponle límite.',
+      features: {
+        title: 'Funciones de IA',
+        hint: 'Apaga una sola función sin tocar las demás. Se aplica en el servidor: una app vieja tampoco podrá usarla.',
+        search: 'Búsqueda inteligente',
+        album: 'Álbum: entender fotos y leer piezas',
+        places: 'Buscar lugares cerca',
+        check_photo: 'Chequeo con foto',
+        accident: 'Fotos de accidente',
+        sale: 'Hoja de venta (redacción)',
+      },
       masterSwitch: 'IA encendida',
       masterHint: 'Apagada: nadie puede usar la IA y los formularios siguen igual.',
       today: 'Hoy',

@@ -25,14 +25,14 @@ import { useAiGate } from './useAiGate';
 export function NearbyPlaces({ initialKind = 'taller', onPick }: { initialKind?: PlaceKind; onPick?: (place: Place) => void }) {
   const { theme } = useTheme();
   const router = useRouter();
-  const { ready, sheet } = useAiGate();
+  const { ready, sheet, featureOff } = useAiGate();
   const location = usePermissionRequest('location_foreground');
   const [kind, setKind] = useState<PlaceKind>(initialKind);
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState<PlacesAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (!FEATURE_PLACES_OSM && !FEATURE_GOOGLE_PLACES) return null;
+  if ((!FEATURE_PLACES_OSM && !FEATURE_GOOGLE_PLACES) || featureOff('places')) return null;
   const x = t.ai.places;
   const source: 'osm' | 'google' = FEATURE_GOOGLE_PLACES ? 'google' : 'osm';
 

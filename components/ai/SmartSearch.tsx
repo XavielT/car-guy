@@ -35,14 +35,14 @@ export const looksLikeQuestion = (text: string, matches: number) => text.trim().
 export function SmartSearch({ query, matches, onQuery }: { query: string; matches: number; onQuery: (q: string) => void }) {
   const { theme } = useTheme();
   const router = useRouter();
-  const { ready, sheet } = useAiGate();
+  const { ready, sheet, featureOff } = useAiGate();
   const { data, activeVehicle, setActiveVehicle } = useStore();
   const [busy, setBusy] = useState(false);
   const [choice, setChoice] = useState<IntentResult | null>(null);
   const [card, setCard] = useState<{ answer: QueryAnswer; plan: QueryPlan; question: string } | null>(null);
   const [fromVoice, setFromVoice] = useState(false);
 
-  if (!FEATURE_AI_SEARCH) return null;
+  if (!FEATURE_AI_SEARCH || featureOff('search')) return null;
   const x = t.ai.search;
   const show = looksLikeQuestion(query, matches);
 
@@ -95,7 +95,7 @@ export function SmartSearch({ query, matches, onQuery }: { query: string; matche
         lastOdometer,
         fuelType: null,
         features: FEATURES.map((f) => f.id),
-      });
+      }, 'search');
       if (needsVehicleChoice(result)) return setChoice(result);
       open(result, result.vehicle?.id ?? null);
     } catch (e) {

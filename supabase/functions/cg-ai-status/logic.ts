@@ -45,5 +45,7 @@ export async function handleStatus(req: Request, deps: Deps): Promise<Response> 
     stt_configured: resolveSttConfig(env) !== null,
     refusal,
     remainingToday: remaining(snap),
+    // The features the admin switched off: the app hides those buttons instead of letting them fail (SPEC-G §G10).
+    features_off: Array.isArray(snap.features_off) ? snap.features_off : [],
   });
 }

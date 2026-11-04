@@ -26,6 +26,8 @@ export type StatusResponse = {
   /** What a model call would be refused for right now; null = it would go ahead. */
   refusal?: string | null;
   remainingToday?: { hour: number; dayUsd: number };
+  /** Feature ids the admin switched off (supabase/functions/_shared/features.ts). */
+  features_off?: string[];
 };
 
 export type StatusInput = {

@@ -6,7 +6,8 @@ import { T } from '@/components/T';
 import { GhostButton, PrimaryButton, SectionHeader, Surface, ToggleRow } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { DEFAULT_AI_CONFIG, fieldsFromConfig, parseLimits, usd, type AiConfig, type AiUsageSummary, type LimitFields } from '@/lib/ai/limits';
-import { loadAiUsage, pruneAiUsage, readAiConfig, saveAiLimits, setAiEnabled } from '@/lib/cloud/aiAdmin';
+import { AI_FEATURES, withFeature, type AiFeature } from '@/lib/ai/features';
+import { loadAiUsage, pruneAiUsage, readAiConfig, saveAiLimits, setAiEnabled, setAiFeaturesOff } from '@/lib/cloud/aiAdmin';
 import { t } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -22,11 +23,13 @@ export function AiAdminPanel() {
   const [enabled, setEnabled] = useState<boolean>(DEFAULT_AI_CONFIG.enabled);
   const [fields, setFields] = useState<LimitFields>(fieldsFromConfig(DEFAULT_AI_CONFIG));
   const [note, setNote] = useState<string | null>(null);
+  const [featuresOff, setFeaturesOff] = useState<string[]>([]);
 
   const apply = useCallback((u: AiUsageSummary | null, c: AiConfig | null) => {
     setUsage(u ?? 'error');
     if (c) {
       setEnabled(c.enabled);
+      setFeaturesOff(c.featuresOff);
       setFields(fieldsFromConfig(c));
     }
   }, []);
@@ -50,6 +53,17 @@ export function AiAdminPanel() {
       setEnabled(!next);
       setNote(t.ai.admin.saveFailed);
     } else setNote(null);
+  };
+
+  const flipFeature = async (id: AiFeature, on: boolean) => {
+    const next = withFeature(featuresOff, id, on);
+    const before = featuresOff;
+    setFeaturesOff(next);
+    if (await setAiFeaturesOff(next)) setNote(null);
+    else {
+      setFeaturesOff(before);
+      setNote(t.ai.admin.saveFailed);
+    }
   };
 
   const save = async () => {
@@ -87,6 +101,18 @@ export function AiAdminPanel() {
       <SectionHeader title={t.ai.admin.title} caption={t.ai.admin.caption} />
       <Surface padded style={{ marginBottom: space.md }}>
         <ToggleRow label={t.ai.admin.masterSwitch} hint={t.ai.admin.masterHint} value={enabled} onChange={(v) => void flip(v)} />
+      </Surface>
+
+      <Surface padded style={{ marginBottom: space.md }}>
+        <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+          {t.ai.admin.features.title}
+        </T>
+        <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.xs }}>
+          {t.ai.admin.features.hint}
+        </T>
+        {AI_FEATURES.map((id) => (
+          <ToggleRow key={id} label={t.ai.admin.features[id]} value={!featuresOff.includes(id)} onChange={(v) => void flipFeature(id, v)} />
+        ))}
       </Surface>
 
       <Surface padded style={{ marginBottom: space.md }}>

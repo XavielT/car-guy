@@ -20,6 +20,8 @@ export type AiStatus = {
   /** Voice also needs the speech-to-text key on the server. */
   voice: boolean;
   remainingToday: StatusResponse['remainingToday'] | null;
+  /** True when the admin switched this feature off: its button is not shown (SPEC-G §G10). Unknown while the status is loading. */
+  featureOff: (id: string) => boolean;
   refresh: () => Promise<void>;
   /** Accept (true) or withdraw (false) consent, then re-read the status. Returns false when it could not be saved. */
   setConsent: (on: boolean) => Promise<boolean>;
@@ -84,6 +86,7 @@ export function useAiStatus(): AiStatus {
     consent: response?.signed_in ? (response.consent ?? false) : null,
     voice: voiceAvailable(state, response),
     remainingToday: response?.remainingToday ?? null,
+    featureOff: (id) => Array.isArray(response?.features_off) && response.features_off.includes(id),
     refresh,
     setConsent,
   };

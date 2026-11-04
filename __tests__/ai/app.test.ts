@@ -189,9 +189,9 @@ describe('limits.ts — the admin brakes', () => {
     expect(usd('0.410000')).toBe(0.41);
     expect(usd('nope')).toBe(0);
   });
-  it('the config keys are exactly the ones sql/042 seeds', () => {
+  it('the config keys are the sql/042 ones plus the sql/044 feature list', () => {
     expect(Object.values(AI_CONFIG_KEYS).sort()).toEqual(
-      ['ai_cap_global_day_usd', 'ai_cap_user_day_usd', 'ai_enabled', 'ai_limit_places_user_day', 'ai_limit_user_hour'].sort(),
+      ['ai_cap_global_day_usd', 'ai_cap_user_day_usd', 'ai_enabled', 'ai_features_off', 'ai_limit_places_user_day', 'ai_limit_user_hour'].sort(),
     );
   });
 });
