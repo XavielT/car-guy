@@ -18,9 +18,12 @@ export type LiveTrip = {
   vehicleId: string;
   role: 'conductor' | 'pasajero';
   startedAt: number;
-  /** Smoothed, km/h. */
+  /** The SpeedEngine's fused speed with its small lead, km/h (no moving average on top: that was the lag). */
   speedKmh: number;
+  /** The sustained top speed so far (≥ 2 s on accurate fixes), the same number the saved trip will show. */
   maxKmh: number;
+  /** True while no Doppler speed backs the needle (web, iPhone, Android without hasSpeed): the cluster says "estimada". */
+  estimated?: boolean;
   distanceM: number;
   /** Seconds with speed above the moving threshold. */
   movingS: number;
@@ -28,21 +31,23 @@ export type LiveTrip = {
   gps: GpsQuality;
 };
 
-export type LiveFix = { t: number; speedKmh: number; accM: number | null; stepM: number; moving: boolean };
+export type LiveFix = { t: number; speedKmh: number; accM: number | null; stepM: number; moving: boolean; /** The engine's sustained top speed; omitted = keep the current one. */ topKmh?: number | null; estimated?: boolean };
 
 /** Accuracy (m) up to which a fix counts as a good one; above it the GPS lamp is amber. */
 const GOOD_ACC = 20;
-/** EMA factor for the needle: steady without lagging a braking car by seconds. */
-const ALPHA = 0.35;
 
-/** One fix into the snapshot. Pure. */
+/**
+ * One fix into the snapshot. Pure. The needle is the engine's value as it comes (it already follows a braking car and holds a steady one:
+ * a moving average on top of it was the lag the old needle had); the max is the engine's SUSTAINED top speed, the same function the saved
+ * trip uses, so the cluster and the trip card cannot disagree.
+ */
 export function reduceLive(trip: LiveTrip, fix: LiveFix): LiveTrip {
   const dt = trip.lastFixAt != null ? Math.max(0, (fix.t - trip.lastFixAt) / 1000) : 0;
-  const speed = trip.lastFixAt == null ? fix.speedKmh : trip.speedKmh + ALPHA * (fix.speedKmh - trip.speedKmh);
   return {
     ...trip,
-    speedKmh: Math.max(0, speed),
-    maxKmh: Math.max(trip.maxKmh, speed),
+    speedKmh: Math.max(0, fix.speedKmh),
+    maxKmh: fix.topKmh != null ? Math.max(trip.maxKmh, fix.topKmh) : trip.maxKmh,
+    estimated: fix.estimated ?? trip.estimated,
     distanceM: trip.distanceM + Math.max(0, fix.stepM),
     movingS: trip.movingS + (fix.moving ? dt : 0),
     lastFixAt: fix.t,

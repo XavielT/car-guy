@@ -9,7 +9,8 @@
 import { recordNote } from '../diagnostics';
 import { loadTripStateJson, saveTripStateJson, suggestOdometerFromTrip, tripPoints, trips } from '../db/tripOps';
 import type { Trip, TripPoint } from '../db/types';
-import { bbox as bboxOf, encodePolyline, simplify, stats } from './geo';
+import { bbox as bboxOf, encodePolyline, simplify } from './geo';
+import { stats } from './stats';
 import { parseTripState, type StepResult, type TripCloseOut, type TripMachineState } from './machine';
 
 const iso = (t: number) => new Date(t).toISOString();

@@ -19,7 +19,8 @@ import { settings as settingsRepo } from '../db/repos';
 import { trips } from '../db/tripOps';
 import type { Trip } from '../db/types';
 import { applyStep, loadState, type Applied } from './finalize';
-import { displayKmh, effectiveSpeed, haversine, isJump, type Fix } from './geo';
+import type { Fix } from './geo';
+import { SpeedEngine } from './speed';
 import { resolveTripCfg, stepAll, type TripCfg, type TripInput, type TripMachineState } from './machine';
 import { getLiveTrip, reduceLive, setLiveTrip, type LiveTrip } from './liveStore';
 import { startableFixes } from './freshness';
@@ -36,11 +37,15 @@ export type FeedResult = {
 };
 
 /** The speed from which the live "moving" clock runs (m/s), as in the machine's stop rule. */
-const MOVING_MS = 1.5;
 
 let queue: Promise<unknown> = Promise.resolve();
 /** The previous fix, for the live numbers only (displacement speed, jitter). */
-let prevFix: Fix | null = null;
+/**
+ * The SpeedEngine of the trip on the cluster (lib/trips/speed.ts): the SAME code the saved trip's stats use, so the live top speed and the
+ * trip's top speed are one number. Replaced whenever a different trip comes onto the cluster, dropped when none is.
+ */
+let liveEngine: SpeedEngine | null = null;
+let liveEngineDist = 0;
 
 function serial<T>(work: () => Promise<T>): Promise<T> {
   const next = queue.then(work, work);
@@ -131,7 +136,8 @@ export function machineState(): Promise<TripMachineState> {
 async function syncLive(state: TripMachineState, applied: Applied[], fixes: Fix[], ctx: FeedCtx): Promise<void> {
   if (state.phase !== 'recording' || !state.trip) {
     if (getLiveTrip()) setLiveTrip(null);
-    prevFix = null;
+    liveEngine = null;
+    liveEngineDist = 0;
     return;
   }
   const open = state.trip;
@@ -157,7 +163,10 @@ async function syncLive(state: TripMachineState, applied: Applied[], fixes: Fix[
     // (the last fix still lights the GPS lamp).
     const last = fixes.at(-1) ?? null;
     if (last) live = { ...live, lastFixAt: last.t, gps: last.acc != null && last.acc <= 20 ? 'good' : 'weak' };
-    prevFix = last;
+    // A fresh engine for this trip; the last fix of the batch primes it (the machine already holds the batch).
+    liveEngine = new SpeedEngine();
+    liveEngineDist = 0;
+    if (last) liveEngine.push(last);
     setLiveTrip(live);
     return;
   }
@@ -168,18 +177,14 @@ async function syncLive(state: TripMachineState, applied: Applied[], fixes: Fix[
 }
 
 function advanceLive(live: LiveTrip, fix: Fix): LiveTrip {
-  // A teleport (GPS glitch, a mock provider switched off) is neither distance nor speed.
-  const jump = prevFix != null && isJump(prevFix, fix);
-  const speedMs = jump ? fix.speed : effectiveSpeed(prevFix, fix);
-  let next = live;
-  if (speedMs != null) {
-    const stepM = prevFix && !jump ? haversine(prevFix, fix) : 0;
-    // Jitter under the accuracy radius is not distance.
-    const jitter = stepM < Math.max(fix.acc ?? 0, prevFix?.acc ?? 0) && speedMs < 1;
-    next = reduceLive(live, { t: fix.t, speedKmh: displayKmh(speedMs), accM: fix.acc, stepM: jitter ? 0 : stepM, moving: speedMs >= MOVING_MS });
-  }
-  prevFix = fix;
-  return next;
+  const eng = (liveEngine ??= new SpeedEngine());
+  // A rejected fix (accuracy over 50 m, a teleport, a repeated timestamp) is neither speed nor distance: the engine says so by returning null.
+  const sample = eng.push(fix);
+  if (!sample) return live;
+  const sum = eng.summary();
+  const stepM = Math.max(0, sum.distanceM - liveEngineDist);
+  liveEngineDist = sum.distanceM;
+  return reduceLive(live, { t: fix.t, speedKmh: sample.displayKmh, accM: fix.acc, stepM, moving: sample.moving, topKmh: sum.topKmh, estimated: sample.estimated });
 }
 
 /** One fix onto the cluster right away, without the machine (it gets the fix in the next batch). */

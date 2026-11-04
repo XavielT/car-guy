@@ -7,7 +7,11 @@
  */
 import { getDb } from '../db/client';
 import type { RoutePoint } from '@/components/map/types';
-import { effectiveSpeed, type Fix } from './geo';
+import type { Fix } from './geo';
+import { segmentSpeedsKmh } from './speed';
+
+/** How much trail before the new rows the speed engine is given (s of GPS ≈ its longest window). */
+const CONTEXT_MS = 10_000;
 
 export type TrailRow = { t: number; lat: number; lng: number; speed: number | null; acc?: number | null };
 
@@ -17,13 +21,14 @@ export type TrailRow = { t: number; lat: number; lng: number; speed: number | nu
  * from the fix before. Without that, every speedless fix drew its piece of the live trail in the
  * "unknown" red. `prev` is the last row already on the map, so an incremental read can derive its first.
  */
-export function toRoutePoints(rows: readonly TrailRow[], prev?: TrailRow | null): RoutePoint[] {
+export function toRoutePoints(rows: readonly TrailRow[], prev?: TrailRow | readonly TrailRow[] | null): RoutePoint[] {
   const fix = (r: TrailRow): Fix => ({ t: r.t, lat: r.lat, lng: r.lng, speed: r.speed, acc: r.acc ?? null });
-  return rows.map((r, i) => {
-    const before = i > 0 ? rows[i - 1] : (prev ?? null);
-    const v = effectiveSpeed(before ? fix(before) : null, fix(r));
-    return { lat: r.lat, lng: r.lng, t: r.t, speedKmh: v == null ? null : v * 3.6 };
-  });
+  // The SpeedEngine over [the row already on the map, ...the new rows]: the trail's colours are the cluster's speeds, not a pair difference.
+  // `prev` is the rows already on the map: a few seconds of context warm the engine up, so an incremental read colours like a full one.
+  const ctx: readonly TrailRow[] = !prev ? [] : Array.isArray(prev) ? (prev as readonly TrailRow[]) : [prev as TrailRow];
+  const all = [...ctx, ...rows];
+  const speeds = segmentSpeedsKmh(all.map(fix)).slice(ctx.length);
+  return rows.map((r, i) => ({ lat: r.lat, lng: r.lng, t: r.t, speedKmh: speeds[i] ?? null }));
 }
 
 /** Appends new points (t strictly after the last) to the trail; the same array when nothing is new. */
@@ -36,11 +41,12 @@ export function appendTrail(trail: RoutePoint[], next: readonly RoutePoint[]): R
 /** The open trip's points after `afterT` (epoch ms), oldest first. */
 export async function trailSince(tripId: string, afterT: number): Promise<RoutePoint[]> {
   const db = await getDb();
-  // `>=`: the last row already on the map comes back too, so the first new one can derive its speed from it.
+  // The last CONTEXT_MS before `afterT` come back too: the engine needs a few seconds of the trail to read the first new row like a full read would.
   const rows = await db.getAllAsync<TrailRow>(
     'SELECT t, lat, lng, speed, acc FROM trip_point WHERE trip_id = ? AND t >= ? ORDER BY t',
-    [tripId, afterT],
+    [tripId, afterT - CONTEXT_MS],
   );
-  const prev = rows.length && rows[0].t === afterT ? rows[0] : null;
-  return toRoutePoints(prev ? rows.slice(1) : rows, prev);
+  const fresh = rows.filter((r) => r.t > afterT);
+  const context = rows.filter((r) => r.t <= afterT);
+  return toRoutePoints(fresh, context);
 }

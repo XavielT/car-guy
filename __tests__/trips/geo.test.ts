@@ -4,13 +4,11 @@ import {
   cleanTrack,
   decodePolyline,
   effectiveSpeed,
-  emaSpeed,
   encodePolyline,
   haversine,
   project,
   projector,
   simplify,
-  stats,
   type Fix,
 } from '@/lib/trips/geo';
 import { loadDrive } from '../helpers/tripReplay';
@@ -201,115 +199,15 @@ describe('effectiveSpeed', () => {
   });
 });
 
-describe('emaSpeed', () => {
-  it('smooths and holds on missing samples', () => {
-    expect(emaSpeed(null, 10)).toBe(10);
-    expect(emaSpeed(10, 20)).toBeCloseTo(13.5);
-    expect(emaSpeed(10, null)).toBe(10);
-  });
-});
-
 describe('bucketIndex', () => {
   it('splits at 30/60/90/120 km/h', () => {
     expect([0, 29.9, 30, 59, 60, 89, 90, 119, 120, 180].map(bucketIndex)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4]);
   });
 });
 
-/**
- * A synthetic 1 Hz drive heading east at 18.46° N:
- * 60 s parked (jitter) · 300 s at 20 m/s · 120 s stopped · 300 s at 30 m/s.
- */
-function syntheticDrive(): { fixes: Fix[]; expectedM: number } {
-  const r = rng(3);
-  const lat = 18.46;
-  const fixes: Fix[] = [];
-  let x = 0; // meters east
-  let t = 0;
-  const push = (speed: number) => {
-    const jx = (r() - 0.5) * 3;
-    const jy = (r() - 0.5) * 3;
-    fixes.push(fix(t * 1000, lat + jy / M_PER_DEG_LAT, -69.97 + (x + jx) / mLng(lat), speed));
-  };
-  for (let i = 0; i < 60; i++, t++) push(0);
-  for (let i = 0; i < 300; i++, t++) {
-    x += 20;
-    push(20);
-  }
-  for (let i = 0; i < 120; i++, t++) push(0);
-  for (let i = 0; i < 300; i++, t++) {
-    x += 30;
-    push(30);
-  }
-  return { fixes, expectedM: x };
-}
-
-describe('stats', () => {
-  it('measures a synthetic drive: distance, moving time, averages, buckets', () => {
-    const { fixes, expectedM } = syntheticDrive();
-    const s = stats(fixes);
-    expect(Math.abs(s.distanceM - expectedM) / expectedM).toBeLessThan(0.01); // parked jitter suppressed
-    expect(s.durationS).toBe(779);
-    expect(s.movingS).toBeGreaterThanOrEqual(598);
-    expect(s.movingS).toBeLessThanOrEqual(601);
-    expect(s.maxKmh).toBeCloseTo(108, 0);
-    expect(s.avgMovingKmh!).toBeGreaterThan(85);
-    expect(s.avgKmh!).toBeCloseTo((s.distanceM / 779) * 3.6, 6);
-    // 72 km/h → bucket 60–90; 108 km/h → 90–120.
-    expect(s.speedBuckets[2]).toBeGreaterThanOrEqual(299);
-    expect(s.speedBuckets[3]).toBeGreaterThanOrEqual(299);
-    const sum = s.speedBuckets.reduce((a, b) => a + b, 0);
-    expect(sum).toBeCloseTo(s.movingS, 6); // buckets are over moving time
-    expect(s.bbox).not.toBeNull();
-  });
-
-  it('rejects a single top-speed spike (3-sample median)', () => {
-    const { fixes } = syntheticDrive();
-    const spiked = fixes.map((f, i) => (i === 200 ? { ...f, speed: 70 } : f)); // 252 km/h for one sample
-    expect(stats(spiked).maxKmh).toBeCloseTo(108, 0);
-  });
-
-  it('ignores inaccurate fixes for the top speed', () => {
-    const { fixes } = syntheticDrive();
-    // Two neighbouring spikes would pass the median — but they are at acc 25 m.
-    const spiked = fixes.map((f, i) => (i === 200 || i === 201 ? { ...f, speed: 60, acc: 25 } : f));
-    expect(stats(spiked).maxKmh).toBeCloseTo(108, 0);
-  });
-
-  it('drops position jumps and bad fixes from the track and distance', () => {
-    const { fixes, expectedM } = syntheticDrive();
-    const jumped = fixes.map((f, i) => (i === 250 ? { ...f, lat: f.lat + 0.01 } : i === 251 ? { ...f, acc: 60 } : f));
-    const s = stats(jumped);
-    expect(s.track).toHaveLength(fixes.length - 2);
-    expect(Math.abs(s.distanceM - expectedM) / expectedM).toBeLessThan(0.01);
-  });
-
-  it('handles unsorted and duplicate input, and tiny tracks', () => {
-    const { fixes } = syntheticDrive();
-    const shuffled = [...fixes].reverse().concat(fixes.slice(0, 5));
-    expect(stats(shuffled).distanceM).toBeCloseTo(stats(fixes).distanceM, 6);
-    const one = stats([fixes[0]]);
-    expect(one).toMatchObject({ distanceM: 0, durationS: 0, movingS: 0, avgKmh: null, maxKmh: null });
-    expect(cleanTrack([])).toEqual([]);
-  });
-
-  it('stats on the GPX fixture (no reported speed) match the generated route', () => {
-    const s = stats(loadDrive(8));
-    expect(s.distanceM).toBeGreaterThan(11_900);
-    expect(s.distanceM).toBeLessThan(12_300);
-    expect(s.durationS / 60).toBeGreaterThan(24);
-    expect(s.durationS / 60).toBeLessThan(27);
-    // 9 min of stops + parked ends are not moving time.
-    expect(s.movingS / 60).toBeGreaterThan(14);
-    expect(s.movingS / 60).toBeLessThan(17);
-    expect(s.maxKmh!).toBeGreaterThan(85);
-    expect(s.maxKmh!).toBeLessThan(100);
-    expect(s.speedBuckets.reduce((a, b) => a + b, 0)).toBeCloseTo(s.movingS, 6);
-    expect(s.speedBuckets[4]).toBe(0); // never over 120
-  });
-});
-
 describe('dropExcursions (a track flipping between two position sources)', () => {
-  const { cleanTrack: clean, stats: st } = jest.requireActual('@/lib/trips/geo') as typeof import('@/lib/trips/geo');
+  const { cleanTrack: clean } = jest.requireActual('@/lib/trips/geo') as typeof import('@/lib/trips/geo');
+  const { stats: st } = jest.requireActual('@/lib/trips/stats') as typeof import('@/lib/trips/stats');
   // A straight drive east at ~15 m/s, one fix every 10 s (≈150 m apart).
   const drive = Array.from({ length: 30 }, (_, i) => ({ t: i * 10_000, lat: 18.45, lng: -69.97 + i * 0.00142, speed: 15, acc: 5, alt: null, heading: null }));
 

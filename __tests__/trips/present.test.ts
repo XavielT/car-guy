@@ -99,19 +99,28 @@ describe('fitRoute', () => {
 
 describe('coloredRuns', () => {
   it('splits the track where the speed bucket changes, continuously', () => {
-    // 10 s at ~20 km/h then 10 s at ~100 km/h, due east.
+    // 12 s at ~20 km/h, a 10 s ramp, then 12 s at ~100 km/h, due east (a real car cannot jump from 20 to 100 km/h in a second).
     const fixes: Fix[] = [];
     let lng = -69.9;
-    for (let i = 0; i <= 20; i++) {
-      const v = i <= 10 ? 5.5 : 28;
+    let v = 5.5;
+    for (let i = 0; i <= 34; i++) {
+      v = i < 12 ? 5.5 : i < 22 ? 5.5 + ((i - 12) / 10) * (28 - 5.5) : 28;
       if (i) lng += v / (111_320 * Math.cos((18.5 * Math.PI) / 180));
       fixes.push({ lat: 18.5, lng, t: i * 1000, speed: v, acc: 5 });
     }
     const runs = coloredRuns(fixes, { width: 300, height: 200 });
-    expect(runs.map((r) => r.bucket)).toEqual([0, 3]);
-    const endOfFirst = runs[0].d.split(' L').pop();
-    expect(runs[1].d.startsWith(`M${endOfFirst}`)).toBe(true);
+    const buckets = runs.map((r) => r.bucket);
+    // Starts slow, ends at 90-120, and only ever goes up through the ramp (the engine's speeds are smoothed, no flicker).
+    expect(buckets[0]).toBe(0);
+    expect(buckets[buckets.length - 1]).toBe(3);
+    expect([...buckets].sort((x, y) => x - y)).toEqual(buckets);
+    // Continuous: each run starts where the previous one ended.
+    for (let i = 1; i < runs.length; i++) {
+      const end = runs[i - 1].d.split(' L').pop();
+      expect(runs[i].d.startsWith('M' + end)).toBe(true);
+    }
   });
+
 });
 
 describe('ends and maps link', () => {

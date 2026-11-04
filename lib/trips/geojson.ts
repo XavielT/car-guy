@@ -12,7 +12,8 @@
  */
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 
-import { bucketIndex, effectiveSpeed, haversine, type Fix, type LatLng } from './geo';
+import { bucketIndex, haversine, type Fix, type LatLng } from './geo';
+import { segmentSpeedsKmh } from './speed';
 import { BUCKET_COLORS, type DrawnRoute } from './present';
 
 /** Same shape as components/map/types.ts RoutePoint (kept here so lib/ does not import components/). */
@@ -36,16 +37,14 @@ export function speedBucket(kmh: number | null | undefined): number {
 
 /**
  * The drawn route (routePointsForDrawing) → RoutePoint[]. Raw points get each
- * fix's speed from the segment that ends at it (effectiveSpeed, the same rule
- * coloredRuns uses); the first fix takes the second's. The polyline has none.
+ * fix's speed from the SpeedEngine (lib/trips/speed.ts: the same fused speed the cluster and the trip card use, smoothed over ±2 fixes);
+ * the first fix takes the second's. The polyline has none.
  */
 export function routePointsFromDrawn(drawn: DrawnRoute): RoutePoint[] {
   if (drawn.source === 'polyline') return drawn.points.map((p) => ({ lat: p.lat, lng: p.lng, speedKmh: null }));
   const pts: readonly Fix[] = drawn.points;
-  const out: RoutePoint[] = pts.map((p, i) => {
-    const v = i > 0 ? effectiveSpeed(pts[i - 1], p) : null;
-    return { lat: p.lat, lng: p.lng, speedKmh: v == null ? null : v * 3.6, t: p.t };
-  });
+  const speeds = segmentSpeedsKmh(pts);
+  const out: RoutePoint[] = pts.map((p, i) => ({ lat: p.lat, lng: p.lng, speedKmh: i > 0 ? speeds[i] : null, t: p.t }));
   if (out.length > 1) out[0].speedKmh = out[1].speedKmh;
   return out;
 }

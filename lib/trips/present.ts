@@ -5,7 +5,8 @@
  * share. Pure — no React, no Expo, no database.
  */
 import type { Trip } from '../db/types';
-import { bucketIndex, centroid, cleanTrack, decodePolyline, effectiveSpeed, projector, simplify, type Fix, type LatLng, type XY } from './geo';
+import { bucketIndex, centroid, cleanTrack, decodePolyline, projector, simplify, type Fix, type LatLng, type XY } from './geo';
+import { segmentSpeedsKmh } from './speed';
 
 export type Buckets = [number, number, number, number, number];
 
@@ -124,9 +125,10 @@ export function coloredRuns(
   const thin = thinPoints(points, maxPoints);
   const xy = project(thin, box);
   const runs: { bucket: number; pts: XY[] }[] = [];
+  // The same fused, smoothed speeds as the cluster and the trip card (SpeedEngine): one number everywhere.
+  const speeds = segmentSpeedsKmh(thin);
   for (let i = 1; i < thin.length; i++) {
-    const v = effectiveSpeed(thin[i - 1], thin[i]);
-    const b = bucketIndex((v ?? 0) * 3.6);
+    const b = bucketIndex(speeds[i] ?? 0);
     const last = runs[runs.length - 1];
     if (last && last.bucket === b) last.pts.push(xy[i]);
     else runs.push({ bucket: b, pts: [xy[i - 1], xy[i]] });

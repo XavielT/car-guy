@@ -5,7 +5,8 @@
  */
 import { tripDiagnostics, tripGeojson } from '@/lib/trips/exportGeojson';
 import { ROUTE_SIMPLIFY_M } from '@/lib/trips/finalize';
-import { cleanTrack, cleanTrackReport, encodePolyline, project, simplify, stats, type Fix } from '@/lib/trips/geo';
+import { cleanTrack, cleanTrackReport, encodePolyline, project, simplify, type Fix } from '@/lib/trips/geo';
+import { stats } from '@/lib/trips/stats';
 import { routePointsForDrawing } from '@/lib/trips/present';
 import { fitTiles, STREET_ZOOM } from '@/lib/trips/tiles';
 import { loadDrive } from '../helpers/tripReplay';
