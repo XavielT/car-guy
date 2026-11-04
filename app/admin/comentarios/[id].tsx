@@ -3,6 +3,7 @@ import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { TriageDraftCard } from '@/components/ai/TriageDraftCard';
 import { Field } from '@/components/Field';
 import { STATUS_TONE, kindLabel, shortDate, statusLabel } from '@/components/feedback/present';
 import { AdminFeedbackDetailSkeleton } from '@/components/skeletons/AdminSkeleton';
@@ -106,6 +107,8 @@ export default function ComentarioDetalle() {
           {row.message}
         </T>
       </Surface>
+
+      <TriageDraftCard row={row} email={row.email} />
 
       <SelectField<FeedbackStatus> label={t.vehicleForm.status} value={row.status as FeedbackStatus} options={FEEDBACK_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))} onChange={setStatus} />
 
