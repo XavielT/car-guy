@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.xaviel.carguy'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.triptrigger"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  // Activity Recognition transitions + the fused location provider (same version expo-location uses).
+  implementation 'com.google.android.gms:play-services-location:21.0.1'
+}

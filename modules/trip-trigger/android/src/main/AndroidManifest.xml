@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Automatic trips (IMP 03112026 PROMPT-09): the system tells Car Guy "you are in a vehicle" even when the app is closed. -->
+  <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+  <application>
+    <!-- Only Google Play services (through our own PendingIntent) reaches this one. -->
+    <receiver android:name="expo.modules.triptrigger.TransitionReceiver" android:exported="false" />
+    <!-- Re-registers the transitions after a reboot or an app update (the system forgets them). -->
+    <receiver android:name="expo.modules.triptrigger.BootReceiver" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+    <service android:name="expo.modules.triptrigger.TripRecorderService" android:exported="false" android:foregroundServiceType="location" />
+  </application>
+</manifest>

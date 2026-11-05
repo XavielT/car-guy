@@ -19,7 +19,9 @@ export type TimelineEntry =
   | { at: number; kind: 'app'; state: string }
   | { at: number; kind: 'phase'; from: string; to: string }
   | { at: number; kind: 'trip'; what: 'created' | 'discarded'; source: string; reason?: string; distanceM?: number }
-  | { at: number; kind: 'service'; running: boolean };
+  | { at: number; kind: 'service'; running: boolean }
+  /** An event of the native trigger (modules/trip-trigger): vehicle-enter/exit, recorder-start/stop, start-failed, ingested… */
+  | { at: number; kind: 'native'; event: string; detail?: string };
 
 const DAY = 86_400_000;
 
@@ -46,6 +48,8 @@ export type TimelineSummary = {
   appStateChanges: number;
   tripsCreated: number;
   tripsDiscarded: { reason: string; count: number }[];
+  /** What the native trigger did (vehicle-enter, recorder-start, start-failed…): the answer to "why did it not start by itself". */
+  native: { event: string; count: number }[];
 };
 
 export function summarize(list: readonly TimelineEntry[]): TimelineSummary {
@@ -78,6 +82,7 @@ export function summarize(list: readonly TimelineEntry[]): TimelineSummary {
     busiestHour: busiest ? { hourStart: new Date(busiest[0] * 3_600_000).toISOString(), runs: busiest[1].runs, ms: Math.round(busiest[1].ms) } : null,
     appStateChanges: list.filter((e) => e.kind === 'app').length,
     tripsCreated: list.filter((e) => e.kind === 'trip' && e.what === 'created').length,
+    native: count(list.filter((e): e is Extract<TimelineEntry, { kind: 'native' }> => e.kind === 'native').map((e) => (e.detail && /fail/.test(e.event) ? `${e.event}: ${e.detail}` : e.event))).map(({ reason, count: n }) => ({ event: reason, count: n })),
     tripsDiscarded: count(list.filter((e): e is Extract<TimelineEntry, { kind: 'trip' }> => e.kind === 'trip' && e.what === 'discarded').map((e) => e.reason ?? 'unknown')),
   };
 }

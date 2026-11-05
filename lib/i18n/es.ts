@@ -230,6 +230,7 @@ export const es = {
       location_foreground: { title: 'Ubicación', why: 'Para medir tu velocidad y dibujar tu ruta mientras manejas.', cta: 'Permitir ubicación' },
       location_background: { title: 'Ubicación «todo el tiempo»', why: 'Para que el viaje se guarde aunque la pantalla esté apagada. En la pantalla que se abre, elige «Permitir todo el tiempo».', cta: 'Permitir todo el tiempo' },
       battery_unrestricted: { title: 'Sin límite de batería', why: 'Para que el teléfono no cierre Car Guy en segundo plano. Toca «Permitir» o «Sin restricciones».', cta: 'Quitar el límite' },
+      activity: { title: 'Detectar cuando manejas', why: 'Para que Car Guy empiece a registrar solo cuando te subes al carro, aunque la app esté cerrada.', cta: 'Permitir detección' },
       autostart: { title: 'Inicio automático (Xiaomi)', why: 'Tu teléfono es Xiaomi: activa el interruptor de Car Guy en «Inicio automático» para que pueda arrancar solo.', cta: 'Abrir inicio automático', confirm: 'Ya lo activé' },
     },
   },

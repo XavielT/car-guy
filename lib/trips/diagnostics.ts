@@ -13,6 +13,7 @@ import { recentErrors, type DiagnosticEntry } from '../diagnostics';
 import { rawLocationPermissions } from '../permissions/impl';
 import type { TripMachineState } from './machine';
 import { summarize, type TimelineEntry } from './timeline';
+import { lastExitReasons } from '../../modules/trip-trigger';
 
 export type PermissionSnapshot = {
   status: string;
@@ -111,6 +112,23 @@ function snapshot(p: { status: string; granted: boolean; canAskAgain: boolean; a
   return p ? { status: p.status, granted: p.granted, canAskAgain: p.canAskAgain, accuracy: p.android?.accuracy ?? null } : null;
 }
 
+/** ApplicationExitInfo.REASON_* → a readable name (Android 11+). */
+const EXIT_NAMES: Record<number, string> = {
+  1: 'EXIT_SELF', 2: 'SIGNALED', 3: 'LOW_MEMORY', 4: 'CRASH', 5: 'CRASH_NATIVE', 6: 'ANR', 7: 'INITIALIZATION_FAILURE', 8: 'PERMISSION_CHANGE',
+  9: 'EXCESSIVE_RESOURCE_USAGE', 10: 'USER_REQUESTED', 11: 'USER_STOPPED', 12: 'DEPENDENCY_DIED', 13: 'OTHER', 14: 'FREEZER', 15: 'PACKAGE_STATE_CHANGE', 16: 'PACKAGE_UPDATED',
+};
+
+/** The system's own record of why the process ended, from the native module (null on web / an APK without it). */
+function exitReasons(): TripDiagnosticsInput['exitReasons'] {
+  if (Platform.OS !== 'android') return null;
+  try {
+    const list = lastExitReasons();
+    return list.map((r) => ({ at: r.t, reason: EXIT_NAMES[r.reason] ?? String(r.reason), importance: r.importance, description: r.description || undefined }));
+  } catch {
+    return null;
+  }
+}
+
 /** Gathers the live facts (each one best-effort: a failing probe says null, never throws). */
 export async function gatherTripDiagnostics(): Promise<ReturnType<typeof buildTripDiagnostics>> {
   const [Location, TaskManager, { autoReadiness, TRIP_TASK }, settings, { machineState }, { getDb }, { getAutostartState, getBatteryState }, version] =
@@ -163,7 +181,11 @@ export async function gatherTripDiagnostics(): Promise<ReturnType<typeof buildTr
     state,
     lastFixes: (rows ?? []).slice().reverse(),
     errors: recentErrors(),
-    timeline: await safe(async () => (await import('./timeline')).readTimeline()).then((x) => x ?? []),
+    exitReasons: exitReasons(),
+    timeline: await safe(async () => {
+      (await import('./nativeTrigger')).importNativeEvents();
+      return (await import('./timeline')).readTimeline();
+    }).then((x) => x ?? []),
   });
 }
 

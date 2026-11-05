@@ -83,13 +83,14 @@ async function defaultVehicleId(): Promise<string | null> {
  * the machine opens with no vehicle to put it on (empty garage) is not opened:
  * the inputs are dropped and the state stays as it was.
  */
-export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}, opts: { liveFixes?: boolean } = {}): Promise<FeedResult> {
+export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}, opts: { liveFixes?: boolean; replay?: boolean } = {}): Promise<FeedResult> {
   return serial(async () => {
     const [state, cfg] = await Promise.all([loadState(), currentTripCfg()]);
     // ADR-49: an idle machine never starts a trip on a cached fix (a last-known position from hours ago);
     // a deferred background batch (≤ 60 s) still counts. A recording trip keeps every fix it is given.
     const given = Array.isArray(input) ? input : [input];
-    const inputs = state.phase === 'idle' ? dropStaleFixes(given, Date.now()) : given;
+    // `replay`: fixes the native recorder wrote earlier (lib/trips/nativeTrigger.ts) are old on purpose, not cached positions.
+    const inputs = state.phase === 'idle' && !opts.replay ? dropStaleFixes(given, Date.now()) : given;
     const out: FeedResult = { state, applied: [] };
     if (!inputs.length) return out;
 

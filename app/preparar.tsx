@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, PermissionsAndroid, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { T } from '@/components/T';
 import { usePermissionRequest } from '@/components/permissions/usePermissionRequest';
@@ -14,13 +14,14 @@ import { useTheme } from '@/lib/theme/useTheme';
 import { armAuto } from '@/lib/trips/auto';
 import { setTripsMode } from '@/lib/trips/settings';
 import { getAutostartState, openAutostartSettings } from '@/modules/miui-autostart';
+import { activityPermissionGranted } from '@/lib/trips/nativeTrigger';
 
 /**
  * "Prepara tu teléfono": every switch automatic trips need, in one place, one at a time. The person taps one button;
  * the app explains, asks (or opens the exact system page), and moves on by itself when the phone says it is granted
  * (re-read whenever the app comes back to the foreground). Android only: a phone that is not Xiaomi skips autostart.
  */
-type StepId = 'notifications' | 'location_foreground' | 'location_background' | 'battery_unrestricted' | 'autostart';
+type StepId = 'notifications' | 'location_foreground' | 'location_background' | 'activity' | 'battery_unrestricted' | 'autostart';
 
 export default function PrepareScreen() {
   const router = useRouter();
@@ -34,10 +35,13 @@ export default function PrepareScreen() {
   /** MIUI does not always say its autostart state (`unknown`): then the person confirms by hand. */
   const [autostartConfirmed, setAutostartConfirmed] = useState(false);
   const [autoOn, setAutoOn] = useState(false);
+  /** Activity Recognition (Android 10+): lets the phone say "you are in a vehicle" while the app is closed. */
+  const [activity, setActivity] = useState<boolean>(() => Platform.OS !== 'android' || Number(Platform.Version) < 29 || activityPermissionGranted());
 
   const reread = useCallback(() => {
     void recheckPermissions();
     setAutostart(getAutostartState());
+    setActivity(Platform.OS !== 'android' || Number(Platform.Version) < 29 || activityPermissionGranted());
   }, []);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => s === 'active' && reread());
@@ -49,11 +53,12 @@ export default function PrepareScreen() {
     notifications: granted(notifications.status),
     location_foreground: granted(fg.status),
     location_background: granted(bg.status),
+    activity,
     // `unknown` = an old APK or a phone that does not say: treat as done so a person is never stuck on it.
     battery_unrestricted: granted(battery.status) || battery.status === 'unknown',
     autostart: !miui || autostart === 'enabled' || autostartConfirmed,
   };
-  const order: StepId[] = ['notifications', 'location_foreground', 'location_background', 'battery_unrestricted', ...(miui ? (['autostart'] as StepId[]) : [])];
+  const order: StepId[] = ['notifications', 'location_foreground', 'location_background', 'activity', 'battery_unrestricted', ...(miui ? (['autostart'] as StepId[]) : [])];
   const current = order.find((id) => !doneOf[id]) ?? null;
   const doneCount = order.filter((id) => doneOf[id]).length;
 
@@ -64,6 +69,10 @@ export default function PrepareScreen() {
       // "Todo el tiempo" needs the foreground permission first; ask it in the same tap if it is missing.
       if (!doneOf.location_foreground && !(await fg.ensure())) return;
       await bg.outcome();
+    } else if (id === 'activity') {
+      const r = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION);
+      // "No volver a preguntar": the system will not show the dialog again, so send the person to the app's settings.
+      if (r === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) await openAppSettings();
     } else if (id === 'battery_unrestricted') await battery.ensure();
     else if (!openAutostartSettings()) await openAppSettings();
     reread();

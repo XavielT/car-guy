@@ -17,6 +17,7 @@ import { initLanguage } from '../i18n';
 import { switchIntensity, TRIP_TASK } from './auto';
 import { feed } from './engine';
 import { fixFromLocation } from './machine';
+import { holdNative } from './nativeTrigger';
 import { flushTimeline, logTimeline } from './timeline';
 
 export type TripTaskData = { locations?: Location.LocationObject[] };
@@ -30,6 +31,8 @@ export async function handleTripTask({ data, error }: { data?: TripTaskData | nu
   }
   const locations = data?.locations ?? [];
   if (!locations.length) return;
+  // The app's own service is recording: the native recorder yields while these batches keep coming.
+  holdNative();
   // The journal's CPU proxy: how long this invocation ran, and whether the app was in the background (SPEC-H §H1).
   const startedAt = Date.now();
   const background = AppState.currentState !== 'active';

@@ -25,6 +25,15 @@ import { t } from '../i18n';
 import { feed, machineState } from './engine';
 import { logTimeline } from './timeline';
 import { setTripsSingleConfig, tripsMode, tripsSingleConfig } from './settings';
+import { armNativeTrigger, disarmNativeTrigger, handOverToApp } from './nativeTrigger';
+import { settings } from '../db/repos';
+
+/**
+ * Native-primary (PROMPT-09): when the OS trigger is registered, Android itself starts the recording when the person gets in a
+ * vehicle, so the app's own always-on service is only needed while a trip is recording. Stored so a fresh background JS context knows.
+ */
+const NATIVE_PRIMARY_KEY = 'trips_native_primary';
+const nativePrimary = () => settings.get<boolean>(NATIVE_PRIMARY_KEY, false);
 
 export const TRIP_TASK = 'carguy-trip-location';
 
@@ -125,6 +134,20 @@ export async function armAuto(): Promise<boolean> {
       await disarmAuto();
       return false;
     }
+    // The OS trigger first; the app's own service only as the fallback (no Play services / no Activity Recognition / old APK).
+    const native = await armNativeTrigger();
+    await settings.set(NATIVE_PRIMARY_KEY, native.native);
+    if (native.native) {
+      // Anything the native recorder wrote while the app was closed becomes trips now; a recorder still running hands over.
+      await handOverToApp();
+      if ((await machineState()).phase !== 'recording') {
+        await stopAppService();
+        logTimeline({ kind: 'arm', ok: true, reason: 'native' });
+        return true;
+      }
+    } else if (native.reason !== 'unavailable') {
+      recordNote('trip-native', `native trigger not armed: ${native.reason}`);
+    }
     const state = await machineState();
     const intensity = await wanted(state.phase);
     const started = await isAutoArmed();
@@ -148,6 +171,8 @@ export async function armAuto(): Promise<boolean> {
  */
 export async function disarmAuto(): Promise<void> {
   if (Platform.OS === 'web') return;
+  await disarmNativeTrigger();
+  await settings.set(NATIVE_PRIMARY_KEY, false).catch(() => {});
   try {
     if (!(await isAutoArmed())) return;
     const state = await machineState();
@@ -155,6 +180,17 @@ export async function disarmAuto(): Promise<void> {
     await Location.stopLocationUpdatesAsync(TRIP_TASK);
   } catch (error) {
     recordError('trip-disarm', error);
+  } finally {
+    current = null;
+  }
+}
+
+/** Stops the app's own location service without touching the trip state (the native trigger takes over). */
+async function stopAppService(): Promise<void> {
+  try {
+    if (await isAutoArmed()) await Location.stopLocationUpdatesAsync(TRIP_TASK);
+  } catch (error) {
+    recordError('trip-stop-service', error);
   } finally {
     current = null;
   }
@@ -171,6 +207,11 @@ export async function switchIntensity(to: 'watching' | 'recording'): Promise<voi
   // One configuration for both phases: there is nothing to switch (and a fresh
   // background context, where `current` is unknown, must not restart the service).
   if (await tripsSingleConfig()) return;
+  // Native-primary and the trip just closed: nothing to watch with, the OS trigger starts the next one.
+  if (to === 'watching' && (await nativePrimary())) {
+    await stopAppService();
+    return;
+  }
   const intensity = await wanted(to === 'recording' ? 'recording' : 'idle');
   if (current === intensity) return;
   try {

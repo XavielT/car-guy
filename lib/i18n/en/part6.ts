@@ -139,6 +139,7 @@ export const enPart6: Pick<
       location_foreground: { title: 'Location', why: 'To measure your speed and draw your route while you drive.', cta: 'Allow location' },
       location_background: { title: 'Location “all the time”', why: 'So the trip is saved even with the screen off. On the screen that opens, choose “Allow all the time”.', cta: 'Allow all the time' },
       battery_unrestricted: { title: 'No battery limit', why: 'So the phone does not close Car Guy in the background. Tap “Allow” or “No restrictions”.', cta: 'Remove the limit' },
+      activity: { title: 'Detect when you drive', why: 'So Car Guy starts recording by itself when you get in the car, even with the app closed.', cta: 'Allow detection' },
       autostart: { title: 'Autostart (Xiaomi)', why: 'Your phone is a Xiaomi: turn on the Car Guy switch in “Autostart” so it can start by itself.', cta: 'Open autostart', confirm: 'I turned it on' },
     },
   },
