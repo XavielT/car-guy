@@ -34,6 +34,8 @@ export type NotificationSettings = {
   minute: number;
   /** 1 = Sunday, per expo-notifications. */
   weeklyWeekday: number;
+  /** "Resúmenes" (SPEC-J §J1): the monthly/yearly recap notification. Undefined reads as on (it only fires when the notifications are enabled). */
+  recaps?: boolean;
 };
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
@@ -177,6 +179,7 @@ async function gatherPlanInput(config: NotificationSettings, today: string): Pro
     templates,
     marbeteNudges: isMarbeteWindowOpen(today) ? marbeteNudges(today) : [],
     warranties,
+    recaps: config.recaps !== false,
   };
 }
 

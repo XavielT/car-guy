@@ -2,7 +2,7 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux' | 'recap'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
 
@@ -98,6 +98,28 @@ export const enPart6: Pick<
     share: 'Share',
     shareSolo: 'Only you see this car.',
     shareN: (n: number) => (n === 1 ? 'Shared with 1 person.' : `Shared with ${n} people.`),
+  },
+  recap: {
+    list: { title: 'Recaps', intro: 'Your month and your year with the car, in your own numbers.', empty: 'Not enough data for a recap yet. Log a fill-up or start a trip.', year: (y: number) => `Year ${y}`, soFar: 'so far', open: 'Recaps', openCaption: 'Your month and your year as stories' },
+    scope: { vehicle: 'This car', all: 'My whole garage' },
+    eyebrow: { month: 'YOUR MONTH', year: 'YOUR YEAR' },
+    cover: { title: (what: string, car: string) => (car ? `Your ${what} with ${car}` : `Your ${what}`), km: 'kilometres', noKm: 'A quiet month', sentence: (what: string, km: number, car: string) => (km > 0 ? `Your ${what}${car ? ' with ' + car : ''}: you drove ${km.toLocaleString('en-US')} kilometres.` : `Your ${what}${car ? ' with ' + car : ''}.`) },
+    distance: { eyebrow: 'DISTANCE AND TIME', trips: (n: number) => (n === 1 ? '1 trip' : `${n} trips`), hours: (h: number) => `${h} h at the wheel`, longest: (km: string, date: string) => `Longest trip: ${km} (${date})`, busiest: (d: string) => `Busiest day: ${d}`, sentence: (km: number, trips: number) => (trips > 0 ? `You drove ${km.toLocaleString('en-US')} kilometres in ${trips === 1 ? '1 trip' : trips + ' trips'}.` : `You drove ${km.toLocaleString('en-US')} kilometres.`) },
+    speed: { eyebrow: 'SPEED', top: 'top speed (GPS)', avg: (v: number) => `Average while moving: ${v} km/h`, on: (d: string) => `On ${d}`, sentence: (v: number) => `Your top speed measured by GPS was ${v} kilometres per hour.` },
+    fuel: { eyebrow: 'FUEL', spent: (m: string) => `You spent ${m}`, price: (m: string) => `Average price: ${m} per gallon`, needTwo: 'Two full tanks are needed to work out the economy.', eff: 'economy', sentence: (vol: string, eff: string | null) => (eff ? `You filled ${vol} and it did ${eff}.` : `You filled ${vol}.`) },
+    cost: { eyebrow: 'WHAT IT COST', perKm: (m: string) => `${m} per kilometre`, biggest: (m: string) => `Biggest single item: ${m}`, sentence: (m: string) => `The car cost you ${m} this period.` },
+    care: { eyebrow: 'CARE', services: (n: number) => (n === 1 ? '1 service' : `${n} services`), repairs: (n: number) => (n === 1 ? '1 repair' : `${n} repairs`), overdue: (n: number) => (n === 1 ? '1 reminder overdue now' : `${n} reminders overdue now`), docs: (n: number) => (n === 1 ? '1 document expires within 60 days' : `${n} documents expire within 60 days`), sentence: (s: number, r: number) => `You did ${s === 1 ? '1 service' : s + ' services'} and ${r === 1 ? '1 repair' : r + ' repairs'}.` },
+    build: { eyebrow: 'MY PROJECT', mods: (n: number) => (n === 1 ? '1 modification installed' : `${n} modifications installed`), invested: (m: string) => `You invested ${m}`, sentence: (n: number) => `You installed ${n === 1 ? '1 modification' : n + ' modifications'}.` },
+    compare: { eyebrow: 'VS THE PREVIOUS PERIOD', km: 'Kilometres', spend: 'Spending', eff: 'Economy', up: (p: number) => `+${p} %`, down: (p: number) => `−${p} %`, same: 'same', sentence: 'This is how it went against the previous period.' },
+    months: { eyebrow: 'MONTH BY MONTH', km: 'km', sentence: (best: string) => `Your busiest month was ${best}.` },
+    odometer: { eyebrow: 'THE ODOMETER', from: 'from', to: 'to', sentence: (km: number) => `The odometer went up ${km.toLocaleString('en-US')} kilometres this year.` },
+    garage: { eyebrow: 'YOUR GARAGE', most: (n: string) => `The one you drove most: ${n}`, sentence: (n: number) => `You drove ${n} cars this year.` },
+    closer: { eyebrow: 'TO REMEMBER', km: (n: number) => `${n.toLocaleString('en-US')} km`, trips: (n: number) => (n === 1 ? '1 trip' : `${n} trips`), top: (n: number) => `${n} km/h`, line: 'Thanks for looking after your car.', sentence: (what: string) => `To remember: ${what}.` },
+    thin: { title: 'Not much movement this period', body: 'There is not much to tell yet. One fill-up or one trip already makes a recap.', fuel: 'Log fuel', trip: 'Start a trip' },
+    viewer: { close: 'Close', next: 'Next', prev: 'Previous', pause: 'Pause', play: 'Resume', card: (i: number, n: number) => `Card ${i} of ${n}`, share: 'Share', list: 'Cards', soFarBadge: 'SO FAR', notFound: 'This recap does not exist.', loading: 'Putting your recap together…' },
+    share: { title: 'Share recap', story: 'Story (9:16)', feed: 'Post (4:5)', spend: 'Show spending', spendHint: 'Off: no amount appears in the image.', car: "Show the car's name", me: 'Show my name', never: 'Never shown: plate, VIN, odometer, exact places, your home or work, or other people\'s names.', make: 'Create image', saved: 'Image ready', failed: 'The image could not be created.', download: 'Download', thin: 'There is still too little to share.', footer: 'Car Guy' },
+    notify: { title: 'Recaps', caption: 'A reminder on the 1st of each month at 9:00 and on 1 January.', monthTitle: (m: string) => `Your ${m} recap is ready`, yearTitle: (y: number) => `Your ${y} year with the car is ready`, body: 'See it in Car Guy.' },
+    ready: (label: string) => `Your ${label} recap is ready`,
   },
   ux: {
     moreDetails: 'More details',

@@ -10,6 +10,8 @@ import { FALLBACK_KM_PER_DAY } from '../domain/odometer';
 import { evaluate, type EvaluateContext } from '../domain/reminders';
 import type { Cadence, Reminder } from '../db/types';
 import { t } from '../i18n';
+import { monthTitle } from '../format';
+import { nextRecapNotificationAt } from '../domain/recap';
 import { catalogLabel } from '../i18n/catalog';
 
 /**
@@ -64,7 +66,28 @@ export type PlanInput = {
   marbeteNudges: { date: string; message: string }[];
   /** v12 (N7): repairs with a warranty still running — one heads-up a week before it ends. Optional: older callers omit it. */
   warranties?: { id: string; title: string; until: string; vehicleName?: string }[];
+  /** SPEC-J §J1: "Tu resumen de octubre está listo" on the 1st at 09:00 local (and the year on 1 January). Off unless asked for. */
+  recaps?: boolean;
 };
+
+/** The recap notifications: the next three 1sts at 09:00 local; on 1 January the YEAR (it contains December). */
+export function planRecapNotifications(now: string): Extract<PlannedNotification, { kind: 'date' }>[] {
+  const out: Extract<PlannedNotification, { kind: 'date' }>[] = [];
+  let from = new Date(now);
+  for (let i = 0; i < 3; i++) {
+    const when = nextRecapNotificationAt(from);
+    const closed = new Date(when.getFullYear(), when.getMonth() - 1, 1);
+    if (when.getMonth() === 0) {
+      const y = when.getFullYear() - 1;
+      out.push({ kind: 'date', id: `recap:${y}`, title: t.recap.notify.yearTitle(y), body: t.recap.notify.body, date: when.toISOString(), route: `/resumen/${y}` });
+    } else {
+      const id = `${closed.getFullYear()}-${String(closed.getMonth() + 1).padStart(2, '0')}`;
+      out.push({ kind: 'date', id: `recap:${id}`, title: t.recap.notify.monthTitle(monthTitle(closed.getFullYear(), closed.getMonth()).split(' ')[0].toLowerCase()), body: t.recap.notify.body, date: when.toISOString(), route: `/resumen/${id}` });
+    }
+    from = new Date(when.getTime() + 60_000);
+  }
+  return out;
+}
 
 /** How far ahead of its end a warranty says so. */
 export const WARRANTY_NOTICE_DAYS = 7;
@@ -179,6 +202,8 @@ export function planNotifications(input: PlanInput, now: string = input.today): 
       route: '/recordatorios',
     });
   }
+
+  if (input.recaps) for (const r of planRecapNotifications(now)) push(r);
 
   dated.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1));
 

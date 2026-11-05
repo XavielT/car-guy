@@ -42,6 +42,9 @@ import { Avatar } from '@/components/Avatar';
 import { FeatureSetSheet } from '@/components/features/FeatureSetSheet';
 import { FirstSteps, type FirstStep } from '@/components/features/FirstSteps';
 import { nextStep, type NextStep } from '@/lib/domain/nextStep';
+import { loadRecapInput } from '@/lib/db/recapQueries';
+import { buildRecap, recapReady } from '@/lib/domain/recap';
+import { recapTitle } from '@/lib/recap/copy';
 import { FEATURE_OFFER_DISMISSED_KEY, FIRST_STEPS_HIDDEN_KEY, readFlag, readSnoozed, setFlag, snoozeStep } from '@/lib/domain/nextStepStore';
 import { includesTopic, shouldOfferSet, suggestTopics } from '@/lib/features/featureSet';
 import { useFeatureSet } from '@/lib/features/featureSetStore';
@@ -160,6 +163,8 @@ export default function HomeScreen() {
   const [usedAt, setUsedAt] = useState<Record<string, number>>({});
   const [stepFlags, setStepFlags] = useState({ firstStepsHidden: false, offerDismissed: false });
   const [expiringDoc, setExpiringDoc] = useState<{ id: string; title: string; daysLeft: number } | null>(null);
+  // SPEC-J §J1: the recap that just closed (days 1–14), only if it has something to show.
+  const [recapNow, setRecapNow] = useState<{ id: string; label: string } | null>(null);
   const [setOpen, setSetOpen] = useState(false);
   // "Now" for the snooze check: read when Hoy gains focus, never during render.
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -171,6 +176,21 @@ export default function HomeScreen() {
       setStepFlags({ firstStepsHidden: fh, offerDismissed: od });
     });
   }, [focused]);
+
+  useEffect(() => {
+    let live = true;
+    const ready = recapReady(todayIso());
+    const cars = data.vehicles.map((v) => ({ id: v.id, name: v.name, photoMediaId: null }));
+    void (ready.length ? loadRecapInput(cars, data.fillups) : Promise.resolve(null)).then((input) => {
+      if (!live) return;
+      if (!input) return setRecapNow(null);
+      const hit = ready.map((p) => buildRecap(input, p, { kind: 'all' }, todayIso())).find((r) => !r.thin);
+      setRecapNow(hit ? { id: hit.id, label: recapTitle(hit).toLowerCase() } : null);
+    });
+    return () => {
+      live = false;
+    };
+  }, [data]);
 
   const vehicleId = activeVehicle?.id;
 
@@ -397,7 +417,7 @@ export default function HomeScreen() {
     fillupCount: vehicleFillups.length,
     daysSinceFillup: lastFill ? daysBetween(lastFill, todayIso()) : null,
     daysSinceOdometer: daysSince,
-    recap: null, // PROMPT-11 provides recapReady(); until then nothing is "just closed".
+    recap: recapNow,
     detection: null, // SPEC-H detection health (PROMPT-09); AutoBlockedCard still says it, below.
     firstRun: firstRunPick,
     offerFeatureSet: shouldOfferSet(featureSet, suggestion, stepFlags.offerDismissed),
@@ -419,7 +439,7 @@ export default function HomeScreen() {
       case 'odometer':
         return { title: t.hoy.step.odometerTitle, body: t.hoy.step.odometerBody(step.days ?? 0), cta: t.hoy.step.odometerCta, onAction: go('/odometro'), tone: 'accent' as const, icon: 'speedometer-outline' as const, later: true };
       case 'recap':
-        return { title: t.hoy.step.recapTitle(step.label), body: t.hoy.step.recapBody, cta: t.hoy.step.recapCta, onAction: go('/cifras'), tone: 'accent' as const, icon: 'stats-chart-outline' as const, later: true };
+        return { title: t.hoy.step.recapTitle(step.label), body: t.hoy.step.recapBody, cta: t.hoy.step.recapCta, onAction: go({ pathname: '/resumen/[period]', params: { period: step.id } } as never), tone: 'accent' as const, icon: 'stats-chart-outline' as const, later: true };
       case 'detection':
         return { title: t.hoy.step.detectionTitle, body: step.message, cta: t.hoy.step.detectionCta, onAction: go('/viajes/permisos'), tone: 'warn' as const, icon: 'navigate-outline' as const, later: true };
       case 'firstRun':

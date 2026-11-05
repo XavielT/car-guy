@@ -15,7 +15,7 @@ import { EventCostsBlock } from '@/components/cifras/EventCostsBlock';
 import { PricesBlock } from '@/components/cifras/PricesBlock';
 import { TiresBlock } from '@/components/cifras/TiresBlock';
 import { FilterBar, selectOptions } from '@/components/pickers';
-import { EmptyState, GhostButton, PrimaryButton, SectionHeader, Surface } from '@/components/ui';
+import { EmptyState, GhostButton, PrimaryButton, SectionHeader, StatusRow, Surface } from '@/components/ui';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -142,6 +142,7 @@ export default function CifrasScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['bottom']}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.pad}>
         <ScreenTitle title={t.stats.title} size={34} sub={t.stats.subtitle(activeVehicle.name)} />
+        <StatusRow icon="albums-outline" label={t.recap.list.open} status={t.recap.list.openCaption} onPress={() => router.push('/resumen' as never)} />
 
         <FilterBar
           filters={[{ key: 'period', label: t.export.period, value: period, onChange: setPeriod, options: selectOptions(PERIODS, (key) => t.stats.periods[key]) }]}

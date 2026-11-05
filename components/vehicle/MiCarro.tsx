@@ -83,6 +83,7 @@ export function MiCarro({ vehicleId, onTab, onOdometer }: { vehicleId: string; o
       {row('photos', t.miCarro.photos, 'images-outline', () => onTab('album'))}
       {row('odo', t.miCarro.odometer, 'speedometer-outline', onOdometer)}
       {row('cal', t.miCarro.calibration, 'options-outline', () => router.push({ pathname: '/vehiculo/[id]/calibracion', params: { id: vehicleId } }))}
+      <StatusRow label={t.recap.list.open} status={t.recap.list.openCaption} icon="albums-outline" onPress={() => router.push('/resumen' as never)} />
       {row('share', t.miCarro.share, 'people-outline', () => router.push({ pathname: '/vehiculo/[id]/compartir', params: { id: vehicleId } }))}
     </View>
   );

@@ -115,6 +115,27 @@ export default function NotificacionesScreen() {
             ) : null}
 
             {config.enabled ? (
+              <Surface style={{ marginTop: space.md }}>
+                <View style={styles.switchRow}>
+                  <View style={{ flex: 1 }}>
+                    <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+                      {t.recap.notify.title}
+                    </T>
+                    <T face="body" style={{ color: theme.text.muted, fontSize: 12 }}>
+                      {t.recap.notify.caption}
+                    </T>
+                  </View>
+                  <Switch
+                    value={config.recaps !== false}
+                    onValueChange={(v) => void apply({ ...config, recaps: v })}
+                    accessibilityLabel={t.recap.notify.title}
+                    trackColor={{ true: theme.accentFill, false: theme.lineStrong }}
+                  />
+                </View>
+              </Surface>
+            ) : null}
+
+            {config.enabled ? (
               <>
                 <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
                   {t.notifications.hour}

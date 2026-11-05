@@ -470,7 +470,7 @@ export const FEATURES: FeatureDef[] = [
     group: 'fuel_expenses',
     level: 'core',
     needsVehicle: true,
-    covers: ['reporte', 'exportar'],
+    covers: ['reporte', 'exportar', 'resumen/*'],
     enabled: true,
     keywords: {
       es: ['cifras', 'estadisticas', 'consumo', 'gastos', 'cuanto gaste', 'cuanto he gastado', 'grafica', 'reporte', 'exportar', 'csv', 'economia'],
