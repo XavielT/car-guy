@@ -9,7 +9,7 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { T } from '@/components/T';
-import { PrimaryButton } from '@/components/ui';
+import { Collapsible, PrimaryButton } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import {
   currentOdometer as currentOdometerQuery,
@@ -198,6 +198,7 @@ export default function NuevoGastoScreen() {
         <Field label={t.expense.amount} keyboardType="decimal-pad" value={amount} style={aiOutline(marks.amount, theme.accent)} onChangeText={(v) => { setAmount(v); unmark('amount'); }} />
         <AiFieldMark confidence={marks.date} />
         <DateField label={t.expense.date} value={date} onChange={(v) => { setDate(v); unmark('date'); }} noFuture />
+        <Collapsible id="form-expense-more" title={t.ux.moreDetails} hint={t.ux.expenseMoreHint} defaultOpen={Boolean(editingId)}>
         <Field
           label={t.expense.odometer}
           keyboardType="number-pad"
@@ -219,6 +220,7 @@ export default function NuevoGastoScreen() {
           vehicleId={activeVehicle.id}
           onChange={setPhotoMediaId}
         />
+        </Collapsible>
 
         {error ? (
           <T face="body" style={[styles.error, { color: theme.dangerText }]}>

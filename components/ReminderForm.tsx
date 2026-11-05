@@ -5,7 +5,7 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { T } from '@/components/T';
 import { SelectField, selectOptions } from '@/components/pickers';
-import { GhostButton, PrimaryButton, ToggleRow } from '@/components/ui';
+import { Collapsible, GhostButton, PrimaryButton, ToggleRow } from '@/components/ui';
 import { space } from '@/constants/theme';
 import { reminders as reminderRepo, serviceTypes as serviceTypeRepo } from '@/lib/db/repos';
 import type { Reminder, ReminderMetric, ServiceType, Vehicle } from '@/lib/db/types';
@@ -174,6 +174,7 @@ export function ReminderForm({
         <Field label={t.reminders.form.dueKm} keyboardType="number-pad" value={dueKm} onChangeText={setDueKm} />
       ) : null}
 
+      <Collapsible id="form-reminder-more" title={t.ux.moreDetails} hint={t.ux.reminderMoreHint} defaultOpen={Boolean(editing) || recurring}>
       <ToggleRow label={t.reminders.form.recurring} value={recurring} onChange={setRecurring} />
 
       {recurring ? (
@@ -243,6 +244,7 @@ export function ReminderForm({
       <Field label={t.reminders.form.notes} value={notes} onChangeText={setNotes} multiline />
 
       <ToggleRow label={t.reminders.form.enabled} value={enabled} onChange={setEnabled} />
+      </Collapsible>
 
       {error ? (
         <T face="body" style={{ color: theme.dangerText, fontSize: 13, marginBottom: space.md }}>

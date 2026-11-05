@@ -1,15 +1,25 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router as appRouter, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { router as appRouter, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
-import { SyncPill } from '@/components/SyncPill';
 import { T } from '@/components/T';
 import { ScreenTitle } from '@/components/ui/ScreenTitle';
 import { SelectField } from '@/components/pickers';
-import { GhostButton, NavRow, PrimaryButton, StatusPill, Surface } from '@/components/ui';
+import { Field } from '@/components/Field';
+import { SmartSearch } from '@/components/ai/SmartSearch';
+import { FeatureCard, featureCopy } from '@/components/features/FeatureCards';
+import { FeatureSetSheet } from '@/components/features/FeatureSetSheet';
+import { useFeatureBadges, useOpenFeature } from '@/components/features/useFeatures';
+import { Collapsible, GhostButton, NavRow, StatusRow, Surface } from '@/components/ui';
+import { includesTopic, splitAdvanced, splitBySet, suggestTopics } from '@/lib/features/featureSet';
+import { useFeatureSet } from '@/lib/features/featureSetStore';
+import { FEATURE_SECTIONS, type FeatureId } from '@/lib/features/ids';
+import { activeFeatures, type FeatureDef } from '@/lib/features/registry';
+import { searchFeatures } from '@/lib/features/search';
+import { readUsedAt } from '@/lib/features/usage';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { appVersion, gitSha } from '@/lib/appVersion';
@@ -19,10 +29,8 @@ import { useSession } from '@/lib/cloud/auth';
 import { userMessage } from '@/lib/diagnostics';
 import { setDiagnosticsMode, useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { exportBackup, importBackup } from '@/lib/backup';
-import { useInstallOffer } from '@/lib/release/useInstallOffer';
-import { FEATURE_DIY, FEATURE_FEEDBACK, FEATURE_I18N, FEATURE_SHARE, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { FEATURE_I18N, FEATURE_SHARE, FEATURE_SYNC } from '@/lib/flags';
 import { FEATURE_ONBOARDING_V2 } from '@/lib/flagsV8';
-import { FEATURE_JUNTES, FEATURE_SOCIAL, FEATURE_SUPPORT } from '@/lib/flagsV10';
 import { resetTips } from '@/lib/onboarding/tips';
 import { FEEDBACK_ROUTE } from '@/lib/feedback';
 import { t, useLanguage, type LanguagePreference } from '@/lib/i18n';
@@ -42,11 +50,41 @@ export default function MasScreen() {
   const language = useLanguage();
   const { data, activeVehicle, resetAll, refresh } = useStore();
   const archived = data.vehicles.filter((v) => v.isArchived);
-  const installOffer = useInstallOffer();
   const isAdmin = useIsAdmin();
   const { session } = useSession();
   const profile = useProfile();
   const { unseen: versionUnseen } = useVersionSeen();
+
+  // Más (SPEC-K §K2/K4): a search that speaks like people, the registry's groups by the person's own feature set, everything else collapsed.
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
+  const { set: featureSet } = useFeatureSet();
+  const { badgeOf } = useFeatureBadges(activeVehicle?.id);
+  const { open: openFeature } = useOpenFeature();
+  const [query, setQuery] = useState('');
+  const [setOpen, setSetOpen] = useState(false);
+  const [usedAt, setUsedAt] = useState<Record<string, number>>({});
+  useEffect(() => {
+    void readUsedAt().then(setUsedAt);
+  }, []);
+  const all = useMemo(() => activeFeatures(), []);
+  const results = query.trim() ? searchFeatures(query, featureCopy, all) : null;
+  const recents = useMemo(
+    () =>
+      Object.entries(usedAt)
+        .sort((a, b) => b[1] - a[1])
+        .map(([id]) => all.find((d) => d.id === (id as FeatureId)))
+        .filter((d): d is FeatureDef => Boolean(d))
+        .slice(0, 3),
+    [usedAt, all],
+  );
+  const card = (def: FeatureDef) => {
+    // A release the person has not read yet keeps its signal on the Versiones row (it used to be a red dot).
+    const b = def.id === 'versions' && versionUnseen ? { text: t.features.badgeNew, warn: false } : badgeOf(def);
+    return <FeatureCard key={def.id} def={def} badge={b?.text} warn={b?.warn} onPress={() => openFeature(def)} />;
+  };
+  const [nowMs] = useState(() => Date.now());
+  const suggestion = suggestTopics(all, usedAt, [], nowMs);
+  const hiddenCount = all.filter((d) => !includesTopic(featureSet, d.group)).length;
 
   const version = appVersion;
   const diagnostics = useDiagnosticsMode();
@@ -116,241 +154,159 @@ export default function MasScreen() {
           }
         />
 
-        {/* Herramientas (IMP 16102026 ADR-62): every function and its search, the first row. */}
-        <IconRow
-          icon="apps-outline"
-          label={t.features.title}
-          caption={t.features.subtitle}
-          onPress={() => router.push('/herramientas')}
-          style={styles.firstSection}
-        />
-
-        {/* Cifras left the tab bar for the CONDUCIR button (IMP 30092026 Phase 4, ADR-43). */}
-        <IconRow
-          icon="stats-chart-outline"
-          label={t.tabs.cifras}
-          caption={t.drive.cifrasCaption}
-          onPress={() => router.push('/cifras')}
-          style={styles.firstSection}
-        />
-
-        <MoreSection title={t.more.garage} caption={t.more.garageCaption} />
-        <NavRow
-          label={t.more.garageOpen}
-          caption={t.more.garageOpenCaption(data.vehicles.filter((v) => !v.isArchived).length, archived.length)}
-          onPress={() => router.push('/(tabs)/garaje')}
-        />
-        {activeVehicle ? (
-          <NavRow
-            label={t.more.activeVehicle(activeVehicle.name)}
-            caption={t.more.activeVehicleCaption}
-            onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id } })}
-          />
-        ) : null}
-        <PrimaryButton label={t.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
-
-        {/* Chequeo left the tab bar for the Garaje (IMP 28092026); this is one of its four doors. */}
-        <MoreSection title={t.more.checksSection} />
-        <NavRow label={t.more.checks} caption={t.more.checksCaption} onPress={() => router.push('/chequeo')} />
-        <NavRow label={t.more.checkGuide} caption={t.more.checkGuideCaption} onPress={() => router.push('/chequeo/guia')} />
-
-        <MoreSection title={t.more.maintenance} />
-        <NavRow
-          label={t.more.service}
-          caption={t.more.serviceCaption}
-          onPress={() => router.push('/servicio/nuevo')}
-        />
-        <NavRow
-          label={t.more.history}
-          caption={t.more.historyCaption}
-          onPress={() => router.push('/(tabs)/historial')}
-        />
-        <NavRow
-          label={t.more.reminders}
-          caption={t.more.remindersCaption}
-          onPress={() => router.push('/recordatorios')}
-        />
-        <NavRow
-          label={t.catalog.title}
-          caption={t.catalog.caption}
-          onPress={() => router.push('/catalogo')}
-        />
-        <NavRow
-          label={t.more.tasks}
-          caption={t.more.tasksCaption}
-          onPress={() => router.push('/tareas')}
-        />
-
-        <MoreSection title={t.more.fuelSection} />
-        <NavRow
-          label={t.more.newFillUp}
-          caption={t.more.newFillUpCaption}
-          onPress={() => router.push('/carga/nueva')}
-        />
-        <NavRow
-          label={t.more.prices}
-          caption={t.more.pricesCaption(data.settings.priceWeekLabel)}
-          onPress={() => router.push('/precios')}
-        />
-        <NavRow
-          label={t.more.expense}
-          caption={t.more.expenseCaption}
-          onPress={() => router.push('/gasto/nuevo')}
-        />
-
-        {FEATURE_DIY ? (
-          <>
-            <MoreSection title={t.diyMore.section} />
-            <NavRow label={t.diyMore.contacts} caption={t.diyMore.contactsCaption} onPress={() => router.push('/contactos')} />
-            <NavRow label={t.diyMore.obd} caption={t.diyMore.obdCaption} onPress={() => router.push('/obd')} />
-            {FEATURE_TRACK ? <NavRow label={t.track.more} caption={t.track.moreCaption} onPress={() => router.push('/pista')} /> : null}
-            {FEATURE_TRIPS ? <NavRow label={t.trips.more} caption={t.trips.moreCaption} onPress={() => router.push('/viajes')} /> : null}
-          </>
-        ) : null}
-
-        {FEATURE_SHARE ? (
-          <>
-            <MoreSection title={t.routes.share} />
-            <NavRow label={t.share.more} caption={t.share.moreCaption} onPress={() => router.push('/compartidos')} />
-            <NavRow label={t.members.haveCode} caption={t.members.acceptIntro} onPress={() => router.push({ pathname: '/invitacion/[code]', params: { code: '-' } })} />
-          </>
-        ) : null}
-
-        <MoreSection title={t.more.documents} />
-        <NavRow
-          label={t.more.documents}
-          caption={t.more.documentsCaption}
-          onPress={() => router.push('/documentos')}
-        />
-
-        <MoreSection title={t.more.account} />
-        <NavRow
+        {/* The account state is the one thing worth seeing without opening anything. */}
+        <StatusRow
+          icon="person-circle-outline"
           label={session ? t.account.signedInAs : t.account.signIn}
-          caption={session?.user.email ?? t.more.accountBody}
+          status={session?.user.email ?? t.more.accountBody}
+          tone={session ? 'ok' : 'neutral'}
           onPress={() => router.push('/cuenta')}
-          trailing={
-            session ? (
-              FEATURE_SYNC ? (
-                <SyncPill />
-              ) : (
-                <StatusPill status="ok" label={t.more.active} />
-              )
-            ) : undefined
-          }
         />
 
-        {/* IMP 01102026 Phase 5: people. */}
-        {FEATURE_SOCIAL ? <NavRow label={t.social.more} caption={t.social.moreCaption} onPress={() => router.push('/comunidad')} /> : null}
-        {FEATURE_JUNTES ? <NavRow label={t.juntes.more} caption={t.juntes.moreCaption} onPress={() => router.push('/juntes')} /> : null}
+        <Field label={t.mas.searchLabel} placeholder={t.mas.searchPlaceholder} value={query} onChangeText={setQuery} autoCorrect={false} autoFocus={focus === 'search'} returnKeyType="search" />
+        <SmartSearch query={query} matches={results?.length ?? 0} onQuery={setQuery} />
 
-        <MoreSection
-          title={t.more.data}
-          caption={
-            FEATURE_SYNC && session ? t.more.dataCaptionSynced : t.more.dataCaption
-          }
-        />
-        <PrimaryButton label={t.more.backup} onPress={handleExport} />
-        <GhostButton label={t.more.restore} onPress={handleImport} />
-        <T face="body" style={[styles.meta, { color: theme.text.muted }]}>
-          {t.more.restoreCaption}
-        </T>
-        <GhostButton
-          danger
-          label={t.more.wipe}
-          onPress={() =>
-            Alert.alert(t.more.wipeTitle, t.more.wipeBody, [
-              { text: t.common.cancel, style: 'cancel' },
-              { text: t.common.delete, style: 'destructive', onPress: resetAll },
-            ])
-          }
-        />
-
-        <MoreSection title={t.more.appearance} caption={t.more.appearanceCaption} />
-        <SelectField<ThemePreference>
-          label={t.more.appearance}
-          options={[
-            { value: 'system', label: t.more.themes.system },
-            { value: 'dark', label: t.more.themes.dark },
-            { value: 'light', label: t.more.themes.light },
-          ]}
-          value={preference}
-          onChange={setPreference}
-        />
-
-        {FEATURE_I18N ? (
+        {results ? (
+          results.length ? (
+            <View style={{ marginTop: space.md }}>{results.map(card)}</View>
+          ) : (
+            <View style={{ marginTop: space.lg, gap: space.sm }}>
+              <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+                {t.features.noResults(query.trim())}
+              </T>
+              <T face="body" style={{ color: theme.text.secondary, fontSize: 13 }}>
+                {t.features.noResultsHint}
+              </T>
+              <GhostButton label={t.features.sendFeedback} onPress={() => router.push(FEEDBACK_ROUTE as never)} />
+            </View>
+          )
+        ) : (
           <>
-            <MoreSection title={t.language.title} caption={t.language.caption} />
-            <SelectField<LanguagePreference>
-              label={t.language.title}
-              options={[
-                { value: 'system', label: t.language.system },
-                { value: 'es', label: t.language.es },
-                { value: 'en', label: t.language.en },
-              ]}
-              value={language.preference}
-              onChange={(next) => {
-                // The navigator is keyed on the language (app/_layout.tsx), so the switch
-                // remounts it on Inicio; bring the person back to where they were.
-                language.setPreference(next);
-                setTimeout(() => appRouter.navigate('/(tabs)/mas'), 0);
-              }}
-            />
+            {recents.length ? (
+              <View style={{ marginTop: space.sm, marginBottom: space.sm }}>
+                <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginBottom: space.xs }}>
+                  {t.mas.recents}
+                </T>
+                <View style={styles.chips}>
+                  {recents.map((d) => (
+                    <Pressable key={d.id} onPress={() => openFeature(d)} accessibilityRole="button" style={[styles.chip, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
+                      <Ionicons name={d.icon} size={16} color={theme.accent} />
+                      <T face="semibold" style={{ color: theme.text.primary, fontSize: 13 }}>
+                        {featureCopy(d).title}
+                      </T>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            <View style={{ marginTop: space.md }}>
+              {FEATURE_SECTIONS.map((section) => {
+                const items = all.filter((d) => d.section === section);
+                const { shown } = splitBySet(items, featureSet);
+                const { main, advanced } = splitAdvanced(shown, featureSet);
+                if (!main.length && !advanced.length) return null;
+                return (
+                  <Collapsible key={section} id={`mas-${section}`} title={t.mas.groups[section]} count={main.length + advanced.length}>
+                    {main.map(card)}
+                    {advanced.length ? (
+                      <Collapsible id={`mas-${section}-adv`} title={t.mas.advanced} count={advanced.length}>
+                        {advanced.map(card)}
+                      </Collapsible>
+                    ) : null}
+                  </Collapsible>
+                );
+              })}
+            </View>
+            {hiddenCount > 0 ? (
+              <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginBottom: space.sm }}>
+                {t.featureSet.hiddenCount(hiddenCount)}. {t.featureSet.hiddenNote}
+              </T>
+            ) : null}
+
+            <IconRow icon="apps-outline" label={t.mas.all} caption={t.mas.allCaption(all.length)} onPress={() => router.push('/herramientas')} style={{ marginTop: space.sm }} />
+            <IconRow icon="options-outline" label={t.featureSet.open} caption={t.featureSet.openCaption} onPress={() => setSetOpen(true)} />
+
+            <View style={{ marginTop: space.lg }}>
+              <Collapsible id="mas-garage" title={t.mas.garage}>
+                <NavRow label={t.more.garageOpen} caption={t.more.garageOpenCaption(data.vehicles.filter((v) => !v.isArchived).length, archived.length)} onPress={() => router.push('/(tabs)/garaje')} />
+                {activeVehicle ? <NavRow label={t.more.activeVehicle(activeVehicle.name)} caption={t.more.activeVehicleCaption} onPress={() => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id } })} /> : null}
+                <NavRow label={t.more.addVehicle} onPress={() => router.push('/vehiculo/nuevo')} />
+                <NavRow label={t.catalog.title} caption={t.catalog.caption} onPress={() => router.push('/catalogo')} />
+                <NavRow label={t.more.history} caption={t.more.historyCaption} onPress={() => router.push('/(tabs)/historial')} />
+                {includesTopic(featureSet, 'maintenance') ? <NavRow label={t.more.checkGuide} caption={t.more.checkGuideCaption} onPress={() => router.push('/chequeo/guia')} /> : null}
+                {FEATURE_SHARE ? <NavRow label={t.members.haveCode} caption={t.members.acceptIntro} onPress={() => router.push({ pathname: '/invitacion/[code]', params: { code: '-' } })} /> : null}
+              </Collapsible>
+
+              <Collapsible id="mas-data" title={t.mas.data} hint={t.more.dataCaption}>
+                <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginBottom: space.sm }}>
+                  {FEATURE_SYNC && session ? t.more.dataCaptionSynced : t.more.dataCaption}
+                </T>
+                <GhostButton label={t.more.backup} onPress={handleExport} />
+                <GhostButton label={t.more.restore} onPress={handleImport} />
+                <T face="body" style={[styles.meta, { color: theme.text.muted }]}>
+                  {t.more.restoreCaption}
+                </T>
+                <GhostButton
+                  danger
+                  label={t.more.wipe}
+                  onPress={() =>
+                    Alert.alert(t.more.wipeTitle, t.more.wipeBody, [
+                      { text: t.common.cancel, style: 'cancel' },
+                      { text: t.common.delete, style: 'destructive', onPress: resetAll },
+                    ])
+                  }
+                />
+              </Collapsible>
+
+              <Collapsible id="mas-look" title={t.mas.look}>
+                <SelectField<ThemePreference>
+                  label={t.more.appearance}
+                  options={[
+                    { value: 'system', label: t.more.themes.system },
+                    { value: 'dark', label: t.more.themes.dark },
+                    { value: 'light', label: t.more.themes.light },
+                  ]}
+                  value={preference}
+                  onChange={setPreference}
+                />
+                {FEATURE_I18N ? (
+                  <SelectField<LanguagePreference>
+                    label={t.language.title}
+                    options={[
+                      { value: 'system', label: t.language.system },
+                      { value: 'es', label: t.language.es },
+                      { value: 'en', label: t.language.en },
+                    ]}
+                    value={language.preference}
+                    onChange={(next) => {
+                      // The navigator is keyed on the language (app/_layout.tsx), so the switch
+                      // remounts it on Inicio; bring the person back to where they were.
+                      language.setPreference(next);
+                      setTimeout(() => appRouter.navigate('/(tabs)/mas'), 0);
+                    }}
+                  />
+                ) : null}
+              </Collapsible>
+
+              <Collapsible id="mas-help" title={t.mas.help}>
+                {FEATURE_ONBOARDING_V2 ? (
+                  <NavRow
+                    label={t.welcome.help.tips}
+                    caption={t.welcome.help.tipsCaption}
+                    onPress={() => {
+                      void resetTips();
+                      Alert.alert(t.welcome.help.tipsResetTitle, t.welcome.help.tipsReset);
+                    }}
+                  />
+                ) : null}
+                {isAdmin ? <NavRow label={t.admin.more} caption={t.admin.moreCaption} onPress={() => router.push('/admin')} /> : null}
+              </Collapsible>
+            </View>
           </>
-        ) : null}
+        )}
+        <SetSheetHost open={setOpen} onClose={() => setSetOpen(false)} suggested={suggestion} />
 
-        <MoreSection title={t.more.notifications} />
-        <NavRow
-          label={t.more.notifications}
-          caption={t.more.notificationsCaption}
-          onPress={() => router.push('/notificaciones')}
-        />
-        <NavRow label={t.more.permissions} caption={t.more.permissionsCaption} onPress={() => router.push('/permisos' as never)} />
-
-        {FEATURE_ONBOARDING_V2 ? (
-          <>
-            <MoreSection title={t.welcome.help.title} />
-            <NavRow
-              label={t.welcome.help.again}
-              caption={t.welcome.help.againCaption}
-              onPress={() => router.push({ pathname: '/bienvenida', params: { again: '1' } })}
-            />
-            <NavRow
-              label={t.welcome.help.tips}
-              caption={t.welcome.help.tipsCaption}
-              onPress={() => {
-                void resetTips();
-                Alert.alert(t.welcome.help.tipsResetTitle, t.welcome.help.tipsReset);
-              }}
-            />
-          </>
-        ) : null}
-
-        <MoreSection title={t.more.about} />
-        {installOffer ? <NavRow label={t.install.more} caption={t.install.moreCaption} onPress={() => router.push('/instalar')} /> : null}
-        <NavRow label={t.legalUi.more} caption={t.legalUi.moreCaption} onPress={() => router.push('/legal')} />
-        <NavRow
-          label={t.versions.more}
-          caption={versionUnseen ? t.versions.moreUnseen : t.versions.moreCaption}
-          onPress={() => router.push('/versiones')}
-          trailing={
-            versionUnseen ? (
-              <View
-                accessibilityLabel={t.versions.moreUnseen}
-                style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.redline }}
-              />
-            ) : undefined
-          }
-        />
-        {FEATURE_FEEDBACK ? (
-          <NavRow
-            label={t.feedback.more}
-            caption={t.feedback.moreCaption}
-            onPress={() => router.push({ pathname: FEEDBACK_ROUTE, params: { from: '/mas' } })}
-          />
-        ) : null}
-        {isAdmin ? <NavRow label={t.admin.more} caption={t.admin.moreCaption} onPress={() => router.push('/admin')} /> : null}
-        {/* ADR-53: the last row, no badge, never a popup. */}
-        {FEATURE_SUPPORT ? <NavRow label={t.support.more} caption={t.support.moreCaption} onPress={() => router.push('/apoyar')} /> : null}
         <Surface>
           <Pressable onPress={tapVersion} accessibilityRole="text">
             <T face="monoBold" style={{ color: theme.text.primary, fontSize: 15 }}>
@@ -386,6 +342,8 @@ const styles = StyleSheet.create({
   h: { fontSize: 34 },
   sub: { marginTop: 6, lineHeight: 22 },
   firstSection: { marginTop: space.xl },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  chip: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.md },
   iconRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: 1, borderRadius: radius.input, paddingHorizontal: space.lg, paddingVertical: space.md + 2, minHeight: 56, marginBottom: space.sm },
   meta: { marginTop: space.sm, lineHeight: 19, fontSize: 13 },
   cardBody: { fontSize: 14, marginTop: space.sm, lineHeight: 21 },
@@ -448,18 +406,7 @@ function IconRow({
   );
 }
 
-function MoreSection({ title, caption, style }: { title: string; caption?: string; style?: StyleProp<ViewStyle> }) {
-  const { theme } = useTheme();
-  return (
-    <View style={[{ marginTop: space.xl, marginBottom: space.sm }, style]}>
-      <T face="eyebrow" accessibilityRole="header" style={{ color: theme.accent, fontSize: 12 }}>
-        {title}
-      </T>
-      {caption ? (
-        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4 }}>
-          {caption}
-        </T>
-      ) : null}
-    </View>
-  );
+
+function SetSheetHost({ open, onClose, suggested }: { open: boolean; onClose: () => void; suggested: ReturnType<typeof suggestTopics> }) {
+  return <FeatureSetSheet visible={open} onClose={onClose} suggested={suggested} />;
 }

@@ -192,7 +192,7 @@ export const FEATURES: FeatureDef[] = [
     enabled: FEATURE_ALBUM,
     permission: 'photos',
     keywords: {
-      es: ['foto', 'fotos', 'imagen', 'galeria', 'importar', 'camara'],
+      es: ['foto', 'fotos', 'imagen', 'imagenes', 'galeria', 'importar', 'camara'],
       en: ['photo', 'photos', 'picture', 'gallery', 'import', 'camera'],
     },
   },
@@ -229,7 +229,7 @@ export const FEATURES: FeatureDef[] = [
     telltale: 'check',
     enabled: FEATURE_DIY,
     keywords: {
-      es: ['obd', 'luz del tablero', 'luz de check', 'check engine', 'falla', 'codigo', 'codigos', 'p0300', 'escaner', 'diagnostico', 'se prendio una luz', 'motor'],
+      es: ['obd', 'luz del tablero', 'luz de check', 'check engine', 'falla', 'codigo', 'codigos', 'p0300', 'escaner', 'escanear', 'diagnostico', 'se prendio una luz', 'motor'],
       en: ['obd', 'dashboard light', 'check engine', 'engine light', 'fault', 'code', 'codes', 'dtc', 'p0300', 'scanner', 'diagnostic'],
     },
   },
@@ -473,7 +473,7 @@ export const FEATURES: FeatureDef[] = [
     covers: ['reporte', 'exportar'],
     enabled: true,
     keywords: {
-      es: ['cifras', 'estadisticas', 'consumo', 'gastos', 'grafica', 'reporte', 'exportar', 'csv', 'economia'],
+      es: ['cifras', 'estadisticas', 'consumo', 'gastos', 'cuanto gaste', 'cuanto he gastado', 'grafica', 'reporte', 'exportar', 'csv', 'economia'],
       en: ['stats', 'statistics', 'economy', 'spending', 'chart', 'report', 'export', 'csv'],
     },
   },

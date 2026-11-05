@@ -9,7 +9,7 @@ import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { SelectField } from '@/components/pickers';
 import { T } from '@/components/T';
-import { PrimaryButton, ToggleRow } from '@/components/ui';
+import { Collapsible, PrimaryButton, ToggleRow } from '@/components/ui';
 import { IdentitySection, type IdentityValue } from '@/components/vehicle/IdentitySection';
 import { MakeModelYear, type MakeModelValue } from '@/components/vehicle/MakeModelYear';
 import { DEFAULT_SEGMENTS, GaugeTypeSection, type GaugeTypeValue } from '@/components/vehicle/GaugeTypeSection';
@@ -395,6 +395,47 @@ export function VehicleForm({
         }}
       />
 
+      {/* 5 · Combustible, Tanque (gal | L), Odómetro */}
+      <AiFieldMark confidence={aiMarks.fuel} />
+      <FuelPicker label={t.vehicle.fuel} value={fuel} onChange={(v) => (setFuel(v), unmarkAi('fuel'))} />
+
+      <View style={styles.pair}>
+        <View style={styles.half}>
+          <Field
+            label={`${t.vehicleForm.tank} (${unitLabel(unit)})`}
+            placeholder={unit === 'gal' ? '12.5' : '47'}
+            keyboardType="decimal-pad"
+            value={tank}
+            onChangeText={setTank}
+            hint={
+              caption
+                ? t.vehicleForm.tankConverted(caption.typed, unitLabel(unit), caption.other, unitLabel(caption.otherUnit))
+                : undefined
+            }
+          />
+          <SelectField<VolumeUnit>
+            label={t.vehicleForm.tankUnit}
+            value={unit}
+            options={[
+              { value: 'gal', label: 'gal' },
+              { value: 'l', label: 'L' },
+            ]}
+            onChange={changeUnit}
+          />
+        </View>
+        <View style={styles.half}>
+          <Field
+            label={t.vehicle.odometer}
+            placeholder="51676"
+            keyboardType="number-pad"
+            value={odometer}
+            onChangeText={setOdometer}
+            hint={t.vehicle.odometerHint}
+          />
+        </View>
+      </View>
+
+      <Collapsible id="form-vehicle-more" title={t.ux.moreDetails} hint={t.ux.vehicleMoreHint} defaultOpen={Boolean(initial?.name)}>
       {/* 3 · Tipo */}
       <SelectField<string | null>
         label={t.vehicleForm.bodyType}
@@ -441,46 +482,6 @@ export function VehicleForm({
         <View style={styles.half}>
           <AiFieldMark confidence={aiMarks.vin} />
           <Field label={t.vehicle.vin} autoCapitalize="characters" value={vin} onChangeText={(v) => (setVin(v), unmarkAi('vin'))} />
-        </View>
-      </View>
-
-      {/* 5 · Combustible, Tanque (gal | L), Odómetro */}
-      <AiFieldMark confidence={aiMarks.fuel} />
-      <FuelPicker label={t.vehicle.fuel} value={fuel} onChange={(v) => (setFuel(v), unmarkAi('fuel'))} />
-
-      <View style={styles.pair}>
-        <View style={styles.half}>
-          <Field
-            label={`${t.vehicleForm.tank} (${unitLabel(unit)})`}
-            placeholder={unit === 'gal' ? '12.5' : '47'}
-            keyboardType="decimal-pad"
-            value={tank}
-            onChangeText={setTank}
-            hint={
-              caption
-                ? t.vehicleForm.tankConverted(caption.typed, unitLabel(unit), caption.other, unitLabel(caption.otherUnit))
-                : undefined
-            }
-          />
-          <SelectField<VolumeUnit>
-            label={t.vehicleForm.tankUnit}
-            value={unit}
-            options={[
-              { value: 'gal', label: 'gal' },
-              { value: 'l', label: 'L' },
-            ]}
-            onChange={changeUnit}
-          />
-        </View>
-        <View style={styles.half}>
-          <Field
-            label={t.vehicle.odometer}
-            placeholder="51676"
-            keyboardType="number-pad"
-            value={odometer}
-            onChangeText={setOdometer}
-            hint={t.vehicle.odometerHint}
-          />
         </View>
       </View>
 
@@ -571,6 +572,8 @@ export function VehicleForm({
 
       {/* 9 · Notas */}
       <Field label={t.vehicle.notes} value={notes} onChangeText={setNotes} multiline />
+
+      </Collapsible>
 
       {error ? (
         <T face="body" accessibilityRole="alert" style={[styles.error, { color: theme.dangerText, backgroundColor: theme.statusBg.vencido }]}>

@@ -2,7 +2,7 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
 
@@ -68,6 +68,44 @@ export const enPart6: Pick<
     openHint: 'How much your dash reads high.',
   },
 
+  miCarro: {
+    title: 'My car',
+    ago: { today: 'today', yesterday: 'yesterday', days: (n: number) => `${n} days ago`, months: (n: number) => (n === 1 ? '1 month ago' : `${n} months ago`) },
+    service: 'Services and repairs',
+    serviceNone: 'None yet.',
+    serviceLast: (what: string, ago: string) => `Latest: ${what}, ${ago}`,
+    docs: 'Documents and reminders',
+    docsNone: 'No documents saved.',
+    docsOk: 'All up to date.',
+    docExpires: (what: string, n: number) => (n < 0 ? `${what}: expired` : n === 0 ? `${what}: expires today` : `${what}: expires in ${n === 1 ? '1 day' : n + ' days'}`),
+    fuel: 'Fuel',
+    fuelNone: 'No fill-ups yet.',
+    fuelLast: (ago: string) => `Last fill-up: ${ago}`,
+    mods: 'Modifications',
+    modsNone: 'None logged.',
+    modsCount: (n: number) => (n === 1 ? '1 modification' : `${n} modifications`),
+    photos: 'Photos',
+    photosNone: 'No photos yet.',
+    photosCount: (n: number) => (n === 1 ? '1 photo' : `${n} photos`),
+    odometer: 'Odometer',
+    odoStatus: (km: string, ago: string | null) => (ago ? `${km} · updated ${ago}` : km),
+    odoNone: 'No reading yet.',
+    calibration: 'Speed calibration',
+    calNone: 'Not calibrated: the real GPS speed is shown.',
+    calOn: (pct: string) => `Your dash reads ${pct} % high.`,
+    share: 'Share',
+    shareSolo: 'Only you see this car.',
+    shareN: (n: number) => (n === 1 ? 'Shared with 1 person.' : `Shared with ${n} people.`),
+  },
+  ux: {
+    moreDetails: 'More details',
+    fuelMoreHint: 'Fuel type, gauge, station, notes',
+    serviceMoreHint: 'Shop, warranty, parts, photos',
+    repairMoreHint: 'Symptom, system, who did it, parts, warranty, photos',
+    expenseMoreHint: 'Odometer, description, vendor, photo',
+    reminderMoreHint: 'Repeat, alerts, notes',
+    vehicleMoreHint: 'Body type, colour, plate, VIN, gauge, purchase, notes',
+  },
   hoy: {
     title: 'Today',
     nextStep: 'Next step',
@@ -165,7 +203,7 @@ export const enPart6: Pick<
     garage: 'Garage and catalogue',
     data: 'My data',
     look: 'Appearance and language',
-    help: 'Help and legal',
+    help: 'Help',
   },
   statusSince: (date: string) => `since ${date}`,
 
@@ -894,7 +932,7 @@ export const enPart6: Pick<
     },
   },
   features: {
-    title: 'Tools',
+    title: 'All functions',
     subtitle: 'Everything Car Guy can do, one tap away.',
     search: 'Search for a function…',
     searchLabel: 'Search for a function',
@@ -922,7 +960,7 @@ export const enPart6: Pick<
       obd: { title: 'OBD diagnostics', desc: 'Look up the code behind the dashboard light (P0300…)' },
       repair: { title: 'Log a repair', desc: 'What was fixed, where, what it cost, and the invoice.' },
       repairs: { title: 'Repairs', desc: 'Every repair of the car: shop, cost and warranty.' },
-      fuel: { title: 'Log a fill-up', desc: 'Gallons, price and full tank: the economy works itself out.' },
+      fuel: { title: 'Log fuel', desc: 'Gallons, price and full tank: the economy works itself out.' },
       trip: { title: 'Start a trip', desc: 'Records the route, the kilometres and the time at the wheel.' },
       service: { title: 'Log a service', desc: 'Oil change, filters, brakes: maintenance up to date.' },
       expense: { title: 'Log an expense', desc: 'Tolls, insurance, washing, parking: what is not fuel.' },

@@ -8,7 +8,7 @@ import { FuelPicker } from '@/components/FuelPicker';
 import { AiFieldMark, aiOutline } from '@/components/ai/AiFieldMark';
 import { CaptureButton } from '@/components/ai/CaptureButton';
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, ToggleRow } from '@/components/ui';
+import { Collapsible, GhostButton, PrimaryButton, ToggleRow } from '@/components/ui';
 import { radius, space } from '@/constants/theme';
 import { Alert } from '@/lib/alert';
 import { clearAiDraft, peekAiDraft, withoutMark, type DraftPhoto } from '@/lib/ai/draft';
@@ -348,9 +348,6 @@ export function FillUpForm({
         </Pressable>
       ) : null}
 
-      <AiFieldMark confidence={marks.fuel} />
-      <FuelPicker label={t.fuel.type} value={fuel} onChange={(v) => { setFuel(v); unmark('fuel'); }} />
-
       <AiFieldMark confidence={marks.vol} />
       <Field
         label={t.fuel.volume(meta.unitLabel)}
@@ -403,6 +400,10 @@ export function FillUpForm({
       <T face="body" style={[styles.hint, { color: theme.text.muted, marginTop: space.sm }]}>
         {t.fuel.partialHint(meta.unitLabel)}
       </T>
+
+      <Collapsible id="form-fuel-more" title={t.ux.moreDetails} hint={t.ux.fuelMoreHint} defaultOpen={Boolean(initial) || marks.fuel != null || marks.station != null}>
+      <AiFieldMark confidence={marks.fuel} />
+      <FuelPicker label={t.fuel.type} value={fuel} onChange={(v) => { setFuel(v); unmark('fuel'); }} />
 
       {/* Medidor (note 4): with the level before and after, a partial gets a number too. GNV has no gauge like this. */}
       {FUEL_CATALOG[fuel].unit === 'm3' ? null : (
@@ -480,6 +481,8 @@ export function FillUpForm({
         onChangeText={setNotes}
         placeholder={t.fuel.notesPlaceholder}
       />
+
+      </Collapsible>
 
       <PrimaryButton label={submitLabel} onPress={save} disabled={saving} />
       {onDelete ? <GhostButton danger label={t.fuel.delete} onPress={onDelete} /> : null}

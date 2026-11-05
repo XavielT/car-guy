@@ -1,5 +1,6 @@
 import { foldText } from '../domain/text';
 import { activeFeatures, type FeatureDef } from './registry';
+import { synonymsOf } from './synonyms';
 
 /**
  * The function search (IMP 16102026 SPEC-C §6): title, description and keywords in **both** languages, without
@@ -24,6 +25,9 @@ function within(a: string, b: string, max: number): boolean {
   return prev[b.length] <= max;
 }
 
+/** Words that say nothing about WHAT is wanted, es + en. */
+const STOP = new Set(['un', 'una', 'el', 'la', 'los', 'las', 'de', 'del', 'mi', 'mis', 'me', 'se', 'lo', 'le', 'que', 'en', 'este', 'esta', 'por', 'para', 'con', 'ver', 'a', 'i', 'my', 'the', 'an', 'to', 'of', 'did', 'how', 'much', 'quiero', 'hacer', 'fui', 'necesito', 'puedo', 'empezar', 'comenzar', 'agregar', 'anadir', 'subir', 'guardar', 'poner', 'puse', 'lleve', 'llevar', 'registrar', 'anotar', 'crear', 'abrir', 'mostrar', 'buscar', 'saber', 'cuanto', 'cuantos', 'cuantas', 'he', 'tiene', 'tengo', 'alguien', 'algo', 'venza', 'mes', 'semana', 'hoy', 'ano', 'dia', 'log', 'add', 'start', 'open', 'see', 'show', 'i', 'did']);
+
 const words = (s: string) => foldText(s).split(/[^a-z0-9]+/).filter(Boolean);
 
 function score(def: FeatureDef, copy: FeatureCopy, query: string): number {
@@ -38,7 +42,11 @@ function score(def: FeatureDef, copy: FeatureCopy, query: string): number {
   let total = 0;
   if (keywords.some((k) => k === q)) total += 6;
   else if (keywords.some((k) => k.includes(q))) total += 3;
-  for (const token of tokens) {
+  // Filler that carries no meaning ("cuanto gaste ESTE mes", "registrar UN servicio"): never required to match.
+  const meaningful = tokens.filter((tk) => !STOP.has(tk));
+  let missed = 0;
+  let strong = 0;
+  for (const token of meaningful.length ? meaningful : tokens) {
     let best = 0;
     if (title.includes(token)) best = 4;
     else if (keywords.some((k) => k.includes(token))) best = 3;
@@ -46,9 +54,23 @@ function score(def: FeatureDef, copy: FeatureCopy, query: string): number {
     else if (token.length >= 4) {
       for (const w of vocabulary) if (w.length >= 4 && within(token, w, token.length >= 7 ? 2 : 1)) { best = 1; break; }
     }
-    if (!best) return 0; // every word of the query has to mean something here
+    // The words people use (SPEC-K §K4): the same meaning in other words, a notch below the exact word.
+    if (!best) {
+      for (const syn of synonymsOf(token)) {
+        if (syn === token) continue;
+        if (title.includes(syn)) best = Math.max(best, 3);
+        else if (keywords.some((k) => k.split(/[^a-z0-9]+/).includes(syn))) best = Math.max(best, 2);
+      }
+    }
+    // A phrase is not a keyword list ("cuantos kilometros tiene"): one strong word is enough, up to two words may mean nothing here.
+    if (!best) {
+      missed++;
+      continue;
+    }
+    strong++;
     total += best;
   }
+  if (!strong || missed > 2 || (missed > 0 && meaningful.length < 2)) return 0;
   return total;
 }
 

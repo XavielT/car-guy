@@ -14,7 +14,7 @@ import { SelectField } from '@/components/pickers';
 import { OilBlock } from '@/components/service/OilBlock';
 import { DoneBySelect, linksToSlots, NO_PHOTOS, PendingPicker, RepairPhotos, slotsToLinks, SystemSelect, WarrantyPicker, type PhotoSlots } from '@/components/service/RepairPieces';
 import { T } from '@/components/T';
-import { GhostButton, PrimaryButton, Surface } from '@/components/ui';
+import { Collapsible, GhostButton, PrimaryButton, Surface } from '@/components/ui';
 import { categoryColors, radius, space } from '@/constants/theme';
 import {
   currentOdometer as currentOdometerQuery,
@@ -720,17 +720,7 @@ export default function NuevoServicioScreen() {
           setTitle(v);
         }}
       />
-      <Field label={t.repair.symptomLabel} placeholder={t.repair.symptomPlaceholder} value={description} onChangeText={setDescription} multiline />
-      <SystemSelect value={system} onChange={setSystem} />
-      <DoneBySelect value={doneBy} onChange={setDoneBy} />
-      {askForShop(doneBy) ? shopBlock : null}
       {dateOdo}
-      {warranties.map((w) => (
-        <T key={w.recordId} face="body" accessibilityLiveRegion="polite" style={{ color: theme.statusText.proximo, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>
-          {t.ai.repairsAi.warranty(w.shop ?? t.ai.repairsAi.warrantyNoShop, w.untilDate ? dateLabel(w.untilDate) : `${(w.untilKm ?? 0).toLocaleString('es-DO')} km`)}
-          {w.kmLeft != null && w.untilDate ? ` ${t.ai.repairsAi.warrantyKm(w.kmLeft.toLocaleString('es-DO'))}` : ''}
-        </T>
-      ))}
       <T face="eyebrow" accessibilityRole="header" style={[styles.section, { color: theme.text.muted }]}>
         {t.service.costs}
       </T>
@@ -765,6 +755,17 @@ export default function NuevoServicioScreen() {
           ))}
         </View>
       ) : null}
+      <Collapsible id="form-repair-more" title={t.ux.moreDetails} hint={t.ux.repairMoreHint} defaultOpen={Boolean(editingId)}>
+      <Field label={t.repair.symptomLabel} placeholder={t.repair.symptomPlaceholder} value={description} onChangeText={setDescription} multiline />
+      <SystemSelect value={system} onChange={setSystem} />
+      <DoneBySelect value={doneBy} onChange={setDoneBy} />
+      {askForShop(doneBy) ? shopBlock : null}
+      {warranties.map((w) => (
+        <T key={w.recordId} face="body" accessibilityLiveRegion="polite" style={{ color: theme.statusText.proximo, fontSize: 13, lineHeight: 19, marginBottom: space.sm }}>
+          {t.ai.repairsAi.warranty(w.shop ?? t.ai.repairsAi.warrantyNoShop, w.untilDate ? dateLabel(w.untilDate) : `${(w.untilKm ?? 0).toLocaleString('es-DO')} km`)}
+          {w.kmLeft != null && w.untilDate ? ` ${t.ai.repairsAi.warrantyKm(w.kmLeft.toLocaleString('es-DO'))}` : ''}
+        </T>
+      ))}
       {partsBlock}
       <WarrantyPicker
         repairDate={date}
@@ -780,6 +781,7 @@ export default function NuevoServicioScreen() {
       </T>
       <RepairPhotos recordId={recordId} vehicleId={activeVehicle.id} value={photos} onChange={setPhotos} />
       <PendingPicker vehicleId={activeVehicle.id} value={resolveKey} onChange={(key) => setResolveKey(key)} />
+      </Collapsible>
     </>
   );
 
@@ -820,10 +822,12 @@ export default function NuevoServicioScreen() {
             {items}
             {titleDesc}
             {costs}
-            {shopBlock}
-            {warrantyBlock}
-            {partsBlock}
-            {photosBlock}
+            <Collapsible id="form-service-more" title={t.ux.moreDetails} hint={t.ux.serviceMoreHint} defaultOpen={Boolean(editingId)}>
+              {shopBlock}
+              {warrantyBlock}
+              {partsBlock}
+              {photosBlock}
+            </Collapsible>
           </>
         )}
 

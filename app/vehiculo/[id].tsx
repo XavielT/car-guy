@@ -50,6 +50,7 @@ import { FEATURE_EVENTS } from '@/lib/flagsV8';
 import { t } from '@/lib/i18n';
 import { useMediaUri } from '@/lib/media/useMediaUri';
 import { AlbumTab } from '@/components/album/AlbumTab';
+import { MiCarro } from '@/components/vehicle/MiCarro';
 import { EventsTab, PendingEventsBanner } from '@/components/album/EventsTab';
 import { BuildSummary, BuildTab } from '@/components/build/BuildTab';
 import { FichaTab } from '@/components/diy/FichaTab';
@@ -392,6 +393,17 @@ export default function VehicleHubScreen() {
                 {t.members.sharedBanner(t.members.roles.editor)}
               </T>
             </View>
+          ) : null}
+          {/* SPEC-K §K2: the car as a short list of big rows, one status line each. */}
+          {tab === 'resumen' && !viewer ? (
+            <MiCarro
+              vehicleId={vehicle.id}
+              onTab={setTab}
+              onOdometer={() => {
+                setActiveVehicle(vehicle.id);
+                router.push('/odometro');
+              }}
+            />
           ) : null}
           {tab === 'resumen' && FEATURE_BUILD ? <BuildSummary vehicleId={vehicle.id} version={version} /> : null}
           {tab === 'resumen' && FEATURE_TRACK ? <TrackSummaryLine vehicleId={vehicle.id} version={version} /> : null}
