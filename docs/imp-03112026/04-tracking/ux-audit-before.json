@@ -1,0 +1,236 @@
+[
+  {
+    "screen": "inicio",
+    "view": "390x844",
+    "total": 42,
+    "above": 24,
+    "primary": 2,
+    "headings": 1,
+    "scrollH": 844
+  },
+  {
+    "screen": "garaje",
+    "view": "390x844",
+    "total": 15,
+    "above": 15,
+    "primary": 1,
+    "headings": 0,
+    "scrollH": 844
+  },
+  {
+    "screen": "historial",
+    "view": "390x844",
+    "total": 26,
+    "above": 13,
+    "primary": 1,
+    "headings": 13,
+    "scrollH": 844
+  },
+  {
+    "screen": "mas",
+    "view": "390x844",
+    "total": 45,
+    "above": 13,
+    "primary": 2,
+    "headings": 15,
+    "scrollH": 844
+  },
+  {
+    "screen": "herramientas",
+    "view": "390x844",
+    "total": 49,
+    "above": 10,
+    "primary": 0,
+    "headings": 2,
+    "scrollH": 844
+  },
+  {
+    "screen": "ficha",
+    "view": "390x844",
+    "total": 38,
+    "above": 9,
+    "primary": 2,
+    "headings": 2,
+    "scrollH": 844
+  },
+  {
+    "screen": "viajes",
+    "view": "390x844",
+    "total": 8,
+    "above": 8,
+    "primary": 0,
+    "headings": 2,
+    "scrollH": 844
+  },
+  {
+    "screen": "conducir",
+    "view": "390x844",
+    "total": 11,
+    "above": 10,
+    "primary": 1,
+    "headings": 1,
+    "scrollH": 844
+  },
+  {
+    "screen": "cifras",
+    "view": "390x844",
+    "total": 17,
+    "above": 10,
+    "primary": 2,
+    "headings": 2,
+    "scrollH": 844
+  },
+  {
+    "screen": "carga-nueva",
+    "view": "390x844",
+    "total": 34,
+    "above": 9,
+    "primary": 1,
+    "headings": 1,
+    "scrollH": 844
+  },
+  {
+    "screen": "servicio-nuevo",
+    "view": "390x844",
+    "total": 46,
+    "above": 16,
+    "primary": 1,
+    "headings": 2,
+    "scrollH": 844
+  },
+  {
+    "screen": "gasto-nuevo",
+    "view": "390x844",
+    "total": 20,
+    "above": 18,
+    "primary": 2,
+    "headings": 1,
+    "scrollH": 844
+  },
+  {
+    "screen": "recordatorio-nuevo",
+    "view": "390x844",
+    "total": 13,
+    "above": 11,
+    "primary": 1,
+    "headings": 1,
+    "scrollH": 844
+  },
+  {
+    "screen": "inicio",
+    "view": "1280x800",
+    "total": 48,
+    "above": 37,
+    "primary": 2,
+    "headings": 1,
+    "scrollH": 800
+  },
+  {
+    "screen": "garaje",
+    "view": "1280x800",
+    "total": 21,
+    "above": 21,
+    "primary": 1,
+    "headings": 0,
+    "scrollH": 800
+  },
+  {
+    "screen": "historial",
+    "view": "1280x800",
+    "total": 32,
+    "above": 19,
+    "primary": 1,
+    "headings": 13,
+    "scrollH": 800
+  },
+  {
+    "screen": "mas",
+    "view": "1280x800",
+    "total": 51,
+    "above": 19,
+    "primary": 2,
+    "headings": 15,
+    "scrollH": 800
+  },
+  {
+    "screen": "herramientas",
+    "view": "1280x800",
+    "total": 60,
+    "above": 21,
+    "primary": 0,
+    "headings": 2,
+    "scrollH": 800
+  },
+  {
+    "screen": "ficha",
+    "view": "1280x800",
+    "total": 54,
+    "above": 20,
+    "primary": 2,
+    "headings": 2,
+    "scrollH": 800
+  },
+  {
+    "screen": "viajes",
+    "view": "1280x800",
+    "total": 19,
+    "above": 17,
+    "primary": 0,
+    "headings": 2,
+    "scrollH": 800
+  },
+  {
+    "screen": "conducir",
+    "view": "1280x800",
+    "total": 22,
+    "above": 22,
+    "primary": 1,
+    "headings": 1,
+    "scrollH": 800
+  },
+  {
+    "screen": "cifras",
+    "view": "1280x800",
+    "total": 28,
+    "above": 21,
+    "primary": 2,
+    "headings": 2,
+    "scrollH": 800
+  },
+  {
+    "screen": "carga-nueva",
+    "view": "1280x800",
+    "total": 45,
+    "above": 20,
+    "primary": 1,
+    "headings": 1,
+    "scrollH": 800
+  },
+  {
+    "screen": "servicio-nuevo",
+    "view": "1280x800",
+    "total": 57,
+    "above": 39,
+    "primary": 1,
+    "headings": 2,
+    "scrollH": 800
+  },
+  {
+    "screen": "gasto-nuevo",
+    "view": "1280x800",
+    "total": 31,
+    "above": 29,
+    "primary": 2,
+    "headings": 1,
+    "scrollH": 800
+  },
+  {
+    "screen": "recordatorio-nuevo",
+    "view": "1280x800",
+    "total": 24,
+    "above": 22,
+    "primary": 1,
+    "headings": 1,
+    "scrollH": 800
+  }
+]

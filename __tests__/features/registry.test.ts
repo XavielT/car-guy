@@ -114,10 +114,10 @@ describe('depth from Inicio (PROMPT-04: nothing more than 2 taps)', () => {
   const { readFileSync } = require('node:fs') as typeof import('node:fs');
   const read = (f: string) => readFileSync(join(ROOT, f), 'utf8');
 
-  it('Inicio has the Herramientas button and the search magnifier (1 tap to the hub)', () => {
+  it('Hoy has the search magnifier and "Todo lo demás" (1 tap to Más, which holds the search and every function)', () => {
     const home = read('app/(tabs)/index.tsx');
-    expect(home).toContain("router.push('/herramientas')");
     expect(home).toContain("focus: 'search'");
+    expect(home).toContain("router.navigate('/(tabs)/mas')");
   });
 
   it('Más opens the hub from its first row', () => {

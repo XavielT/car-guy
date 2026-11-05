@@ -5,7 +5,7 @@ import { DictateSheet } from '@/components/ai/DictateSheet';
 import { QueueNotice } from '@/components/ai/QueueNotice';
 import { HomeNudge } from '@/components/features/HomeNudge';
 import { useOpenDtcCount, useOpenFeature } from '@/components/features/useFeatures';
-import { featureForTelltale, LAMP_TELLTALE } from '@/lib/features/registry';
+import { activeFeatures, featureForTelltale, LAMP_TELLTALE } from '@/lib/features/registry';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
@@ -18,8 +18,11 @@ import { usePermissionRequest } from '@/components/permissions/usePermissionRequ
 import { T } from '@/components/T';
 import {
   Badge,
+  BigActions,
   ClusterHero,
-  QuickActions,
+  Collapsible,
+  NextStepCard,
+  type BigActionDef,
   Surface,
   TelltaleRow,
   type BadgeTone,
@@ -30,12 +33,19 @@ import { palette, radius, space } from '@/constants/theme';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { clusterReading } from '@/lib/domain/cluster';
 import { useSession } from '@/lib/cloud/auth';
-import { FEATURE_BUILD, FEATURE_SYNC, FEATURE_TRACK, FEATURE_TRIPS } from '@/lib/flags';
+import { FEATURE_SYNC, FEATURE_TRIPS } from '@/lib/flags';
 import { SpeedCluster } from '@/components/ui/SpeedCluster';
 import { startManualTrip, stopTrip } from '@/lib/trips/live';
 import { useLiveTrip } from '@/lib/trips/liveStore';
 import { useProfile } from '@/lib/profile';
 import { Avatar } from '@/components/Avatar';
+import { FeatureSetSheet } from '@/components/features/FeatureSetSheet';
+import { FirstSteps, type FirstStep } from '@/components/features/FirstSteps';
+import { nextStep, type NextStep } from '@/lib/domain/nextStep';
+import { FEATURE_OFFER_DISMISSED_KEY, FIRST_STEPS_HIDDEN_KEY, readFlag, readSnoozed, setFlag, snoozeStep } from '@/lib/domain/nextStepStore';
+import { includesTopic, shouldOfferSet, suggestTopics } from '@/lib/features/featureSet';
+import { useFeatureSet } from '@/lib/features/featureSetStore';
+import { readUsedAt } from '@/lib/features/usage';
 import { TipCard } from '@/components/TipCard';
 import { AutoBlockedCard } from '@/components/trips/TripPieces';
 import { UpdateBanner } from '@/components/updates/UpdateBanner';
@@ -45,6 +55,7 @@ import { garageFacts, lastWeeklyCheck, type GarageFacts } from '@/lib/db/garageQ
 import { lampStates, toKatakana, vehicleBadges } from '@/lib/domain/garage';
 import {
   odometerNow,
+  documents as documentRepo,
   odometer as odometerRepo,
   settings as settingsRepo,
   tasks as taskRepo,
@@ -100,7 +111,6 @@ export default function HomeScreen() {
   const [tripsModeNow, setTripsModeNow] = useState<TripsMode>('manual');
   const [keepAwake, setKeepAwake] = useState(true);
   const [tripNotice, setTripNotice] = useState<string | null>(null);
-  const [tripBusy, setTripBusy] = useState(false);
   const location = usePermissionRequest('location_foreground');
   const openDtc = useOpenDtcCount(activeVehicle?.id);
   const { open: openFeature } = useOpenFeature();
@@ -143,6 +153,24 @@ export default function HomeScreen() {
       .then(setAccountCardHidden)
       .catch(() => setAccountCardHidden(true));
   }, []);
+
+  // Hoy (SPEC-K §K1): what the next-step card needs, all local.
+  const { set: featureSet } = useFeatureSet();
+  const [snoozed, setSnoozed] = useState<Record<string, number>>({});
+  const [usedAt, setUsedAt] = useState<Record<string, number>>({});
+  const [stepFlags, setStepFlags] = useState({ firstStepsHidden: false, offerDismissed: false });
+  const [expiringDoc, setExpiringDoc] = useState<{ id: string; title: string; daysLeft: number } | null>(null);
+  const [setOpen, setSetOpen] = useState(false);
+  // "Now" for the snooze check: read when Hoy gains focus, never during render.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    void Promise.all([readSnoozed(), readUsedAt(), readFlag(FIRST_STEPS_HIDDEN_KEY), readFlag(FEATURE_OFFER_DISMISSED_KEY)]).then(([sn, ua, fh, od]) => {
+      setNowMs(Date.now());
+      setSnoozed(sn);
+      setUsedAt(ua);
+      setStepFlags({ firstStepsHidden: fh, offerDismissed: od });
+    });
+  }, [focused]);
 
   const vehicleId = activeVehicle?.id;
 
@@ -220,6 +248,17 @@ export default function HomeScreen() {
       .listWhere({ vehicleId })
       .then((rows) => {
         if (!cancelled) setOpenTasks(rows.filter((t) => t.status !== 'hecha').sort(byPriority));
+      })
+      .catch(() => {});
+
+    documentRepo
+      .listWhere({ vehicleId })
+      .then((rows) => {
+        if (cancelled) return;
+        const today = todayIso();
+        const dated = rows.filter((d) => d.expiresAt).map((d) => ({ id: d.id, title: d.title, daysLeft: daysBetween(today, d.expiresAt as string) }));
+        dated.sort((a, b) => a.daysLeft - b.daysLeft);
+        setExpiringDoc(dated[0] ?? null);
       })
       .catch(() => {});
 
@@ -306,9 +345,7 @@ export default function HomeScreen() {
   const beginTrip = async () => {
     // Explain first, then ask (or show how, if it is blocked): never the system dialog in cold (ADR-59).
     if (!(await location.ensure())) return;
-    setTripBusy(true);
     const result = await startManualTrip(activeVehicle.id);
-    setTripBusy(false);
     if (result.ok) return;
     if (result.reason !== 'busy') notify(t.trips.needPermission);
   };
@@ -334,45 +371,135 @@ export default function HomeScreen() {
   );
   const monthAvg = weightedAverage(monthEconomy) ?? avg;
 
+  // ---- Hoy: the ONE next step, the (≤ 4) big actions, the first steps.
+  const lastFill = vehicleFillups.reduce<string | null>((m, f2) => (m == null || f2.occurredAt > m ? f2.occurredAt : m), null);
+  const firstOverdue = allReminders.find((r) => r.status.status === 'vencido');
+  const stepsDone = { vehicle: true, fillup: vehicleFillups.length > 0, trips: !FEATURE_TRIPS || tripsModeNow === 'auto' };
+  const firstStepsActive = !stepFlags.firstStepsHidden && !(stepsDone.fillup && stepsDone.trips);
+  const firstRunPick = firstStepsActive ? (!stepsDone.fillup ? ('fillup' as const) : !stepsDone.trips ? ('trips' as const) : null) : null;
+  const activity: import('@/lib/features/ids').FeatureId[] = [];
+  if (vehicleFillups.some((f2) => daysBetween(f2.occurredAt, todayIso()) <= 60)) activity.push('fuel');
+  if (vehicleExpenses.some((e) => daysBetween(e.occurredAt, todayIso()) <= 60)) activity.push('expense');
+  const suggestion = suggestTopics(activeFeatures(), usedAt, activity, nowMs);
+  const topAction = (usedAt.trip ?? 0) > (usedAt.fuel ?? 0) && (usedAt.trip ?? 0) > (usedAt.service ?? 0) ? ('trip' as const) : (usedAt.service ?? 0) > (usedAt.fuel ?? 0) ? ('service' as const) : ('fuel' as const);
+  const step: NextStep = nextStep({
+    now: nowMs,
+    hasVehicle: true,
+    overdue: firstOverdue
+      ? {
+          id: firstOverdue.reminder.id,
+          title: catalogLabel('reminder', firstOverdue.reminder, 'title'),
+          daysOverdue: firstOverdue.status.dueDays != null && firstOverdue.status.dueDays < 0 ? Math.abs(firstOverdue.status.dueDays) : null,
+          legal: firstOverdue.reminder.legalKind != null,
+        }
+      : null,
+    document: expiringDoc,
+    fillupCount: vehicleFillups.length,
+    daysSinceFillup: lastFill ? daysBetween(lastFill, todayIso()) : null,
+    daysSinceOdometer: daysSince,
+    recap: null, // PROMPT-11 provides recapReady(); until then nothing is "just closed".
+    detection: null, // SPEC-H detection health (PROMPT-09); AutoBlockedCard still says it, below.
+    firstRun: firstRunPick,
+    offerFeatureSet: shouldOfferSet(featureSet, suggestion, stepFlags.offerDismissed),
+    topAction,
+    snoozed,
+  });
+  const laterStep = async () => setSnoozed(await snoozeStep(step.key));
+  const stepView = (() => {
+    const go = (href: Parameters<typeof router.push>[0]) => () => router.push(href);
+    switch (step.kind) {
+      case 'addVehicle':
+        return { title: t.hoy.step.addVehicle.title, body: t.hoy.step.addVehicle.body, cta: t.hoy.step.addVehicle.cta, onAction: go('/vehiculo/nuevo'), tone: 'accent' as const, icon: 'car-outline' as const, later: false };
+      case 'overdue':
+        return { title: t.hoy.step.overdueTitle(step.title, step.daysOverdue), body: step.legal ? t.hoy.step.overdueLegal : t.hoy.step.overdueBody, cta: t.hoy.step.overdueCta, onAction: go({ pathname: '/recordatorio/[id]', params: { id: step.id } }), tone: 'urgent' as const, icon: 'alert-circle-outline' as const, later: true };
+      case 'document':
+        return { title: t.hoy.step.documentTitle(step.title, step.daysLeft), body: t.hoy.step.documentBody, cta: t.hoy.step.documentCta, onAction: go({ pathname: '/documento/[id]', params: { id: step.id } }), tone: step.daysLeft < 0 ? ('urgent' as const) : ('warn' as const), icon: 'document-text-outline' as const, later: true };
+      case 'fuel':
+        return { title: step.neverLogged ? t.hoy.step.fuelNever : t.hoy.step.fuelLate(step.days ?? 0), body: step.neverLogged ? t.hoy.step.fuelNeverBody : t.hoy.step.fuelLateBody, cta: t.hoy.step.fuelCta, onAction: go('/carga/nueva'), tone: 'accent' as const, icon: 'flash-outline' as const, later: true };
+      case 'odometer':
+        return { title: t.hoy.step.odometerTitle, body: t.hoy.step.odometerBody(step.days ?? 0), cta: t.hoy.step.odometerCta, onAction: go('/odometro'), tone: 'accent' as const, icon: 'speedometer-outline' as const, later: true };
+      case 'recap':
+        return { title: t.hoy.step.recapTitle(step.label), body: t.hoy.step.recapBody, cta: t.hoy.step.recapCta, onAction: go('/cifras'), tone: 'accent' as const, icon: 'stats-chart-outline' as const, later: true };
+      case 'detection':
+        return { title: t.hoy.step.detectionTitle, body: step.message, cta: t.hoy.step.detectionCta, onAction: go('/viajes/permisos'), tone: 'warn' as const, icon: 'navigate-outline' as const, later: true };
+      case 'firstRun':
+        return step.item === 'trips'
+          ? { title: t.hoy.step.tripsTitle, body: t.hoy.step.tripsBody, cta: t.hoy.step.tripsCta, onAction: go('/viajes/ajustes'), tone: 'accent' as const, icon: 'navigate-outline' as const, later: true }
+          : { title: t.hoy.step.fuelNever, body: t.hoy.step.fuelNeverBody, cta: t.hoy.step.fuelCta, onAction: go('/carga/nueva'), tone: 'accent' as const, icon: 'flash-outline' as const, later: true };
+      case 'featureSet':
+        return { title: t.hoy.step.featureSetTitle, body: t.hoy.step.featureSetBody, cta: t.hoy.step.featureSetCta, onAction: () => setSetOpen(true), tone: 'accent' as const, icon: 'options-outline' as const, later: true };
+      default:
+        return step.action === 'trip'
+          ? { title: t.hoy.step.topTripTitle, body: t.hoy.step.topTripBody, cta: t.hoy.actions.trip, onAction: () => void beginTrip(), tone: 'accent' as const, icon: 'navigate-outline' as const, later: false }
+          : step.action === 'service'
+            ? { title: t.hoy.step.topServiceTitle, body: t.hoy.step.topServiceBody, cta: t.hoy.actions.service, onAction: go('/servicio/nuevo'), tone: 'accent' as const, icon: 'construct-outline' as const, later: false }
+            : { title: t.hoy.step.topFuelTitle, body: t.hoy.step.topFuelBody, cta: t.hoy.actions.fuel, onAction: go('/carga/nueva'), tone: 'accent' as const, icon: 'flash-outline' as const, later: false };
+    }
+  })();
+  const liveHere = Boolean(FEATURE_TRIPS && live && live.vehicleId === activeVehicle.id);
+  // At most four: the two daily jobs, the third most common, and "everything else". A topic the person turned off drops its action.
+  const bigActions: BigActionDef[] = [];
+  if (includesTopic(featureSet, 'fuel_expenses')) bigActions.push({ id: 'fuel', label: t.hoy.actions.fuel, icon: 'flash-outline', onPress: () => router.push('/carga/nueva') });
+  if (FEATURE_TRIPS && includesTopic(featureSet, 'trips'))
+    bigActions.push(
+      liveHere
+        ? { id: 'trip', label: t.hoy.actions.tripLive, icon: 'navigate', onPress: () => router.push('/conducir') }
+        : { id: 'trip', label: t.hoy.actions.trip, icon: 'navigate-outline', onPress: () => (tripsModeNow === 'off' ? router.push('/viajes/ajustes') : void beginTrip()) },
+    );
+  if (includesTopic(featureSet, 'maintenance')) bigActions.push({ id: 'service', label: t.hoy.actions.service, icon: 'construct-outline', onPress: () => router.push('/servicio/nuevo') });
+  bigActions.push({ id: 'more', label: t.hoy.actions.more, icon: 'apps-outline', onPress: () => router.navigate('/(tabs)/mas') });
+  const firstSteps: FirstStep[] = [
+    { id: 'vehicle', done: true, onPress: () => router.push('/vehiculo/nuevo') },
+    { id: 'fillup', done: stepsDone.fillup, onPress: () => router.push('/carga/nueva') },
+    ...(FEATURE_TRIPS ? ([{ id: 'trips', done: stepsDone.trips, onPress: () => router.push('/viajes/ajustes') }] as FirstStep[]) : []),
+  ];
+  const activityCount = pending.length + (marbeteNotice ? 1 : 0);
+
+  // On a phone the next step and the big actions come BEFORE the cluster (the answer to "what do I do now?" must be above the fold);
+  // on a wide screen they are the right column; during a live trip the speed cluster stays first.
+  const topBlock = (
+    <>
+        {/* System status, shown only when there is something to say. */}
+        <UpdateBanner />
+        {FEATURE_TRIPS && tripsModeNow === 'auto' ? <AutoBlockedCard /> : null}
+
+        <NextStepCard
+          eyebrow={t.hoy.nextStep}
+          title={stepView.title}
+          body={stepView.body}
+          actionLabel={stepView.cta}
+          onAction={stepView.onAction}
+          laterLabel={stepView.later ? t.hoy.later : undefined}
+          onLater={stepView.later ? () => void laterStep() : undefined}
+          icon={stepView.icon}
+          tone={stepView.tone}
+        />
+
+        <BigActions actions={bigActions} />
+
+    </>
+  );
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg.base }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.pad}>
         <View style={styles.titleRow}>
           <View style={{ flex: 1 }}>
-            <View style={styles.brandRow}>
-              <T face="eyebrow" style={{ color: theme.accent, fontSize: 12 }}>
-                {t.home.eyebrow}
-              </T>
-              <T face="kana" style={{ color: theme.text.muted, fontSize: 10 }}>
-                車
-              </T>
-            </View>
-            <T face="display" style={[styles.brand, { color: theme.text.primary }]}>
-              {t.home.title}
+            <T face="display" accessibilityRole="header" style={[styles.brand, { color: theme.text.primary }]}>
+              {t.hoy.title}
             </T>
           </View>
-          {/* Signed in only: without an account there is nothing to be in step with. */}
-          {installOffer ? (
-            <Pressable
-              onPress={() => router.push('/instalar')}
-              accessibilityRole="link"
-              style={[styles.installPill, { borderColor: theme.accent }]}>
-              <T face="semibold" style={{ color: theme.accent, fontSize: 12 }}>
-                {t.install.pill}
-              </T>
-            </Pressable>
-          ) : null}
           {FEATURE_SYNC && session ? <SyncPill /> : null}
           <Pressable
-            onPress={() => router.push('/herramientas')}
+            onPress={() => setDictateOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel={t.features.open}
+            accessibilityLabel={t.ai.voice.title}
             hitSlop={4}
             style={[styles.headerBtn, { borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }]}>
-            <Ionicons name="apps-outline" size={20} color={theme.accent} />
+            <Ionicons name="mic-outline" size={20} color={theme.accent} />
           </Pressable>
           <Pressable
-            onPress={() => router.push({ pathname: '/herramientas', params: { focus: 'search' } })}
+            onPress={() => router.push({ pathname: '/mas', params: { focus: 'search' } })}
             accessibilityRole="button"
             accessibilityLabel={t.features.openSearch}
             hitSlop={4}
@@ -384,24 +511,13 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={t.routes.account}
             hitSlop={8}>
-            {/* Note 9: the person's own avatar, not the 改 seal (it now marks the Build tab). */}
             <Avatar size={36} photoUri={profile.photoUri} avatarId={profile.avatarId} name={profile.displayName} decorative />
           </Pressable>
         </View>
 
-        {/* IMP 03112026 (ADR-67): one sentence, spoken or typed, opens the right form pre-filled. Its own row: the header has no room. */}
-        <Pressable
-          onPress={() => setDictateOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel={t.ai.voice.title}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: space.md, marginTop: space.sm, borderWidth: 1, borderRadius: radius.chip, borderColor: theme.lineStrong, backgroundColor: theme.bg.surface }}>
-          <Ionicons name="mic-outline" size={18} color={theme.accent} />
-          <T face="semibold" style={{ color: theme.text.primary, fontSize: 13 }}>
-            {t.ai.voice.title}
-          </T>
-        </Pressable>
         <QueueNotice />
 
+        {data.vehicles.filter((v) => !v.isArchived).length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.switcher}>
           {data.vehicles.filter((v) => !v.isArchived).map((v) => {
             const on = v.id === activeVehicle.id;
@@ -436,15 +552,10 @@ export default function HomeScreen() {
               </Pressable>
             );
           })}
-          <Pressable
-            onPress={() => router.push('/vehiculo/nuevo')}
-            accessibilityRole="button"
-            style={[styles.chip, { backgroundColor: theme.bg.raised, borderColor: theme.line }]}>
-            <T face="title" style={[styles.chipLabel, { color: theme.text.secondary }]}>
-              {t.home.addVehicle}
-            </T>
-          </Pressable>
         </ScrollView>
+        ) : null}
+
+        {!wide && !liveHere ? topBlock : null}
 
         <DashCols wide={wide}>
         <DashCol wide={wide} side="left">
@@ -501,30 +612,49 @@ export default function HomeScreen() {
         </DashCol>
         <DashCol wide={wide} side="right">
 
-        {/* Note 10: how this odometer rises — once, until "Entendido". */}
-        <TipCard id="odometer" />
+        {wide || liveHere ? topBlock : null}
 
-        {/* Automático chosen but blocked (permission, MIUI, battery): said here, not only in Ajustes. */}
-        {/* IMP 01102026 Phase 4: an update waiting (OTA) or a new APK. */}
-        <UpdateBanner />
-        {FEATURE_TRIPS && tripsModeNow === 'auto' ? <AutoBlockedCard /> : null}
+        <Pressable
+          onPress={() => router.push('/cifras')}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.hoy.summary}. ${t.hoy.summaryOpen}`}
+          style={[styles.monthStrip, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, marginTop: 0 }]}>
+          <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
+            {t.hoy.summary}
+          </T>
+          <View style={styles.monthRow}>
+            <MonthStat label={t.home.monthSpend} value={money(monthSpend)} wide />
+            <MonthStat label={t.home.monthKm} value={fmtKm(Math.round(monthKm))} />
+            <MonthStat
+              label={t.home.monthEconomy}
+              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit) : '—'}
+            />
+          </View>
+        </Pressable>
 
-        {FEATURE_TRIPS && tripsModeNow !== 'off' && !live ? (
+        <Collapsible id="hoy-activity" title={t.hoy.activity} count={activityCount || undefined} hint={t.hoy.activityHint} defaultOpen={firstStepsActive}>
+        {firstStepsActive ? (
+          <FirstSteps
+            steps={firstSteps}
+            onDismiss={() => {
+              setStepFlags((f2) => ({ ...f2, firstStepsHidden: true }));
+              void setFlag(FIRST_STEPS_HIDDEN_KEY);
+            }}
+          />
+        ) : null}
+        {installOffer ? (
           <Pressable
-            onPress={() => void beginTrip()}
-            disabled={tripBusy}
-            accessibilityRole="button"
-            style={[styles.pendingRow, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, borderLeftColor: theme.accent }]}>
-            <View style={{ flex: 1 }}>
-              <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
-                {t.trips.start}
-              </T>
-              <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: 2 }}>
-                {tripsModeNow === 'auto' ? t.trips.startHintAuto : t.trips.startHint}
-              </T>
-            </View>
+            onPress={() => router.push('/instalar')}
+            accessibilityRole="link"
+            style={[styles.pendingRow, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong, borderLeftColor: theme.accent, marginBottom: space.sm }]}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+              {t.install.pill}
+            </T>
           </Pressable>
         ) : null}
+
+        {/* Note 10: how this odometer rises — once, until "Entendido". */}
+        <TipCard id="odometer" />
 
         {pending.length ? (
           <View style={styles.pending}>
@@ -612,45 +742,6 @@ export default function HomeScreen() {
         <CarHealth vehicle={activeVehicle} fillups={vehicleFillups} />
         <HomeNudge hasVehicle fillups={vehicleFillups.length} />
 
-        <QuickActions
-          actions={[
-            { label: t.quickActions.fuel, icon: 'flash-outline', onPress: () => router.push('/carga/nueva') },
-            { label: t.quickActions.check, icon: 'clipboard-outline', onPress: () => router.push('/chequeo') },
-            // BUILD and PISTA take these slots once their phases ship (ADR-24).
-            FEATURE_BUILD
-              ? { label: t.quickActions.build, icon: 'construct-outline', onPress: () => router.push({ pathname: '/vehiculo/[id]', params: { id: activeVehicle.id, tab: 'build' } }) }
-              : { label: t.quickActions.service, icon: 'construct-outline', onPress: () => router.push('/servicio/nuevo') },
-            FEATURE_TRACK
-              ? { label: t.quickActions.track, icon: 'speedometer-outline', onPress: () => router.push({ pathname: '/pista', params: { vehicleId: activeVehicle.id } }) }
-              : { label: t.quickActions.expense, icon: 'cash-outline', onPress: () => router.push('/gasto/nuevo') },
-            { label: t.features.short.repair, icon: 'build-outline', onPress: () => router.push({ pathname: '/servicio/nuevo', params: { kind: 'reparacion', vehicleId: activeVehicle.id } }) },
-            // Cifras left the tab bar (IMP 30092026 Phase 4, ADR-43): a tile here and Más's first row.
-            { label: t.tabs.cifras, icon: 'stats-chart-outline', onPress: () => router.push('/cifras') },
-          ]}
-        />
-
-        <View style={[styles.monthStrip, { backgroundColor: theme.bg.surface, borderColor: theme.lineStrong }]}>
-          <View style={styles.brandRow}>
-            <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11 }}>
-              {t.home.monthStrip}
-            </T>
-            <T face="kana" style={{ color: theme.text.muted, fontSize: 9 }}>
-              記録
-            </T>
-          </View>
-          <View style={styles.monthRow}>
-            <MonthStat label={t.home.monthSpend} value={money(monthSpend)} wide />
-            <MonthStat label={t.home.monthKm} value={fmtKm(Math.round(monthKm))} />
-            <MonthStat
-              label={t.home.monthEconomy}
-              value={monthAvg != null ? kmPerUnit(monthAvg, activeVehicle.defaultFuelType, activeVehicle.detail?.volumeUnit, activeVehicle.detail?.economyUnit) : '—'}
-            />
-          </View>
-          <T face="body" style={{ color: theme.text.muted, fontSize: 12, marginTop: space.sm }}>
-            {t.home.monthFillupsLine(monthLogs.length)}
-          </T>
-        </View>
-
         {insight ? (
           <Surface style={{ marginBottom: space.md }}>
             <T face="semibold" style={{ color: theme.accent, fontSize: 15 }}>
@@ -694,11 +785,21 @@ export default function HomeScreen() {
           </T>
         </Surface>
         </Pressable>
+        </Collapsible>
         </DashCol>
         </DashCols>
       </ScrollView>
       {location.sheet}
       <DictateSheet visible={dictateOpen} onClose={() => setDictateOpen(false)} />
+      <FeatureSetSheet
+        visible={setOpen}
+        suggested={suggestion}
+        onClose={() => {
+          setSetOpen(false);
+          setStepFlags((f2) => ({ ...f2, offerDismissed: true }));
+          void setFlag(FEATURE_OFFER_DISMISSED_KEY);
+        }}
+      />
     </SafeAreaView>
   );
 }

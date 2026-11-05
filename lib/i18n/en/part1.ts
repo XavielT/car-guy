@@ -104,7 +104,7 @@ export const enPart1: Pick<
   },
 
   tabs: {
-    inicio: 'Home',
+    inicio: 'Today',
     garaje: 'Garage',
     chequeo: 'Check',
     historial: 'History',

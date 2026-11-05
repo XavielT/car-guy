@@ -48,3 +48,8 @@ export type FeatureId = (typeof FEATURE_IDS)[number];
 
 export type FeatureSection = 'vehiculo' | 'registrar' | 'diagnostico' | 'viajes' | 'cuenta';
 export const FEATURE_SECTIONS: FeatureSection[] = ['registrar', 'diagnostico', 'vehiculo', 'viajes', 'cuenta'];
+
+/** ADR-73: the topics of "Qué quiero ver" (+ `basics`, always shown) and how essential a function is. */
+export type FeatureGroup = 'fuel_expenses' | 'maintenance' | 'documents' | 'trips' | 'project' | 'track' | 'community' | 'basics';
+export const FEATURE_TOPICS: Exclude<FeatureGroup, 'basics'>[] = ['fuel_expenses', 'maintenance', 'documents', 'trips', 'project', 'track', 'community'];
+export type FeatureLevel = 'core' | 'regular' | 'advanced';

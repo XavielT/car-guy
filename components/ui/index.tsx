@@ -6,13 +6,17 @@ import { useTheme } from '@/lib/theme/useTheme';
 import { T } from '../T';
 
 export { Badge, type BadgeTone } from './Badge';
+export { BigAction, BigActions, BIG_ACTION_MIN, type BigActionDef } from './BigAction';
 export { BoostRing } from './BoostRing';
 export { CarbonFrame } from './CarbonFrame';
 export { ClusterHero } from './ClusterHero';
+export { Collapsible } from './Collapsible';
 export { CornerGrid, type Corner, type CornerValues } from './CornerGrid';
 export { EmptyState } from './EmptyState';
 export { GaugeRing } from './GaugeRing';
 export { Hanko } from './Hanko';
+export { NextStepCard } from './NextStepCard';
+export { StatusRow, type StatusTone } from './StatusRow';
 export { HazardDivider } from './HazardDivider';
 export { LcdDigits } from './LcdDigits';
 export { TelltaleRow, type Lamp, type LampIcon } from './TelltaleRow';
