@@ -19,6 +19,7 @@ import { settings as settingsRepo } from '../db/repos';
 import { trips } from '../db/tripOps';
 import type { Trip } from '../db/types';
 import { applyStep, loadState, type Applied } from './finalize';
+import { logTimeline } from './timeline';
 import type { Fix } from './geo';
 import { SpeedEngine } from './speed';
 import { resolveTripCfg, stepAll, type TripCfg, type TripInput, type TripMachineState } from './machine';
@@ -97,7 +98,11 @@ export function feed(input: TripInput | TripInput[], ctx: FeedCtx = {}, opts: { 
     for (const r of stepAll(state, inputs, cfg)) {
       if (r.open && !vehicleId) vehicleId = await defaultVehicleId();
       if (r.open && !vehicleId) break;
+      const phaseBefore = out.state.phase;
       const applied = await applyStep(r, { vehicleId: vehicleId ?? '', role, flushPoints: true });
+      if (applied.state.phase !== phaseBefore) logTimeline({ kind: 'phase', from: phaseBefore, to: applied.state.phase });
+      if (applied.opened && r.open) logTimeline({ kind: 'trip', what: 'created', source: r.open.source });
+      if (applied.closed?.discarded) logTimeline({ kind: 'trip', what: 'discarded', source: state.trip?.source ?? 'unknown', reason: applied.closed.reason, distanceM: Math.round(applied.closed.distanceM) });
       out.applied.push(applied);
       out.state = applied.state;
       if (applied.switchTo) out.switchTo = applied.switchTo;

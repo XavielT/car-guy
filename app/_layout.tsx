@@ -36,6 +36,7 @@ import { refreshFuelPriceRefOnLaunch } from '@/lib/cloud/fuelPriceRef';
 import { initLanguage, localeTag, refreshSystemLanguage, t, useLanguage } from '@/lib/i18n';
 import { StoreProvider, useStore } from '@/lib/store';
 import { useSyncTriggers } from '@/lib/sync/triggers';
+import { flushTimeline, logTimeline } from '@/lib/trips/timeline';
 import { useTripService } from '@/lib/trips/useTripService';
 import { useUpdateChecks } from '@/lib/updates/useUpdateChecks';
 import { useFeedbackBoot } from '@/lib/feedback/useFeedbackBoot';
@@ -240,6 +241,9 @@ function useNotifications() {
     if (Platform.OS === 'web') return;
     const listener = AppState.addEventListener('change', (state) => {
       if (state === 'active') requestResync();
+      // The trip journal (SPEC-H §H1): when the app changes state, and written out before it can be reclaimed.
+      logTimeline({ kind: 'app', state });
+      if (state !== 'active') void flushTimeline();
     });
     return () => listener.remove();
   }, []);

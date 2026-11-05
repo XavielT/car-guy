@@ -23,6 +23,7 @@ import { recordError, recordNote } from '../diagnostics';
 import { checkPermission } from '../permissions/store';
 import { t } from '../i18n';
 import { feed, machineState } from './engine';
+import { logTimeline } from './timeline';
 import { setTripsSingleConfig, tripsMode, tripsSingleConfig } from './settings';
 
 export const TRIP_TASK = 'carguy-trip-location';
@@ -117,7 +118,10 @@ export async function armAuto(): Promise<boolean> {
     const readiness = mode === 'auto' ? await autoReadiness() : null;
     if (mode !== 'auto' || readiness !== 'ready') {
       // Phase 0's Redmi: Automático chosen, no permission, and nothing anywhere said why it was off.
-      if (mode === 'auto') recordNote('trip-arm', `Automático not armed: ${readiness}`);
+      if (mode === 'auto') {
+        recordNote('trip-arm', `Automático not armed: ${readiness}`);
+        logTimeline({ kind: 'arm', ok: false, reason: `Automático not armed: ${readiness}` });
+      }
       await disarmAuto();
       return false;
     }
@@ -127,10 +131,13 @@ export async function armAuto(): Promise<boolean> {
     if (!started || current !== intensity) {
       await Location.startLocationUpdatesAsync(TRIP_TASK, taskOptions()[intensity]);
       current = intensity;
+      logTimeline({ kind: 'service', running: true });
     }
+    logTimeline({ kind: 'arm', ok: true, reason: intensity });
     return true;
   } catch (error) {
     recordError('trip-arm', error);
+    logTimeline({ kind: 'arm', ok: false, reason: `error: ${error instanceof Error ? error.message.slice(0, 80) : String(error).slice(0, 80)}` });
     return false;
   }
 }

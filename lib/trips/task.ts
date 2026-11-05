@@ -10,12 +10,14 @@
  */
 import type * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import { AppState } from 'react-native';
 
 import { recordError } from '../diagnostics';
 import { initLanguage } from '../i18n';
 import { switchIntensity, TRIP_TASK } from './auto';
 import { feed } from './engine';
 import { fixFromLocation } from './machine';
+import { flushTimeline, logTimeline } from './timeline';
 
 export type TripTaskData = { locations?: Location.LocationObject[] };
 
@@ -28,6 +30,10 @@ export async function handleTripTask({ data, error }: { data?: TripTaskData | nu
   }
   const locations = data?.locations ?? [];
   if (!locations.length) return;
+  // The journal's CPU proxy: how long this invocation ran, and whether the app was in the background (SPEC-H §H1).
+  const startedAt = Date.now();
+  const background = AppState.currentState !== 'active';
+  const bestAccM = locations.reduce<number | null>((m, l) => (l.coords.accuracy == null ? m : m == null ? l.coords.accuracy : Math.min(m, l.coords.accuracy)), null);
   // A headless start (the app was swiped away, the service kept running) has not
   // read the stored language yet; the service notification it may rewrite needs it.
   if (!languageRead) {
@@ -40,6 +46,7 @@ export async function handleTripTask({ data, error }: { data?: TripTaskData | nu
   } catch (e) {
     recordError('trip-task', e);
   }
+  logTimeline({ kind: 'task', fixes: locations.length, bestAccM: bestAccM == null ? null : Math.round(bestAccM), ms: Date.now() - startedAt, background });
   // IMP 01102026 Phase 6: a member sharing "En vivo" in a junte keeps publishing while the app is behind (REST).
   try {
     const { publishFromBackground } = await import('../junte/channel');
@@ -49,8 +56,14 @@ export async function handleTripTask({ data, error }: { data?: TripTaskData | nu
   } catch (e) {
     recordError('junte-bg', e);
   }
+  // A headless run has no foreground to flush from: write what we have before the process can be reclaimed.
+  if (background) void flushTimeline();
 }
 
 if (!TaskManager.isTaskDefined(TRIP_TASK)) {
   TaskManager.defineTask<TripTaskData>(TRIP_TASK, (body) => handleTripTask(body));
 }
+
+// Every time the JS runtime starts: was the app in front, or did the system wake it (an alarm, a notification, the location service)?
+// A cold start runs the whole bundle, which is the most CPU the app ever uses; the journal says how often that happens in the background.
+logTimeline({ kind: 'app', state: `process-start:${AppState.currentState}` });

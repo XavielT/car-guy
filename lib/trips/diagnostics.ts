@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 import { recentErrors, type DiagnosticEntry } from '../diagnostics';
 import { rawLocationPermissions } from '../permissions/impl';
 import type { TripMachineState } from './machine';
+import { summarize, type TimelineEntry } from './timeline';
 
 export type PermissionSnapshot = {
   status: string;
@@ -41,6 +42,10 @@ export type TripDiagnosticsInput = {
   state: TripMachineState | null;
   lastFixes: FixTiming[];
   errors: DiagnosticEntry[];
+  /** The 14-day journal (lib/trips/timeline.ts): counts, accuracies and durations only. Optional so older callers still compile. */
+  timeline?: TimelineEntry[];
+  /** `ApplicationExitInfo` reasons from the system, when a native probe is available (PROMPT-09 step 3). */
+  exitReasons?: { at: number; reason: string; subreason?: string; importance?: number; description?: string }[] | null;
 };
 
 /** The share-safe shape: timings, accuracies and states only — no lat/lng anywhere. */
@@ -96,6 +101,9 @@ export function buildTripDiagnostics(input: TripDiagnosticsInput) {
       speedKmh: f.speed == null || f.speed < 0 ? null : Math.round(f.speed * 3.6),
     })),
     errors: input.errors.filter((e) => /^trip|location|task/i.test(e.where)),
+    // Why the system killed the process, and what the app itself did in the background (docs/imp-03112026/trips-diagnosis.md).
+    exitReasons: input.exitReasons ?? null,
+    timeline: { summary: summarize(input.timeline ?? []), last: (input.timeline ?? []).slice(-60) },
   };
 }
 
@@ -155,6 +163,7 @@ export async function gatherTripDiagnostics(): Promise<ReturnType<typeof buildTr
     state,
     lastFixes: (rows ?? []).slice().reverse(),
     errors: recentErrors(),
+    timeline: await safe(async () => (await import('./timeline')).readTimeline()).then((x) => x ?? []),
   });
 }
 
