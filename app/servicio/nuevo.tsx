@@ -48,6 +48,7 @@ import { t } from '@/lib/i18n';
 import { catalogLabel } from '@/lib/i18n/catalog';
 import { Alert } from '@/lib/alert';
 import { isInvalidNumber, parseDecimal, roundMoney } from '@/lib/math';
+import { useFormDraft } from '@/components/forms/useFormDraft';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -294,6 +295,17 @@ export default function NuevoServicioScreen() {
     };
   }, [vehicleId, oilItemKey, editingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // An unfinished new service or repair survives leaving the screen.
+  const formDraft = useFormDraft(`service:new:${kind === 'reparacion' ? 'repair' : 'service'}`, { odometer, title, description, costParts, costLabor, shop }, !editingId, (v) => {
+    setOdometer(v.odometer);
+    setTitle(v.title);
+    if (v.title) setTitleTouched(true);
+    setDescription(v.description);
+    setCostPartsRaw(v.costParts);
+    setCostLaborRaw(v.costLabor);
+    setShopRaw(v.shop);
+  });
+
   if (!activeVehicle) return null;
   const isRepair = kind === 'reparacion';
   const oilFuel = activeVehicle.defaultFuelType?.startsWith('gasoil') ? 'diesel' : 'gasolina';
@@ -390,6 +402,7 @@ export default function NuevoServicioScreen() {
           ]);
         }
       }
+      formDraft.clear();
       await refresh();
 
       if (isRepair) {
@@ -791,6 +804,8 @@ export default function NuevoServicioScreen() {
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
           {isRepair ? (editingId ? t.repair.editTitle : t.repair.title) : editingId ? t.service.editTitle : t.service.newTitle}
         </T>
+
+        {formDraft.banner}
 
         {/* The repair mode has no kind selector: the kind is fixed (Reclasificar, in the detail, changes it). */}
         {!isRepair ? (

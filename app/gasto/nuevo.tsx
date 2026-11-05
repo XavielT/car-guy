@@ -26,6 +26,7 @@ import { t } from '@/lib/i18n';
 import { Alert } from '@/lib/alert';
 import { useAiDraftOnce, withoutMark } from '@/lib/ai/draft';
 import { isInvalidNumber, parseDecimal } from '@/lib/math';
+import { useFormDraft } from '@/components/forms/useFormDraft';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme/useTheme';
 
@@ -55,6 +56,12 @@ export default function NuevoGastoScreen() {
   const [currentKm, setCurrentKm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expenseId] = useState(() => editingId ?? `exp_${Date.now()}`);
+  const formDraft = useFormDraft('expense:new', { amount, odometer, description, vendor }, !editingId, (v) => {
+    setAmount(v.amount);
+    setOdometer(v.odometer);
+    setDescription(v.description);
+    setVendor(v.vendor);
+  });
   // IMP 03112026 (ADR-67): a receipt photo fills amount, date and vendor (never the category); the person saves as always.
   const [marks, setMarks] = useState<ExpenseMarks>(() => ({
     ...(dm.amount != null ? { amount: dm.amount } : {}),
@@ -136,6 +143,7 @@ export default function NuevoGastoScreen() {
           `${t.expense.legalDone}\n\n${result.resets.map((r) => `· ${r}`).join('\n')}`,
         );
       }
+      formDraft.clear();
       router.back();
     })();
   }
@@ -146,6 +154,7 @@ export default function NuevoGastoScreen() {
         <T face="display" style={[styles.h, { color: theme.text.primary }]}>
           {editingId ? t.expense.editTitle : t.expense.newTitle}
         </T>
+        {formDraft.banner}
 
         <T face="eyebrow" style={[styles.label, { color: theme.text.secondary }]}>
           {t.expense.category}

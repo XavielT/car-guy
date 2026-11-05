@@ -2,7 +2,7 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux' | 'recap' | 'prepare'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux' | 'recap' | 'prepare' | 'draft'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
 
@@ -120,6 +120,15 @@ export const enPart6: Pick<
     share: { title: 'Share recap', story: 'Story (9:16)', feed: 'Post (4:5)', spend: 'Show spending', spendHint: 'Off: no amount appears in the image.', car: "Show the car's name", me: 'Show my name', never: 'Never shown: plate, VIN, odometer, exact places, your home or work, or other people\'s names.', make: 'Create image', saved: 'Image ready', failed: 'The image could not be created.', download: 'Download', thin: 'There is still too little to share.', footer: 'Car Guy' },
     notify: { title: 'Recaps', caption: 'A reminder on the 1st of each month at 9:00 and on 1 January.', monthTitle: (m: string) => `Your ${m} recap is ready`, yearTitle: (y: number) => `Your ${y} year with the car is ready`, body: 'See it in Car Guy.' },
     ready: (label: string) => `Your ${label} recap is ready`,
+  },
+  draft: {
+    title: 'You have a draft',
+    body: (age: { unit: 'minutes' | 'hours' | 'days'; n: number }) => {
+      const what = age.unit === 'minutes' ? (age.n === 1 ? '1 minute' : `${age.n} minutes`) : age.unit === 'hours' ? (age.n === 1 ? '1 hour' : `${age.n} hours`) : age.n === 1 ? '1 day' : `${age.n} days`;
+      return `You left this half-done ${what} ago. Pick it back up?`;
+    },
+    restore: 'Restore draft',
+    discard: 'Start fresh',
   },
   prepare: {
     eyebrow: 'READY TO DRIVE',

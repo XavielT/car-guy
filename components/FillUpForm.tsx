@@ -28,6 +28,7 @@ import { fuelCfgFor, readingFrac } from '@/lib/domain/partialEconomy';
 import { fromLiters } from '@/lib/domain/units';
 import { FEATURE_GAUGE_SEGMENTS } from '@/lib/flagsV10';
 import { usePriceData } from '@/hooks/usePriceData';
+import { useFormDraft } from '@/components/forms/useFormDraft';
 import { boardSourceLabel, prefillPrice } from '@/lib/domain/fuelPrices';
 import { dateInputFromIso, isoFromDateInput, money, todayIsoDate, volume as fmtVol } from '@/lib/format';
 import { t } from '@/lib/i18n';
@@ -110,6 +111,21 @@ export function FillUpForm({
   const [station, setStation] = useState(initial?.station && initial.station !== 'Otra' ? initial.station : (pf.station ?? ''));
   const [stationOpen, setStationOpen] = useState(false);
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  // An unfinished new fill-up survives leaving the screen (only new logs: an edit has its saved row).
+  const draft = useFormDraft(
+    `fuel:new:${vehicleId}`,
+    { odo, vol, price: typedPrice, total, station, notes },
+    !initial,
+    (v) => {
+      setOdo(v.odo);
+      setVol(v.vol);
+      setPrice(v.price);
+      setTotal(v.total);
+      setStation(v.station);
+      setNotes(v.notes);
+      if (v.price) setPriceTyped(true);
+    },
+  );
 
   // v6: labels follow the vehicle's volume unit (GNV stays m³).
   const detail = data.vehicles.find((v) => v.id === vehicleId)?.detail;
@@ -283,6 +299,8 @@ export function FillUpForm({
     if (accepted === false) {
       savingRef.current = false;
       setSaving(false);
+    } else {
+      draft.clear();
     }
   }
 
@@ -294,6 +312,7 @@ export function FillUpForm({
           {' 給油'}
         </T>
       </T>
+      {draft.banner}
       <T face="body" style={[styles.p, { color: theme.text.secondary }]}>
         {t.fuel.intro(t.fuel.unitWord(FUEL_CATALOG[fuel].unit === 'm3' ? 'm3' : volumeUnit))}
       </T>

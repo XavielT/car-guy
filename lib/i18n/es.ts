@@ -212,6 +212,15 @@ export const es = {
     notify: { title: 'Resúmenes', caption: 'Un aviso el día 1 de cada mes a las 9:00 y el 1 de enero.', monthTitle: (m: string) => `Tu resumen de ${m} está listo`, yearTitle: (y: number) => `Tu año ${y} con el carro está listo`, body: 'Míralo en Car Guy.' },
     ready: (label: string) => `Tu resumen de ${label} está listo`,
   },
+  draft: {
+    title: 'Tienes un borrador',
+    body: (age: { unit: 'minutes' | 'hours' | 'days'; n: number }) => {
+      const what = age.unit === 'minutes' ? (age.n === 1 ? '1 minuto' : `${age.n} minutos`) : age.unit === 'hours' ? (age.n === 1 ? '1 hora' : `${age.n} horas`) : age.n === 1 ? '1 día' : `${age.n} días`;
+      return `Dejaste esto a medias hace ${what}. ¿Lo recuperas?`;
+    },
+    restore: 'Recuperar borrador',
+    discard: 'Empezar de cero',
+  },
   prepare: {
     eyebrow: 'LISTO PARA MANEJAR',
     title: 'Prepara tu teléfono',
