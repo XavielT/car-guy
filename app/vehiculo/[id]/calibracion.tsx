@@ -12,7 +12,8 @@ import type { Vehicle } from '@/lib/db/types';
 import { t } from '@/lib/i18n';
 import { parseDecimal } from '@/lib/math';
 import { useTheme } from '@/lib/theme/useTheme';
-import { DEFAULT_CALIBRATION, factorInRange, proposeSpeedFactor, roundFactor, steadySample, type CarCalibration, type SpeedSample } from '@/lib/trips/calibration';
+import { loadOdoIntervals } from '@/lib/db/odoIntervals';
+import { DEFAULT_CALIBRATION, factorInRange, ODO_MIN_KM, proposeOdoFactor, proposeSpeedFactor, roundFactor, steadySample, type CarCalibration, type OdoInterval, type SpeedSample } from '@/lib/trips/calibration';
 import { loadCalibration, saveCalibration } from '@/lib/trips/calibrationStore';
 import { fixFromLocation } from '@/lib/trips/machine';
 import { SpeedEngine } from '@/lib/trips/speed';
@@ -36,6 +37,7 @@ export default function CalibrationScreen() {
   const [estimated, setEstimated] = useState(false);
   const [steady, setSteady] = useState<ReturnType<typeof steadySample>>({ ok: false, reason: 'short' });
   const [note, setNote] = useState<string | null>(null);
+  const [odoIntervals, setOdoIntervals] = useState<OdoInterval[]>([]);
   const recent = useRef<{ t: number; kmh: number }[]>([]);
   const sub = useRef<{ remove: () => void } | null>(null);
 
@@ -44,6 +46,7 @@ export default function CalibrationScreen() {
       setVehicle(v);
       setCal(c);
     });
+    void loadOdoIntervals(id).then(setOdoIntervals).catch(() => setOdoIntervals([]));
     return () => sub.current?.remove();
   }, [id]);
 
@@ -73,6 +76,8 @@ export default function CalibrationScreen() {
   }
 
   const proposal = useMemo(() => proposeSpeedFactor(samples), [samples]);
+  const odoProposal = useMemo(() => proposeOdoFactor(odoIntervals), [odoIntervals]);
+  const odoEnough = odoIntervals.filter((i) => i.gpsKm >= ODO_MIN_KM && i.odoKm >= ODO_MIN_KM).length;
 
   function takeSample() {
     const typed = parseDecimal(dash);
@@ -89,6 +94,14 @@ export default function CalibrationScreen() {
     await saveCalibration(vehicle.id, next);
     setCal(next);
     setNote(t.calibration.applied);
+  }
+
+  async function applyOdo() {
+    if (!odoProposal || !vehicle) return;
+    const next = { ...cal, odoFactor: odoProposal.factor };
+    await saveCalibration(vehicle.id, next);
+    setCal(next);
+    setNote(t.calibration.odoApplied);
   }
 
   async function setShow(dashMode: boolean) {
@@ -198,6 +211,32 @@ export default function CalibrationScreen() {
           {t.calibration.moreSamples(3 - samples.length)}
         </T>
       ) : null}
+
+      <T face="eyebrow" style={{ color: theme.text.muted, fontSize: 11, marginTop: space.lg, marginBottom: space.sm }}>
+        {t.calibration.odoTitle}
+      </T>
+      <Surface padded>
+        <T face="body" style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 19 }}>
+          {t.calibration.odoHow}
+        </T>
+        {cal.odoFactor !== 1 ? (
+          <T face="semibold" style={{ color: theme.statusText.ok, fontSize: 13, marginTop: space.xs }}>
+            {t.calibration.odoCurrent(cal.odoFactor)}
+          </T>
+        ) : null}
+        {odoProposal ? (
+          <View style={{ marginTop: space.sm, gap: space.xs }}>
+            <T face="semibold" style={{ color: theme.text.primary, fontSize: 15 }}>
+              {t.calibration.odoProposal(odoProposal.factor, odoProposal.n)}
+            </T>
+            <PrimaryButton label={t.calibration.odoApply(odoProposal.factor)} onPress={() => void applyOdo()} disabled={odoProposal.factor === cal.odoFactor} />
+          </View>
+        ) : (
+          <T face="body" style={{ color: theme.text.muted, fontSize: 13, marginTop: space.xs }}>
+            {t.calibration.odoNeedMore(odoEnough)}
+          </T>
+        )}
+      </Surface>
 
       {note ? (
         <T face="body" accessibilityLiveRegion="polite" style={{ color: theme.accent, fontSize: 13, marginTop: space.sm }}>

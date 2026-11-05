@@ -3,6 +3,7 @@ import { enqueue, getDb, now } from './client';
 import { makeRepo } from './repos/base';
 import { odometer as odometerRepo, settings as settingsRepo } from './repos';
 import { calibrationFactor, estimateOdometer } from '../trips/odometer';
+import { loadCalibration } from '../trips/calibrationStore';
 
 /**
  * Schema v6 data access that is not a plain synced table (01-data-model-v6.md):
@@ -138,7 +139,9 @@ export async function suggestOdometerFromTrip(trip: Trip): Promise<number | null
       )
     )?.m ?? 0) / 1000;
   const [last, prev] = typed;
-  const factor = prev ? calibrationFactor(last.value_km - prev.value_km, await gpsKm(prev.occurred_at, last.occurred_at)) : 1;
+  // The factor the person applied on Ficha → Calibración (learned from >= 3 long intervals) wins over the last interval alone.
+  const saved = (await loadCalibration(trip.vehicleId)).odoFactor;
+  const factor = saved !== 1 ? saved : prev ? calibrationFactor(last.value_km - prev.value_km, await gpsKm(prev.occurred_at, last.occurred_at)) : 1;
   const km = estimateOdometer({ lastTypedKm: last.value_km, gpsSinceKm: await gpsKm(last.occurred_at, null), factor });
   if (km == null || km <= last.value_km) return null;
   const readingId = `odo_trip_${trip.id}`;
