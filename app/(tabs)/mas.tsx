@@ -207,7 +207,7 @@ export default function MasScreen() {
                 const { main, advanced } = splitAdvanced(shown, featureSet);
                 if (!main.length && !advanced.length) return null;
                 return (
-                  <Collapsible key={section} id={`mas-${section}`} title={t.mas.groups[section]} count={main.length + advanced.length}>
+                  <Collapsible key={section} id={`mas-${section}`} title={t.mas.groups[section]} count={main.length + advanced.length} defaultOpen={section === 'registrar'}>
                     {main.map(card)}
                     {advanced.length ? (
                       <Collapsible id={`mas-${section}-adv`} title={t.mas.advanced} count={advanced.length}>

@@ -632,7 +632,7 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
-        <Collapsible id="hoy-activity" title={t.hoy.activity} count={activityCount || undefined} hint={t.hoy.activityHint} defaultOpen={firstStepsActive}>
+        <Collapsible id="hoy-activity" title={t.hoy.activity} count={activityCount || undefined} hint={t.hoy.activityHint} defaultOpen={firstStepsActive && !stepsDone.fillup}>
         {firstStepsActive ? (
           <FirstSteps
             steps={firstSteps}

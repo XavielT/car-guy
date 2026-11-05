@@ -12,6 +12,7 @@ import { T } from '@/components/T';
 import {
   Badge,
   CarbonFrame,
+  Collapsible,
   EmptyState,
   GhostButton,
   LcdDigits,
@@ -408,6 +409,7 @@ export default function VehicleHubScreen() {
           {tab === 'resumen' && FEATURE_BUILD ? <BuildSummary vehicleId={vehicle.id} version={version} /> : null}
           {tab === 'resumen' && FEATURE_TRACK ? <TrackSummaryLine vehicleId={vehicle.id} version={version} /> : null}
           {tab === 'resumen' ? (
+            <Collapsible id="ficha-resumen" title={t.miCarro.details} hint={t.miCarro.detailsHint}>
             <Resumen
               vehicle={vehicle}
               totals={totals}
@@ -421,6 +423,7 @@ export default function VehicleHubScreen() {
               onWriteStory={() => setStoryOpen(true)}
               readOnly={readOnly}
             />
+            </Collapsible>
           ) : tab === 'album' && FEATURE_ALBUM ? (
             <AlbumTab vehicleId={vehicle.id} version={version} />
           ) : tab === 'eventos' && FEATURE_EVENTS ? (

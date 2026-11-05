@@ -1,0 +1,166 @@
+[
+  {
+    "id": "account",
+    "title": "Cuenta"
+  },
+  {
+    "id": "album",
+    "title": "Álbum"
+  },
+  {
+    "id": "book",
+    "title": "Libro del carro"
+  },
+  {
+    "id": "build",
+    "title": "Build"
+  },
+  {
+    "id": "check",
+    "title": "Chequeo semanal"
+  },
+  {
+    "id": "community",
+    "title": "Comunidad"
+  },
+  {
+    "id": "contacts",
+    "title": "Contactos"
+  },
+  {
+    "id": "docs",
+    "title": "Documentos"
+  },
+  {
+    "id": "editvehicle",
+    "title": "Editar el carro"
+  },
+  {
+    "id": "event",
+    "title": "Registrar evento"
+  },
+  {
+    "id": "events",
+    "title": "Eventos"
+  },
+  {
+    "id": "expense",
+    "title": "Registrar gasto"
+  },
+  {
+    "id": "feedback",
+    "title": "Comentarios"
+  },
+  {
+    "id": "ficha",
+    "title": "Ficha técnica"
+  },
+  {
+    "id": "fluids",
+    "title": "Guía de fluidos"
+  },
+  {
+    "id": "fuel",
+    "title": "Cargar gasolina"
+  },
+  {
+    "id": "garage",
+    "title": "Garaje"
+  },
+  {
+    "id": "install",
+    "title": "Instalar la app"
+  },
+  {
+    "id": "juntes",
+    "title": "Juntes"
+  },
+  {
+    "id": "members",
+    "title": "Miembros del garaje"
+  },
+  {
+    "id": "mod",
+    "title": "Agregar modificación"
+  },
+  {
+    "id": "notifications",
+    "title": "Notificaciones"
+  },
+  {
+    "id": "obd",
+    "title": "Códigos del motor (OBD)"
+  },
+  {
+    "id": "odometer",
+    "title": "Actualizar kilometraje"
+  },
+  {
+    "id": "permissions",
+    "title": "Permisos y acceso"
+  },
+  {
+    "id": "photo",
+    "title": "Agregar fotos"
+  },
+  {
+    "id": "prices",
+    "title": "Precios de combustible"
+  },
+  {
+    "id": "reminders",
+    "title": "Recordatorios"
+  },
+  {
+    "id": "repair",
+    "title": "Registrar reparación"
+  },
+  {
+    "id": "repairs",
+    "title": "Reparaciones"
+  },
+  {
+    "id": "service",
+    "title": "Registrar servicio"
+  },
+  {
+    "id": "share",
+    "title": "Compartir"
+  },
+  {
+    "id": "stats",
+    "title": "Cifras"
+  },
+  {
+    "id": "support",
+    "title": "Apoyar"
+  },
+  {
+    "id": "tasks",
+    "title": "Tareas"
+  },
+  {
+    "id": "track",
+    "title": "Pista"
+  },
+  {
+    "id": "trip",
+    "title": "Iniciar viaje"
+  },
+  {
+    "id": "trips",
+    "title": "Viajes"
+  },
+  {
+    "id": "tripsettings",
+    "title": "Ajustes de viajes"
+  },
+  {
+    "id": "versions",
+    "title": "Novedades"
+  },
+  {
+    "id": "welcome",
+    "title": "Bienvenida"
+  }
+]

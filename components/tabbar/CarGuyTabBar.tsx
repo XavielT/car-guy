@@ -56,6 +56,7 @@ export function CarGuyTabBar({ state, descriptors, navigation, insets }: BottomT
   return (
     <View style={{ backgroundColor: theme.bg.base, paddingTop: BAND }}>
       <View
+        {...(Platform.OS === 'web' ? ({ role: 'navigation' } as object) : {})}
         style={[
           styles.bar,
           {
@@ -95,8 +96,9 @@ export function CarGuyTabBar({ state, descriptors, navigation, insets }: BottomT
               key={route.key}
               onPress={onPress}
               onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
-              accessibilityRole="tab"
+              accessibilityRole={Platform.OS === 'web' ? 'link' : 'tab'}
               accessibilityState={{ selected: focused }}
+              {...(Platform.OS === 'web' ? ({ 'aria-current': focused ? 'page' : undefined } as object) : {})}
               accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
               style={styles.tab}>
               {options.tabBarIcon?.({ focused, color, size: 24 })}

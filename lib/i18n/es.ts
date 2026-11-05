@@ -160,6 +160,8 @@ export const es = {
 
   miCarro: {
     title: 'Mi carro',
+    details: 'Detalles del carro',
+    detailsHint: 'Totales, especificaciones e historia',
     ago: { today: 'hoy', yesterday: 'ayer', days: (n: number) => `hace ${n} días`, months: (n: number) => (n === 1 ? 'hace 1 mes' : `hace ${n} meses`) },
     service: 'Servicios y reparaciones',
     serviceNone: 'Todavía no hay ninguno.',
@@ -4187,16 +4189,16 @@ export const es = {
       cuenta: 'App y cuenta',
     },
     items: {
-      obd: { title: 'Diagnóstico OBD', desc: 'Busca el código de la luz del tablero (P0300…)' },
+      obd: { title: 'Códigos del motor (OBD)', desc: 'Busca el código de la luz del tablero (P0300…)' },
       repair: { title: 'Registrar reparación', desc: 'Qué se arregló, dónde, cuánto costó y la factura.' },
       repairs: { title: 'Reparaciones', desc: 'Todas las reparaciones del carro: taller, costo y garantía.' },
       fuel: { title: 'Cargar gasolina', desc: 'Galones, precio y tanque lleno: el consumo sale solo.' },
       trip: { title: 'Iniciar viaje', desc: 'Graba la ruta, los kilómetros y el tiempo al volante.' },
       service: { title: 'Registrar servicio', desc: 'Cambio de aceite, filtros, frenos: el mantenimiento al día.' },
       expense: { title: 'Registrar gasto', desc: 'Peaje, seguro, lavado, parqueo: lo que no es gasolina.' },
-      odometer: { title: 'Actualizar odómetro', desc: 'Corrige los kilómetros cuando el tablero marque otra cosa.' },
+      odometer: { title: 'Actualizar kilometraje', desc: 'Corrige los kilómetros cuando el tablero marque otra cosa.' },
       event: { title: 'Registrar evento', desc: 'Un choque, un sobrecalentamiento, un hito: lo que le pasó al carro.' },
-      mod: { title: 'Registrar mod', desc: 'Una pieza nueva o una mejora, con su costo y su fecha.' },
+      mod: { title: 'Agregar modificación', desc: 'Una pieza nueva o una mejora, con su costo y su fecha.' },
       photo: { title: 'Agregar fotos', desc: 'Importa fotos del carro a su álbum, con su fecha.' },
       check: { title: 'Chequeo semanal', desc: 'Gomas, luces, niveles: una vuelta rápida al carro.' },
       reminders: { title: 'Recordatorios', desc: 'Lo que vence pronto, por fecha o por kilómetros.' },

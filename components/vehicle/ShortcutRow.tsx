@@ -21,7 +21,7 @@ export function ShortcutRow({ vehicleId }: { vehicleId: string }) {
     .filter((f) => f.shortcut != null)
     .sort((a, b) => (a.shortcut ?? 0) - (b.shortcut ?? 0));
   return (
-    <EdgeScroll bg={theme.bg.base} contentContainerStyle={styles.row} accessibilityRole="list">
+    <EdgeScroll bg={theme.bg.base} contentContainerStyle={styles.row}>
       {items.map((def) => {
         const label = t.features.short[def.id as keyof typeof t.features.short];
         return (

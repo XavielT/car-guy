@@ -6,8 +6,8 @@ import { Platform, View } from 'react-native';
 import { TabsInicioSkeleton } from '@/components/skeletons/TabsInicioSkeleton';
 import { CarGuyTabBar } from '@/components/tabbar';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { NAV_ITEMS } from '@/lib/nav/model';
 import { FEATURE_ONBOARDING_V2 } from '@/lib/flagsV8';
-import { t } from '@/lib/i18n';
 import { useWelcomeGate } from '@/lib/onboarding/welcome';
 import { settings as settingsRepo } from '@/lib/db/repos';
 import { requestPersistentStorage } from '@/lib/platform/capabilities';
@@ -63,38 +63,17 @@ export default function TabLayout() {
       // icons and titles below and handles the safe area and the keyboard itself.
       tabBar={(props) => <CarGuyTabBar {...props} />}
       screenOptions={{ headerShown: false }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t.tabs.inicio,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="speedometer-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="garaje"
-        options={{
-          title: t.tabs.garaje,
-          tabBarIcon: ({ color, size }) => <Ionicons name="car-sport-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="historial"
-        options={{
-          title: t.tabs.historial,
-          tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="mas"
-        options={{
-          title: t.tabs.mas,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ellipsis-horizontal" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* The tabs come from the one navigation model (lib/nav/model.ts): the rail on a wide screen reads the same list. */}
+      {NAV_ITEMS.filter((n) => n.tab).map((n) => (
+        <Tabs.Screen
+          key={n.id}
+          name={n.tabName as string}
+          options={{
+            title: n.label(),
+            tabBarIcon: ({ color, size }) => <Ionicons name={n.icon} size={size} color={color} />,
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

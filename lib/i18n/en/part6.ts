@@ -70,6 +70,8 @@ export const enPart6: Pick<
 
   miCarro: {
     title: 'My car',
+    details: 'Car details',
+    detailsHint: 'Totals, specifications and story',
     ago: { today: 'today', yesterday: 'yesterday', days: (n: number) => `${n} days ago`, months: (n: number) => (n === 1 ? '1 month ago' : `${n} months ago`) },
     service: 'Services and repairs',
     serviceNone: 'None yet.',
@@ -957,16 +959,16 @@ export const enPart6: Pick<
       cuenta: 'App and account',
     },
     items: {
-      obd: { title: 'OBD diagnostics', desc: 'Look up the code behind the dashboard light (P0300…)' },
+      obd: { title: 'Engine codes (OBD)', desc: 'Look up the code behind the dashboard light (P0300…)' },
       repair: { title: 'Log a repair', desc: 'What was fixed, where, what it cost, and the invoice.' },
       repairs: { title: 'Repairs', desc: 'Every repair of the car: shop, cost and warranty.' },
       fuel: { title: 'Log fuel', desc: 'Gallons, price and full tank: the economy works itself out.' },
       trip: { title: 'Start a trip', desc: 'Records the route, the kilometres and the time at the wheel.' },
       service: { title: 'Log a service', desc: 'Oil change, filters, brakes: maintenance up to date.' },
       expense: { title: 'Log an expense', desc: 'Tolls, insurance, washing, parking: what is not fuel.' },
-      odometer: { title: 'Update the odometer', desc: 'Correct the kilometres when the dash says something else.' },
+      odometer: { title: 'Update the mileage', desc: 'Correct the kilometres when the dash says something else.' },
       event: { title: 'Log an event', desc: 'A crash, an overheating, a milestone: what happened to the car.' },
-      mod: { title: 'Log a mod', desc: 'A new part or an upgrade, with its cost and date.' },
+      mod: { title: 'Add a modification', desc: 'A new part or an upgrade, with its cost and date.' },
       photo: { title: 'Add photos', desc: 'Import photos of the car into its album, with their date.' },
       check: { title: 'Weekly check', desc: 'Tires, lights, levels: a quick walk around the car.' },
       reminders: { title: 'Reminders', desc: 'What is due soon, by date or by kilometres.' },

@@ -8,24 +8,13 @@ import { radius, space } from '@/constants/theme';
 import { settings } from '@/lib/db/repos';
 import { t } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
-import { railActive, type RailId } from '@/lib/theme/layout';
+import { NAV_ITEMS as ITEMS } from '@/lib/nav/model';
+import { railActive } from '@/lib/theme/layout';
 import { useTheme } from '@/lib/theme/useTheme';
 import { useLiveTrip } from '@/lib/trips/liveStore';
 
 const COLLAPSED_KEY = 'rail_collapsed';
 export const RAIL_WIDTH = { open: 232, collapsed: 68 } as const;
-
-type Item = { id: RailId; href: string; icon: keyof typeof Ionicons.glyphMap; label: () => string; key: string };
-
-/** The six destinations of the phone's tab bar, in the same order (SPEC-F §F2). "Herramientas" is the hub, drawn from the registry. */
-const ITEMS: Item[] = [
-  { id: 'inicio', href: '/', icon: 'speedometer-outline', label: () => t.tabs.inicio, key: 'g i' },
-  { id: 'garaje', href: '/garaje', icon: 'car-sport-outline', label: () => t.tabs.garaje, key: 'g g' },
-  { id: 'conducir', href: '/conducir', icon: 'navigate-circle-outline', label: () => t.tabs.conducir, key: 'g c' },
-  { id: 'historial', href: '/historial', icon: 'time-outline', label: () => t.tabs.historial, key: 'g h' },
-  { id: 'herramientas', href: '/herramientas', icon: 'apps-outline', label: () => t.features.title, key: 'g t' },
-  { id: 'mas', href: '/mas', icon: 'ellipsis-horizontal', label: () => t.tabs.mas, key: 'g m' },
-];
 
 /**
  * The side rail (SPEC-F §F2, ADR-70), shown from 1024 px on the web instead of the bottom tab bar: the same destinations, the vehicle

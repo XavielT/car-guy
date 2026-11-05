@@ -15,6 +15,7 @@ import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { DesktopShell } from '@/components/layout/DesktopShell';
+import { DocumentTitle } from '@/components/layout/DocumentTitle';
 import { AppState, Platform, View } from 'react-native';
 
 import { AlertHost } from '@/components/AlertHost';
@@ -282,6 +283,7 @@ function Shell() {
   // SPEC-F (ADR-70): compact is untouched; regular is a centred column with the tab bar; wide gets the side rail (components/layout).
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg.base }}>
+      <DocumentTitle />
       <DesktopShell>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
