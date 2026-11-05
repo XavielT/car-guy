@@ -501,7 +501,7 @@ export const FEATURES: FeatureDef[] = [
     group: 'trips',
     level: 'core',
     needsVehicle: false,
-    covers: ['viaje/*', 'viajes/*'],
+    covers: ['viaje/*', 'viajes/*', 'preparar'],
     enabled: FEATURE_TRIPS,
     permission: 'location_foreground',
     keywords: {

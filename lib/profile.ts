@@ -136,7 +136,7 @@ export async function chooseAvatar(id: AvatarId): Promise<PushResult> {
   await removeLocalPhoto(previous);
   await reloadProfile();
   // Local is saved and on screen already; the caller may await the upload to report it.
-  return pushProfile();
+  return pushProfile(undefined, { authoritative: true });
 }
 
 export async function saveDisplayName(name: string): Promise<PushResult> {
@@ -152,7 +152,7 @@ export async function removePhoto(): Promise<PushResult> {
   await removeLocalPhoto(previous);
   await reloadProfile();
   // Local is saved and on screen already; the caller may await the upload to report it.
-  return pushProfile();
+  return pushProfile(undefined, { authoritative: true });
 }
 
 function blobToDataUri(blob: Blob): Promise<string> {
@@ -183,7 +183,7 @@ async function storePhoto(uri: string): Promise<PushResult> {
   if (previous && previous !== stored) await removeLocalPhoto(previous);
   await reloadProfile();
   // Local is saved and on screen already; the caller may await the upload to report it.
-  return pushProfile();
+  return pushProfile(undefined, { authoritative: true });
 }
 
 export type PhotoResult = { saved: false } | { saved: true; push: PushResult };
@@ -230,7 +230,11 @@ export type PushResult = { ok: true } | { ok: false; reason: 'not-configured' | 
  * the local copy is the one that matters, and the next change or sign-in
  * tries again.
  */
-export async function pushProfile(userId?: string): Promise<PushResult> {
+export async function pushProfile(userId?: string, opts: { authoritative?: boolean } = {}): Promise<PushResult> {
+  // `authoritative`: the person just changed the photo/avatar on THIS phone (picked, removed, chose a drawing), so what is
+  // here is the truth, including "no photo". Otherwise (a name saved, a sign-in) a phone that simply has no photo must NOT
+  // erase the account's: that is how a photo set elsewhere used to disappear (found 2026-11-05).
+  const authoritative = opts.authoritative === true;
   const supabase = getSupabase();
   if (!supabase) return { ok: false, reason: 'not-configured' };
   try {
@@ -254,16 +258,17 @@ export async function pushProfile(userId?: string): Promise<PushResult> {
         }
         avatarPath = path;
       }
-    } else {
+    } else if (authoritative) {
       // No photo any more: the old one should not linger in the bucket (or the quota).
       void bucket.remove([path]).then(({ error }) => error && recordError('profile-remove', error));
     }
 
-    const patch: { avatar_id: string | null; avatar_path: string | null; updated_at: string; display_name?: string } = {
-      avatar_id: profile.avatarId,
-      avatar_path: avatarPath,
+    const patch: { avatar_id?: string | null; avatar_path?: string | null; updated_at: string; display_name?: string } = {
       updated_at: new Date().toISOString(),
     };
+    // Only say what this phone knows: a missing photo/drawing is "unknown here", never "delete it", unless authoritative.
+    if (authoritative || profile.avatarId) patch.avatar_id = profile.avatarId;
+    if (authoritative || avatarPath) patch.avatar_path = avatarPath;
     // A name set at signup lives on the row already; an empty local name never erases it.
     if (profile.displayName) patch.display_name = profile.displayName;
     const { error } = await supabase.from('profiles').update(patch).eq('user_id', uid);
@@ -291,9 +296,15 @@ async function pullProfile(uid: string): Promise<void> {
     .eq('user_id', uid)
     .maybeSingle();
   if (error || !data) return;
-  if (isAvatarId(data.avatar_id)) await settings.set(PROFILE_KEYS.avatarId, data.avatar_id);
-  if (data.display_name?.trim()) await settings.set(PROFILE_KEYS.displayName, cleanDisplayName(data.display_name));
-  if (data.avatar_path) {
+  // Fill in only what this phone does not have: what was chosen here always wins.
+  const [localAvatar, localPhoto, localName] = await Promise.all([
+    settings.get<string | null>(PROFILE_KEYS.avatarId, null),
+    settings.get<string | null>(PROFILE_KEYS.photo, null),
+    settings.get<string | null>(PROFILE_KEYS.displayName, null),
+  ]);
+  if (!localAvatar && !localPhoto && isAvatarId(data.avatar_id)) await settings.set(PROFILE_KEYS.avatarId, data.avatar_id);
+  if (!localName?.trim() && data.display_name?.trim()) await settings.set(PROFILE_KEYS.displayName, cleanDisplayName(data.display_name));
+  if (data.avatar_path && !localPhoto && !localAvatar) {
     const { data: blob, error: downloadError } = await supabase.storage.from(BUCKET).download(data.avatar_path);
     if (!downloadError && blob) {
       if (Platform.OS === 'web') {
@@ -331,8 +342,20 @@ export async function syncProfileOnSignIn(uid: string): Promise<void> {
   try {
     const local = await reloadProfile();
     if (hasLocalProfile(local)) await pushProfile(uid);
-    else await pullProfile(uid);
+    // Always bring down what this phone lacks (a name set here no longer hides the account's photo).
+    await pullProfile(uid);
   } catch (error) {
     recordError('profile-sign-in', error);
   }
+}
+
+const syncedThisRun = new Set<string>();
+/**
+ * Once per app run for a signed-in account, including a session restored at start (not only a fresh sign-in): a phone that
+ * was already signed in never pulled the account's photo before (found 2026-11-05). Cheap: one row, and the photo only if missing.
+ */
+export async function syncProfileOnSession(uid: string): Promise<void> {
+  if (syncedThisRun.has(uid)) return;
+  syncedThisRun.add(uid);
+  await syncProfileOnSignIn(uid);
 }

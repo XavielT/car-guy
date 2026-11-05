@@ -441,10 +441,10 @@ export default function HomeScreen() {
       case 'recap':
         return { title: t.hoy.step.recapTitle(step.label), body: t.hoy.step.recapBody, cta: t.hoy.step.recapCta, onAction: go({ pathname: '/resumen/[period]', params: { period: step.id } } as never), tone: 'accent' as const, icon: 'stats-chart-outline' as const, later: true };
       case 'detection':
-        return { title: t.hoy.step.detectionTitle, body: step.message, cta: t.hoy.step.detectionCta, onAction: go('/viajes/permisos'), tone: 'warn' as const, icon: 'navigate-outline' as const, later: true };
+        return { title: t.hoy.step.detectionTitle, body: step.message, cta: t.hoy.step.detectionCta, onAction: go('/preparar' as never), tone: 'warn' as const, icon: 'navigate-outline' as const, later: true };
       case 'firstRun':
         return step.item === 'trips'
-          ? { title: t.hoy.step.tripsTitle, body: t.hoy.step.tripsBody, cta: t.hoy.step.tripsCta, onAction: go('/viajes/ajustes'), tone: 'accent' as const, icon: 'navigate-outline' as const, later: true }
+          ? { title: t.hoy.step.tripsTitle, body: t.hoy.step.tripsBody, cta: t.hoy.step.tripsCta, onAction: go('/preparar' as never), tone: 'accent' as const, icon: 'navigate-outline' as const, later: true }
           : { title: t.hoy.step.fuelNever, body: t.hoy.step.fuelNeverBody, cta: t.hoy.step.fuelCta, onAction: go('/carga/nueva'), tone: 'accent' as const, icon: 'flash-outline' as const, later: true };
       case 'featureSet':
         return { title: t.hoy.step.featureSetTitle, body: t.hoy.step.featureSetBody, cta: t.hoy.step.featureSetCta, onAction: () => setSetOpen(true), tone: 'accent' as const, icon: 'options-outline' as const, later: true };

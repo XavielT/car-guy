@@ -249,6 +249,8 @@ export function useSession(): SessionState {
       setOtherApp(rejectedOtherApp);
       setSession(next);
       setReady(true);
+      // A restored session counts too: pull the account's profile photo if this phone has none.
+      if (next) void import('../profile').then((profile) => profile.syncProfileOnSession(next.user.id)).catch((error) => recordError('profile-session', error));
     };
 
     supabase.auth

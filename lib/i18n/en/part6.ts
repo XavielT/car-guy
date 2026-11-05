@@ -2,7 +2,7 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux' | 'recap'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux' | 'recap' | 'prepare'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
 
@@ -120,6 +120,27 @@ export const enPart6: Pick<
     share: { title: 'Share recap', story: 'Story (9:16)', feed: 'Post (4:5)', spend: 'Show spending', spendHint: 'Off: no amount appears in the image.', car: "Show the car's name", me: 'Show my name', never: 'Never shown: plate, VIN, odometer, exact places, your home or work, or other people\'s names.', make: 'Create image', saved: 'Image ready', failed: 'The image could not be created.', download: 'Download', thin: 'There is still too little to share.', footer: 'Car Guy' },
     notify: { title: 'Recaps', caption: 'A reminder on the 1st of each month at 9:00 and on 1 January.', monthTitle: (m: string) => `Your ${m} recap is ready`, yearTitle: (y: number) => `Your ${y} year with the car is ready`, body: 'See it in Car Guy.' },
     ready: (label: string) => `Your ${label} recap is ready`,
+  },
+  prepare: {
+    eyebrow: 'READY TO DRIVE',
+    title: 'Get your phone ready',
+    intro: 'For trips to save themselves, the phone has to let Car Guy work. I will walk you through it: you just tap the button and, when needed, turn on the switch it shows you.',
+    progress: (done: number, total: number) => `${done} of ${total} ready`,
+    done: 'Done',
+    todo: 'Missing',
+    now: 'Now',
+    allDone: 'All set. Car Guy can now record your trips.',
+    allDoneBody: 'Turn on automatic trips and drive.',
+    enableAuto: 'Turn on automatic trips',
+    autoOn: 'Automatic trips are on',
+    back: 'Back',
+    steps: {
+      notifications: { title: 'Notifications', why: 'So you can see Car Guy is watching and get told when a trip is saved.', cta: 'Allow notifications' },
+      location_foreground: { title: 'Location', why: 'To measure your speed and draw your route while you drive.', cta: 'Allow location' },
+      location_background: { title: 'Location “all the time”', why: 'So the trip is saved even with the screen off. On the screen that opens, choose “Allow all the time”.', cta: 'Allow all the time' },
+      battery_unrestricted: { title: 'No battery limit', why: 'So the phone does not close Car Guy in the background. Tap “Allow” or “No restrictions”.', cta: 'Remove the limit' },
+      autostart: { title: 'Autostart (Xiaomi)', why: 'Your phone is a Xiaomi: turn on the Car Guy switch in “Autostart” so it can start by itself.', cta: 'Open autostart', confirm: 'I turned it on' },
+    },
   },
   ux: {
     moreDetails: 'More details',

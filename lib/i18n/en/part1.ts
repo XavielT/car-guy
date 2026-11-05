@@ -95,6 +95,7 @@ export const enPart1: Pick<
     trip: 'Trip',
     tripSettings: 'Trip settings',
     tripPermissions: 'Location',
+    prepare: 'Get your phone ready',
     permissions: 'Permissions & access',
   },
 
