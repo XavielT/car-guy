@@ -58,6 +58,17 @@ export function parseDecimal(raw: string): number | null {
 }
 
 /**
+ * Reads a fuel volume (gallons or litres). Unlike money, a tank never holds thousands of units, so a lone comma is
+ * ALWAYS the decimal mark: "6,299" is 6.299 gal, not 6299 (parseDecimal reads it as thousands, which turned a 6.3 gal
+ * fill-up into 6,299 gal and a 30 km/gal tank into 0.1).
+ */
+export function parseVolume(raw: string): number | null {
+  const s = raw.trim().replace(/\s+/g, '');
+  if (/^\d+,\d+$/.test(s)) return parseDecimal(s.replace(',', '.'));
+  return parseDecimal(raw);
+}
+
+/**
  * Something was typed but it is not a usable amount ("abc", "-200"). Forms
  * refuse to save on this instead of storing 0 or dropping the value — a
  * negative catalog interval used to silently delete the interval.

@@ -15,7 +15,7 @@ import { clearAiDraft, peekAiDraft, withoutMark, type DraftPhoto } from '@/lib/a
 import { fuelPrefillFrom, type AiMarks, type FuelPrefill } from '@/lib/ai/fuelMap';
 import type { ReadResult } from '@/lib/ai/read';
 import { MI_TO_KM, firstFlagByField, fuelSanity, type SanityFlag } from '@/lib/domain/fuelSanity';
-import { completeAmounts, odometerBounds, parseDecimal } from '@/lib/domain/economy';
+import { completeAmounts, odometerBounds, parseDecimal, parseVolume } from '@/lib/domain/economy';
 import { FUEL_CATALOG, perUnitLabelFor, unitLabelFor } from '@/lib/fuel';
 import { PickerField, SearchSheet, type SearchItem } from '@/components/pickers';
 import { brandsForFuel, normaliseStation, recentStations } from '@/lib/domain/stations';
@@ -172,7 +172,7 @@ export function FillUpForm({
   const amounts = useMemo(
     () =>
       completeAmounts({
-        volume: parseDecimal(vol),
+        volume: parseVolume(vol),
         pricePerUnit: parseDecimal(price),
         totalDop: parseDecimal(total),
       }),
@@ -219,7 +219,7 @@ export function FillUpForm({
     const mine = data.fillups.filter((f) => f.vehicleId === vehicleId);
     const lastPrice = mine.length ? [...mine].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)).at(-1)!.pricePerUnit : null;
     return fuelSanity(
-      { odometerKm: parseDecimal(odo), odoUnitMi: milesRead, volume: parseDecimal(vol), pricePerUnit: parseDecimal(price), total: parseDecimal(total), date },
+      { odometerKm: parseDecimal(odo), odoUnitMi: milesRead, volume: parseVolume(vol), pricePerUnit: parseDecimal(price), total: parseDecimal(total), date },
       {
         lastOdometerKm: lastOdo,
         tankVolume: fuelCfgFor(detail).capacityL ? Number(fromLiters(fuelCfgFor(detail).capacityL!, volumeUnit).toFixed(1)) : null,

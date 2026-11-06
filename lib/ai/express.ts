@@ -10,7 +10,7 @@
  *   · `expressToDraft` is the same validation the manual form runs on Save (odometer bounds, the two-of-three amounts), so a
  *     card that confirms is a record the form would have accepted.
  */
-import { completeAmounts, odometerBounds, parseDecimal } from '../domain/economy';
+import { completeAmounts, odometerBounds, parseDecimal, parseVolume } from '../domain/economy';
 import { MI_TO_KM, firstFlagByField, fuelSanity, type SanityFlag } from '../domain/fuelSanity';
 import { isoFromDateInput } from '../format';
 import type { FillUp, FuelType } from '../types';
@@ -76,7 +76,7 @@ export function suggestFullTank(fuelLevel: number | undefined, volume: number | 
 }
 
 export function buildExpressCard(prefill: FuelPrefill, marks: AiMarks, ctx: ExpressContext): ExpressCard {
-  const volume = prefill.vol != null ? parseDecimal(prefill.vol) : null;
+  const volume = prefill.vol != null ? parseVolume(prefill.vol) : null;
   const fullTank = suggestFullTank(prefill.fuelLevel, volume, ctx.tankVolume);
   const values: ExpressValues = {
     date: prefill.date ?? ctx.today,
@@ -97,7 +97,7 @@ export function cardFrom(values: ExpressValues, marks: AiMarks, ctx: ExpressCont
     {
       odometerKm: parseDecimal(values.odo),
       odoUnitMi: milesRead,
-      volume: parseDecimal(values.vol),
+      volume: parseVolume(values.vol),
       pricePerUnit: parseDecimal(values.price),
       total: parseDecimal(values.total),
       date: values.date,
@@ -133,7 +133,7 @@ export function expressToDraft(v: ExpressValues, vehicleId: string, vehicleFillu
   const bounds = odometerBounds(vehicleFillups, isoFromDateInput(v.date));
   if (bounds.min != null && odometerKm < bounds.min) return { ok: false, reason: 'odometer_low', bound: bounds.min };
   if (bounds.max != null && odometerKm > bounds.max) return { ok: false, reason: 'odometer_high', bound: bounds.max };
-  const amounts = completeAmounts({ volume: parseDecimal(v.vol), pricePerUnit: parseDecimal(v.price), totalDop: parseDecimal(v.total) });
+  const amounts = completeAmounts({ volume: parseVolume(v.vol), pricePerUnit: parseDecimal(v.price), totalDop: parseDecimal(v.total) });
   if (!amounts) return { ok: false, reason: 'amounts' };
   return {
     ok: true,
