@@ -1,5 +1,7 @@
 {
   "version": "2.7.0",
   "android": "1e348ac5b6f4ec972718a9ef00e4291a9326891a",
-  "recordedAt": "2026-11-06T00:41:29.400Z"
+  "recordedAt": "2026-11-06T00:41:29.400Z",
+  "easRuntime": "575e0ee0378e8aba47465413916c0b9de94a7f5f",
+  "easBuild": "bf047158-9438-48fa-be6e-33b265036f65"
 }

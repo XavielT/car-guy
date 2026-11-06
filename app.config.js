@@ -103,9 +103,20 @@ function withFirebase(config) {
   return { ...config, android: { ...config.android, googleServicesFile: './google-services.json' } };
 }
 
+/**
+ * OTA_RUNTIME_VERSION (publishing an EAS Update only): the runtime of the APK that is installed, as EAS computed it on its
+ * servers (`eas build:view` → Runtime Version, kept in releases/fingerprint.json as `easRuntime`). A Windows machine can
+ * compute a different fingerprint for the same native code (2026-11-05: 1e348ac5… here vs 575e0ee0… on EAS), and an update
+ * published under the wrong runtime never reaches the APK. It never touches a build: builds do not set it.
+ */
+function withOtaRuntime(config) {
+  const pinned = process.env.OTA_RUNTIME_VERSION;
+  return pinned && !process.env.EAS_BUILD ? { ...config, runtimeVersion: pinned } : config;
+}
+
 module.exports = ({ config }) => {
   assertReleaseEnv();
-  const base = withGradleMemory(withFirebase(withChannel(applyVariant(config))));
+  const base = withOtaRuntime(withGradleMemory(withFirebase(withChannel(applyVariant(config)))));
   return {
     ...base,
     extra: { ...base.extra, gitSha: gitSha(), variant: process.env.APP_VARIANT ?? null },
