@@ -117,6 +117,7 @@ export default function TripSettingsScreen() {
       {eyebrow(t.trips.permission)}
       <PermissionRow id="location_foreground" />
       <GhostButton label={t.trips.permissionMore} onPress={() => router.push('/viajes/permisos')} />
+      <GhostButton label={t.tripStatus.title} onPress={() => router.push('/viajes/estado' as never)} />
 
       {eyebrow(t.trips.keepAwake)}
       <Surface padded>

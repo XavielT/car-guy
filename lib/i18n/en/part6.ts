@@ -2,7 +2,7 @@ import type { Dict } from '../dict';
 
 export const enPart6: Pick<
   Dict,
-  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux' | 'recap' | 'prepare' | 'draft'> = {
+  'statusChanged' | 'statusSince' | 'garageV2' | 'specSuggestions' | 'carMemory' | 'memory' | 'tireStats' | 'tiresUi' | 'events' | 'priceSources' | 'fuelPricesUi' | 'drive' | 'permissions' | 'language' | 'fuelTypes' | 'fuelGroups' | 'expenseCategories' | 'legalUi' | 'deleteAccount' | 'welcome' | 'profileUi' | 'features' | 'repair' | 'ai' | 'desktop' | 'calibration' | 'hoy' | 'featureSet' | 'mas' | 'miCarro' | 'ux' | 'recap' | 'prepare' | 'draft' | 'tripStatus'> = {
   statusChanged: (label: string, note?: string | null) =>
     `Changed to ${label.toUpperCase()}${note?.trim() ? ` · ${note.trim()}` : ''}`,
 
@@ -127,6 +127,23 @@ export const enPart6: Pick<
     share: { title: 'Share recap', story: 'Story (9:16)', feed: 'Post (4:5)', spend: 'Show spending', spendHint: 'Off: no amount appears in the image.', car: "Show the car's name", me: 'Show my name', never: 'Never shown: plate, VIN, odometer, exact places, your home or work, or other people\'s names.', make: 'Create image', saved: 'Image ready', failed: 'The image could not be created.', download: 'Download', thin: 'There is still too little to share.', footer: 'Car Guy' },
     notify: { title: 'Recaps', caption: 'A reminder on the 1st of each month at 9:00 and on 1 January.', monthTitle: (m: string) => `Your ${m} recap is ready`, yearTitle: (y: number) => `Your ${y} year with the car is ready`, body: 'See it in Car Guy.' },
     ready: (label: string) => `Your ${label} recap is ready`,
+  },
+  tripStatus: {
+    title: 'Detection status',
+    intro: 'Here you see whether Car Guy will record your trip when you get in the car and, if not, what is missing. Every line is a real reading from the phone.',
+    mode: 'Trips mode', modeAuto: 'Automatic', modeManual: 'Manual only: you start the trip', modeOff: 'Off',
+    permissions: 'Location permissions', permOk: 'Ready', permMissing: 'Something is missing: tap to set up',
+    activity: 'Detect when you drive', activityOk: 'Allowed', activityMissing: 'Missing: tap to allow', noModule: 'This version of the app does not include it',
+    trigger: 'System alert (“you are in a vehicle”)', triggerOn: 'Registered', triggerOff: 'Not registered yet',
+    appService: 'App service', serviceOn: 'Active', serviceIdle: 'Idle: the system tells us when you drive', serviceOff: 'Off',
+    recordingNow: 'Recording now', recordingYes: 'Yes, a trip is in progress', recordingNo: 'No',
+    battery: 'Battery', batteryOk: 'No limit', batteryLimited: 'Limited: it can close the app', unknown: 'The phone does not say',
+    autostart: 'Autostart (Xiaomi)', autostartOn: 'On', autostartOff: 'Off: tap to turn it on',
+    checkNow: 'Check now', checking: 'Checking…', checked: 'All checked: no trips were waiting.',
+    tookTrip: (n: number) => `Took ${n} points recorded while the app was closed.`,
+    lastTitle: 'What happened last', tripsCreated: (n: number) => (n === 1 ? '1 trip saved in the last 14 days' : `${n} trips saved in the last 14 days`),
+    noEvents: 'No system alerts yet. They will show here when you drive.',
+    killsTitle: 'When the system closed the app', prepare: 'Get your phone ready',
   },
   draft: {
     title: 'You have a draft',

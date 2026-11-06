@@ -32,6 +32,7 @@ const NO_SKELETON: Record<string, string> = {
   'app/vehiculo/[id]/editar.tsx': 'store-backed form (vehicle detail in memory)',
   'app/viajes/ajustes.tsx': 'settings, instant',
   'app/viajes/permisos.tsx': 'permission states',
+  'app/viajes/estado.tsx': 'live readings, instant',
   'app/preparar.tsx': 'permission states (the registry answers in milliseconds)',
   'app/resumen/index.tsx': 'its own loading state (a recap is built from rows already on the phone)',
   'app/resumen/[period].tsx': 'its own loading state (a recap is built from rows already on the phone)',
