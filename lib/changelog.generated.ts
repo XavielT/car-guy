@@ -4,6 +4,32 @@ import type { ChangelogEntry } from './changelog/parse';
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "2.7.0",
+    "name": "\"Sensei\"",
+    "date": "2026-11-05",
+    "unreleased": false,
+    "intro": [],
+    "sections": [
+      {
+        "title": null,
+        "intro": [],
+        "items": [
+          "**Viajes automáticos con la app cerrada**: Car Guy ahora le pregunta al teléfono si estás en un vehículo (Detección de actividad de Google) y, cuando te subes al carro, un registrador nativo guarda el recorrido aunque la app esté cerrada; al abrir la app se convierte en viaje con las mismas reglas de siempre. El servicio de \"vigilancia\" que gastaba batería y CPU en segundo plano ya no corre mientras no manejas. Si tu teléfono no lo permite, queda el modo anterior. Nota: Google tarda uno o dos minutos en notar que te moviste, así que el comienzo de un viaje puede perderse.",
+          "**Prepara tu teléfono**: una pantalla que te lleva paso a paso por todo lo que los viajes automáticos necesitan (avisos, ubicación, ubicación \"todo el tiempo\", detección de manejo, sin límite de batería y, en Xiaomi, inicio automático). Lee el estado real de cada paso y avanza sola cuando vuelves de Ajustes.",
+          "**Inicio (\"Hoy\")**: Inicio muestra un solo siguiente paso (lo vencido, lo que toca o lo que falta), tu carro y cuatro acciones. Lo demás está en **Más** y en **Mi carro**. **Qué quiero ver** te deja elegir qué funciones aparecen; si no eliges, ves todo.",
+          "**Formularios más cortos**: lo mínimo primero y \"Más detalles\" abajo (echada de combustible, servicio, gasto, recordatorio y carro). El buscador entiende sinónimos (\"luz del tablero\", \"cambio de aceite\", \"factura\").",
+          "**Borradores**: si dejas a medias una echada, un gasto o un servicio, Car Guy lo guarda por una semana y te lo ofrece de nuevo (Recuperar / Empezar de cero).",
+          "**Resúmenes mensuales y anuales**: tu mes y tu año con el carro como historias (distancia, velocidad, combustible, lo que costó, cuidado, comparación con el período anterior), con imagen para compartir (historia o publicación) que nunca incluye placa, odómetro ni datos privados. Un aviso el día 1 de cada mes a las 9:00.",
+          "**Velocidad más precisa**: una sola fuente de velocidad para la aguja, la máxima, el promedio y el mapa. **Calibración por carro**: aprende cuánto marca de más tu tablero (y, con tres tramos de más de 100 km, cuánto se pasa tu odómetro, que ahora usa el estimado después de cada viaje). Los viajes guardados siempre llevan la velocidad del GPS.",
+          "**Rutas**: \"Por dónde manejas\" dibuja líneas finas que se vuelven más marcadas donde más pasas, en vez de la mancha de calor.",
+          "**Diagnóstico de viajes**: el diario de 14 días (sin posiciones) y las razones de cierre del sistema salen en \"Exportar diagnóstico\".",
+          "**IA opcional**: captura por foto o voz, documentos del vehículo y diagnóstico de códigos OBD pasan por una sola puerta con interruptor, consentimiento y topes de gasto. Son primeras versiones: se activan con tu consentimiento.",
+          "**Foto de perfil**: arreglado un error por el que guardar tu nombre o iniciar sesión en otro teléfono podía borrar la foto de tu cuenta; ahora la foto se recupera al abrir la app y lo que elijas en un teléfono nunca se pisa."
+        ]
+      }
+    ]
+  },
+  {
     "version": "2.6.0",
     "name": "\"Kōbō\"",
     "date": "2026-10-21",
