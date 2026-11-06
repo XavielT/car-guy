@@ -3336,6 +3336,8 @@ export const es = {
     intro: 'La app completa: viajes con GPS, fotos, recordatorios y todo lo tuyo sin conexión. Se instala desde aquí, sin Play Store.',
     download: (version: string, size: string | null) => `Descargar APK v${version}${size ? ` · ${size}` : ''}`,
     downloadLatest: 'Descargar APK',
+    iosTitle: 'iPhone: iniciar el viaje al conectar el carro',
+    iosBody: 'El iPhone no deja que una página web detecte viajes sola. Lo que sí puedes hacer: en la app Atajos, crea una Automatización («Cuando me conecte a CarPlay» o al Bluetooth de tu carro) con la acción «Abrir URL» y esta dirección: https://car-guy.vercel.app/conducir?auto=start . Al conectarte, Car Guy abre y empieza a grabar. Límites: la ubicación ya debe estar permitida para Car Guy, y la pantalla debe quedar con Car Guy abierto mientras manejas (en segundo plano el iPhone pausa las páginas web).',
     notAndroid: 'Este archivo es para teléfonos Android. En iPhone o en la computadora, usa Car Guy en el navegador (abajo).',
     more: 'Instalar en Android',
     moreCaption: 'Descarga la app para tu teléfono.',

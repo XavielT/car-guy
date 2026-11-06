@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useKeepAwake } from 'expo-keep-awake';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useIsFocused, useRouter } from 'expo-router';
+import { useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -163,6 +163,20 @@ export default function ConducirScreen() {
     if (result.ok) return;
     if (result.reason !== 'busy') notify(t.trips.needPermission);
   };
+
+  // iPhone assisted start (PROMPT-09 P5b): an iOS Shortcuts automation ("when CarPlay / the car's Bluetooth connects → Open URL")
+  // opens /conducir?auto=start. A web page cannot track in the background, so the trip starts only if the location permission is
+  // already granted (never a permission dialog out of a link) and the screen stays in front while it records.
+  const startParam = useLocalSearchParams<{ auto?: string }>().auto;
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (startParam !== 'start' || autoStarted.current) return;
+    if (live || !tripVehicle || location.status !== 'granted') return;
+    autoStarted.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot start from a link, after the permission is already granted
+    void begin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `begin` closes over the same values this effect waits for
+  }, [startParam, live, tripVehicle, location.status]);
 
   const finish = async () => {
     setBusy(true);

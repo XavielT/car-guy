@@ -575,6 +575,8 @@ export const enPart5: Pick<
     intro: 'The full app: GPS trips, photos, reminders and all your stuff offline. It installs from here, no Play Store.',
     download: (version: string, size: string | null) => `Download APK v${version}${size ? ` · ${size}` : ''}`,
     downloadLatest: 'Download APK',
+    iosTitle: 'iPhone: start the trip when the car connects',
+    iosBody: 'An iPhone does not let a web page detect trips on its own. What you can do: in the Shortcuts app, create an Automation (“When I connect to CarPlay” or your car’s Bluetooth) with the “Open URL” action and this address: https://car-guy.vercel.app/conducir?auto=start . When you connect, Car Guy opens and starts recording. Limits: location must already be allowed for Car Guy, and Car Guy must stay open on screen while you drive (in the background the iPhone pauses web pages).',
     notAndroid: 'This file is for Android phones. On iPhone or a computer, use Car Guy in the browser (below).',
     more: 'Install on Android',
     moreCaption: 'Download the app for your phone.',
