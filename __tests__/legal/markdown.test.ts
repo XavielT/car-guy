@@ -18,7 +18,7 @@ import {
 } from '@/lib/legal/markdown';
 
 const root = join(__dirname, '..', '..');
-const source = (id: LegalDocId, lang: LegalLang) => readFileSync(join(root, 'content', 'legal', `${id}.${lang}.md`), 'utf8');
+const source = (id: LegalDocId, lang: LegalLang) => readFileSync(join(root, 'content', 'legal', `${id}.${lang}.md`), 'utf8').replace(/\r\n/g, '\n'); // CRLF on a Windows checkout; the generators write LF
 
 describe('the tiny Markdown parser', () => {
   it('headings, paragraphs joined across lines, lists, notices and rules', () => {
@@ -92,13 +92,13 @@ describe('generated outputs (node tools/build-legal.mjs)', () => {
   const sources = Object.fromEntries(LEGAL_DOC_IDS.map((id) => [id, { es: source(id, 'es'), en: source(id, 'en') }])) as Record<LegalDocId, Record<LegalLang, string>>;
 
   it('lib/legal/content.generated.ts is current', () => {
-    expect(readFileSync(join(root, 'lib', 'legal', 'content.generated.ts'), 'utf8')).toBe(renderContentModule(sources));
+    expect(readFileSync(join(root, 'lib', 'legal', 'content.generated.ts'), 'utf8').replace(/\r\n/g, '\n')).toBe(renderContentModule(sources));
     expect(LEGAL_MARKDOWN.terminos.es).toBe(sources.terminos.es);
     expect(legalMarkdown('privacidad', 'en')).toBe(sources.privacidad.en);
   });
 
   it.each(LEGAL_DOC_IDS)('public/%s.html is current, has both languages and the version in the raw HTML', (id) => {
-    const html = readFileSync(join(root, 'public', `${id}.html`), 'utf8');
+    const html = readFileSync(join(root, 'public', `${id}.html`), 'utf8').replace(/\r\n/g, '\n');
     expect(html).toBe(renderLegalPage(id, sources[id], LEGAL_VERSION, LEGAL_DATE));
     expect(html).toContain(`content="${LEGAL_VERSION}"`);
     expect(html).toContain('data-lang="es"');

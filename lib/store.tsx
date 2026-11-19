@@ -22,6 +22,7 @@ import { fuelForDisplay, fuelForStorage, tankForDisplay, tankForStorage, type Vo
 import { id } from './format';
 import { lastOdometer } from './math';
 import { EMPTY_DATA } from './storage';
+import { shareStructure } from './structuralShare';
 import type {
   AppData,
   Expense,
@@ -174,7 +175,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const unitOf = new Map(vehicleRows.map((v) => [v.id, v.volumeUnit ?? 'gal']));
     volumeUnits.current = unitOf;
 
-    setData({
+    // shareStructure keeps every unchanged row/array reference and returns the same `data` when
+    // nothing changed — SQLite also changes for things no screen shows (sync flags, trip points),
+    // and each of those used to re-render every consumer and re-plan the notifications.
+    const next: AppData = {
       vehicles: vehicleRows.map((v) => ({
         id: v.id,
         name: v.name,
@@ -225,7 +229,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           createdAt: r.createdAt,
         })),
       settings: { activeVehicleId, referencePrices, priceWeekLabel, includeEstimates, perFill },
-    });
+    };
+    setData((prev) => shareStructure(prev, next));
   }, []);
 
   useEffect(() => {

@@ -4,7 +4,7 @@
  * name ends in `Skeleton`, or when it is in NO_SKELETON below with its reason.
  * A new route fails here until it has one or says why it needs none.
  */
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 
 /** Store-backed (data is in memory before the screen mounts), static, auth-only, or a create form with no initial data. */
@@ -65,8 +65,9 @@ const NO_SKELETON: Record<string, string> = {
 
 // Tracked and new (not yet committed) route files; a tracked file moved away in the
 // working tree (app/(tabs)/cifras.tsx → app/cifras.tsx) is no longer a route.
-const routes = execSync("git ls-files --cached --others --exclude-standard 'app/**/*.tsx' 'app/*.tsx'", { encoding: 'utf8' })
-  .split('\n')
+// execFileSync, not execSync: on Windows a shell would pass the single quotes to git literally and match nothing.
+const routes = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', 'app/**/*.tsx', 'app/*.tsx'], { encoding: 'utf8' })
+  .split(/\r?\n/)
   .filter((f) => f && existsSync(f) && !/_layout|\+html|\+not-found/.test(f))
   .filter((f, i, all) => all.indexOf(f) === i);
 

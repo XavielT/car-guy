@@ -37,6 +37,11 @@ const all = (sql: string, ...p: string[]) => db.prepare(sql).all(...p) as Record
 const AE85 = GARAGE_IDS.ae85;
 
 beforeAll(async () => {
+  // The suite is anchored to the seed day: "the next event" is read against today, so only Date is pinned (timers stay real for SQLite).
+  jest.useFakeTimers({
+    now: new Date(2026, 8, 28),
+    doNotFake: ['nextTick', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'queueMicrotask', 'performance', 'hrtime'],
+  });
   await seedCatalog();
   await seedRealGarage(new Date(2026, 8, 28));
 });

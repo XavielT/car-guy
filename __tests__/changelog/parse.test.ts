@@ -89,8 +89,9 @@ describe('parseChangelog', () => {
 describe('lib/changelog.generated.ts', () => {
   it('matches CHANGELOG.md (run `npm run changelog` if this fails)', () => {
     const root = join(__dirname, '..', '..');
-    const markdown = readFileSync(join(root, 'CHANGELOG.md'), 'utf8');
-    const generated = readFileSync(join(root, 'lib', 'changelog.generated.ts'), 'utf8');
+    // A Windows checkout (autocrlf) has CRLF on disk; the generator writes LF.
+    const markdown = readFileSync(join(root, 'CHANGELOG.md'), 'utf8').replace(/\r\n/g, '\n');
+    const generated = readFileSync(join(root, 'lib', 'changelog.generated.ts'), 'utf8').replace(/\r\n/g, '\n');
     expect(generated).toBe(renderGenerated(parseChangelog(markdown)));
   });
 

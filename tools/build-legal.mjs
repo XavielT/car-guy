@@ -16,6 +16,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+// A Windows checkout has CRLF on disk; the generated files are LF whatever the checkout.
+const lf = (s) => s.replace(/\r\n/g, '\n');
 const md = await import('../lib/legal/markdown.ts');
 const indexSource = await readFile(join(root, 'lib', 'legal', 'index.ts'), 'utf8');
 const version = /LEGAL_VERSION = '([^']+)'/.exec(indexSource)?.[1];
@@ -28,8 +30,8 @@ if (!version || !date) {
 const sources = {};
 for (const id of md.LEGAL_DOC_IDS) {
   sources[id] = {
-    es: await readFile(join(root, 'content', 'legal', `${id}.es.md`), 'utf8'),
-    en: await readFile(join(root, 'content', 'legal', `${id}.en.md`), 'utf8'),
+    es: await readFile(join(root, 'content', 'legal', `${id}.es.md`), 'utf8').then(lf),
+    en: await readFile(join(root, 'content', 'legal', `${id}.en.md`), 'utf8').then(lf),
   };
   for (const lang of ['es', 'en']) {
     if (!sources[id][lang].includes(version)) {
