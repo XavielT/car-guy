@@ -23,6 +23,8 @@ import { id } from './format';
 import { lastOdometer } from './math';
 import { EMPTY_DATA } from './storage';
 import { shareStructure } from './structuralShare';
+import { affectsStore } from './storeTables';
+import { singleFlight } from './singleFlight';
 import type {
   AppData,
   Expense,
@@ -146,7 +148,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Each vehicle's display unit, from the last load: writes convert with it.
   const volumeUnits = useRef<Map<string, VolumeUnit>>(new Map());
 
-  const load = useCallback(async () => {
+  const loadOnce = useCallback(async () => {
     const [vehicleRows, fuelRows, expenseRows, reminderRows] = await Promise.all([
       vehicleRepo.list(undefined, { orderBy: 'sort_order', direction: 'ASC' }),
       fuelRepo.list(undefined, { orderBy: 'occurred_at', direction: 'DESC' }),
@@ -233,6 +235,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setData((prev) => shareStructure(prev, next));
   }, []);
 
+  // Single-flight: a write awaits `load()` itself and the change listener schedules another for the
+  // same write — two full reads for one edit. A call that arrives while a read is running does not
+  // start a second in parallel; it asks for exactly one more pass after it (so the caller still
+  // sees data read after its own write) and shares that promise.
+  const load = useMemo(() => singleFlight(loadOnce), [loadOnce]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -261,7 +269,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const sub = addDatabaseChangeListener(() => {
+    const sub = addDatabaseChangeListener((event) => {
+      // Trip points, the AI queue, photos… cannot change what the store holds (lib/storeTables.ts).
+      if (!affectsStore(event?.tableName)) return;
       // A single upsert touches several tables; coalesce the burst.
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => void load(), 60);

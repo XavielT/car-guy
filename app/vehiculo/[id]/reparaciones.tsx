@@ -57,7 +57,7 @@ export default function RepairsScreen() {
 
   const showSkeleton = useDelayedLoading(rows === null);
   const all = rows ?? [];
-  const shown = useMemo(() => applyRepairFilters(all, filters), [all, filters]);
+  const shown = useMemo(() => applyRepairFilters(rows ?? [], filters), [rows, filters]);
   const today = todayIso();
   const soon = all.filter((r) => isWarrantySoon(r.warrantyUntilDate, today)).length;
   const shops = repairShops(all);

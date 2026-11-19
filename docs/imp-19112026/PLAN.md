@@ -30,9 +30,9 @@ Lists: `ScrollView` in 111 files vs `FlatList` in 8. `memo` 13 uses. Not yet pro
 | Step | Status |
 |---|---|
 | 1. Structural sharing in the store (`lib/structuralShare.ts`): an unchanged reload is a no-op, an edit changes only its row; stops needless re-renders, `useMemo` recomputes and notification re-plans | **done**, 7 tests |
-| 2. Reload only the changed table (use the change listener's table name) | next |
+| 2. Reload only for the 8 tables `load()` reads (`lib/storeTables.ts`; trip points, AI queue, photos no longer trigger a reload) | **done**, tests pin the list |
 | 3. Split the context into slices + selector hooks (`useVehicles`, `useFillups`…) | next |
-| 4. Remove the double render after optimistic writes | next |
+| 4. Single-flight `load()` (`lib/singleFlight.ts`): a write and its change event cost one extra read, not two parallel full reads | **done**, 4 tests |
 | 5. Virtualize the long lists the profiler flags; memoize rows | needs profiling |
 | 6. Animations to the UI thread (`useNativeDriver` appears only twice); startup + bundle size | needs profiling |
 

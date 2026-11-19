@@ -28,7 +28,7 @@ import { recentErrors } from '@/lib/diagnostics';
 import { useDiagnosticsMode } from '@/lib/diagnosticsMode';
 import { FEATURE_ALBUM, FEATURE_SYNC } from '@/lib/flags';
 import { StorageMeter } from '@/components/album/StorageMeter';
-import { dateLabel, dateTimeLabel } from '@/lib/format';
+import { dateTimeLabel } from '@/lib/format';
 import { recordAcceptance } from '@/lib/legal/acceptance';
 import { t } from '@/lib/i18n';
 import { newerSchemaCount } from '@/lib/sync/engine';
